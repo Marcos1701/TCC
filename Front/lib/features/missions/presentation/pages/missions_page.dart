@@ -1,0 +1,304 @@
+import 'package:flutter/material.dart';
+
+import '../../../../core/models/dashboard.dart';
+import '../../../../core/models/mission.dart';
+import '../../../../core/models/mission_progress.dart';
+import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/state/session_controller.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/section_header.dart';
+
+class MissionsPage extends StatefulWidget {
+  const MissionsPage({super.key});
+
+  @override
+  State<MissionsPage> createState() => _MissionsPageState();
+}
+
+class _MissionsPageState extends State<MissionsPage> {
+  final _repository = FinanceRepository();
+  late Future<DashboardData> _future = _repository.fetchDashboard();
+
+  Future<void> _refresh() async {
+    final data = await _repository.fetchDashboard();
+    if (mounted) {
+      setState(() => _future = Future.value(data));
+    }
+  }
+
+  Future<void> _startMission(int missionId) async {
+    await _repository.startMission(missionId);
+    if (!mounted) return;
+    await _refresh();
+    await SessionScope.of(context).refreshSession();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Missão iniciada! Bora cumprir.')),
+    );
+  }
+
+  Future<void> _completeMission(MissionProgressModel mission) async {
+    await _repository.updateMission(progressId: mission.id, status: 'COMPLETED', progress: 100);
+    if (!mounted) return;
+    await _refresh();
+    await SessionScope.of(context).refreshSession();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Missão concluída! XP garantido.')),
+    );
+  }
+
+  Future<void> _editProgress(MissionProgressModel mission) async {
+    final controller = TextEditingController(text: mission.progress.toStringAsFixed(0));
+    final confirmed = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Atualizar progresso'),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(labelText: 'Percentual (0 a 100)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text.replaceAll(',', '.'));
+              if (value == null) return;
+              Navigator.pop(context, value.clamp(0, 100));
+            },
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == null) return;
+    await _repository.updateMission(progressId: mission.id, progress: confirmed);
+    if (!mounted) return;
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _refresh,
+      child: FutureBuilder<DashboardData>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Text(
+                  'Sem conexão com as missões agora.',
+                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(onPressed: _refresh, child: const Text('Tentar novamente')),
+              ],
+            );
+          }
+
+          final data = snapshot.data!;
+
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    Text(
+                      'Missões e desafios',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SectionHeader(
+                      title: 'Em andamento',
+                      actionLabel: 'atualizar',
+                      onActionTap: _refresh,
+                    ),
+                    const SizedBox(height: 12),
+                    if (data.activeMissions.isEmpty)
+                      const _EmptyState(message: 'Sem missões ativas. Pegue uma sugestão ali embaixo.')
+                    else
+                      ...data.activeMissions.map(
+                        (mission) => _ActiveMissionCard(
+                          mission: mission,
+                          onComplete: () => _completeMission(mission),
+                          onEdit: () => _editProgress(mission),
+                        ),
+                      ),
+                    const SizedBox(height: 28),
+                    SectionHeader(
+                      title: 'Sugestões inteligentes',
+                      actionLabel: 'ver todas',
+                      onActionTap: _refresh,
+                    ),
+                    const SizedBox(height: 12),
+                    if (data.recommendedMissions.isEmpty)
+                      const _EmptyState(message: 'Tudo certo! Sem novas sugestões agora.')
+                    else
+                      ...data.recommendedMissions.map(
+                        (mission) => _SuggestedMissionCard(
+                          mission: mission,
+                          onStart: () => _startMission(mission.id),
+                        ),
+                      ),
+                  ]),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ActiveMissionCard extends StatelessWidget {
+  const _ActiveMissionCard({
+    required this.mission,
+    required this.onComplete,
+    required this.onEdit,
+  });
+
+  final MissionProgressModel mission;
+  final VoidCallback onComplete;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            mission.mission.title,
+            style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mission.mission.description,
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: mission.progress.clamp(0, 100) / 100,
+            minHeight: 8,
+            backgroundColor: Colors.white12,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${mission.progress.toStringAsFixed(0)}% • ${mission.mission.rewardPoints} XP',
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+              ),
+              Row(
+                children: [
+                  TextButton(onPressed: onEdit, child: const Text('Progresso')),
+                  const SizedBox(width: 8),
+                  ElevatedButton(onPressed: onComplete, child: const Text('Concluir')),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuggestedMissionCard extends StatelessWidget {
+  const _SuggestedMissionCard({required this.mission, required this.onStart});
+
+  final MissionModel mission;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            mission.title,
+            style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mission.description,
+            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${mission.rewardPoints} XP • ${mission.durationDays} dias',
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+              ),
+              ElevatedButton(onPressed: onStart, child: const Text('Aceitar')), 
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, color: Colors.white54),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
