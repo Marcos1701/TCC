@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'core/state/session_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/auth/auth_flow.dart';

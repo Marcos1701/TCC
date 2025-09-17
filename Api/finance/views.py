@@ -126,7 +126,6 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         serializer = MissionProgressSerializer(progress_qs, many=True)
         return Response(serializer.data)
 
-
 class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-
 import '../storage/secure_storage_service.dart';
 
 /// Cliente único pra falar com a API.

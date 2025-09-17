@@ -25,6 +25,7 @@ def _ensure_default_categories(user):
             Category.objects.get_or_create(user=user, name=name, type=cat_type)
 
 
+
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
