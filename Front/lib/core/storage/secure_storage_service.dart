@@ -1,11 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Service responsible for persisting sensitive information locally using the
-/// platform secure storage (Keychain on iOS, Keystore on Android, etc.).
+/// Serviço que guarda info sensível usando o cofre nativo (Keychain, Keystore...).
 ///
-/// Access tokens, refresh tokens and cryptographic salts described in the
-/// project specification should be saved here. The class exposes a minimal API
-/// that can evolve alongside the authentication module.
+/// Tokens, salts e afins citados no documento ficam aqui. A API é curtinha,
+/// pronta pra crescer junto com o módulo de autenticação.
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();

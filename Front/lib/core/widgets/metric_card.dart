@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Simple reusable card used to highlight financial indicators (TPS, RDR) or
-/// mission progress summaries on the dashboard.
+/// Cartãozinho padrão pra destacar indicadores (TPS, RDR) ou missões no dashboard.
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,

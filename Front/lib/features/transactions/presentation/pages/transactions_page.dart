@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TransactionsPage extends StatelessWidget {
   const TransactionsPage({super.key});
@@ -6,6 +7,8 @@ class TransactionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final currencyFormatter = NumberFormat.simpleCurrency(locale: 'pt_BR');
+    final dateFormatter = DateFormat('dd MMM yyyy', 'pt_BR');
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -35,6 +38,9 @@ class TransactionsPage extends StatelessWidget {
                 final amountPrefix = isIncome ? '+' : '-';
                 final amountColor =
                     isIncome ? theme.colorScheme.primary : theme.colorScheme.error;
+                final formattedAmount =
+                    currencyFormatter.format(transaction.amount.abs());
+                final formattedDate = dateFormatter.format(transaction.date);
 
                 return Card(
                   child: ListTile(
@@ -52,14 +58,14 @@ class TransactionsPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          '$amountPrefix R\$ ${transaction.amount.toStringAsFixed(2)}',
+                          '$amountPrefix $formattedAmount',
                           style: theme.textTheme.labelLarge?.copyWith(
                             color: amountColor,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          transaction.dateLabel,
+                          formattedDate,
                           style: theme.textTheme.bodySmall,
                         ),
                       ],
@@ -88,14 +94,14 @@ class _TransactionItem {
     required this.description,
     required this.category,
     required this.amount,
-    required this.dateLabel,
+    required this.date,
     required this.type,
   });
 
   final String description;
   final String category;
   final double amount;
-  final String dateLabel;
+  final DateTime date;
   final _TransactionType type;
 }
 
@@ -104,28 +110,28 @@ const _mockTransactions = <_TransactionItem>[
     description: 'Salário',
     category: 'Receita Fixa',
     amount: 4200,
-    dateLabel: '05 Jan 2025',
+    date: DateTime(2025, 1, 5),
     type: _TransactionType.income,
   ),
   _TransactionItem(
     description: 'Cartão de crédito',
     category: 'Dívidas',
     amount: 650,
-    dateLabel: '12 Jan 2025',
+    date: DateTime(2025, 1, 12),
     type: _TransactionType.expense,
   ),
   _TransactionItem(
     description: 'Alimentação',
     category: 'Despesas Variáveis',
     amount: 320,
-    dateLabel: '14 Jan 2025',
+    date: DateTime(2025, 1, 14),
     type: _TransactionType.expense,
   ),
   _TransactionItem(
     description: 'Freelance',
     category: 'Receita Variável',
     amount: 850,
-    dateLabel: '18 Jan 2025',
+    date: DateTime(2025, 1, 18),
     type: _TransactionType.income,
   ),
 ];

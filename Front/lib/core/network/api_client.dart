@@ -1,11 +1,9 @@
 import 'package:dio/dio.dart';
 
-/// Basic wrapper responsible for configuring the `Dio` HTTP client used by the
-/// GenApp backend integration.
+/// Casca simples pra montar o `Dio` que vai falar com a API.
 ///
-/// Future tasks will plug authentication interceptors, logging and error
-/// handling policies according to the specification defined in the project
-/// document (JWT, TLS enforcement, retry policies, etc.).
+/// Mais pra frente a gente cola interceptors de auth, logs e regras de erro do
+/// jeito que o documento pede (JWT, TLS obrigatório, retries e tudo mais).
 class ApiClient {
   ApiClient({Dio? dio}) : _dio = dio ?? _createDefaultClient();
 
@@ -25,7 +23,7 @@ class ApiClient {
     dio.interceptors.add(
       QueuedInterceptorsWrapper(
         onRequest: (options, handler) {
-          // Placeholder for authentication headers and telemetry.
+          // Depois encaixamos cabeçalhos de auth e telemetria aqui.
           handler.next(options);
         },
       ),

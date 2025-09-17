@@ -17,13 +17,11 @@ class _NavigationItem {
   final WidgetBuilder builder;
 }
 
-/// Application shell responsible for orchestrating the main navigation tabs.
+/// Casca principal que cuida das abas do app.
 ///
-/// The GenApp revolves around four key areas described in the project report:
-/// dashboard, transactions, missions and the user profile. This widget
-/// centralises them under a [BottomNavigationBar], keeping a single stateful
-/// entry point that can later host shared UI (e.g. drawers, contextual actions,
-/// notifications).
+/// O relatório fala das quatro frentes básicas (dashboard, transações, missões
+/// e perfil) e aqui a gente amarra tudo num `BottomNavigationBar`, deixando um
+/// ponto único pra encaixar ações globais no futuro.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 

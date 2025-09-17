@@ -1,16 +1,22 @@
-# tcc_gen_app
+# Front - GenApp
 
-A new Flutter project.
+App Flutter com as telas e serviços base do GenApp.
 
-## Getting Started
+## Requisitos
 
-This project is a starting point for a Flutter application.
+- Flutter 3.24+
+- Dart 3.5+
 
-A few resources to get you started if this is your first Flutter project:
+## Rodando
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter pub get
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Principais pacotes
+
+- `dio`: cliente HTTP pra falar com a API Django.
+- `flutter_secure_storage`: guarda tokens JWT no cofre do aparelho.
+- `fl_chart`: gráficos pro dashboard financeiro.
+- `intl`: formata valores e datas no padrão brasileiro.

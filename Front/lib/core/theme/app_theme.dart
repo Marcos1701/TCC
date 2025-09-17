@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// Application theme definitions used across the GenApp experience.
+/// Paletas e estilos que vão dar cara pro GenApp.
 ///
-/// The colors and typography are inspired by the project's visual identity
-/// proposed in the documentation, privileging modern tones that reference
-/// trust, stability and growth – concepts associated with financial health.
+/// As cores seguem a identidade comentada no relatório, puxando confiança e
+/// estabilidade pra combinar com o papo de finanças saudáveis.
 class AppTheme {
   const AppTheme._();
 

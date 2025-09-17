@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/shell/root_shell.dart';
 
-/// Root widget for the GenApp application.
+/// Widget raiz do app.
 ///
-/// This widget is responsible for providing the [MaterialApp] configuration
-/// shared by the whole project, such as the application theme and navigation
-/// shell. Future integrations (routing, dependency injection, localization)
-/// should be added here to keep the `main.dart` file lightweight.
+/// Aqui a gente concentra o `MaterialApp`, tema e casca de navegação pra
+/// manter o `main.dart` enxuto e pronto pra receber rotas, injeção de
+/// dependência e afins.
 class GenApp extends StatelessWidget {
   const GenApp({super.key});
 
