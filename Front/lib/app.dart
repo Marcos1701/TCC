@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
-
+import 'core/state/session_controller.dart';
 import 'core/theme/app_theme.dart';
-import 'presentation/shell/root_shell.dart';
+import 'presentation/auth/auth_flow.dart';
 
-/// Widget raiz do app.
-///
-/// Aqui a gente concentra o `MaterialApp`, tema e casca de navegação pra
-/// manter o `main.dart` enxuto e pronto pra receber rotas, injeção de
-/// dependência e afins.
-class GenApp extends StatelessWidget {
+/// Casca raiz com tema fechado e fluxo de login rápido.
+class GenApp extends StatefulWidget {
   const GenApp({super.key});
 
   @override
+  State<GenApp> createState() => _GenAppState();
+}
+
+class _GenAppState extends State<GenApp> {
+  late final SessionController _sessionController = SessionController()
+    ..bootstrap();
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'GenApp',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      home: const RootShell(),
+    return SessionScope(
+      controller: _sessionController,
+      child: MaterialApp(
+        title: 'GenApp',
+        theme: AppTheme.dark,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.dark,
+        debugShowCheckedModeBanner: false,
+        home: const AuthFlow(),
+      ),
     );
   }
 }

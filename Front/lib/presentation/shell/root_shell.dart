@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../core/theme/app_colors.dart';
+import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/missions/presentation/pages/missions_page.dart';
+import '../../features/progress/presentation/pages/progress_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/transactions/presentation/pages/transactions_page.dart';
 
@@ -17,11 +18,6 @@ class _NavigationItem {
   final WidgetBuilder builder;
 }
 
-/// Casca principal que cuida das abas do app.
-///
-/// O relatório fala das quatro frentes básicas (dashboard, transações, missões
-/// e perfil) e aqui a gente amarra tudo num `BottomNavigationBar`, deixando um
-/// ponto único pra encaixar ações globais no futuro.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 
@@ -32,25 +28,30 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> {
   int _currentIndex = 0;
 
-  final List<_NavigationItem> _items = const [
-    _NavigationItem(
-      label: 'Visão Geral',
-      icon: Icons.dashboard_outlined,
-      builder: DashboardPage.new,
+  final List<_NavigationItem> _items = [
+    const _NavigationItem(
+      label: 'Home',
+      icon: Icons.home_rounded,
+      builder: HomePage.new,
     ),
-    _NavigationItem(
+    const _NavigationItem(
       label: 'Transações',
-      icon: Icons.receipt_long_outlined,
+      icon: Icons.swap_vert_rounded,
       builder: TransactionsPage.new,
     ),
-    _NavigationItem(
+    const _NavigationItem(
       label: 'Missões',
-      icon: Icons.emoji_events_outlined,
+      icon: Icons.videogame_asset_rounded,
       builder: MissionsPage.new,
     ),
-    _NavigationItem(
+    const _NavigationItem(
+      label: 'Progresso',
+      icon: Icons.flag_rounded,
+      builder: ProgressPage.new,
+    ),
+    const _NavigationItem(
       label: 'Perfil',
-      icon: Icons.person_outline,
+      icon: Icons.person_rounded,
       builder: ProfilePage.new,
     ),
   ];
@@ -58,29 +59,56 @@ class _RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_items[_currentIndex].label),
-      ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _items
-            .map((item) => KeyedSubtree(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        bottom: false,
+        child: IndexedStack(
+          index: _currentIndex,
+          children: _items
+              .map(
+                (item) => KeyedSubtree(
                   key: PageStorageKey(item.label),
-                  child: item.builder(context),
-                ))
-            .toList(),
+                  child: Container(
+                    color: AppColors.background,
+                    child: item.builder(context),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: _items
-            .map(
-              (item) => BottomNavigationBarItem(
-                icon: Icon(item.icon),
-                label: item.label,
-              ),
-            )
-            .toList(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.textSecondary,
+            showUnselectedLabels: true,
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+            items: _items
+                .map(
+                  (item) => BottomNavigationBarItem(
+                    icon: Icon(item.icon),
+                    label: item.label,
+                  ),
+                )
+                .toList(),
+          ),
+        ),
       ),
     );
   }

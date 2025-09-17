@@ -30,9 +30,12 @@ python manage.py runserver
 
 Endpoints principais disponíveis após autenticação JWT:
 
-- `GET /api/dashboard/`: resumo com TPS, RDR e totais.
-- `GET/POST /api/transactions/`: CRUD de transações.
-- `GET /api/missions/`: missões ativas.
-- `GET/POST /api/mission-progress/`: progresso gamificado.
-- `GET/POST /api/goals/`: metas financeiras.
+- `POST /api/auth/register/`: cria usuário e devolve tokens.
 - `POST /api/token/`: gera par token/refresh.
+- `GET /api/profile/`: dados do perfil, metas de TPS/RDR e XP.
+- `PUT /api/profile/`: ajusta metas de TPS/RDR.
+- `GET /api/dashboard/`: resumo com TPS, RDR, séries e recomendações de missões.
+- `GET/POST /api/transactions/`: CRUD de transações.
+- `GET/POST /api/mission-progress/`: progresso gamificado.
+- `GET /api/missions/`: catálogo de missões disponíveis.
+- `GET/POST /api/goals/`: metas financeiras.

@@ -1,6 +1,8 @@
 from decimal import Decimal
 
 from django.db.models import Q
+
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile
@@ -98,8 +100,17 @@ class MissionProgressSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
+        validated_data.setdefault("status", MissionProgress.Status.ACTIVE)
+        validated_data.setdefault("started_at", timezone.now())
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        status = validated_data.get("status", instance.status)
+        if status == MissionProgress.Status.ACTIVE and instance.started_at is None:
+            validated_data.setdefault("started_at", timezone.now())
+        if status == MissionProgress.Status.COMPLETED:
+            validated_data.setdefault("completed_at", timezone.now())
+        return super().update(instance, validated_data)
 
 class DashboardSummarySerializer(serializers.Serializer):
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
@@ -135,3 +146,36 @@ class DashboardSummarySerializer(serializers.Serializer):
             "total_expense": total_expense.quantize(Decimal("0.01")),
             "total_debt": total_debt.quantize(Decimal("0.01")),
         }
+class CategoryBreakdownSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    total = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class CashflowPointSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    income = serializers.DecimalField(max_digits=12, decimal_places=2)
+    expense = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    next_level_threshold = serializers.IntegerField(read_only=True, source="next_level_threshold")
+
+    class Meta:
+        model = UserProfile
+        fields = (
+            "level",
+            "experience_points",
+            "next_level_threshold",
+            "target_tps",
+            "target_rdr",
+        )
+        read_only_fields = ("level", "experience_points", "next_level_threshold")
+
+
+class DashboardSerializer(serializers.Serializer):
+    summary = DashboardSummarySerializer()
+    categories = serializers.DictField(child=CategoryBreakdownSerializer(many=True))
+    cashflow = CashflowPointSerializer(many=True)
+    active_missions = MissionProgressSerializer(many=True)
+    recommended_missions = MissionSerializer(many=True)
+    profile = UserProfileSerializer()

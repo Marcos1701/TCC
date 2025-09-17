@@ -25,3 +25,5 @@ Backend Django alinhado com a proposta do GenApp.
 ## Autenticação
 
 A API usa JWT via `djangorestframework-simplejwt`. Gere tokens com o endpoint padrão (`/api/token/`) e envie como `Authorization: Bearer <token>`.
+Existe também `/api/auth/register/` para cadastro inicial e `/api/profile/` (GET/PUT) para ajustar metas de TPS/RDR.
+

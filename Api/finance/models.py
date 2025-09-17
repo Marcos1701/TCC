@@ -14,6 +14,10 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return f"Perfil {self.user}"  # pragma: no cover
+    @property
+    def next_level_threshold(self) -> int:
+        base = 150 + (self.level - 1) * 50
+        return max(base, 150)
 
 
 class Category(models.Model):

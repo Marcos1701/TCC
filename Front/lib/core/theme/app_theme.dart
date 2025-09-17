@@ -1,108 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// Paletas e estilos que vão dar cara pro GenApp.
-///
-/// As cores seguem a identidade comentada no relatório, puxando confiança e
-/// estabilidade pra combinar com o papo de finanças saudáveis.
+import 'app_colors.dart';
+
+/// Tema fechado pra bater com as telas escuras do projeto.
 class AppTheme {
   const AppTheme._();
 
-  static ThemeData get light {
-    const seedColor = Color(0xFF0F766E);
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
-      brightness: Brightness.light,
+  static ThemeData get light => _theme(Brightness.light);
+
+  static ThemeData get dark => _theme(Brightness.dark);
+
+  static ThemeData _theme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    final base = ThemeData(
+      useMaterial3: true,
+      brightness: brightness,
     );
 
-    return ThemeData(
-      useMaterial3: true,
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: brightness,
+      background: isDark ? AppColors.background : const Color(0xFFF3F4FF),
+    );
+
+    final textTheme = GoogleFonts.manropeTextTheme(base.textTheme).apply(
+      bodyColor: isDark ? AppColors.textPrimary : const Color(0xFF101828),
+      displayColor: isDark ? AppColors.textPrimary : const Color(0xFF101828),
+    );
+
+    return base.copyWith(
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+      scaffoldBackgroundColor:
+          isDark ? AppColors.background : const Color(0xFFF6F7FF),
+      textTheme: textTheme,
       appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
         elevation: 0,
-        centerTitle: true,
+        backgroundColor:
+            isDark ? Colors.transparent : colorScheme.background,
+        foregroundColor: isDark ? AppColors.textPrimary : colorScheme.onBackground,
+        centerTitle: false,
       ),
       cardTheme: CardTheme(
-        color: Colors.white,
+        color: isDark ? AppColors.surface : Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
         margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
       ),
-      textTheme: _textTheme,
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: isDark ? AppColors.surfaceAlt : Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white12 : Colors.black12,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: AppColors.primary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(54),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
         ),
       ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        selectedItemColor: colorScheme.primary,
-        unselectedItemColor: colorScheme.onSurfaceVariant,
+        backgroundColor: isDark ? AppColors.surface : Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor:
+            isDark ? AppColors.textSecondary : const Color(0xFF475467),
+        selectedLabelStyle:
+            textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+        unselectedLabelStyle:
+            textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w500),
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        backgroundColor: Colors.white,
-      ),
-    );
-  }
-
-  static ThemeData get dark {
-    const seedColor = Color(0xFF0F766E);
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: seedColor,
-      brightness: Brightness.dark,
-    );
-
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colorScheme,
-      cardTheme: CardTheme(
-        color: colorScheme.surfaceContainerHighest,
+        showUnselectedLabels: true,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        margin: EdgeInsets.zero,
-      ),
-      textTheme: _textTheme,
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        selectedItemColor: colorScheme.primary,
-        unselectedItemColor: colorScheme.onSurfaceVariant,
-        backgroundColor: colorScheme.surface,
       ),
     );
   }
-
-  static const TextTheme _textTheme = TextTheme(
-    headlineLarge: TextStyle(
-      fontWeight: FontWeight.w700,
-      fontSize: 32,
-      letterSpacing: -1.2,
-    ),
-    headlineSmall: TextStyle(
-      fontWeight: FontWeight.w600,
-      fontSize: 20,
-    ),
-    titleMedium: TextStyle(
-      fontWeight: FontWeight.w600,
-      fontSize: 16,
-    ),
-    bodyLarge: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w500,
-    ),
-    bodyMedium: TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w400,
-    ),
-    labelLarge: TextStyle(
-      fontSize: 14,
-      fontWeight: FontWeight.w600,
-    ),
-  );
 }
