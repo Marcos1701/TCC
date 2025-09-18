@@ -41,3 +41,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# bagunça python
+**/__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+.env.*
+Api/.venv/
+
+# build do front
+Front/build/
