@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 
-/// Paleta fixa pra manter a cara neon/finance do app.
+/// Paleta oficial seguindo as diretrizes do TCC.
 class AppColors {
   const AppColors._();
 
-  static const background = Color(0xFF080B1A);
-  static const surface = Color(0xFF11162B);
-  static const surfaceAlt = Color(0xFF1A1F36);
-  static const surfaceMuted = Color(0xFF222741);
-  static const primary = Color(0xFF1D6FFF);
-  static const secondary = Color(0xFF8B5CF6);
-  static const accent = Color(0xFF22D3EE);
-  static const success = Color(0xFF34D399);
-  static const warning = Color(0xFFFBBF24);
-  static const danger = Color(0xFFFF6B6B);
-  static const textPrimary = Colors.white;
-  static const textSecondary = Color(0xFFB3BCD9);
+  static const Color primary = Color(0xFF034EA2);
+  static const Color highlight = Color(0xFFFDB913);
+  static const Color secondary = highlight;
+  static const Color accent = highlight;
+  static const Color support = Color(0xFF007932);
+  static const Color alert = Color(0xFFEF4123);
+
+  static const Color background = Color(0xFFF5F5F5);
+  static const Color surface = Colors.white;
+  static const Color surfaceAlt = Color(0xFFE8EFF8);
+  static const Color surfaceMuted = Color(0xFFD4DDEB);
+
+  static const Color textPrimary = Color(0xFF231F20);
+  static const Color textSecondary = Color(0xFF666666);
+  static const Color textDisabled = Color(0x80231F20);
+
+  static const Color border = Color(0xFFCCCCCC);
+  static const Color shadow = Color(0x1A000000);
+  static const Color success = support;
+  static const Color warning = highlight;
+  static const Color danger = alert;
 }

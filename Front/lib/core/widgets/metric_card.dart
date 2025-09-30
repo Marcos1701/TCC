@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -21,18 +22,29 @@ class MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final baseColor = color ?? AppColors.primary;
+    final contrast = ThemeData.estimateBrightnessForColor(baseColor);
+    final valueColor = contrast == Brightness.dark ? Colors.white : AppColors.textPrimary;
+    final subtitleColor = contrast == Brightness.dark ? Colors.white70 : AppColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            baseColor.withOpacity(0.55),
+            baseColor,
+            baseColor.withValues(alpha: 0.75),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,10 +54,14 @@ class MetricCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
+                color: Colors.white.withValues(alpha: contrast == Brightness.dark ? 0.18 : 0.28),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: Colors.white, size: 26),
+              child: Icon(
+                icon,
+                color: contrast == Brightness.dark ? Colors.white : AppColors.textPrimary,
+                size: 26,
+              ),
             ),
           if (icon != null) const SizedBox(width: 18),
           Expanded(
@@ -55,7 +71,7 @@ class MetricCard extends StatelessWidget {
                 Text(
                   title,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: Colors.white70,
+                    color: subtitleColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -63,7 +79,7 @@ class MetricCard extends StatelessWidget {
                 Text(
                   value,
                   style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.white,
+                    color: valueColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -72,7 +88,7 @@ class MetricCard extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white70,
+                      color: subtitleColor,
                     ),
                   ),
                 ],

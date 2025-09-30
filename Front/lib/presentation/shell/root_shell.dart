@@ -15,7 +15,7 @@ class _NavigationItem {
 
   final String label;
   final IconData icon;
-  final WidgetBuilder builder;
+  final Widget Function() builder;
 }
 
 class RootShell extends StatefulWidget {
@@ -70,7 +70,7 @@ class _RootShellState extends State<RootShell> {
                   key: PageStorageKey(item.label),
                   child: Container(
                     color: AppColors.background,
-                    child: item.builder(context),
+                    child: item.builder(),
                   ),
                 ),
               )
@@ -83,7 +83,7 @@ class _RootShellState extends State<RootShell> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.25),
+              color: Colors.black.withValues(alpha: 0.25),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),

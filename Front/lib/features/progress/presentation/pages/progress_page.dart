@@ -70,9 +70,9 @@ class _ProgressPageState extends State<ProgressPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      deadline == null
-                          ? 'Sem prazo definido'
-                          : 'Prazo: ${DateFormat('dd/MM/yyyy').format(deadline)}',
+            deadline == null
+              ? 'Sem prazo definido'
+              : 'Prazo: ${DateFormat('dd/MM/yyyy').format(deadline!)}',
                       style: const TextStyle(color: Colors.white70),
                     ),
                   ),

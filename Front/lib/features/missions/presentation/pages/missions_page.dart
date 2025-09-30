@@ -26,23 +26,27 @@ class _MissionsPageState extends State<MissionsPage> {
   }
 
   Future<void> _startMission(int missionId) async {
+    final session = SessionScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     await _repository.startMission(missionId);
     if (!mounted) return;
     await _refresh();
-    await SessionScope.of(context).refreshSession();
+    await session.refreshSession();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text('Missão iniciada! Bora cumprir.')),
     );
   }
 
   Future<void> _completeMission(MissionProgressModel mission) async {
+    final session = SessionScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     await _repository.updateMission(progressId: mission.id, status: 'COMPLETED', progress: 100);
     if (!mounted) return;
     await _refresh();
-    await SessionScope.of(context).refreshSession();
+    await session.refreshSession();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(content: Text('Missão concluída! XP garantido.')),
     );
   }
@@ -65,7 +69,7 @@ class _MissionsPageState extends State<MissionsPage> {
             onPressed: () {
               final value = double.tryParse(controller.text.replaceAll(',', '.'));
               if (value == null) return;
-              Navigator.pop(context, value.clamp(0, 100));
+                  Navigator.pop(context, value.clamp(0.0, 100.0));
             },
             child: const Text('Salvar'),
           ),

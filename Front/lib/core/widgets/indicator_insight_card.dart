@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/dashboard.dart';
 import '../theme/app_colors.dart';
 
-/// Cartão rápido que mostra os insights de TPS/RDR e missões sugeridos no doc.
+/// Cartão reutilizável para exibir o insight de um indicador financeiro.
 class IndicatorInsightCard extends StatelessWidget {
   const IndicatorInsightCard({
     super.key,
@@ -17,35 +17,40 @@ class IndicatorInsightCard extends StatelessWidget {
   Color get _baseColor {
     switch (insight.severity) {
       case 'good':
-        return AppColors.success;
+        return AppColors.support;
       case 'attention':
-        return AppColors.warning;
+        return AppColors.highlight;
       case 'warning':
-        return AppColors.secondary;
+        return Color.alphaBlend(
+          AppColors.alert.withValues(alpha: 0.35),
+          AppColors.highlight,
+        );
       case 'critical':
-        return AppColors.danger;
+        return AppColors.alert;
       default:
-        return AppColors.surfaceAlt;
+        return AppColors.primary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final subtitle =
-        '${insight.value.toStringAsFixed(1)}% • meta ${insight.target}%';
+    final subtitle = '${insight.value.toStringAsFixed(1)}% • meta ${insight.target}%';
+    final brightness = ThemeData.estimateBrightnessForColor(_baseColor);
+    final titleColor = brightness == Brightness.dark ? Colors.white : AppColors.textPrimary;
+    final detailColor = brightness == Brightness.dark ? Colors.white70 : AppColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _baseColor.withOpacity(0.5), width: 2),
-        boxShadow: [
+        border: Border.all(color: _baseColor.withValues(alpha: 0.45), width: 2),
+        boxShadow: const [
           BoxShadow(
-            color: _baseColor.withOpacity(0.15),
+            color: AppColors.shadow,
             blurRadius: 12,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -58,7 +63,7 @@ class IndicatorInsightCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _baseColor.withOpacity(0.2),
+                  color: _baseColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, color: _baseColor, size: 22),
@@ -68,7 +73,7 @@ class IndicatorInsightCard extends StatelessWidget {
                 child: Text(
                   insight.title,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: Colors.white,
+                    color: titleColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -78,12 +83,12 @@ class IndicatorInsightCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+            style: theme.textTheme.bodyMedium?.copyWith(color: detailColor),
           ),
           const SizedBox(height: 12),
           Text(
             insight.message,
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+            style: theme.textTheme.bodyMedium?.copyWith(color: detailColor),
           ),
         ],
       ),

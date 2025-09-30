@@ -86,9 +86,9 @@ class ApiClient {
       );
       final data = response.data ?? {};
       final newAccess = data['access'] as String?;
-      final newRefresh = data['refresh'] as String? ?? _refreshToken;
-      if (newAccess != null) {
-        await setTokens(access: newAccess, refresh: newRefresh ?? _refreshToken!);
+      final refreshValue = (data['refresh'] as String?) ?? _refreshToken;
+      if (newAccess != null && refreshValue != null) {
+        await setTokens(access: newAccess, refresh: refreshValue);
         final opts = Options(
           method: original.method,
           headers: Map<String, dynamic>.from(original.headers),

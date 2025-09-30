@@ -3,7 +3,7 @@ import 'core/state/session_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/auth/auth_flow.dart';
 
-/// Casca raiz com tema fechado e fluxo de login rápido.
+/// Casca raiz do app, responsável por iniciar sessão e aplicar o tema institucional.
 class GenApp extends StatefulWidget {
   const GenApp({super.key});
 
@@ -21,9 +21,9 @@ class _GenAppState extends State<GenApp> {
       controller: _sessionController,
       child: MaterialApp(
         title: 'GenApp',
-        theme: AppTheme.dark,
+        theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.dark,
+        themeMode: ThemeMode.system,
         debugShowCheckedModeBanner: false,
         home: const AuthFlow(),
       ),

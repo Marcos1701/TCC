@@ -110,11 +110,13 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             validated_data.setdefault("completed_at", timezone.now())
         return super().update(instance, validated_data)
 
+
 class DashboardSummarySerializer(serializers.Serializer):
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
     rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
     total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_expense = serializers.DecimalField(max_digits=12, decimal_places=2)
+
     total_debt = serializers.DecimalField(max_digits=12, decimal_places=2)
 
     @staticmethod
@@ -140,10 +142,13 @@ class DashboardSummarySerializer(serializers.Serializer):
         return {
             "tps": tps.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00"),
             "rdr": rdr.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00"),
+
             "total_income": total_income.quantize(Decimal("0.01")),
             "total_expense": total_expense.quantize(Decimal("0.01")),
             "total_debt": total_debt.quantize(Decimal("0.01")),
-        }
+    }
+
+
 class CategoryBreakdownSerializer(serializers.Serializer):
     name = serializers.CharField()
     total = serializers.DecimalField(max_digits=12, decimal_places=2)

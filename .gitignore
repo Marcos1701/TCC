@@ -49,6 +49,7 @@ app.*.map.json
 .env
 .env.*
 Api/.venv/
+Api/venv/
 
 # build do front
 Front/build/

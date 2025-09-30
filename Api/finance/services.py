@@ -137,6 +137,7 @@ def profile_snapshot(user) -> Dict[str, int]:
         "target_rdr": profile.target_rdr,
     }
 
+
 def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dict[str, Dict[str, str]]:
     """Gera dicas alinhadas às faixas descritas no texto."""
 

@@ -85,7 +85,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     height: 64,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(22),
-                      color: Colors.white.withOpacity(0.18),
+                      color: Colors.white.withValues(alpha: 0.18),
                     ),
                     child: const Icon(Icons.person, size: 36, color: Colors.white),
                   ),
@@ -203,9 +203,11 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () async {
-                await SessionScope.of(context).logout();
+                final session = SessionScope.of(context);
+                final messenger = ScaffoldMessenger.of(context);
+                await session.logout();
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Você saiu da conta.')), 
                 );
               },
