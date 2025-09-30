@@ -87,11 +87,22 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
     for _ in range(months):
         income = buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
         expense = buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+        debt = buckets[current].get(Transaction.TransactionType.DEBT_PAYMENT, Decimal("0"))
+        tps = Decimal("0")
+        rdr = Decimal("0")
+        if income > 0:
+            poupanca = income - expense
+            tps = (poupanca / income) * Decimal("100")
+            base_debt = debt if debt > 0 else expense
+            rdr = (base_debt / income) * Decimal("100")
         series.append(
             {
                 "month": current.strftime("%Y-%m"),
                 "income": income.quantize(Decimal("0.01")),
                 "expense": expense.quantize(Decimal("0.01")),
+                "debt": debt.quantize(Decimal("0.01")),
+                "tps": tps.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00"),
+                "rdr": rdr.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00"),
             }
         )
         if current.month == 1:
@@ -124,6 +135,77 @@ def profile_snapshot(user) -> Dict[str, int]:
         "next_level_threshold": profile.next_level_threshold,
         "target_tps": profile.target_tps,
         "target_rdr": profile.target_rdr,
+    }
+
+def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dict[str, Dict[str, str]]:
+    """Gera dicas alinhadas às faixas descritas no texto."""
+
+    def _quantize(value: Decimal) -> Decimal:
+        return value.quantize(Decimal("0.01"))
+
+    def _tps_status(value: Decimal) -> Dict[str, str]:
+        numero = float(value)
+        if numero >= profile.target_tps:
+            return {
+                "severity": "good",
+                "title": "Boa disciplina",
+                "message": "A poupança tá batendo a meta, segue no ritmo.",
+            }
+        if numero >= 10:
+            return {
+                "severity": "attention",
+                "title": "Quase lá",
+                "message": f"Dá pra cortar uns gastos pra chegar nos {profile.target_tps}% esperados.",
+            }
+        return {
+            "severity": "critical",
+            "title": "Reserva apertada",
+            "message": "Organiza prioridades e tenta separar algo todo mês pra não ficar no sufoco.",
+        }
+
+    def _rdr_status(value: Decimal) -> Dict[str, str]:
+        numero = float(value)
+        if numero <= profile.target_rdr:
+            return {
+                "severity": "good",
+                "title": "Dívidas controladas",
+                "message": "Comprometimento da renda tá saudável, mantém as parcelas em dia.",
+            }
+        if numero <= 42:
+            return {
+                "severity": "attention",
+                "title": "Fica de olho",
+                "message": f"Avalia renegociação ou amortização leve pra ficar abaixo dos {profile.target_rdr}%.",
+            }
+        if numero <= 49:
+            return {
+                "severity": "warning",
+                "title": "Alerta ligado",
+                "message": "Boa rever prioridades e conter novos créditos enquanto ajusta as dívidas.",
+            }
+        return {
+            "severity": "critical",
+            "title": "Risco alto",
+            "message": "Busca renegociar e cortar gastos urgentes pra escapar de inadimplência.",
+        }
+
+    tps_value = summary.get("tps", Decimal("0"))
+    rdr_value = summary.get("rdr", Decimal("0"))
+
+    tps_info = _tps_status(tps_value)
+    rdr_info = _rdr_status(rdr_value)
+
+    return {
+        "tps": {
+            "value": _quantize(tps_value),
+            "target": profile.target_tps,
+            **tps_info,
+        },
+        "rdr": {
+            "value": _quantize(rdr_value),
+            "target": profile.target_rdr,
+            **rdr_info,
+        },
     }
 
 

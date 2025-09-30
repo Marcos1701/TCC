@@ -1,7 +1,5 @@
 from decimal import Decimal
-
 from django.db.models import Q
-
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -155,6 +153,17 @@ class CashflowPointSerializer(serializers.Serializer):
     month = serializers.CharField()
     income = serializers.DecimalField(max_digits=12, decimal_places=2)
     expense = serializers.DecimalField(max_digits=12, decimal_places=2)
+    debt = serializers.DecimalField(max_digits=12, decimal_places=2)
+    tps = serializers.DecimalField(max_digits=6, decimal_places=2)
+    rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
+
+
+class IndicatorInsightSerializer(serializers.Serializer):
+    severity = serializers.CharField()
+    title = serializers.CharField()
+    message = serializers.CharField()
+    value = serializers.DecimalField(max_digits=6, decimal_places=2)
+    target = serializers.IntegerField()
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -176,6 +185,7 @@ class DashboardSerializer(serializers.Serializer):
     summary = DashboardSummarySerializer()
     categories = serializers.DictField(child=CategoryBreakdownSerializer(many=True))
     cashflow = CashflowPointSerializer(many=True)
+    insights = serializers.DictField(child=IndicatorInsightSerializer())
     active_missions = MissionProgressSerializer(many=True)
     recommended_missions = MissionSerializer(many=True)
     profile = UserProfileSerializer()

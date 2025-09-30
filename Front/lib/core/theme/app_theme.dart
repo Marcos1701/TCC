@@ -41,7 +41,7 @@ class AppTheme {
         foregroundColor: isDark ? AppColors.textPrimary : colorScheme.onSurface,
         centerTitle: false,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: isDark ? AppColors.surface : Colors.white,
         elevation: 0,
         margin: EdgeInsets.zero,

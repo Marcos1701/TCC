@@ -21,6 +21,7 @@ from .services import (
     calculate_summary,
     cashflow_series,
     category_breakdown,
+    indicator_insights,
     profile_snapshot,
     recommend_missions,
 )
@@ -101,6 +102,7 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         summary = calculate_summary(request.user)
         breakdown = category_breakdown(request.user)
         cashflow = cashflow_series(request.user)
+        insights = indicator_insights(summary, request.user.userprofile)
         missions = (
             MissionProgress.objects.filter(user=request.user)
             .exclude(status=MissionProgress.Status.COMPLETED)
@@ -112,6 +114,7 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 "summary": summary,
                 "categories": breakdown,
                 "cashflow": cashflow,
+                "insights": insights,
                 "active_missions": missions,
                 "recommended_missions": list(recommendations),
                 "profile": request.user.userprofile,
