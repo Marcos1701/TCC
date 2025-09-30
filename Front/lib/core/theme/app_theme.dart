@@ -37,8 +37,8 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         elevation: 0,
         backgroundColor:
-            isDark ? Colors.transparent : colorScheme.background,
-        foregroundColor: isDark ? AppColors.textPrimary : colorScheme.onBackground,
+            isDark ? Colors.transparent : colorScheme.surface,
+        foregroundColor: isDark ? AppColors.textPrimary : colorScheme.onSurface,
         centerTitle: false,
       ),
       cardTheme: CardTheme(

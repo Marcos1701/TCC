@@ -64,7 +64,7 @@ class DashboardPage extends StatelessWidget {
                     maxX: 5,
                     minY: 0,
                     maxY: 10,
-                    gridData: FlGridData(
+                    gridData: const FlGridData(
                       show: true,
                       drawHorizontalLine: true,
                       horizontalInterval: 2,
@@ -124,14 +124,14 @@ class DashboardPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ...[
-            _MissionCard(
+            const _MissionCard(
               title: 'Reduza gastos variáveis em 10%',
               description:
                   'Analise suas últimas despesas e identifique três categorias para otimizar.',
               progress: 0.45,
             ),
             const SizedBox(height: 12),
-            _MissionCard(
+            const _MissionCard(
               title: 'Construa reserva de emergência',
               description:
                   'Programe uma transferência automática semanal para alcançar R\$ 1.500 em 3 meses.',

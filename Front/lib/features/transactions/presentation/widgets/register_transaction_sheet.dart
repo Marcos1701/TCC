@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/category.dart';
-import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -137,7 +136,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: _type,
+                      initialValue: _type,
                       decoration: const InputDecoration(labelText: 'Tipo'),
                       items: const [
                         DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
@@ -198,7 +197,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                       )
                     else
                       DropdownButtonFormField<int?>(
-                        value: _categoryId,
+                        initialValue: _categoryId,
                         decoration: const InputDecoration(labelText: 'Categoria'),
                         items: [
                           const DropdownMenuItem(value: null, child: Text('Sem categoria')),

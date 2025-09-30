@@ -130,7 +130,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     if (data.activeMissions.isEmpty)
-                      _EmptyState(
+                      const _EmptyState(
                         message: 'Nenhuma missão ativa. Bora pegar uma nova?',
                       ),
                     const SizedBox(height: 28),
@@ -147,7 +147,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     if (data.recommendedMissions.isEmpty)
-                      _EmptyState(
+                      const _EmptyState(
                         message: 'Sem sugestões novas por enquanto.',
                       ),
                   ]),
@@ -407,7 +407,7 @@ class _CashflowChart extends StatelessWidget {
       ),
       child: LineChart(
         LineChartData(
-          gridData: FlGridData(show: true, drawVerticalLine: false),
+          gridData: const FlGridData(show: true, drawVerticalLine: false),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
               sideTitles: SideTitles(showTitles: true, reservedSize: 44, getTitlesWidget: _leftTitle),
