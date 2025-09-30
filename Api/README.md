@@ -1,50 +1,29 @@
 # GenApp API
 
-Backend Django alinhado ao plano descrito no relatório: calcula TPS/RDR, distribui missões gamificadas e mantém o histórico financeiro dos usuários.
+Backend Django alinhado com a proposta do GenApp.
 
 ## Primeiros passos
-1. Crie/ative um ambiente virtual Python 3.11+.
+
+1. Crie e ative um ambiente virtual.
 2. Instale dependências: `pip install -r requirements.txt`.
-3. Garanta um PostgreSQL 13+ online e exporte:
+3. Configure variáveis (`DJANGO_SECRET_KEY`, `POSTGRES_*`, `CORS_ALLOWED_ORIGINS`).
+4. Gere e aplique migrações:
    ```bash
-   export DJANGO_SECRET_KEY='sua-chave'
-   export POSTGRES_DB=genapp POSTGRES_USER=genapp POSTGRES_PASSWORD=genapp
-   export POSTGRES_HOST=localhost POSTGRES_PORT=5432
-   ```
-4. Aplique as migrações existentes (já incluem seeds de missões iniciais):
-   ```bash
+   python manage.py makemigrations
    python manage.py migrate
    ```
-5. (Opcional) Crie um superusuário e suba o servidor:
+5. Crie um superusuário e rode o servidor:
    ```bash
    python manage.py createsuperuser
    python manage.py runserver
    ```
 
 ## Apps inclusos
-- `finance`: modelos de transações, categorias (receita, despesa, dívida), missões, metas e perfis.
 
-## Indicadores calculados
-- **TPS (Taxa de Poupança Pessoal)**: `(renda líquida - despesas) / renda líquida`.
-- **RDR (Razão Dívida-Renda)**: `pagamentos mensais de dívida / renda bruta`.
-- A API retorna diagnóstico textual, meta alvo e histórico mensal de cada indicador para alimentar o dashboard Flutter.
+- `finance`: modelos de transações, metas, missões e perfis com endpoints REST.
 
-## Endpoints chave
-- `POST /api/auth/register/` – cria usuário, perfil, metas padrão (TPS ≥ 15%, RDR ≤ 35%) e categorias sugeridas.
-- `POST /api/token/` / `POST /api/token/refresh/` – fluxo JWT do DRF SimpleJWT.
-- `GET/PUT /api/profile/` – consulta e ajusta metas personalizadas.
-- `GET /api/dashboard/` – série temporal de TPS/RDR, saldo, distribuição por categoria e missões recomendadas.
-- `GET/POST /api/transactions/` – CRUD de receitas, despesas e dívidas.
-- `GET /api/missions/` + `GET/POST /api/mission-progress/` – catálogo e progresso das missões.
-- `GET/POST /api/goals/` – metas financeiras do usuário.
+## Autenticação
 
-## Segurança e LGPD
-- Senhas com PBKDF2 + salt (padrão Django).
-- Tokens JWT curtos com refresh token separado.
-- Cabeçalhos de segurança, HSTS e TLS previstos na implantação.
-- Logs de auditoria, MFA e rate limiting prontos para extensão conforme recomenda o trabalho.
+A API usa JWT via `djangorestframework-simplejwt`. Gere tokens com o endpoint padrão (`/api/token/`) e envie como `Authorization: Bearer <token>`.
+Existe também `/api/auth/register/` para cadastro inicial e `/api/profile/` (GET/PUT) para ajustar metas de TPS/RDR.
 
-## Próximas evoluções sugeridas
-- Importação segura de extratos bancários.
-- Conteúdo educativo para reforçar decisões financeiras.
-- Modelos de recomendação mais sofisticados (IA) conforme previsto no capítulo de trabalhos futuros.

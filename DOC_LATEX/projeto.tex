@@ -1,0 +1,906 @@
+\documentclass[a4paper,12pt]{report}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{newtxtext,newtxmath} % Fonte Times moderna
+\usepackage{cite}
+\usepackage{amsmath,amsfonts} % Pacote matemático
+\usepackage{pgfplots} % Pacote para gráficos
+\usepackage{pgfplotstable}
+\usepackage[table,xcdraw]{xcolor} % habilita cores em tabelas
+\usepackage{graphicx} % Pacote gráfico
+\usepackage{url}
+\usepackage{indentfirst}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{tikz-uml}
+\tikzumlset{fill usecase=white}
+\usepackage[inkscapelatex=false]{svg}
+\usetikzlibrary{calc}
+\usetikzlibrary{positioning}
+\usepackage{tabularx}
+\usepackage{booktabs} % Para linhas horizontais mais elegantes
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue]{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{newtxtext,newtxmath}
+
+
+\usepackage{hyperref} % <-- coloque depois do babel
+\usepackage{xurl}     % <-- melhora ainda mais a quebra de URLs longas
+
+
+
+
+\setlength{\parindent}{1.2cm}
+\setlength{\parskip}{.2cm}
+\setlength{\oddsidemargin}{0.5cm}    % Há um offset obrigatorio de
+\setlength{\evensidemargin}{0.0cm}   % 1 inch do lado esquerdo e no
+\setlength{\topmargin}{-1.2cm}       % topo da folha
+\setlength{\headsep}{1.0cm}
+\setlength{\textwidth}{15.5cm}
+\setlength{\textheight}{24.2cm}
+\renewcommand{\baselinestretch}{1.2}
+\renewcommand{\labelitemi}{\tiny{\textbullet}} % Define o ícone principal do itemize
+
+\title{GenApp - Desenvolvimento de um Aplicativo para Gerenciamento Financeiro Pessoal}
+\author{Marcos Eduardo de Neiva Santos}
+
+\begin{document}
+
+% {\pgfmathprintnumber{\pgfplotspointmeta}\%}
+\begin{titlepage}
+\begin{center}
+    {\Large \textbf{Instituto Federal do Piauí - IFPI}} \\
+    {\large Departamento de Informação, Ambiente, Saúde e Produção Alimentícia} \\
+    {\large Curso de Tecnologia em Análise e Desenvolvimento de Sistemas} \\
+    \vfill
+    {\LARGE \textbf{GenApp - Aplicativo para Gerenciamento Financeiro Pessoal}} \\[1.5cm]
+    {\large \textbf{Aluno: Marcos Eduardo de Neiva Santos}} \\[0.5cm]
+    {\large \textbf{Orientador: Prof. Ricardo Martins Ramos}} \\
+    \vfill
+    {\large \textbf{Janeiro, 2025}}
+\end{center}
+\end{titlepage}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+
+
+\chapter{Introdução}
+
+O controle das finanças pessoais é um desafio recorrente em diferentes contextos sociais e econômicos. 
+A ausência de planejamento adequado, combinada ao consumo impulsivo e ao fácil acesso ao crédito, contribui para o aumento dos níveis de endividamento, impactando diretamente a qualidade de vida e a estabilidade financeira das famílias. 
+Esse cenário é agravado pela baixa literacia financeira, que dificulta a adoção de práticas de poupança e de gerenciamento de dívidas, resultando em dificuldades para alcançar metas de longo prazo, como a formação de patrimônio ou a criação de reservas de emergência. 
+
+De acordo com a Pesquisa Nacional de Endividamento e Inadimplência do Consumidor (PEIC), realizada pela Confederação Nacional do Comércio (CNC) em agosto de 2025 \cite{cnc2025}, 78,8\% das famílias brasileiras possuem algum tipo de endividamento, 30,4\% apresentam dívidas em atraso e 12,8\% afirmam não ter condições de pagar seus débitos vencidos. 
+
+Esses indicadores evidenciam a necessidade de soluções que apoiem o planejamento financeiro e contribuam para a prevenção do superendividamento, especialmente em um cenário marcado pela expansão do crédito e pela crescente digitalização dos serviços financeiros.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar,
+            symbolic x coords={Endividadas, Dívidas em Atraso, Incapacidade Pagamento},
+            xtick=data,
+            ymin=0, ymax=100,
+            nodes near coords={\pgfmathprintnumber{\pgfplotspointmeta}\%},
+            ylabel={\% das famílias},
+            xlabel={Indicadores de Endividamento},
+            xlabel style={yshift=-14pt},
+            bar width=0.7cm,
+            width=10cm,
+            ymajorgrids=true,
+            x tick label style={
+                text width=2.5cm,
+                align=center,
+                font=\small, % Compacta espaçamento
+                inner sep=1pt, % Reduz padding interno
+                execute at begin node={\setlength{\baselineskip}{11pt}} % Controle vertical
+            }
+        ]
+        \addplot[ybar, fill=blue!60] coordinates {
+            (Endividadas, 78.8)
+            (Dívidas em Atraso, 30.4)
+            (Incapacidade Pagamento, 12.8)
+        };
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Perfil de endividamento das famílias brasileiras (Fonte: PEIC/CNC, Ago/2025)}
+    \label{fig:endividamento}
+\end{figure}
+
+Além das estatísticas sobre endividamento, é importante reconhecer que o comportamento financeiro das famílias também sofre influência de fatores psicológicos e emocionais. 
+A \textbf{Teoria da Autodeterminação} (Deci e Ryan, 1985)\cite{Deci1985} argumenta que o engajamento humano é impulsionado pela satisfação de três necessidades psicológicas básicas: 
+\textit{autonomia} (sentir-se no controle das próprias ações), 
+\textit{competência} (perceber progresso e eficácia nas tarefas) e 
+\textit{relacionamento/pertencimento} (sentir-se conectado a outros). 
+
+Estudos recentes sobre \textbf{gamificação} demonstram que mecanismos de jogos podem ser usados para satisfazer essas necessidades. 
+Pesquisas como as de Nguyen-Viet (2025)\cite{NguyenVietImmersion2025} e Maratou et al. (2023)\cite{Maratou2023} apontam que elementos como missões, recompensas e feedback visual aumentam a motivação intrínseca dos usuários, reforçando tanto a sensação de competência quanto o senso de progresso. 
+
+No contexto da educação financeira, essa relação é particularmente relevante ao transformar o gerenciamento de gastos em uma experiência interativa e recompensadora, é possível reduzir a resistência ao registro contínuo de transações, estimular a disciplina orçamentária e promover mudanças sustentáveis nos hábitos de consumo. 
+Assim, a proposta do \textbf{GenApp} se fundamenta nesse alinhamento entre teoria motivacional e prática tecnológica, oferecendo não apenas uma ferramenta de controle financeiro, mas também uma experiência que apoia a autonomia e a formação de hábitos positivos.
+
+
+
+% Além das estatísticas sobre endividamento, é essencial compreender que o comportamento financeiro das famílias também é influenciado por fatores psicológicos e emocionais. A interação entre a tecnologia e o comportamento humano traz à tona questões sobre como motivar mudanças sustentáveis em hábitos de consumo.
+
+% A pesquisa baseada na Teoria da Autodeterminação (Deci et al., 1985) \cite{Deci1985} e trabalhos recentes sobre gamificação, como os de Bang e Bac (2025)\cite{NguyenVietImmersion2025}, afirmam que as necessidades básicas dos usuários, como autonomia, competência ou até mesmo a necessidade de pertencimento, podem ser satisfeitas, o que leva a um maior engajamento. Esta abordagem é muito importante no contexto da educação financeira, como apontado por Maratou et al (2023)\cite{Maratou2023}.
+
+O público-alvo deste projeto são jovens adultos em início de vida financeira, além de indivíduos com dificuldades em manter o controle de seus gastos. A proposta não é substituir aplicativos bancários, mas oferecer uma ferramenta educativa com foco em gamificação e literacia financeira.
+
+\section{Objetivos}
+\subsection{Objetivo Geral}
+Criar uma plataforma intuitiva para o registro e organização de finanças pessoais, utilizando elementos de gamificação – como missões personalizadas e feedback visual – para incentivar o engajamento contínuo do usuário.
+
+\subsection{Objetivos Específicos}
+\begin{itemize}\itemsep=4pt
+    \item Criar um sistema intuitivo para o registro e a categorização de receitas e despesas;
+    \item Desenvolver um módulo de missões que incentive os usuários a atingir suas metas financeiras;
+    \item Projetar um dashboard interativo que permita uma análise clara e dinâmica das movimentações financeiras.
+\end{itemize}
+
+
+\section{Público-Alvo e Escopo de Aplicação}
+
+O GenApp foi idealizado para atender especialmente indivíduos que enfrentam dificuldades no controle de suas finanças pessoais e que buscam uma solução prática e motivadora para melhorar sua saúde financeira. O público-alvo inclui:
+
+\begin{itemize}
+    \item \textbf{Jovens adultos e universitários:} em fase inicial de independência financeira, muitas vezes com pouca experiência em gestão de recursos.
+    \item \textbf{Famílias em início de estruturação:} que necessitam organizar receitas e despesas para atingir metas como compra de imóvel, reserva de emergência ou planejamento de viagens.
+    \item \textbf{Pessoas com baixa literacia financeira:} que não possuem o hábito de poupar ou que enfrentam dificuldades em compreender conceitos financeiros básicos.
+    \item \textbf{Usuários motivados por elementos lúdicos:} indivíduos que se engajam mais facilmente em atividades interativas e gamificadas, preferindo soluções que unem praticidade com incentivo motivacional.
+\end{itemize}
+
+\subsection{Escopo de Aplicação}
+
+O escopo do GenApp concentra-se no apoio à educação e organização financeira pessoal. Assim, algumas delimitações importantes são destacadas:
+
+\begin{itemize}
+    \item O sistema não tem a finalidade de substituir aplicativos bancários ou de investimento, mas sim de atuar como ferramenta complementar de conscientização e planejamento.
+    \item O foco é no registro manual de transações e na análise de indicadores financeiros simples e objetivos, como a Taxa de Poupança Pessoal (TPS) e a Razão Dívida-Renda (RDR).
+    \item Recursos avançados, como integração automática com contas bancárias e carteiras digitais, estão fora do escopo da versão inicial, podendo ser considerados em trabalhos futuros.
+    \item O projeto prioriza a experiência do usuário e o incentivo comportamental, mais do que a complexidade de cálculos financeiros.
+\end{itemize}
+
+Dessa forma, o GenApp se posiciona como uma solução acessível e educativa, voltada ao fortalecimento da autonomia dos usuários no gerenciamento de suas finanças, com foco em praticidade, engajamento e promoção de hábitos financeiros mais saudáveis.
+
+
+\section{Análise dos Concorrentes e Diferenciais do GenApp}
+
+\subsection{Principais Concorrentes}
+
+Atualmente, há vários aplicativos financeiros que oferecem funcionalidades semelhantes. Entre as principais opções estão:
+
+\begin{itemize}
+    \item \textbf{Mobills:} Interface moderna e recursos abrangentes que permitem controle detalhado de despesas, receitas e cartões, com visualização avançada de dados.
+    \item \textbf{Organizze:} Interface intuitiva e fácil de usar, com a vantagem de funcionar offline e facilitar o gerenciamento simples das finanças pessoais.
+    \item \textbf{Toshl Finance:} Abordagem divertida e visual, com gráficos coloridos e sistema orientado a metas que torna o gerenciamento financeiro mais envolvente.
+    % \item \textbf{CoinKeeper:} Possui uma interface visualmente diferenciada e foca no planejamento orçamentário.
+\end{itemize}
+
+\subsection{Diferenciais do GenApp}
+
+O GenApp se diferencia dos seus concorrentes ao incluir a gamificação à gestão financeira pessoal, tornando o controle de gastos mais divertido e motivador.
+
+Dessa forma, seus principais diferenciais incluem:
+
+\begin{itemize}
+    \item \textbf{Missões Personalizadas e Gamificação:} O sistema tem desafios que são adaptados ao perfil do usuário e, ao mesmo tempo, fomenta a boa prática financeira com metas.
+    \item \textbf{Feedback Visual Dinâmico:} Com os Dashboards interativos, o usuário pode ter uma clara visualização da sua evolução financeira e acompanha de perto o seu progresso.
+    \item \textbf{Ajuste Inteligente de Missões:} O aplicativo considera o comportamento financeiro do usuário e ajusta as missões a serem cumpridas em função do seu gasto e da sua economia.
+\end{itemize}
+
+\chapter{Tecnologias Planejadas}
+Para garantir um desenvolvimento eficiente, o GenApp será construído com um conjunto de tecnologias modernas que abrangem desde a prototipação até a segurança dos dados.
+
+\section{Gerenciamento do Projeto}
+O \textbf{Trello} foi escolhido para organizar o desenvolvimento do projeto, oferecendo quadros ágeis que permitem acompanhar tarefas, responsáveis e etapas, alinhados ao modelo \textit{SCRUM}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{./imagens/trello.png}
+    \caption{Trello}
+    \label{fig:trello}
+\end{figure}
+
+\section{Design e Prototipação}
+Para o design das interfaces, utilizou-se o \textbf{Figma}, ferramenta de prototipação colaborativa baseada na web. Ele permitiu criar as telas do aplicativo e simular a navegação, facilitando o planejamento da experiência do usuário antes da implementação.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{./imagens/figma.png}
+    \caption{Figma}
+    \label{fig:figma}
+\end{figure}
+
+\section{Desenvolvimento Frontend}
+O desenvolvimento do frontend será realizado em \textbf{Flutter}, o framework multiplataforma do Google. Suas principais vantagens incluem:
+\begin{itemize}\itemsep=5pt
+    \item Renderização nativa, garantindo uma experiência de usuário fluida;
+    \item Suporte a bibliotecas gráficas, como \texttt{fl\_chart}, para visualização dos dados financeiros;
+    \item Facilidade na criação de interfaces responsivas, adaptáveis a diferentes dispositivos;
+    \item Integração com a biblioteca \texttt{dio}, que possibilita requisições HTTP seguras com suporte nativo ao protocolo TLS.
+\end{itemize}
+
+\section{Desenvolvimento Backend}
+O backend será desenvolvido em \textbf{Python}, utilizando o framework \textbf{Django}, pela robustez, produtividade e ecossistema consolidado. As principais características dessa escolha são:
+\begin{itemize}\itemsep=5pt
+    \item Arquitetura baseada em \textbf{MVC (Model-View-Controller)}, facilitando a organização do código;
+    \item Implementação simplificada de APIs RESTful por meio do \textbf{Django REST Framework (DRF)};
+    \item Integração eficiente com bancos de dados relacionais utilizando o \textbf{ORM nativo do Django};
+    \item Suporte integrado a autenticação, autorização, sessões e middleware de segurança;
+    \item Ecossistema maduro, com pacotes adicionais como \texttt{django-allauth} (gestão de contas) e \texttt{djangorestframework-simplejwt} (tokens JWT).
+\end{itemize}
+
+
+\section{Banco de Dados}
+O sistema de banco de dados escolhido é o \textbf{PostgreSQL}, reconhecido por sua robustez e eficiência em aplicações financeiras. Ele será responsável por armazenar:
+\begin{itemize}\itemsep=5pt
+    \item Registros categorizados de receitas e despesas;
+    \item Informações sobre pontuação, níveis e missões;
+    \item Dados de usuários e credenciais protegidas.
+\end{itemize}
+
+\section{Controle de Versão e Colaboração}
+O \textbf{GitHub} é utilizado para hospedagem e controle do código-fonte. A plataforma possibilita versionamento eficiente, colaboração em equipe e integração contínua.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{./imagens/github.png}
+    \caption{GitHub}
+    \label{fig:github}
+\end{figure}
+
+\section{Autenticação e Segurança}
+O sistema de autenticação do GenApp combina \textbf{hashing seguro}, \textbf{tokens baseados em JWT} e o uso do \textbf{protocolo TLS}, visando proteger a privacidade e integridade dos dados do usuário.
+
+\subsection{Proteção de Senhas}
+As senhas não são armazenadas em texto plano. O backend aplica a função de hash \textbf{SHA-256} com a adição de um \textit{salt} único por usuário, dificultando ataques de dicionário e \textit{rainbow tables}. Alternativamente, funções derivadas de chave como \texttt{bcrypt} ou \texttt{scrypt} podem ser utilizadas para maior resiliência.
+
+\subsection{Autenticação por Token}
+Após um login bem-sucedido, o servidor gera um \textbf{JSON Web Token (JWT)}:
+\begin{itemize}\itemsep=5pt
+    \item Assinado com algoritmo HMAC-SHA256;
+    \item Armazenado de forma segura no dispositivo, utilizando \texttt{flutter\_secure\_storage};
+    \item Incluído em cada requisição via cabeçalho \texttt{Authorization}.
+\end{itemize}
+
+\subsection{Transmissão Segura de Dados}
+Todas as comunicações entre cliente e servidor utilizam \textbf{TLS}. Além disso:
+\begin{itemize}\itemsep=5pt
+    \item Todo tráfego HTTP é redirecionado para HTTPS;
+    \item O backend implementa cabeçalhos de segurança, como \texttt{Strict-Transport-Security};
+    \item Certificados digitais são emitidos por autoridades confiáveis, como Let's Encrypt.
+\end{itemize}
+
+\subsection{Passo a Passo do Processo de Autenticação}
+O processo ocorre em três etapas:
+
+\subsubsection*{Etapa 1: Registro do Usuário}
+\begin{enumerate}\itemsep=3pt
+    \item O usuário fornece e-mail e senha no app.
+    \item O backend gera um salt, aplica SHA-256 e armazena o hash e o salt no PostgreSQL.
+    \item É enviado um e-mail de confirmação para ativação da conta.
+\end{enumerate}
+
+\subsubsection*{Etapa 2: Login do Usuário}
+\begin{enumerate}\itemsep=3pt
+    \item O usuário insere credenciais via conexão TLS.
+    \item O backend valida o hash da senha e gera um JWT.
+    \item O token é retornado ao cliente e armazenado de forma segura.
+\end{enumerate}
+
+\subsubsection*{Etapa 3: Validação Contínua}
+\begin{enumerate}\itemsep=3pt
+    \item Cada requisição ao backend inclui o JWT para validação.
+    \item Tokens de curta duração são combinados com \textit{refresh tokens}, garantindo renovação segura de sessões.
+    \item O logout invalida o refresh token e remove o JWT do dispositivo.
+\end{enumerate}
+
+\subsection{Medidas Complementares}
+Para reforçar a segurança, poderão ser implementadas:
+\begin{itemize}\itemsep=5pt
+    \item \textbf{Autenticação Multifator (MFA)} baseada em TOTP (Google Authenticator) ou envio de códigos via e-mail/SMS;
+    \item \textbf{Limitação de Taxa} para prevenir ataques de força bruta;
+    \item \textbf{Logs de Auditoria} registrando tentativas de login, alterações de senha e acessos a dados sensíveis.
+\end{itemize}
+
+\subsection{Conformidade com a LGPD}
+O \textbf{GenApp} foi projetado em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018, com alterações pela Lei nº 13.853/2019). 
+Entre as medidas adotadas destacam-se:
+\begin{itemize}\itemsep=4pt
+    \item \textbf{Coleta mínima de dados}: apenas informações essenciais (e-mail e senha) são solicitadas para cadastro e autenticação.
+    \item \textbf{Consentimento e transparência}: o usuário é informado sobre a finalidade da coleta e pode revogar seu consentimento a qualquer momento.
+    \item \textbf{Direitos do usuário}: são assegurados os direitos de exclusão de conta e portabilidade dos dados, conforme previsto na legislação.
+    \item \textbf{Segurança e integridade}: dados são armazenados em banco de dados com criptografia e transmitidos exclusivamente por conexões seguras (TLS).
+    \item \textbf{Resposta a incidentes}: em caso de violação de dados, será garantida a notificação dos usuários e autoridades competentes, conforme exigido pela LGPD.
+\end{itemize}
+Dessa forma, a aplicação reforça a proteção da privacidade dos usuários e atende às exigências legais para tratamento de dados pessoais.
+
+
+
+\chapter{Definição e Aplicação dos Índices Financeiros e Distribuição de Desafios}
+
+O comportamento econômico e a educação financeira são conceitos conhecidos que têm uma literatura extensa. Ingale, Paluri e Bonfigt (2021)\cite{Ingale2021} afirmam que fatores comportamentais e psicológicos são centrais na maneira como as pessoas gerenciam dinheiro. Portanto, a inserção de métricas quantitativas possibilita não somente diagnosticar o perfil do usuário, como também facilita o planejamento de estratégias que promovam hábitos financeiros saudáveis.
+
+Para que essa análise seja mais precisa, serão utilizados índices financeiros que envolvem outros aspectos econômicos do usuário. Esses índices são fundamentais para a definição de perfil de usuários para a recomendação de missões personalizadas, evitando a generalização das missões.
+
+\section{Principais Índices Utilizados}
+Os principais indicadores e suas interpretações são:
+
+\subsection{Taxa de Poupança Pessoal (TPS)}
+A Taxa de Poupança Pessoal (TPS), do inglês *Personal Savings Rate*, mede a porcentagem da renda líquida mensal que é efetivamente poupada após o pagamento de todas as despesas. Trata-se de um indicador crucial para avaliar a capacidade de um indivíduo em acumular patrimônio, preparar-se para emergências e alcançar objetivos financeiros de longo prazo. Autores como Gitman (2012) \cite{gitman2012} enfatizam a importância da poupança regular como um dos pilares da administração financeira pessoal.
+
+\textbf{Cálculo:}
+$$
+\text{TPS} = \left(\frac{\text{Renda Líquida Mensal} - \text{Despesas Totais Mensais}}{\text{Renda Líquida Mensal}}\right) \times 100
+$$
+Alternativamente, pode ser expressa como:
+$$
+\text{TPS} = \left(\frac{\text{Poupança Mensal}}{\text{Renda Líquida Mensal}}\right) \times 100
+$$
+
+\textbf{Interpretação:}  
+
+Uma TPS mais elevada geralmente indica uma melhor saúde financeira e maior disciplina nos gastos, resultando em maior capacidade de investimento e realização de metas. Segundo Gitman e Zutter (2012)\cite{gitman2012}, a formação de poupança regular é considerada um dos pilares da administração financeira pessoal. Além disso, estudos de planejamento financeiro pessoal, como os de Lusardi (2019)\cite{lusardi2019}, destacam que valores inferiores a 10\% da renda líquida costumam estar associados a maior vulnerabilidade em situações de emergência.  
+De forma prática, diversos especialistas recomendam que a taxa de poupança pessoal seja mantida, no mínimo, entre 10\% e 15\% da renda líquida \cite{gitman2012, lusardi2019}. Valores consistentemente abaixo desse patamar podem sinalizar a necessidade de uma revisão orçamentária, seja para identificar despesas que possam ser reduzidas ou para buscar alternativas de incremento de renda.
+
+
+\subsection{Razão Dívida-Renda (RDR)}
+A Razão Dívida-Renda (RDR), conhecida internacionalmente como *Debt-to-Income Ratio* (DTI), é uma métrica financeira pessoal que compara o montante total dos pagamentos mensais de dívidas de um indivíduo com sua renda bruta mensal. Este indicador é amplamente utilizado por instituições financeiras e credores para avaliar a capacidade de um indivíduo de gerenciar seus pagamentos mensais e, consequentemente, sua capacidade de assumir novas dívidas de forma sustentável \cite{gitman2012, cfpb_dti}.
+
+\textbf{Cálculo:}
+$$
+\text{RDR} = \left(\frac{\text{Soma dos Pagamentos Mensais de Todas as Dívidas}}{\text{Renda Bruta Mensal}}\right) \times 100
+$$
+Onde a "Soma dos Pagamentos Mensais de Todas as Dívidas" inclui parcelas de empréstimos, financiamentos (imobiliário, veículo), pagamentos mínimos de cartões de crédito, e outras obrigações financeiras regulares. A "Renda Bruta Mensal" refere-se ao total de rendimentos antes de impostos e outras deduções.
+
+\textbf{Interpretação (baseada em diretrizes como as do Consumer Financial Protection Bureau \cite{cfpb_dti}):} 
+
+Níveis reduzidos de RDR indicam maior capacidade de administrar compromissos financeiros, enquanto valores mais elevados refletem risco crescente de inadimplência. Em termos gerais:
+\begin{itemize}
+    \item \textbf{RDR $\leq$ 35\%:} Considerado saudável, pois demonstra equilíbrio entre dívidas e renda.
+    \item \textbf{RDR entre 36\% e 42\%:} Faixa de atenção; a renda já começa a ser significativamente comprometida.
+    \item \textbf{RDR entre 43\% e 49\%:} Nível preocupante, pois reduz a margem para novos créditos e aumenta o risco de atraso nos pagamentos.
+    \item \textbf{RDR $\geq$ 50\%:} Nível crítico, geralmente associado a dificuldades financeiras severas e alto risco de inadimplência.
+\end{itemize}
+
+É importante notar que, embora estes sejam parâmetros comuns, a situação ideal pode variar conforme o perfil e objetivos de cada indivíduo.
+
+\section{Distribuição de Desafios com Base nos Índices Financeiros}
+
+\subsection{Critérios Quantitativos e Qualitativos}
+
+\textbf{Critérios Quantitativos:}
+\begin{itemize}
+    \item \textbf{Alta Razão Dívida-Renda (RDR):} Se a RDR do usuário estiver em níveis preocupantes ou perigosos (por exemplo, acima de 43\%, e especialmente acima de 50\%), o sistema priorizará desafios focados na redução do endividamento e no controle de despesas. Exemplos de missões podem incluir a renegociação de dívidas existentes, a criação de um plano para quitar dívidas com juros mais altos, ou a redução de gastos em categorias não essenciais.
+    \item \textbf{Baixa Taxa de Poupança Pessoal (TPS):} Se a TPS for inferior a um patamar considerado saudável (por exemplo, abaixo de 10\% ou 15\%), o aplicativo proporá missões para incentivar o aumento da poupança. Isso pode envolver desafios como "economizar X\% da sua renda este mês", "identificar 3 despesas que podem ser cortadas ou reduzidas", ou "configurar uma transferência automática para uma conta de poupança".
+    \item \textbf{Perfil Intermediário:} Quando os índices TPS e RDR do usuário se encontrarem em faixas consideradas medianas ou quando um índice for bom e o outro indicar necessidade de atenção (por exemplo, TPS entre 10-20\% e RDR entre 36-42\%), o sistema poderá oferecer uma combinação de desafios. Estes podem incluir tanto metas de economia moderada quanto sugestões para otimizar despesas ou explorar formas de aumentar a renda, buscando um equilíbrio financeiro mais robusto.
+\end{itemize}
+
+\textbf{Critérios Qualitativos:}
+Além dos dados puramente numéricos, o GenApp poderá considerar informações qualitativas para refinar a personalização dos desafios. Isso pode incluir:
+\begin{itemize}
+    \item \textbf{Objetivos Financeiros Declarados:} Se o usuário cadastrar metas específicas (ex: comprar um imóvel, fazer uma viagem, criar uma reserva de emergência), os desafios podem ser alinhados para ajudar a alcançar esses objetivos mais rapidamente.
+    \item \textbf{Nível de Conhecimento Financeiro:} Através de um questionário inicial opcional ou pela interação com conteúdos educativos no app, o sistema pode inferir o nível de literacia financeira do usuário e adaptar a complexidade e o tipo de desafio proposto.
+    \item \textbf{Histórico de Engajamento com Desafios Anteriores:} O sucesso ou dificuldade em completar missões anteriores pode influenciar a sugestão de novos desafios, tornando-os progressivamente mais ou menos ambiciosos.
+    \item \textbf{Preferências de Risco (Inferidas ou Declaradas):} Para usuários com perfil mais conservador, desafios podem focar em segurança e liquidez. Para perfis mais arrojados (e com situação financeira que permita), podem ser sugeridos desafios relacionados a aprendizado sobre investimentos diversificados.
+\end{itemize}
+
+\subsection{Algoritmo de Distribuição de Missões}
+O algoritmo de distribuição de missões do GenApp será projetado para ser adaptativo e responsivo ao comportamento financeiro do usuário. A lógica central se baseará em um sistema de pontuação e regras que considera os índices financeiros (TPS e RDR) e os critérios qualitativos mencionados.
+
+\begin{enumerate}
+    \item \textbf{Coleta e Atualização de Dados:} O sistema registrará continuamente as transações do usuário, recalculando periodicamente a TPS e a RDR.
+    \item \textbf{Perfilamento Dinâmico:} Com base nos valores atualizados dos índices e nas informações qualitativas, o perfil do usuário será classificado em categorias (ex: "Endividamento Elevado e Baixa Poupança", "Poupança Adequada e Baixo Endividamento", "Endividamento Moderado e Poupança Moderada", etc.).
+    \item \textbf{Seleção de Missões Relevantes:} Para cada perfil, haverá um conjunto pré-definido de missões e desafios com diferentes níveis de dificuldade e foco (redução de dívidas, aumento de poupança, otimização de gastos, educação financeira).
+    \item \textbf{Sistema de Recomendação Ponderado:} A escolha da missão específica a ser sugerida levará em conta:
+    \begin{itemize}
+        \item A urgência indicada pelos índices (ex: RDR muito alta terá prioridade para missões de redução de dívida).
+        \item Os objetivos financeiros declarados pelo usuário.
+        \item O histórico de sucesso em missões anteriores (para ajustar a dificuldade).
+        \item A variedade, para evitar que o usuário receba sempre o mesmo tipo de desafio.
+    \end{itemize}
+    \item \textbf{Feedback e Ajuste:} Após a conclusão ou falha em uma missão, o sistema registrará o resultado e utilizará essa informação para refinar futuras sugestões. O usuário também poderá fornecer feedback direto sobre a relevância e dificuldade das missões.
+\end{enumerate}
+Este algoritmo buscará um equilíbrio entre oferecer desafios que efetivamente ajudem o usuário a melhorar sua saúde financeira e manter o engajamento através de metas alcançáveis e personalizadas.
+
+\subsection{Exemplo Prático}
+Considere um usuário fictício, João, com os seguintes dados financeiros declarados no aplicativo:
+
+\begin{itemize}
+    \item \textbf{Renda Bruta Mensal}: R\$ 5.000,00 \\
+    Valor total que João recebe antes de impostos e descontos obrigatórios.
+    
+    \item \textbf{Renda Líquida Mensal}: R\$ 4.200,00 \\
+    Valor efetivamente disponível após deduções, ou seja, o dinheiro que entra na conta.
+    
+    \item \textbf{Pagamentos Mensais de Dívidas}: R\$ 2.100,00, composto por: 
+    \begin{itemize}
+        \item Financiamento do carro: R\$ 1.200,00
+        \item Pagamento mínimo do cartão de crédito: R\$ 900,00
+    \end{itemize}
+    
+    \item \textbf{Demais Despesas Fixas e Variáveis}: R\$ 1.700,00, incluindo:
+    \begin{itemize}
+        \item Aluguel: R\$ 1.000,00
+        \item Alimentação: R\$ 500,00
+        \item Transporte e lazer: R\$ 200,00
+    \end{itemize}
+    
+    \item \textbf{Despesas Totais Mensais}: \\
+    Pagamentos de dívidas (R\$ 2.100,00) + demais despesas (R\$ 1.700,00) = \textbf{R\$ 3.800,00}
+\end{itemize}
+
+\noindent
+\textbf{1. Cálculo da Razão Dívida-Renda (RDR):}
+\[
+\text{RDR} = \frac{2.100}{5.000} \times 100 = 42\%
+\]
+Isso significa que 42\% da \textbf{renda bruta} de João está comprometida apenas com dívidas.
+
+\noindent
+\textbf{2. Cálculo da Taxa de Poupança Pessoal (TPS):}
+\[
+\text{TPS} = \frac{4.200 - 3.800}{4.200} \times 100
+\]
+\[
+\text{TPS} = \frac{400}{4.200} \times 100 \approx 9,52\%
+\]
+Ou seja, João consegue poupar apenas 9,5\% de sua \textbf{renda líquida}, abaixo do mínimo recomendado (10--15\%).
+
+\noindent
+\textbf{3. Interpretação do Perfil:}
+\begin{itemize}
+    \item \textbf{Endividamento}: A RDR de 42\% mostra que João dedica quase metade de sua renda bruta ao pagamento de dívidas.
+    \item \textbf{Poupança}: Sua TPS de 9,5\% indica baixa capacidade de formar reserva financeira.
+    \item \textbf{Síntese}: Perfil de atenção – alto comprometimento com dívidas e pouca poupança.
+\end{itemize}
+
+\noindent
+\textbf{4. Sugestão de Missões pelo GenApp:}
+\begin{enumerate}
+    \item \textbf{Missão de Curto Prazo (reduzir despesas)}: “Revise suas faturas de cartão de crédito e identifique 3 gastos recorrentes que possam ser cortados. Meta: economizar R\$ 150,00 no próximo mês.”
+    \item \textbf{Missão de Médio Prazo (aumentar poupança)}: “Configure uma transferência automática de R\$ 200,00 para uma conta separada, com objetivo de criar uma reserva de emergência.”
+    \item \textbf{Missão Educativa}: “Aprenda sobre os métodos de pagamento de dívidas (‘bola de neve’ e ‘avalanche’) e escolha o que melhor se adapta à sua situação.”
+\end{enumerate}
+Ao completar essas missões, João não apenas melhoraria seus índices financeiros, mas também ganharia pontos e recompensas no aplicativo, incentivando o engajamento contínuo.
+
+\subsection{Métodos de Pagamento de Dívidas: Abordagens Tradicionais e Evidências Acadêmicas}
+
+Entre as estratégias mais difundidas para a quitação de dívidas destacam-se dois métodos: 
+o \textbf{método da bola de neve (snowball)} e o \textbf{método da avalanche}. 
+Ambos se baseiam em priorizar dívidas específicas, mas diferem no critério de ordenação. 
+
+No \textbf{método da bola de neve}, as dívidas são listadas em ordem crescente de saldo. 
+O indivíduo paga o valor mínimo em todas as obrigações e concentra recursos extras na 
+menor dívida até eliminá-la. Em seguida, direciona o valor liberado para a próxima dívida da lista. 
+A principal vantagem deste método é o efeito psicológico positivo: a percepção de progresso rápido, 
+que fortalece a motivação e aumenta a probabilidade de continuidade no processo de quitação 
+\cite{Harkin2017}. 
+
+Já o \textbf{método da avalanche} organiza as dívidas em ordem decrescente de taxa de juros. 
+O indivíduo paga o valor mínimo em todas, concentrando recursos extras naquela com o maior 
+custo financeiro. Apesar de menos motivador no curto prazo, este método tende a reduzir o 
+montante total de juros pagos ao longo do tempo, sendo considerado financeiramente mais 
+eficiente \cite{RiosSolis2017}. 
+
+No entanto, pesquisas recentes indicam que nenhuma dessas estratégias é matematicamente ótima. 
+Rios-Solis et al. (2017) \cite{RiosSolis2017} demonstram, por meio de modelos de programação 
+linear inteira, que tanto a avalanche quanto a bola de neve podem ser superadas por soluções 
+otimizadas, capazes de gerar em média 4\% de economia no custo total, chegando a 40\% em casos 
+específicos. Ainda assim, tais modelos possuem aplicação restrita no cotidiano, pois demandam 
+conhecimento técnico e informações detalhadas nem sempre acessíveis ao usuário comum. 
+
+Diante desse cenário, o \textbf{GenApp} adota uma abordagem conciliadora. O aplicativo oferece 
+ao usuário a possibilidade de escolher entre os dois métodos tradicionais, explicando de forma 
+clara seus benefícios e limitações. Dessa forma: 
+\begin{itemize}
+    \item Usuários que priorizam a \textbf{redução do custo financeiro total} podem optar pelo 
+    método da avalanche.
+    \item Usuários que necessitam de \textbf{reforço motivacional e sensação de progresso rápido} 
+    podem adotar o método da bola de neve.
+\end{itemize}
+
+Além disso, o aplicativo poderá apresentar simulações comparativas entre os métodos, permitindo 
+ao usuário visualizar o impacto de cada escolha tanto no tempo de quitação quanto no valor pago 
+em juros. Essa funcionalidade reforça o caráter educativo do GenApp, unindo evidências acadêmicas 
+à prática cotidiana do gerenciamento financeiro pessoal. 
+
+
+\subsection{Integração dos Índices com a Gamificação}
+A gamificação no GenApp será intrinsecamente ligada aos índices financeiros e ao progresso do usuário em melhorá-los. A ideia é transformar o processo, muitas vezes árduo, de gerenciamento financeiro em uma jornada mais motivadora e recompensadora.
+
+\begin{itemize}
+    \item \textbf{Metas Baseadas em Índices:} As missões e desafios serão frequentemente estruturados para impactar diretamente a TPS e a RDR. Por exemplo, "Aumente sua TPS em 2\% nos próximos 30 dias" ou "Reduza sua RDR em 3\% nos próximos 60 dias".
+    \item \textbf{Pontuação e Níveis:} O cumprimento de missões e a melhoria nos índices financeiros renderão pontos ao usuário, permitindo que ele suba de nível dentro do aplicativo. Cada nível pode desbloquear novos recursos, dicas personalizadas ou avatares/temas customizáveis.
+    \item \textbf{Badges e Conquistas:} Conquistas específicas (badges) serão concedidas por marcos importantes, como "Mestre da Poupança" (ao atingir uma TPS de 20\%), "Livre de Dívidas Altas" (ao reduzir a RDR para abaixo de 30\%), ou "Planejador Consistente" (ao registrar todas as despesas por 30 dias seguidos).
+    \item \textbf{Rankings (Opcionais e Anônimos/Entre Amigos):} Para usuários que se sentem motivados pela competição saudável, rankings baseados no progresso (e não em valores absolutos, para privacidade) podem ser implementados. Por exemplo, ranking de "Maior Evolução na TPS no Mês".
+    \item \textbf{Feedback Visual Dinâmico:} Os dashboards não apenas mostrarão os índices, mas também o progresso em direção às metas gamificadas, utilizando barras de progresso, gráficos de evolução e animações que celebram as conquistas.
+    \item \textbf{Narrativa e Personagens (Opcional):} Dependendo da profundidade da gamificação, uma narrativa leve ou personagens que guiam o usuário podem ser introduzidos para tornar a experiência mais imersiva.
+\end{itemize}
+O objetivo central é utilizar os mecanismos de jogos para reforçar comportamentos financeiros positivos, tornando o aprendizado e a aplicação de boas práticas financeiras uma atividade mais engajadora e menos intimidante, conforme discutido por autores como Deterding et al. (2011) \cite{Deterding2011} sobre os elementos de gamificação.
+
+\chapter{Modelagem do Projeto}
+Neste capítulo, detalhamos o processo de modelagem do GenApp, desde o levantamento inicial de requisitos até a concepção da arquitetura do sistema e o design da interface do usuário. A modelagem é uma etapa crucial para garantir que o aplicativo atenda às necessidades dos usuários e seja desenvolvido de forma estruturada e eficiente.
+
+\section{Levantamento de Requisitos}
+O levantamento de requisitos foi realizado por meio de análise de aplicativos concorrentes, pesquisa sobre as necessidades de usuários em relação ao gerenciamento financeiro pessoal e discussões sobre as funcionalidades essenciais para um aplicativo com foco em gamificação e educação financeira. Os requisitos foram divididos em funcionais e não funcionais.
+
+\subsection{Requisitos Funcionais (RF)}
+Os requisitos funcionais descrevem as funcionalidades que o sistema deve oferecer:
+\begin{itemize}
+    \item RF001: O sistema deve permitir que o usuário se cadastre utilizando e-mail e senha.
+    \item RF002: O sistema deve permitir que o usuário realize login utilizando e-mail e senha.
+    \item RF003: O sistema deve permitir o registro de receitas, informando descrição, valor, data e categoria.
+    \item RF004: O sistema deve permitir o registro de despesas, informando descrição, valor, data e categoria.
+    \item RF005: O sistema deve permitir a categorização de receitas e despesas (ex: Salário, Alimentação, Transporte, Lazer).
+    \item RF006: O sistema deve permitir a edição e exclusão de transações (receitas e despesas) registradas.
+    \item RF007: O sistema deve calcular e exibir a Taxa de Poupança Pessoal (TPS) do usuário.
+    \item RF008: O sistema deve calcular e exibir a Razão Dívida-Renda (RDR) do usuário (considerando dívidas informadas).
+    \item RF009: O sistema deve apresentar um dashboard com o resumo financeiro, incluindo saldo atual, TPS, RDR e gráficos de receitas e despesas por período e categoria.
+    \item RF010: O sistema deve oferecer um módulo de missões financeiras personalizadas com base no perfil do usuário (TPS, RDR, objetivos).
+    \item RF011: O sistema deve permitir que o usuário marque missões como concluídas.
+    \item RF012: O sistema deve atribuir pontos e/ou badges ao usuário pela conclusão de missões e pela melhoria nos índices financeiros.
+    \item RF013: O sistema deve exibir o nível do usuário e seu progresso, baseado na pontuação acumulada.
+    \item RF014: O sistema deve permitir que o usuário defina metas financeiras pessoais (ex: criar reserva de emergência, economizar para uma viagem).
+    \item RF015: O sistema deve fornecer feedback visual sobre o progresso em direção às metas definidas.
+    \item RF016: O sistema deve permitir a visualização de um extrato de transações filtrável por período e categoria.
+    \item RF017: O sistema deve (opcionalmente) permitir a criação de orçamentos para diferentes categorias de despesas.
+    \item RF018: O sistema deve (opcionalmente) enviar lembretes para o registro de transações ou para o vencimento de contas.
+\end{itemize}
+
+\subsection{Requisitos Não Funcionais (RNF)}
+Os requisitos não funcionais especificam critérios de qualidade e restrições do sistema:
+\begin{itemize}
+    \item RNF001: A interface do usuário deve ser intuitiva, amigável e responsiva, adaptando-se a diferentes tamanhos de tela de dispositivos móveis.
+    \item RNF002: O sistema deve garantir a segurança dos dados do usuário, utilizando criptografia para informações sensíveis como senhas e tokens de sessão.
+    \item RNF003: O sistema deve apresentar bom desempenho, com tempos de resposta rápidos para as principais funcionalidades (registro de transação, visualização de dashboard em menos de 3 segundos).
+    \item \textbf{RNF004}: O sistema deve ser desenvolvido utilizando \textbf{Flutter} para o frontend e \textbf{Python com Django (Django REST Framework)} para o backend.
+    \item RNF005: O sistema deve utilizar PostgreSQL como banco de dados.
+    \item RNF006: O sistema deve ser escalável para suportar um número crescente de usuários e transações.
+    \item RNF007: O sistema deve ser confiável, minimizando a ocorrência de falhas e garantindo a integridade dos dados.
+    \item RNF008: O sistema deve ser de fácil manutenção e evolução.
+    \item \textbf{RNF009}: O sistema deve armazenar senhas de forma segura, utilizando algoritmos de hashing com \textbf{salt} e múltiplas iterações. O \textbf{Django}, por padrão, utiliza \textbf{PBKDF2} com SHA-256, sendo também compatível com algoritmos mais robustos como \textbf{bcrypt} ou \textbf{Argon2}. Tokens de autenticação serão gerados em formato \textbf{JWT} (via \texttt{djangorestframework-simplejwt}) e toda a comunicação entre cliente e servidor será protegida por \textbf{TLS}.
+    \item RNF010: O aplicativo deve estar em conformidade com a Lei Geral de Proteção de Dados (LGPD) no que tange à coleta, tratamento e armazenamento de dados pessoais.
+\end{itemize}
+
+\section{Diagramas de Casos de Uso}
+
+Os diagramas de casos de uso são utilizados para representar as interações entre os atores e o sistema, descrevendo as funcionalidades sob a perspectiva do usuário.  
+O ator principal identificado no sistema é o \textbf{Usuário do Aplicativo}, responsável por interagir diretamente com todas as funcionalidades centrais do GenApp.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.8cm and 3cm,
+        scale=0.95, every node/.style={transform shape}
+    ]
+    \tikzset{
+        actor/.style={draw, thick, minimum size=8mm, align=center, fill=white},
+        umlusecase/.style={ellipse, draw, minimum width=3.8cm, minimum height=8mm, align=center, font=\small, fill=blue!15},
+        subusecase/.style={ellipse, draw, minimum width=2.8cm, minimum height=7mm, align=center, font=\scriptsize, fill=gray!15},
+        assoc/.style={-},
+        extendarrow/.style={->, dashed, semithick, draw=gray!80},
+    }
+
+        % --- Ator (stickman UML) ---
+        \node[actor] (actor) {
+            \begin{tikzpicture}[scale=0.6]
+                \draw (0,0) circle (0.3);          % cabeça
+                \draw (0,-0.3) -- (0,-1);          % tronco
+                \draw (-0.5,-0.6) -- (0.5,-0.6);   % braços
+                \draw (0,-1) -- (-0.4,-1.6);       % perna esquerda
+                \draw (0,-1) -- (0.4,-1.6);        % perna direita
+            \end{tikzpicture}
+        };
+        \node[below=0.2cm of actor] {Usuário};
+
+        % --- Casos principais ---
+        \node[umlusecase, right=3.5cm of actor, yshift=3.2cm] (uc1) {Cadastro / Login};
+        \node[umlusecase, below=of uc1] (uc2) {Transações};
+        \node[umlusecase, below=of uc2] (uc3) {Dashboard};
+        \node[umlusecase, below=of uc3] (uc4) {Missões};
+        \node[umlusecase, below=of uc4] (uc5) {Metas};
+
+        % Conexões ator -> casos
+        \foreach \x in {uc1,uc2,uc3,uc4,uc5} {
+            \draw[assoc] (actor) -- (\x);
+        }
+
+        % --- Subcasos ---
+        \node[subusecase, right=4cm of uc1, yshift=0.6cm] (uc1a) {Cadastro};
+        \node[subusecase, below=0.6cm of uc1a] (uc1b) {Login};
+
+        \node[subusecase, right=4cm of uc2, yshift=0.6cm] (uc2a) {Receita};
+        \node[subusecase, below=0.6cm of uc2a] (uc2b) {Despesa};
+        \node[subusecase, below=0.6cm of uc2b] (uc2c) {Editar/Excluir};
+
+        \node[subusecase, right=4cm of uc3, yshift=0.6cm] (uc3a) {Índices};
+        \node[subusecase, below=0.6cm of uc3a] (uc3b) {Gráficos};
+
+        \node[subusecase, right=4cm of uc4, yshift=0.6cm] (uc4a) {Ver Missões};
+        \node[subusecase, below=0.6cm of uc4a] (uc4b) {Concluir};
+        \node[subusecase, below=0.6cm of uc4b] (uc4c) {Pontuação};
+
+        % --- Relações extend ---
+        \foreach \x in {uc1a,uc1b} \draw[extendarrow] (\x) -- (uc1);
+        \foreach \x in {uc2a,uc2b,uc2c} \draw[extendarrow] (\x) -- (uc2);
+        \foreach \x in {uc3a,uc3b} \draw[extendarrow] (\x) -- (uc3);
+        \foreach \x in {uc4a,uc4b,uc4c} \draw[extendarrow] (\x) -- (uc4);
+
+    \end{tikzpicture}
+    \caption{Diagrama de Casos de Uso Principal do GenApp.}
+    \label{fig:casos_de_uso_estilizado}
+\end{figure}
+
+\subsection{Descrição dos Casos de Uso Principais}
+
+A seguir são descritos os principais casos de uso representados no diagrama:
+
+\textbf{1. Cadastro e Login}
+\begin{itemize}
+    \item \textbf{Ator:} Usuário.
+    \item \textbf{Descrição:} Permite criar uma conta no GenApp e autenticar-se para acessar as funcionalidades.
+    \item \textbf{Fluxo Principal (Cadastro):} Inserção de e-mail e senha, validação e criação de conta.
+    \item \textbf{Fluxo Principal (Login):} Inserção de credenciais e autenticação via token de sessão.
+    \item \textbf{Pós-condição:} Conta criada ou usuário autenticado.
+\end{itemize}
+
+\textbf{2. Transações}
+\begin{itemize}
+    \item \textbf{Ator:} Usuário.
+    \item \textbf{Descrição:} Registro e gerenciamento de receitas e despesas.
+    \item \textbf{Fluxo Principal:} Inserção de valores, categorias e datas; armazenamento no banco de dados.
+    \item \textbf{Fluxo Alternativo:} Edição ou exclusão de transações.
+    \item \textbf{Pós-condição:} Dados financeiros atualizados.
+\end{itemize}
+
+\textbf{3. Dashboard}
+\begin{itemize}
+    \item \textbf{Ator:} Usuário.
+    \item \textbf{Descrição:} Exibe resumo financeiro com saldos, índices (TPS, RDR) e gráficos.
+    \item \textbf{Fluxo Principal:} Consulta de saldos e relatórios, aplicação de filtros.
+    \item \textbf{Pós-condição:} Usuário tem visão clara de sua situação financeira.
+\end{itemize}
+
+\textbf{4. Missões Gamificadas}
+\begin{itemize}
+    \item \textbf{Ator:} Usuário.
+    \item \textbf{Descrição:} Permite visualizar, aceitar e concluir missões, recebendo recompensas.
+    \item \textbf{Fluxo Principal:} Seleção de missão, execução de tarefas, conclusão e atribuição de pontos.
+    \item \textbf{Pós-condição:} Progresso no sistema de gamificação.
+\end{itemize}
+
+\textbf{5. Metas Financeiras}
+\begin{itemize}
+    \item \textbf{Ator:} Usuário.
+    \item \textbf{Descrição:} Criação e acompanhamento de metas financeiras.
+    \item \textbf{Fluxo Principal:} Definição de valor alvo e prazo, monitoramento de progresso.
+    \item \textbf{Pós-condição:} Metas registradas e progresso visível no sistema.
+\end{itemize}
+
+
+\section{Arquitetura do Sistema}
+A arquitetura do GenApp é baseada em uma comunicação entre frontend, backend e banco de dados. O frontend é desenvolvido em Flutter, garantindo experiência multiplataforma. O backend utiliza \textbf{Django} com \textbf{Django REST Framework (DRF)}, responsável por implementar a lógica de negócios, autenticação, autorização e disponibilização de APIs RESTful. O banco de dados é o \textbf{PostgreSQL}, que armazena os registros financeiros, informações de usuários e dados de gamificação.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        node distance=2.2cm,
+        block/.style={rectangle, draw, fill=blue!20, text width=13em, text centered, rounded corners, minimum height=3em},
+        line/.style={draw, -latex'}
+    ]
+        % Nós principais em coluna central
+        \node [block] (flutter) {Aplicativo Cliente (Flutter)};
+        \node [block, below=of flutter] (backend) {Servidor Backend (Python/Django + DRF)};
+        \node [block, below=of backend] (postgres) {Banco de Dados (PostgreSQL)};
+
+        % Conexões principais
+        \path [line] (flutter) -- node[right, midway, xshift=0.2cm] {API RESTful (HTTPS)} (backend);
+        \path [line] (backend) -- (postgres);
+
+        % Anotações (à direita para clareza)
+        \path [line, dashed] (backend.east) -- ++(5,0) 
+            node[right, text width=15em, align=left] {Lógica de Negócios, \\ Autenticação (JWT), \\ Gamificação, \\ Cálculo de Índices};
+
+        \path [line, dashed] (postgres.east) -- ++(5,0) 
+            node[right, text width=15em, align=left] {Dados de Usuário, \\ Transações, Categorias, \\ Metas, Missões};
+    \end{tikzpicture}
+    \caption{Diagrama de Arquitetura Simplificado do GenApp}
+    \label{fig:arquitetura}
+\end{figure}
+
+
+Principais componentes da arquitetura:
+\begin{itemize}
+    \item \textbf{Frontend (Cliente):} Desenvolvido em Flutter, responsável pela interface do usuário (UI), experiência de uso (UX), captura de entradas e exibição de dados. Comunica-se com o backend exclusivamente via API segura (HTTPS). Armazena localmente apenas dados não sensíveis e tokens de sessão.
+    
+    \item \textbf{Backend (Servidor):} Implementado em Python com Django e Django REST Framework (DRF).
+    \begin{itemize}
+        \item \textbf{API RESTful (DRF):} Responsável por expor endpoints que atendem a todas as funcionalidades do sistema, como cadastro, login, registro de transações e missões.
+        \item \textbf{Lógica de Negócios:} Processa requisições da API, aplica regras de negócio, calcula índices financeiros (TPS, RDR) e gerencia elementos de gamificação (pontos, níveis, missões).
+        \item \textbf{Módulo de Autenticação e Segurança:} Garante a proteção do acesso ao sistema, incluindo cadastro, login, emissão e validação de tokens JWT e controle de autorização.
+    \end{itemize}
+    
+    \item \textbf{Banco de Dados (PostgreSQL):} Sistema de gerenciamento relacional que armazena dados persistentes, como informações de usuários, transações financeiras, categorias, metas e progresso em missões. O PostgreSQL foi escolhido por sua robustez, confiabilidade e recursos avançados.
+\end{itemize}
+
+Esta arquitetura modular proporciona maior organização, segurança, manutenção facilitada e escalabilidade para o GenApp.
+
+\section{Interface da Aplicação}
+A interface do GenApp será projetada com foco na simplicidade, intuitividade e em fornecer uma experiência de usuário agradável e motivadora, especialmente considerando os elementos de gamificação. O design seguirá as diretrizes de Material Design (para Android) e Human Interface Guidelines (para iOS), aproveitando a capacidade do Flutter de criar interfaces nativas.
+
+\subsection{Tela Principal e de Transações}
+\begin{itemize}
+    \item \textbf{Dashboard Principal:} Será a primeira tela após o login. Apresentará um resumo visual da saúde financeira do usuário: saldo atual, gráficos de pizza ou barras para receitas e despesas do mês, os valores da TPS e RDR com indicadores de cor (ex: verde para saudável, amarelo para atenção, vermelho para preocupante), e um acesso rápido às missões ativas ou sugeridas.
+    \item \textbf{Registro de Transação:} Um botão de ação flutuante (FAB) permitirá acesso rápido ao formulário de registro de nova receita ou despesa. O formulário será simples, com campos para valor, descrição, data (padrão para data atual), categoria (com seleção inteligente ou sugestões baseadas no histórico) e opção para adicionar notas ou anexar comprovante (funcionalidade futura).
+    \item \textbf{Extrato/Lista de Transações:} Uma tela dedicada listará todas as transações, com filtros por período, tipo (receita/despesa) e categoria. Cada item da lista mostrará informações essenciais e permitirá o acesso para edição ou exclusão.
+\end{itemize}
+
+\subsection{Telas de Acompanhamento (Índices, Metas, Missões)}
+\begin{itemize}
+    \item \textbf{Detalhes dos Índices (TPS e RDR):} Telas específicas mostrarão a evolução histórica da TPS e RDR através de gráficos de linha, permitindo ao usuário visualizar seu progresso ao longo do tempo e entender o impacto de suas ações.
+    \item \textbf{Gerenciamento de Metas:} Uma seção para criar, visualizar e acompanhar o progresso das metas financeiras. Cada meta terá uma barra de progresso visual e informações sobre o valor restante ou tempo estimado para conclusão.
+    \item \textbf{Central de Missões:} Apresentará as missões disponíveis, em andamento e concluídas. Cada missão terá uma descrição clara, os critérios para conclusão e as recompensas associadas (pontos, badges).
+\end{itemize}
+
+\subsection{Feedback Visual e Ranking (Gamificação)}
+\begin{itemize}
+    \item \textbf{Perfil do Jogador:} Uma tela onde o usuário pode ver seu nível atual, barra de progresso para o próximo nível, total de pontos acumulados e badges conquistadas.
+    \item \textbf{Notificações e Celebrações:} O aplicativo utilizará notificações discretas para parabenizar o usuário por completar missões, atingir metas ou melhorar seus índices. Pequenas animações ou mensagens de incentivo serão usadas para reforçar comportamentos positivos.
+    \item \textbf{Rankings (se implementado):} Se houver rankings, serão apresentados de forma clara, respeitando a privacidade e focando na evolução ou no engajamento, não em valores absolutos de riqueza.
+\end{itemize}
+
+\subsection{Autenticação}
+As telas de cadastro e login serão limpas e diretas, solicitando apenas as informações essenciais. Haverá opções para recuperação de senha e, futuramente, login social (Google, Apple).
+
+O design geral buscará um equilíbrio entre fornecer informações financeiras de forma clara e objetiva e manter uma atmosfera lúdica e encorajadora por meio dos elementos de gamificação.
+
+\chapter{Resultados Esperados e Discussão}
+
+Espera-se que o desenvolvimento do GenApp resulte em uma ferramenta eficaz para auxiliar os usuários no gerenciamento de suas finanças pessoais, promovendo maior conscientização sobre seus hábitos de consumo, níveis de endividamento e capacidade de poupança. A incorporação de elementos de gamificação busca potencializar o engajamento e a motivação dos usuários, tornando o processo de controle financeiro mais acessível e estimulante.
+
+\section{Resultados Esperados}
+Os principais resultados projetados com a implementação do GenApp incluem:
+
+\begin{itemize}
+    \item \textbf{Melhoria na Saúde Financeira dos Usuários:} Por meio do acompanhamento dos índices TPS e RDR, aliado à participação em missões personalizadas, espera-se que os usuários aumentem suas taxas de poupança e reduzam gradualmente o endividamento.
+    
+    \item \textbf{Aprimoramento da Literacia Financeira:} As missões e o feedback fornecido pelo sistema devem contribuir para um maior entendimento de conceitos financeiros fundamentais, favorecendo a adoção de práticas de consumo e planejamento mais saudáveis.
+    
+    \item \textbf{Engajamento Sustentado:} O uso de mecânicas de gamificação (pontos, níveis, badges e desafios) é projetado para promover a interação contínua dos usuários com o aplicativo, diferentemente de ferramentas puramente transacionais.
+    
+    \item \textbf{Interface Intuitiva e Acessível:} O design centrado no usuário e a experiência fluida devem favorecer a adesão de diferentes perfis de usuários, independentemente do nível de familiaridade com tecnologia ou finanças.
+    
+    \item \textbf{Validação dos Índices Propostos:} A aplicação prática dos indicadores TPS e RDR permitirá avaliar sua utilidade como instrumentos de diagnóstico do perfil financeiro dos usuários, além de direcionar recomendações e intervenções adequadas.
+\end{itemize}
+
+\section{Discussão: Desafios e Limitações}
+Apesar do potencial do GenApp, alguns desafios são previstos no desenvolvimento e adoção da solução:
+
+\begin{itemize}
+    \item \textbf{Consistência no Registro de Dados:} A acurácia dos resultados depende da disciplina do usuário em registrar receitas e despesas. Estratégias como lembretes automáticos e, futuramente, a integração segura com extratos bancários podem mitigar essa limitação.
+    
+    \item \textbf{Engajamento a Longo Prazo:} Embora a gamificação seja um fator motivacional, manter o interesse dos usuários ao longo do tempo exigirá constante renovação das missões e desafios, além da introdução de novos conteúdos.
+    
+    \item \textbf{Privacidade e Segurança das Informações:} Como a aplicação lida com dados financeiros sensíveis, a proteção da privacidade dos usuários requer práticas contínuas de atualização de protocolos de segurança e monitoramento de possíveis vulnerabilidades.
+    
+    \item \textbf{Equilíbrio entre Generalização e Personalização:} O algoritmo de recomendação deve ser suficientemente adaptável ao perfil de cada usuário, mas sem tornar o sistema excessivamente complexo ou intrusivo.
+    
+    \item \textbf{Mensuração do Impacto Real:} A avaliação dos efeitos do aplicativo na saúde financeira dos usuários dependerá da definição de métricas claras e da implementação de mecanismos de feedback e acompanhamento sistemático.
+\end{itemize}
+
+Em síntese, acredita-se que o GenApp poderá constituir-se como uma ferramenta relevante, especialmente para o público jovem e para indivíduos em busca de uma abordagem interativa e motivadora para o gerenciamento de suas finanças pessoais. Ainda que os desafios sejam significativos, eles abrem espaço para avanços futuros e refinamentos do projeto.
+
+
+\chapter{Cronograma}
+O desenvolvimento do projeto GenApp será organizado em fases, contemplando desde a concepção até a preparação para o lançamento da versão mínima viável (MVP).
+
+\renewcommand{\arraystretch}{1.4}
+\rowcolors{2}{gray!10}{white}
+\begin{table}[H]
+    \centering
+    \caption{Cronograma do Projeto GenApp}
+    \label{tab:cronograma}
+    \begin{tabularx}{\textwidth}{|p{3.5cm}|X|p{3.5cm}|}
+        \hline
+        \rowcolor{black!85} 
+        \textbf{\textcolor{white}{Fase}} & \textbf{\textcolor{white}{Atividades Principais}} & \textbf{\textcolor{white}{Período}} \\
+        \hline
+        Fase 1: Planejamento e Concepção & 
+        Definição detalhada do escopo; Levantamento de requisitos; Pesquisa de mercado e análise de concorrentes; Esboço inicial da arquitetura e tecnologias. &
+        Maio de 2025 \\
+        \hline
+        Fase 2: Design da Interface (UI/UX) & 
+        Criação de wireframes e fluxos de navegação; Protótipo visual de alta fidelidade (Figma); Testes iniciais de usabilidade. &
+        Junho de 2025 \\
+        \hline
+        Fase 3: Desenvolvimento Backend & 
+        Configuração do ambiente; Modelagem do banco de dados (PostgreSQL); Desenvolvimento da API RESTful (Django/DRF); Autenticação e segurança; Implementação da lógica de negócios (índices e gamificação). &
+        Julho–Agosto de 2025 \\
+        \hline
+        Fase 4: Desenvolvimento Frontend & 
+        Configuração do ambiente Flutter; Telas de cadastro, login e dashboard; Registro de transações; Integração com a API backend; Telas de metas e missões; Elementos de gamificação (pontos, níveis, badges). &
+        Setembro–Outubro de 2025 \\
+        \hline
+        Fase 5: Testes, Refinamentos e Conclusão & 
+        Novembro de 2025 \\
+        \hline
+        \rowcolor{gray!25}
+        \textbf{Total} & & \textbf{Maio–Novembro de 2025} \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+
+\chapter{Conclusão}
+
+O presente trabalho apresentou a proposta e o desenvolvimento do GenApp, um aplicativo de gerenciamento financeiro pessoal fundamentado em índices financeiros consolidados, como a Taxa de Poupança Pessoal (TPS) e a Razão Dívida-Renda (RDR), e no uso de técnicas de gamificação para incentivar o engajamento e a educação financeira dos usuários.
+
+Ao longo do estudo, justificou-se a necessidade de uma solução inovadora para apoiar o controle das finanças pessoais, considerando o cenário atual de elevado endividamento e baixa literacia financeira. Foram detalhados os objetivos do projeto, as tecnologias selecionadas, a modelagem do sistema e a definição dos principais componentes, incluindo requisitos, casos de uso, arquitetura e design da interface.
+
+A adoção de índices reconhecidos na literatura financeira buscou conferir maior consistência e confiabilidade às análises disponibilizadas pelo aplicativo. A integração dessas métricas com um sistema de missões, recompensas e elementos de gamificação foi concebida para tornar a experiência do usuário mais interativa e motivadora, reduzindo barreiras comuns associadas ao controle financeiro.
+
+Os resultados esperados indicam que o GenApp poderá contribuir para a melhoria da saúde financeira e para o aumento da literacia financeira dos usuários. Ainda assim, reconhecem-se desafios importantes, como a necessidade de adesão consistente ao registro de dados, a manutenção do engajamento a longo prazo e a garantia da segurança e privacidade das informações sensíveis.
+
+O cronograma de desenvolvimento proposto prevê a construção de uma versão mínima viável (MVP) que permitirá validar o modelo concebido e fornecer uma base sólida para futuras evoluções. Com isso, acredita-se que este trabalho alcançou seus objetivos ao propor uma solução inovadora, fundamentada em conceitos acadêmicos e práticas consolidadas, que pode servir de apoio tanto para pesquisas futuras quanto para a aplicação prática no contexto da educação e gestão financeira.
+
+Como trabalhos futuros, sugerem-se a expansão das funcionalidades do sistema, incluindo a importação automática de transações financeiras por meio de protocolos seguros, o enriquecimento de conteúdos educativos e a aplicação de técnicas de inteligência artificial para oferecer recomendações personalizadas. Tais avanços poderão ampliar o potencial do GenApp como ferramenta de apoio à tomada de decisões financeiras mais conscientes e sustentáveis.
+
+O GenApp não se limita a propor um aplicativo, mas também contribui com a discussão acadêmica sobre o uso de índices financeiros aplicados ao contexto da gamificação, oferecendo um modelo que poderá ser validado em pesquisas futuras.
+
+\begin{thebibliography}{99}
+
+\bibitem{cnc2025}
+Confederação Nacional do Comércio de Bens, Serviços e Turismo (CNC). (2025). \textit{Pesquisa Nacional de Endividamento e Inadimplência do Consumidor (Peic) - Agosto de 2025}. Recuperado de \url{https://portaldocomercio.org.br/publicacoes_posts/pesquisa-de-endividamento-e-inadimplencia-do-consumidor-peic-agosto-de-2025/}
+
+\bibitem{Deci1985}
+Deci, E. L., e Ryan, R. M. (1985). The general causality orientations scale: Self-determination in personality. \textit{Journal of Research in Personality, 19}(2), 109-134.
+
+\bibitem{NguyenVietImmersion2025}
+Nguyen-Viet, B., e Nguyen-Viet, B. (2025). The synergy of immersion and basic psychological needs satisfaction: Exploring gamification's impact on student engagement and learning outcomes. \textit{Acta Psychologica, 252}, 104660.
+
+\bibitem{Maratou2023}
+Maratou, V., et al. (2023). Game-Based Learning in Higher Education Using Analogue Games. \textit{International Journal of Film and Media Arts, 8}(1), 04.
+
+\bibitem{Ingale2021}
+Ingale, K. K., e Paluri, R. A. (2021). Financial literacy and financial behaviour: a bibliometric analysis. \textit{Review of Behavioral Finance, 14}(5), 712-736. (Nota: O artigo original do usuário citava Bonfigt como coautor, mas a referência mais comum para este DOI é Ingale e Paluri. Ajustado para consistência com fontes comuns).
+
+\bibitem{gitman2012}
+Gitman, L. J., e Zutter, C. J. (2012). \textit{Princípios de Administração Financeira} (12ª ed.). Pearson Prentice Hall.
+
+\bibitem{cfpb_dti}
+Consumer Financial Protection Bureau (CFPB). (s.d.). What is a debt-to-income ratio? Why is the 43\% debt-to-income ratio important?. Recuperado em 13 de maio de 2025, de \url{https://www.consumerfinance.gov/ask-cfpb/what-is-a-debt-to-income-ratio-why-is-the-43-debt-to-income-ratio-important-en-1791/}
+
+\bibitem{Deterding2011}
+Deterding, S., Dixon, D., Khaled, R., e Nacke, L. (2011). From game design elements to gamefulness: defining "gamification". In \textit{Proceedings of the 15th international academic MindTrek conference: Envisioning future media environments} (pp. 9-15).
+
+\bibitem{Harkin2017} Harkin, B. (2017). Improving Financial Management via Contemplation: Novel Interventions and Findings in Laboratory and Applied Settings. \textit{Frontiers in Psychology}, 8, 327. https://doi.org/10.3389/fpsyg.2017.00327
+
+\bibitem{RiosSolis2017} Rios-Solis, Y. A., Saucedo-Espinosa, M. A., e Caballero-Robledo, G. A. (2017). Repayment policy for multiple loans. \textit{PLOS ONE}, 12(4), e0175782. https://doi.org/10.1371/journal.pone.0175782
+\bibitem{LGPD2018}
+Brasil. Lei nº 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, 14 ago. 2018. Disponível em: \url{http://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/L13709.htm}. Acesso em: 17/06/2025.
+\bibitem{LGPD2019}
+Brasil. Lei nº 13.853, de 8 de julho de 2019. Altera a Lei nº 13.709/2018, para dispor sobre a proteção de dados pessoais e para criar a Autoridade Nacional de Proteção de Dados; e dá outras providências. Brasília, 8 jul. 2019. Disponível em: \url{http://www.planalto.gov.br/ccivil_03/_ato2019-2022/2019/lei/l13853.htm}. Acesso em: 17/06/2025.
+
+\bibitem{lusardi2019}
+Lusardi, A. (2019). Financial literacy and the need for financial education: evidence and implications. \textit{Swiss Journal of Economics and Statistics, 155}(1), 1–8. https://doi.org/10.1186/s41937-019-0027-5
+
+
+
+% Adicionar outras referências do arquivo .bib original aqui, se necessário, ou manter apenas as citadas.
+% Exemplo de como adicionar as demais do .bib fornecido pelo usuário:
+% \bibitem{knuth:84} Knuth, D. E. (1984). The {\TeX} Book (15th ed.). Addison-Wesley.
+% \bibitem{GTD:2015} Allen, D. (2015). Getting Things Done.
+% ... e assim por diante para todas as referências do pasted_content_2.txt que sejam relevantes.
+
+\end{thebibliography}
+
+\end{document}
+

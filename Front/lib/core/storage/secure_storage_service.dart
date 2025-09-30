@@ -1,6 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Serviço que guarda tokens JWT e refresh no cofre nativo, como pede a LGPD descrita no doc.
+/// Serviço que guarda info sensível usando o cofre nativo (Keychain, Keystore...).
+///
+/// Tokens, salts e afins citados no documento ficam aqui. A API é curtinha,
+/// pronta pra crescer junto com o módulo de autenticação.
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();

@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
-/// Tema fechado que mantém a identidade neon escura descrita no relatório.
+/// Tema fechado pra bater com as telas escuras do projeto.
 class AppTheme {
   const AppTheme._();
 
@@ -37,11 +37,11 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         elevation: 0,
         backgroundColor:
-            isDark ? Colors.transparent : colorScheme.background,
-        foregroundColor: isDark ? AppColors.textPrimary : colorScheme.onBackground,
+            isDark ? Colors.transparent : colorScheme.surface,
+        foregroundColor: isDark ? AppColors.textPrimary : colorScheme.onSurface,
         centerTitle: false,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: isDark ? AppColors.surface : Colors.white,
         elevation: 0,
         margin: EdgeInsets.zero,

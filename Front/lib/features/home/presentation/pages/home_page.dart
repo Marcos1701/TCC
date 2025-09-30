@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:tcc_gen_app/core/models/mission.dart';
 
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
@@ -9,7 +10,6 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/metric_card.dart';
-import '../../../../core/widgets/indicator_insight_card.dart';
 import '../../../shared/widgets/section_header.dart';
 
 class HomePage extends StatefulWidget {
@@ -101,7 +101,6 @@ class _HomePageState extends State<HomePage> {
                     _Header(profile: data.profile, saldo: saldo, currency: _currency),
                     const SizedBox(height: 24),
                     _buildMetrics(data, economia),
-                    ..._buildInsights(data),
                     const SizedBox(height: 28),
                     SectionHeader(
                       title: 'Resumo das categorias',
@@ -132,7 +131,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     if (data.activeMissions.isEmpty)
-                      _EmptyState(
+                      const _EmptyState(
                         message: 'Nenhuma missão ativa. Bora pegar uma nova?',
                       ),
                     const SizedBox(height: 28),
@@ -149,7 +148,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     if (data.recommendedMissions.isEmpty)
-                      _EmptyState(
+                      const _EmptyState(
                         message: 'Sem sugestões novas por enquanto.',
                       ),
                   ]),
@@ -196,48 +195,6 @@ class _HomePageState extends State<HomePage> {
         );
       },
     );
-  }
-
-  List<Widget> _buildInsights(DashboardData data) {
-    if (data.insights.isEmpty) return const [];
-    final tps = data.insights['tps'];
-    final rdr = data.insights['rdr'];
-    return [
-      const SectionHeader(
-        title: 'Diagnóstico financeiro',
-        actionLabel: 'atualizar',
-        onActionTap: _noop,
-      ),
-      const SizedBox(height: 16),
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 640;
-          final width = isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
-          return Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              if (tps != null)
-                SizedBox(
-                  width: width,
-                  child: IndicatorInsightCard(
-                    insight: tps,
-                    icon: Icons.savings_rounded,
-                  ),
-                ),
-              if (rdr != null)
-                SizedBox(
-                  width: width,
-                  child: IndicatorInsightCard(
-                    insight: rdr,
-                    icon: Icons.credit_card_rounded,
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    ];
   }
 }
 
@@ -451,7 +408,7 @@ class _CashflowChart extends StatelessWidget {
       ),
       child: LineChart(
         LineChartData(
-          gridData: FlGridData(show: true, drawVerticalLine: false),
+          gridData: const FlGridData(show: true, drawVerticalLine: false),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
               sideTitles: SideTitles(showTitles: true, reservedSize: 44, getTitlesWidget: _leftTitle),

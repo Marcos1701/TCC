@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-
 import '../storage/secure_storage_service.dart';
 
-/// Cliente único pra bater na API, seguindo o fluxo JWT do doc e renovando token quando 401 pingar.
+/// Cliente único pra falar com a API.
+/// guarda token na memória e renova quando 401 pingar.
 class ApiClient {
   ApiClient._internal() {
     final options = BaseOptions(

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'core/state/session_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/auth/auth_flow.dart';
 
-/// Casca raiz que segura o tema neon e leva o usuário pro login gamificado citado no doc.
+/// Casca raiz com tema fechado e fluxo de login rápido.
 class GenApp extends StatefulWidget {
   const GenApp({super.key});
 

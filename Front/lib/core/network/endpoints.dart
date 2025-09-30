@@ -1,4 +1,4 @@
-/// Endpoints centrais pra bater na API que calcula TPS/RDR e missões.
+/// Endpoints centrais da API REST.
 class ApiEndpoints {
   const ApiEndpoints._();
 

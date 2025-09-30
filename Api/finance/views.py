@@ -102,6 +102,7 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         summary = calculate_summary(request.user)
         breakdown = category_breakdown(request.user)
         cashflow = cashflow_series(request.user)
+        insights = indicator_insights(summary, request.user.userprofile)
         missions = (
             MissionProgress.objects.filter(user=request.user)
             .exclude(status=MissionProgress.Status.COMPLETED)
@@ -113,7 +114,7 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 "summary": summary,
                 "categories": breakdown,
                 "cashflow": cashflow,
-                "insights": indicator_insights(summary, request.user.userprofile),
+                "insights": insights,
                 "active_missions": missions,
                 "recommended_missions": list(recommendations),
                 "profile": request.user.userprofile,
@@ -127,7 +128,6 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         progress_qs = MissionProgress.objects.filter(user=request.user).select_related("mission")
         serializer = MissionProgressSerializer(progress_qs, many=True)
         return Response(serializer.data)
-
 
 class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]

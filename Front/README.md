@@ -1,50 +1,47 @@
 # Front - GenApp
 
-App Flutter que entrega o visual neon escuro planejado, dashboards financeiros, missões gamificadas e fluxo seguro de autenticação.
+App Flutter com as telas estilizadas do GenApp.
 
 ## Requisitos
+
 - Flutter 3.24+
 - Dart 3.5+
 
 ## Rodando
+
 ```bash
 flutter pub get
 flutter run
 ```
 
-## O que o app cobre
-- **Dashboard inicial** com saldo, distribuição por categoria, série temporal de TPS/RDR e diagnósticos rápidos.
-- **Transações** com filtros, criação via bottom sheet e suporte a receitas, despesas e dívidas.
-- **Missões** personalizadas seguindo o algoritmo do documento (redução de RDR, aumento de TPS, educação financeira).
-- **Progresso** exibindo metas financeiras, barra de XP, evolução mensal e badges desbloqueadas.
-- **Perfil** para ajuste das metas de TPS/RDR, revisão dos dados pessoais e logout.
-
 ## Paleta e fragmentação visual
+
 | Camada | Cor | Uso principal |
 | ------ | --- | ------------- |
 | Fundo base | `#080B1A` | plano de fundo global e modais |
 | Cartões | `#11162B` / `#1A1F36` | blocos de conteúdo, listas e formulários |
-| Primária | `#1D6FFF` | CTAs principais, destaque de metas e gráficos positivos |
-| Secundária | `#8B5CF6` | missões, badges e elementos lúdicos |
-| Acento | `#22D3EE` | detalhes interativos, tooltips e tabs |
-| Sucesso | `#34D399` | conquistas de TPS/missões |
-| Alerta | `#FF6B6B` e `#FBBF24` | diagnósticos críticos e avisos |
+| Primária | `#1D6FFF` | botões cheios, gráficos principais e indicadores positivos |
+| Secundária | `#8B5CF6` | destaques de missões e badges |
+| Acento | `#22D3EE` | gráficos auxiliares e detalhes interativos |
+| Alerta | `#FF6B6B` e `#FBBF24` | avisos e limites |
 
-Bordas arredondadas (24–28 px), gradientes azul/roxo e tipografia Manrope garantem contraste alto no modo escuro.
+Elementos seguem bordas arredondadas (24–28 px), gradientes azul/roxo nos destaques e contraste alto nos textos para manter a leitura em modo escuro.
 
-## Navegação principal
-1. **Onboarding/Autenticação** – telas escuras com chamadas diretas, alinhadas ao foco em autonomia e segurança.
-2. **Home** – cartões de saldo, resumo de categorias, gráfico mensal, insights TPS/RDR e lista de missões ativas.
-3. **Transações** – extrato filtrável, botões rápidos e visual em cartões conforme referência.
-4. **Missões** – progresso editável, metas de curto/médio prazo e instruções educativas.
-5. **Progresso** – evolução mensal, metas atingidas e badges conquistadas.
-6. **Perfil** – ajustes de metas financeiras, dados básicos e botão de saída.
+## Fluxo de telas
 
-A navegação inferior fixa com ícones arredondados mantém a jornada fluida e coerente com o protótipo Figma.
+1. **Login / Cadastro** – telas escuras com campos preenchidos, botão principal em azul e navegação rápida entre telas.
+2. **Home** – cards com saldo, resumo de categorias, série temporal e blocos de missões ativas e sugeridas.
+3. **Transações** – lista filtrável, criação rápida via bottom sheet e exclusão com toque.
+4. **Missões** – missões em andamento com progresso editável e sugestões alinhadas ao TPS/RDR.
+5. **Progresso** – metas financeiras do usuário, barra de XP e gestão de objetivos com valores e prazos.
+6. **Perfil** – bloco gradiente com dados do usuário, ajuste das metas de TPS/RDR e botão de logout.
+
+Um bottom navigation fixo com ícones arredondados conduz pelas seções e mantém o app aderente ao layout das imagens de referência.
 
 ## Principais pacotes
-- `dio`: cliente HTTP com interceptador para refresh de token.
-- `flutter_secure_storage`: guarda tokens JWT conforme requisitos de segurança.
-- `fl_chart`: gráficos para série temporal e comparativos.
-- `intl`: formatação de moedas e datas no padrão brasileiro.
-- `google_fonts`: aplica a família Manrope em todo o tema.
+
+- `dio`: cliente HTTP pra falar com a API Django.
+- `flutter_secure_storage`: guarda tokens JWT no cofre do aparelho.
+- `fl_chart`: gráficos pro dashboard financeiro.
+- `intl`: formata valores e datas no padrão brasileiro.
+- `google_fonts`: aplica a tipografia Manrope no tema escuro.

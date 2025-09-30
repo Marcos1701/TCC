@@ -43,59 +43,17 @@ class CategorySlice {
 }
 
 class CashflowPoint {
-  const CashflowPoint({
-    required this.month,
-    required this.income,
-    required this.expense,
-    required this.debt,
-    required this.tps,
-    required this.rdr,
-  });
+  const CashflowPoint({required this.month, required this.income, required this.expense});
 
   final String month;
   final double income;
   final double expense;
-  final double debt;
-  final double tps;
-  final double rdr;
 
   factory CashflowPoint.fromMap(Map<String, dynamic> map) {
     return CashflowPoint(
       month: map['month'] as String,
       income: double.parse(map['income'].toString()),
       expense: double.parse(map['expense'].toString()),
-      debt: double.parse(map['debt'].toString()),
-      tps: double.parse(map['tps'].toString()),
-      rdr: double.parse(map['rdr'].toString()),
-    );
-  }
-}
-
-class IndicatorInsight {
-  const IndicatorInsight({
-    required this.indicator,
-    required this.severity,
-    required this.title,
-    required this.message,
-    required this.value,
-    required this.target,
-  });
-
-  final String indicator;
-  final String severity;
-  final String title;
-  final String message;
-  final double value;
-  final int target;
-
-  factory IndicatorInsight.fromMap(String indicator, Map<String, dynamic> map) {
-    return IndicatorInsight(
-      indicator: indicator,
-      severity: map['severity'] as String,
-      title: map['title'] as String,
-      message: map['message'] as String,
-      value: double.parse(map['value'].toString()),
-      target: (map['target'] as num).toInt(),
     );
   }
 }
@@ -105,7 +63,6 @@ class DashboardData {
     required this.summary,
     required this.categories,
     required this.cashflow,
-    required this.insights,
     required this.activeMissions,
     required this.recommendedMissions,
     required this.profile,
@@ -114,7 +71,6 @@ class DashboardData {
   final SummaryMetrics summary;
   final Map<String, List<CategorySlice>> categories;
   final List<CashflowPoint> cashflow;
-  final Map<String, IndicatorInsight> insights;
   final List<MissionProgressModel> activeMissions;
   final List<MissionModel> recommendedMissions;
   final ProfileModel profile;
@@ -134,11 +90,6 @@ class DashboardData {
       cashflow: (map['cashflow'] as List<dynamic>)
           .map((e) => CashflowPoint.fromMap(e as Map<String, dynamic>))
           .toList(),
-      insights: (map['insights'] as Map<String, dynamic>? ?? {})
-          .map((key, value) => MapEntry(
-                key,
-                IndicatorInsight.fromMap(key, value as Map<String, dynamic>),
-              )),
       activeMissions: (map['active_missions'] as List<dynamic>)
           .map((e) => MissionProgressModel.fromMap(e as Map<String, dynamic>))
           .toList(),

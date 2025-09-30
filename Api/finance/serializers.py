@@ -1,5 +1,4 @@
 from decimal import Decimal
-
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
@@ -111,7 +110,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             validated_data.setdefault("completed_at", timezone.now())
         return super().update(instance, validated_data)
 
-
 class DashboardSummarySerializer(serializers.Serializer):
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
     rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
@@ -146,8 +144,6 @@ class DashboardSummarySerializer(serializers.Serializer):
             "total_expense": total_expense.quantize(Decimal("0.01")),
             "total_debt": total_debt.quantize(Decimal("0.01")),
         }
-
-
 class CategoryBreakdownSerializer(serializers.Serializer):
     name = serializers.CharField()
     total = serializers.DecimalField(max_digits=12, decimal_places=2)

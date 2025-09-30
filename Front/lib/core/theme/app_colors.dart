@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta fixa que replica as cores neon previstas no documento.
+/// Paleta fixa pra manter a cara neon/finance do app.
 class AppColors {
   const AppColors._();
 

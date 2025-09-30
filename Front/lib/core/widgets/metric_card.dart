@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
-
-/// Cartão estilizado pros indicadores chave (saldo, TPS, RDR) citados no doc.
 class MetricCard extends StatelessWidget {
   const MetricCard({
     super.key,
@@ -29,7 +27,6 @@ class MetricCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            baseColor.withOpacity(0.95),
             baseColor.withOpacity(0.55),
           ],
           begin: Alignment.topLeft,
