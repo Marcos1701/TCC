@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_theme_extension.dart';
 
 class MetricCard extends StatelessWidget {
   const MetricCard({
@@ -21,6 +22,7 @@ class MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     final baseColor = color ?? AppColors.primary;
     final contrast = ThemeData.estimateBrightnessForColor(baseColor);
     final valueColor = contrast == Brightness.dark ? Colors.white : AppColors.textPrimary;
@@ -32,19 +34,13 @@ class MetricCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             baseColor,
-            baseColor.withValues(alpha: 0.75),
+            baseColor.withOpacity(0.82),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 18,
-            offset: Offset(0, 10),
-          ),
-        ],
+        borderRadius: tokens.cardRadius,
+        boxShadow: tokens.deepShadow,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,8 +50,10 @@ class MetricCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: contrast == Brightness.dark ? 0.18 : 0.28),
-                borderRadius: BorderRadius.circular(16),
+                color: Colors.white.withOpacity(
+                  contrast == Brightness.dark ? 0.18 : 0.28,
+                ),
+                borderRadius: tokens.tileRadius,
               ),
               child: Icon(
                 icon,

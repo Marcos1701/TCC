@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -24,8 +25,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (profile != null) {
       _tpsController.text = profile.targetTps.toString();
       _rdrController.text = profile.targetRdr.toString();
-      _initialized = true;
     }
+    _initialized = true;
   }
 
   @override
@@ -37,13 +38,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _saveTargets() async {
     final session = SessionScope.of(context);
-    final tps = int.tryParse(_tpsController.text) ?? session.profile?.targetTps ?? 15;
-    final rdr = int.tryParse(_rdrController.text) ?? session.profile?.targetRdr ?? 35;
+    final tps =
+        int.tryParse(_tpsController.text) ?? session.profile?.targetTps ?? 15;
+    final rdr =
+        int.tryParse(_rdrController.text) ?? session.profile?.targetRdr ?? 35;
     await session.updateTargets(targetTps: tps, targetRdr: rdr);
     if (!mounted) return;
     setState(() => _editingTargets = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Metas atualizadas.')), 
+      const SnackBar(content: Text('Metas atualizadas.')),
     );
   }
 
@@ -58,25 +61,37 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
           children: [
             Text(
               'Perfil e ajustes',
               style: theme.textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 6),
+            Text(
+              'Gerencie dados da conta, metas e acesso ao GenApp.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(28),
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF1D6FFF), Color(0xFF4F46E5)],
+                  colors: [AppColors.primary, AppColors.highlight],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: const [
+                  BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 18,
+                      offset: Offset(0, 10)),
+                ],
               ),
               child: Row(
                 children: [
@@ -87,7 +102,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       borderRadius: BorderRadius.circular(22),
                       color: Colors.white.withValues(alpha: 0.18),
                     ),
-                    child: const Icon(Icons.person, size: 36, color: Colors.white),
+                    child:
+                        const Icon(Icons.person, size: 36, color: Colors.white),
                   ),
                   const SizedBox(width: 18),
                   Expanded(
@@ -104,7 +120,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 6),
                         Text(
                           user?.email ?? '',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(color: Colors.white70),
                         ),
                       ],
                     ),
@@ -119,25 +136,37 @@ class _ProfilePageState extends State<ProfilePage> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 16,
+                        offset: Offset(0, 8)),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Progresso',
-                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
-                      value: profile.experiencePoints / profile.nextLevelThreshold,
+                      value:
+                          profile.experiencePoints / profile.nextLevelThreshold,
                       minHeight: 8,
-                      backgroundColor: Colors.white24,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      backgroundColor: AppColors.surfaceAlt,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       '${profile.experiencePoints} / ${profile.nextLevelThreshold} XP • Nível ${profile.level}',
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -148,6 +177,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 16,
+                        offset: Offset(0, 8)),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,10 +192,14 @@ class _ProfilePageState extends State<ProfilePage> {
                       children: [
                         Text(
                           'Metas de indicadores',
-                          style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         TextButton(
-                          onPressed: () => setState(() => _editingTargets = !_editingTargets),
+                          onPressed: () => setState(
+                              () => _editingTargets = !_editingTargets),
                           child: Text(_editingTargets ? 'Cancelar' : 'Editar'),
                         ),
                       ],
@@ -170,14 +209,16 @@ class _ProfilePageState extends State<ProfilePage> {
                       TextField(
                         controller: _tpsController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Meta TPS (%)'),
+                        decoration:
+                            const InputDecoration(labelText: 'Meta TPS (%)'),
                       ),
                       TextField(
                         controller: _rdrController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Meta RDR (%)'),
+                        decoration:
+                            const InputDecoration(labelText: 'Meta RDR (%)'),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -188,12 +229,14 @@ class _ProfilePageState extends State<ProfilePage> {
                     ] else ...[
                       Text(
                         'Taxa de poupança alvo: ${profile.targetTps}%',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Razão dívida/renda alvo: ${profile.targetRdr}%',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.textSecondary),
                       ),
                     ],
                   ],
@@ -203,18 +246,17 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () async {
-                final session = SessionScope.of(context);
                 final messenger = ScaffoldMessenger.of(context);
-                await session.logout();
+                await SessionScope.of(context).logout();
                 if (!mounted) return;
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('Você saiu da conta.')), 
+                  const SnackBar(content: Text('Você saiu da conta.')),
                 );
               },
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sair do GenApp'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
+                backgroundColor: AppColors.alert,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),

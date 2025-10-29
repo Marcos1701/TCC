@@ -10,9 +10,14 @@ class AuthRepository {
   final ApiClient _client;
 
   Future<AuthTokens> login({required String email, required String password}) async {
+    final normalizedEmail = email.trim().toLowerCase();
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.token,
-      data: {'username': email, 'password': password},
+      data: {
+        'email': normalizedEmail,
+        'username': normalizedEmail,
+        'password': password,
+      },
     );
     final data = response.data ?? <String, dynamic>{};
     return AuthTokens.fromMap(data);
@@ -23,9 +28,14 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
+    final normalizedEmail = email.trim().toLowerCase();
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.register,
-      data: {'name': name, 'email': email, 'password': password},
+      data: {
+        'name': name.trim(),
+        'email': normalizedEmail,
+        'password': password,
+      },
     );
     final body = response.data ?? <String, dynamic>{};
     final tokens = body['tokens'];

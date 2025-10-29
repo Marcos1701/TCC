@@ -22,14 +22,14 @@ class _ProgressPageState extends State<ProgressPage> {
 
   Future<void> _refresh() async {
     final data = await _repository.fetchGoals();
-    if (mounted) {
-      setState(() => _future = Future.value(data));
-    }
+    if (!mounted) return;
+    setState(() => _future = Future.value(data));
   }
 
   Future<void> _openGoalDialog({GoalModel? goal}) async {
     final titleController = TextEditingController(text: goal?.title ?? '');
-    final descriptionController = TextEditingController(text: goal?.description ?? '');
+    final descriptionController =
+        TextEditingController(text: goal?.description ?? '');
     final targetController = TextEditingController(
       text: goal != null ? goal.targetAmount.toStringAsFixed(2) : '',
     );
@@ -53,27 +53,32 @@ class _ProgressPageState extends State<ProgressPage> {
               ),
               TextField(
                 controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Descrição (opcional)'),
+                decoration:
+                    const InputDecoration(labelText: 'Descrição (opcional)'),
               ),
               TextField(
                 controller: targetController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Valor alvo (ex: 5000)'),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration:
+                    const InputDecoration(labelText: 'Valor alvo (ex: 5000)'),
               ),
               TextField(
                 controller: currentController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Valor atual (ex: 1200)'),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration:
+                    const InputDecoration(labelText: 'Valor atual (ex: 1200)'),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: Text(
-            deadline == null
-              ? 'Sem prazo definido'
-              : 'Prazo: ${DateFormat('dd/MM/yyyy').format(deadline!)}',
-                      style: const TextStyle(color: Colors.white70),
+                      deadline == null
+                          ? 'Sem prazo definido'
+                          : 'Prazo: ${DateFormat('dd/MM/yyyy').format(deadline!)}',
+                      style: const TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                   TextButton(
@@ -81,11 +86,12 @@ class _ProgressPageState extends State<ProgressPage> {
                       final picked = await showDatePicker(
                         context: context,
                         initialDate: deadline ?? DateTime.now(),
-                        firstDate: DateTime.now().subtract(const Duration(days: 1)),
+                        firstDate:
+                            DateTime.now().subtract(const Duration(days: 1)),
                         lastDate: DateTime(2035),
                       );
                       if (picked != null) {
-                        setState(() => deadline = picked);
+                        deadline = picked;
                       }
                     },
                     child: const Text('Escolher prazo'),
@@ -96,16 +102,22 @@ class _ProgressPageState extends State<ProgressPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Salvar')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Salvar')),
         ],
       ),
     );
 
     if (confirmed != true) return;
 
-    final target = double.tryParse(targetController.text.replaceAll(',', '.')) ?? 0;
-    final current = double.tryParse(currentController.text.replaceAll(',', '.')) ?? 0;
+    final target =
+        double.tryParse(targetController.text.replaceAll(',', '.')) ?? 0;
+    final current =
+        double.tryParse(currentController.text.replaceAll(',', '.')) ?? 0;
 
     if (goal == null) {
       await _repository.createGoal(
@@ -138,8 +150,12 @@ class _ProgressPageState extends State<ProgressPage> {
         title: const Text('Remover meta'),
         content: Text('Tem certeza que quer remover "${goal.title}"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remover')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Remover')),
         ],
       ),
     );
@@ -158,10 +174,11 @@ class _ProgressPageState extends State<ProgressPage> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openGoalDialog(),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Nova meta'),
       ),
       body: SafeArea(
         child: FutureBuilder<List<GoalModel>>(
@@ -176,10 +193,12 @@ class _ProgressPageState extends State<ProgressPage> {
                 children: [
                   Text(
                     'Não deu pra carregar as metas agora.',
-                    style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 12),
-                  ElevatedButton(onPressed: _refresh, child: const Text('Tentar de novo')),
+                  OutlinedButton(
+                      onPressed: _refresh, child: const Text('Tentar de novo')),
                 ],
               );
             }
@@ -187,19 +206,25 @@ class _ProgressPageState extends State<ProgressPage> {
             final goals = snapshot.data ?? [];
 
             return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
               children: [
                 Text(
                   'Acompanhamento',
                   style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
+                Text(
+                  'Veja seus indicadores e metas financeiras em um só lugar.',
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 20),
                 if (profile != null)
                   _ProfileTargetsCard(profile: profile, currency: _currency),
-                const SizedBox(height: 28),
+                if (profile != null) const SizedBox(height: 28),
                 SectionHeader(
                   title: 'Metas financeiras',
                   actionLabel: 'atualizar',
@@ -207,15 +232,18 @@ class _ProgressPageState extends State<ProgressPage> {
                 ),
                 const SizedBox(height: 12),
                 if (goals.isEmpty)
-                  const _EmptyState(message: 'Sem metas ainda. Crie uma nova com o botão +.'),
-                ...goals.map(
-                  (goal) => _GoalCard(
-                    goal: goal,
-                    currency: _currency,
-                    onEdit: () => _openGoalDialog(goal: goal),
-                    onDelete: () => _deleteGoal(goal),
+                  const _EmptyState(
+                      message:
+                          'Sem metas ainda. Crie uma nova com o botão acima.')
+                else
+                  ...goals.map(
+                    (goal) => _GoalCard(
+                      goal: goal,
+                      currency: _currency,
+                      onEdit: () => _openGoalDialog(goal: goal),
+                      onDelete: () => _deleteGoal(goal),
+                    ),
                   ),
-                ),
               ],
             );
           },
@@ -237,15 +265,24 @@ class _ProfileTargetsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [AppColors.primary, AppColors.highlight],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+              color: AppColors.shadow, blurRadius: 18, offset: Offset(0, 10)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Missão pessoal',
-            style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleMedium
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Text(
@@ -257,12 +294,12 @@ class _ProfileTargetsCard extends StatelessWidget {
             value: profile.experiencePoints / profile.nextLevelThreshold,
             minHeight: 8,
             backgroundColor: Colors.white24,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
           ),
           const SizedBox(height: 12),
           Text(
             'TPS alvo: ${profile.targetTps}% • RDR alvo: ${profile.targetRdr}%',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54),
+            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
           ),
         ],
       ),
@@ -288,22 +325,29 @@ class _GoalCard extends StatelessWidget {
     final theme = Theme.of(context);
     final progressPercent = (goal.progress * 100).clamp(0, 100);
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+              color: AppColors.shadow, blurRadius: 16, offset: Offset(0, 8)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Text(
                   goal.title,
-                  style: theme.textTheme.titleMedium?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               PopupMenuButton<String>(
@@ -319,38 +363,41 @@ class _GoalCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          if (goal.description.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                goal.description,
-                style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
-              ),
+          if (goal.description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              goal.description,
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
+          ],
+          const SizedBox(height: 8),
           Text(
             '${currency.format(goal.currentAmount)} de ${currency.format(goal.targetAmount)}',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
           ),
           if (goal.deadline != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 'Prazo: ${DateFormat('dd/MM/yyyy').format(goal.deadline!)}',
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.white54),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
               ),
             ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: goal.progress,
             minHeight: 8,
-            backgroundColor: Colors.white12,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondary),
+            backgroundColor: AppColors.surfaceAlt,
+            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
           const SizedBox(height: 8),
           Text(
             '${progressPercent.toStringAsFixed(1)}% concluído',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -365,20 +412,23 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: Colors.white54),
+          const Icon(Icons.info_outline, color: AppColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60),
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],

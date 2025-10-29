@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction
+from .models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile
 from .serializers import (
     CategorySerializer,
     DashboardSerializer,
@@ -102,7 +102,8 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         summary = calculate_summary(request.user)
         breakdown = category_breakdown(request.user)
         cashflow = cashflow_series(request.user)
-        insights = indicator_insights(summary, request.user.userprofile)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        insights = indicator_insights(summary, profile)
         missions = (
             MissionProgress.objects.filter(user=request.user)
             .exclude(status=MissionProgress.Status.COMPLETED)
@@ -117,7 +118,7 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 "insights": insights,
                 "active_missions": missions,
                 "recommended_missions": list(recommendations),
-                "profile": request.user.userprofile,
+                "profile": profile,
             },
             context={"request": request},
         )
@@ -134,20 +135,22 @@ class ProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
         data = {
             "user": {
                 "id": request.user.id,
                 "email": request.user.email,
                 "name": request.user.get_full_name() or request.user.username,
             },
-            "profile": UserProfileSerializer(request.user.userprofile).data,
+            "profile": UserProfileSerializer(profile).data,
             "snapshot": profile_snapshot(request.user),
         }
         return Response(data)
 
     def put(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
         serializer = UserProfileSerializer(
-            request.user.userprofile, data=request.data, partial=True
+            profile, data=request.data, partial=True
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -190,4 +193,18 @@ class RegisterView(APIView):
         refresh = RefreshToken.for_user(user)
         tokens = {"access": str(refresh.access_token), "refresh": str(refresh)}
 
-        return Response({"tokens": tokens}, status=status.HTTP_201_CREATED)
+        user_payload = {
+            "id": user.id,
+            "email": user.email,
+            "name": user.get_full_name() or user.username,
+        }
+
+        return Response(
+            {
+                "access": tokens["access"],
+                "refresh": tokens["refresh"],
+                "tokens": tokens,
+                "user": user_payload,
+            },
+            status=status.HTTP_201_CREATED,
+        )

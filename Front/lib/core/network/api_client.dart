@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../storage/secure_storage_service.dart';
 
 /// Cliente único pra falar com a API.
@@ -6,13 +7,13 @@ import '../storage/secure_storage_service.dart';
 class ApiClient {
   ApiClient._internal() {
     final options = BaseOptions(
-      baseUrl: const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: 'http://localhost:8000',
-      ),
+      baseUrl: _normaliseBaseUrl(_resolveBaseUrl()),
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 25),
       contentType: 'application/json',
+      headers: const {'Accept': 'application/json'},
+      responseType: ResponseType.json,
+      validateStatus: (status) => status != null && status < 500,
     );
 
     _dio = Dio(options)
@@ -106,5 +107,34 @@ class ApiClient {
       _refreshing = false;
     }
     return null;
+  }
+
+  static String _resolveBaseUrl() {
+    const override = String.fromEnvironment('API_BASE_URL');
+    if (override.isNotEmpty) {
+      return override;
+    }
+
+    if (kIsWeb) {
+      final uri = Uri.base;
+      final host = uri.host;
+      if (uri.scheme.startsWith('http') && host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+        return uri.origin;
+      }
+      return 'http://localhost:8000';
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+
+    return 'http://localhost:8000';
+  }
+
+  static String _normaliseBaseUrl(String value) {
+    if (value.endsWith('/')) {
+      return value.substring(0, value.length - 1);
+    }
+    return value;
   }
 }

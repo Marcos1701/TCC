@@ -172,7 +172,7 @@ class IndicatorInsightSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    next_level_threshold = serializers.IntegerField(read_only=True, source="next_level_threshold")
+    next_level_threshold = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = UserProfile

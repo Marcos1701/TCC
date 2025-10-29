@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/dashboard.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_theme_extension.dart';
 
 /// Cartão reutilizável para exibir o insight de um indicador financeiro.
 class IndicatorInsightCard extends StatelessWidget {
@@ -22,7 +23,7 @@ class IndicatorInsightCard extends StatelessWidget {
         return AppColors.highlight;
       case 'warning':
         return Color.alphaBlend(
-          AppColors.alert.withValues(alpha: 0.35),
+          AppColors.alert.withOpacity(0.35),
           AppColors.highlight,
         );
       case 'critical':
@@ -35,6 +36,7 @@ class IndicatorInsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     final subtitle = '${insight.value.toStringAsFixed(1)}% • meta ${insight.target}%';
     final brightness = ThemeData.estimateBrightnessForColor(_baseColor);
     final titleColor = brightness == Brightness.dark ? Colors.white : AppColors.textPrimary;
@@ -44,15 +46,9 @@ class IndicatorInsightCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _baseColor.withValues(alpha: 0.45), width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: _baseColor.withOpacity(0.45), width: 2),
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,8 +59,8 @@ class IndicatorInsightCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _baseColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  color: _baseColor.withOpacity(0.12),
+                  borderRadius: tokens.tileRadius,
                 ),
                 child: Icon(icon, color: _baseColor, size: 22),
               ),

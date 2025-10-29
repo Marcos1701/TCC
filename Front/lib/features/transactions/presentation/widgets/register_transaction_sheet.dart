@@ -6,12 +6,16 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class RegisterTransactionSheet extends StatefulWidget {
-  const RegisterTransactionSheet({super.key, required this.repository});
+  const RegisterTransactionSheet({
+    super.key,
+    required this.repository,
+  });
 
   final FinanceRepository repository;
 
   @override
-  State<RegisterTransactionSheet> createState() => _RegisterTransactionSheetState();
+  State<RegisterTransactionSheet> createState() =>
+      _RegisterTransactionSheetState();
 }
 
 class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
@@ -49,12 +53,10 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2035),
       builder: (context, child) {
+        final theme = Theme.of(context);
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.primary,
-                  onSurface: Colors.white,
-                ),
+          data: theme.copyWith(
+            colorScheme: theme.colorScheme.copyWith(primary: AppColors.primary),
           ),
           child: child!,
         );
@@ -68,7 +70,9 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    FocusScope.of(context).unfocus();
     setState(() => _submitting = true);
+
     try {
       final amount = double.parse(_amountController.text.replaceAll(',', '.'));
       final created = await widget.repository.createTransaction(
@@ -94,140 +98,185 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
     final dateLabel = DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDate);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
+      padding: EdgeInsets.only(bottom: bottomPadding),
       child: Container(
         decoration: const BoxDecoration(
-          color: AppColors.background,
+          color: AppColors.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 30,
+              offset: Offset(0, -8),
+            ),
+          ],
         ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 60,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(3),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Form(
+              key: _formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 60,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Registrar transação',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      initialValue: _type,
-                      decoration: const InputDecoration(labelText: 'Tipo'),
-                      items: const [
-                        DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
-                        DropdownMenuItem(value: 'EXPENSE', child: Text('Despesa')),
-                        DropdownMenuItem(value: 'DEBT_PAYMENT', child: Text('Pagamento de dívida')),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Registrar transação',
+                    style: textTheme.titleLarge?.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Preencha os dados para acompanhar seu fluxo financeiro.',
+                    style: textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 24),
+                  DropdownButtonFormField<String>(
+                    initialValue: _type,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo',
+                      prefixIcon: Icon(Icons.category_outlined),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
+                      DropdownMenuItem(
+                          value: 'EXPENSE', child: Text('Despesa')),
+                      DropdownMenuItem(
+                          value: 'DEBT_PAYMENT',
+                          child: Text('Pagamento de dívida')),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() {
+                        _type = value;
+                        _categoryId = null;
+                      });
+                      _loadCategories();
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Descrição',
+                      prefixIcon: Icon(Icons.description_outlined),
+                    ),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Conte rapidamente sobre a transação.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _amountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Valor (ex: 1200.50)',
+                      prefixIcon: Icon(Icons.attach_money_rounded),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Informe o valor.';
+                      }
+                      return double.tryParse(value.replaceAll(',', '.')) == null
+                          ? 'Valor inválido.'
+                          : null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: _pickDate,
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Data',
+                        prefixIcon: Icon(Icons.calendar_today_rounded),
+                        suffixIcon: Icon(Icons.keyboard_arrow_down_rounded),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          dateLabel,
+                          style: textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.textPrimary),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_loadingCategories)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: LinearProgressIndicator(),
+                    )
+                  else
+                    DropdownButtonFormField<int?>(
+                      initialValue: _categoryId,
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria',
+                        prefixIcon: Icon(Icons.folder_open_rounded),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                            value: null, child: Text('Sem categoria')),
+                        ..._categories.map(
+                          (category) => DropdownMenuItem(
+                            value: category.id,
+                            child: Text(category.name),
+                          ),
+                        ),
                       ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() {
-                          _type = value;
-                          _categoryId = null;
-                        });
-                        _loadCategories();
-                      },
+                      onChanged: (value) => setState(() => _categoryId = value),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: const InputDecoration(labelText: 'Descrição'),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Conta pra gente do que se trata.' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _amountController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(labelText: 'Valor (ex: 1200.50)'),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Informa o valor.';
-                        return double.tryParse(value.replaceAll(',', '.')) == null
-                            ? 'Valor inválido.'
-                            : null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: _pickDate,
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Data',
-                          suffixIcon: Icon(Icons.calendar_today_rounded),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Text(
-                            dateLabel,
-                            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_loadingCategories)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: LinearProgressIndicator(),
-                      )
-                    else
-                      DropdownButtonFormField<int?>(
-                        initialValue: _categoryId,
-                        decoration: const InputDecoration(labelText: 'Categoria'),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('Sem categoria')),
-                          ..._categories.map(
-                            (category) => DropdownMenuItem(
-                              value: category.id,
-                              child: Text(category.name),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) => setState(() => _categoryId = value),
-                      ),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submitting ? null : _submit,
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _submitting ? null : _submit,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 220),
                         child: _submitting
                             ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                key: ValueKey('loading'),
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2.4),
                               )
-                            : const Text('Registrar'),
+                            : const Text(
+                                'Registrar',
+                                key: ValueKey('label'),
+                              ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

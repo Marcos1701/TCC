@@ -18,9 +18,10 @@ class FinanceRepository {
   }
 
   Future<List<CategoryModel>> fetchCategories({String? type}) async {
+    final queryType = type == 'DEBT_PAYMENT' ? 'DEBT' : type;
     final response = await _client.client.get<List<dynamic>>(
       ApiEndpoints.categories,
-      queryParameters: type != null ? {'type': type} : null,
+      queryParameters: queryType != null ? {'type': queryType} : null,
     );
     final items = response.data ?? <dynamic>[];
     return items

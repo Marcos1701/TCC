@@ -9,6 +9,7 @@ import '../../../../core/models/profile.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/widgets/metric_card.dart';
 import '../../../shared/widgets/section_header.dart';
 
@@ -219,23 +220,15 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  final theme = Theme.of(context);
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.highlight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
+        borderRadius: tokens.sheetRadius,
+        gradient: tokens.heroGradient,
+        boxShadow: tokens.deepShadow,
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,8 +239,8 @@ class _Header extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: tokens.tileRadius,
+                  color: Colors.white.withOpacity(0.18),
                 ),
                 child: const Icon(Icons.person, color: Colors.white, size: 32),
               ),
@@ -462,11 +455,12 @@ class _InsightTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<AppDecorations>()!;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-  color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.15),
+        borderRadius: tokens.tileRadius,
       ),
       child: Text(
         label,
@@ -487,7 +481,7 @@ Color _insightColor(String severity) {
       return AppColors.highlight;
     case 'warning':
       return Color.alphaBlend(
-        AppColors.alert.withValues(alpha: 0.35),
+        AppColors.alert.withOpacity(0.35),
         AppColors.highlight,
       );
     case 'critical':
@@ -586,7 +580,7 @@ class _CashflowChart extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: AppColors.border.withValues(alpha: 0.3),
+              color: AppColors.border.withOpacity(0.3),
               strokeWidth: 1,
             ),
           ),

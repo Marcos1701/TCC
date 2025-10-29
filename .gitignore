@@ -50,6 +50,10 @@ app.*.map.json
 .env.*
 Api/.venv/
 Api/venv/
+Api/venv/*
+Api/venv/pyvenv.cfg
+Api/.mypy_cache/
 
+.vscode/
 # build do front
 Front/build/

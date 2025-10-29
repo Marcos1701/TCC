@@ -10,38 +10,46 @@ App Flutter com as telas estilizadas do GenApp.
 ## Rodando
 
 ```bash
+cp .env.local.example .env.local   # ajuste a URL da API, se necessário
 flutter pub get
-flutter run
+flutter run --dart-define-from-file=.env.local
 ```
+
+Para execução web ou builds de produção, atualize `API_BASE_URL` dentro do arquivo `.env.local` (ou gere outro arquivo `.env` específico) apontando para o host público da API.
 
 ## Paleta e fragmentação visual
 
-| Camada | Cor | Uso principal |
-| ------ | --- | ------------- |
-| Fundo base | `#080B1A` | plano de fundo global e modais |
-| Cartões | `#11162B` / `#1A1F36` | blocos de conteúdo, listas e formulários |
-| Primária | `#1D6FFF` | botões cheios, gráficos principais e indicadores positivos |
-| Secundária | `#8B5CF6` | destaques de missões e badges |
-| Acento | `#22D3EE` | gráficos auxiliares e detalhes interativos |
-| Alerta | `#FF6B6B` e `#FBBF24` | avisos e limites |
+| Camada / Papel | Cor | Uso principal |
+| -------------- | --- | ------------- |
+| Azul institucional | `#034EA2` | navegação, botões primários, links ativos |
+| Amarelo vibrante | `#FDB913` | botões secundários, badges, hovers |
+| Verde institucional | `#007932` | confirmações, indicadores positivos |
+| Vermelho energético | `#EF4123` | alertas, mensagens de erro |
+| Fundo base | `#F5F5F5` | planos de fundo neutros |
+| Superfícies | `#FFFFFF` / `#E8EFF8` | cartões, formulários, destaques |
+| Texto principal | `#231F20` | títulos e conteúdos |
+| Texto secundário | `#666666` | descrições, legendas |
+| Bordas | `#CCCCCC` | divisórias discretas |
 
-Elementos seguem bordas arredondadas (24–28 px), gradientes azul/roxo nos destaques e contraste alto nos textos para manter a leitura em modo escuro.
+- Tipografia Montserrat (Google Fonts) nas variações 300–800.
+- Grid baseado em múltiplos de 8/16 px, com cartões usando padding interno de 16/32 px.
+- Botões têm raio de 14 px e variação de cor (~20%) para estados hover/active.
 
 ## Fluxo de telas
 
-1. **Login / Cadastro** – telas escuras com campos preenchidos, botão principal em azul e navegação rápida entre telas.
-2. **Home** – cards com saldo, resumo de categorias, série temporal e blocos de missões ativas e sugeridas.
-3. **Transações** – lista filtrável, criação rápida via bottom sheet e exclusão com toque.
-4. **Missões** – missões em andamento com progresso editável e sugestões alinhadas ao TPS/RDR.
-5. **Progresso** – metas financeiras do usuário, barra de XP e gestão de objetivos com valores e prazos.
-6. **Perfil** – bloco gradiente com dados do usuário, ajuste das metas de TPS/RDR e botão de logout.
+1. **Login / Cadastro** – gradiente azul institucional, validação com vermelho energético.
+2. **Home** – cards com saldo, categorias, série temporal e missões em destaque.
+3. **Transações** – lista filtrável, criação via bottom sheet e exclusão rápida.
+4. **Missões** – progresso em tempo real e recomendações alinhadas ao TPS/RDR.
+5. **Progresso** – metas financeiras, barra de XP e objetivos com valores/prazos.
+6. **Perfil** – ajuste de metas TPS/RDR, dados pessoais e logout seguro.
 
-Um bottom navigation fixo com ícones arredondados conduz pelas seções e mantém o app aderente ao layout das imagens de referência.
+Bottom navigation com ícones arredondados mantém a navegação consistente com o guia visual.
 
 ## Principais pacotes
 
-- `dio`: cliente HTTP pra falar com a API Django.
-- `flutter_secure_storage`: guarda tokens JWT no cofre do aparelho.
-- `fl_chart`: gráficos pro dashboard financeiro.
-- `intl`: formata valores e datas no padrão brasileiro.
-- `google_fonts`: aplica a tipografia Manrope no tema escuro.
+- `dio`: cliente HTTP com interceptors para renovação dos JWTs.
+- `flutter_secure_storage`: armazena tokens no cofre nativo (Keychain/Keystore).
+- `fl_chart`: gráficos do dashboard financeiro.
+- `intl`: formatação de valores e datas PT-BR.
+- `google_fonts`: aplica Montserrat ao tema claro/escuro.

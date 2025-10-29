@@ -128,7 +128,7 @@ def apply_mission_reward(progress: MissionProgress) -> None:
 
 
 def profile_snapshot(user) -> Dict[str, int]:
-    profile = user.userprofile
+    profile, _ = UserProfile.objects.get_or_create(user=user)
     return {
         "level": profile.level,
         "experience_points": profile.experience_points,
