@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -56,9 +57,10 @@ class _ProfilePageState extends State<ProfilePage> {
     final profile = session.profile;
     final user = session.session?.user;
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
@@ -80,18 +82,10 @@ class _ProfilePageState extends State<ProfilePage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.highlight],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: const [
-                  BoxShadow(
-                      color: AppColors.shadow,
-                      blurRadius: 18,
-                      offset: Offset(0, 10)),
-                ],
+                gradient: tokens.heroGradient,
+                borderRadius: tokens.sheetRadius,
+                boxShadow: tokens.deepShadow,
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
               child: Row(
                 children: [
@@ -99,7 +93,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
+                      borderRadius: tokens.tileRadius,
                       color: Colors.white.withValues(alpha: 0.18),
                     ),
                     child:
@@ -134,14 +128,10 @@ class _ProfilePageState extends State<ProfilePage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 16,
-                        offset: Offset(0, 8)),
-                  ],
+                  color: theme.colorScheme.surface,
+                  borderRadius: tokens.cardRadius,
+                  border: Border.all(color: theme.dividerColor),
+                  boxShadow: tokens.mediumShadow,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,7 +148,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       value:
                           profile.experiencePoints / profile.nextLevelThreshold,
                       minHeight: 8,
-                      backgroundColor: AppColors.surfaceAlt,
+                      backgroundColor: theme.colorScheme.secondaryContainer,
                       valueColor: const AlwaysStoppedAnimation<Color>(
                           AppColors.primary),
                     ),
@@ -175,14 +165,10 @@ class _ProfilePageState extends State<ProfilePage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 16,
-                        offset: Offset(0, 8)),
-                  ],
+                  color: theme.colorScheme.surface,
+                  borderRadius: tokens.cardRadius,
+                  border: Border.all(color: theme.dividerColor),
+                  boxShadow: tokens.mediumShadow,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

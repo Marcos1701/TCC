@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_theme_extension.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/missions/presentation/pages/missions_page.dart';
 import '../../features/progress/presentation/pages/progress_page.dart';
@@ -58,8 +59,12 @@ class _RootShellState extends State<RootShell> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
         child: IndexedStack(
@@ -79,13 +84,14 @@ class _RootShellState extends State<RootShell> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.vertical(top: tokens.sheetRadius.topLeft),
+          border: Border.all(color: theme.dividerColor),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
+              color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.2),
+              blurRadius: 24,
+              offset: const Offset(0, -6),
             ),
           ],
         ),

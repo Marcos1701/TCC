@@ -28,7 +28,9 @@ class DashboardPage extends StatelessWidget {
                 runSpacing: 16,
                 children: [
                   SizedBox(
-                    width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                    width: isWide
+                        ? (constraints.maxWidth - 16) / 2
+                        : constraints.maxWidth,
                     child: const MetricCard(
                       title: 'Taxa de Poupança Pessoal',
                       value: '18,4%',
@@ -36,11 +38,14 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(
-                    width: isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth,
+                    width: isWide
+                        ? (constraints.maxWidth - 16) / 2
+                        : constraints.maxWidth,
                     child: const MetricCard(
                       title: 'Razão Dívida-Renda',
                       value: '32,0%',
-                      subtitle: 'Situação saudável • mantenha o foco nas metas.',
+                      subtitle:
+                          'Situação saudável • mantenha o foco nas metas.',
                     ),
                   ),
                 ],
@@ -76,7 +81,8 @@ class DashboardPage extends StatelessWidget {
                           showTitles: true,
                           reservedSize: 42,
                           interval: 2,
-                          getTitlesWidget: (value, meta) => Text('${value.toInt()}k'),
+                          getTitlesWidget: (value, meta) =>
+                              Text('${value.toInt()}k'),
                         ),
                       ),
                       bottomTitles: AxisTitles(
@@ -84,7 +90,14 @@ class DashboardPage extends StatelessWidget {
                           showTitles: true,
                           reservedSize: 28,
                           getTitlesWidget: (value, meta) {
-                            const labels = ['Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                            const labels = [
+                              'Jul',
+                              'Ago',
+                              'Set',
+                              'Out',
+                              'Nov',
+                              'Dez'
+                            ];
                             final index = value.toInt();
                             return index >= 0 && index < labels.length
                                 ? Text(labels[index])
@@ -92,8 +105,10 @@ class DashboardPage extends StatelessWidget {
                           },
                         ),
                       ),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
+                      topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false)),
                     ),
                     borderData: FlBorderData(show: false),
                     lineBarsData: [

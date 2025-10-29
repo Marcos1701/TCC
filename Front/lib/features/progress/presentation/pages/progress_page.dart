@@ -6,6 +6,7 @@ import '../../../../core/models/profile.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../../shared/widgets/section_header.dart';
 
 class ProgressPage extends StatefulWidget {
@@ -173,7 +174,7 @@ class _ProgressPageState extends State<ProgressPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openGoalDialog(),
         backgroundColor: AppColors.primary,
@@ -262,19 +263,14 @@ class _ProfileTargetsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.highlight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: const [
-          BoxShadow(
-              color: AppColors.shadow, blurRadius: 18, offset: Offset(0, 10)),
-        ],
+        gradient: tokens.heroGradient,
+        borderRadius: tokens.sheetRadius,
+        boxShadow: tokens.deepShadow,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -324,16 +320,15 @@ class _GoalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progressPercent = (goal.progress * 100).clamp(0, 100);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-              color: AppColors.shadow, blurRadius: 16, offset: Offset(0, 8)),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,7 +385,7 @@ class _GoalCard extends StatelessWidget {
           LinearProgressIndicator(
             value: goal.progress,
             minHeight: 8,
-            backgroundColor: AppColors.surfaceAlt,
+            backgroundColor: theme.colorScheme.secondaryContainer,
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
           const SizedBox(height: 8),
@@ -413,12 +408,13 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.tileRadius,
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Row(
         children: [

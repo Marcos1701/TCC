@@ -13,7 +13,8 @@ class FinanceRepository {
   final ApiClient _client;
 
   Future<DashboardData> fetchDashboard() async {
-    final response = await _client.client.get<Map<String, dynamic>>(ApiEndpoints.dashboard);
+    final response =
+        await _client.client.get<Map<String, dynamic>>(ApiEndpoints.dashboard);
     return DashboardData.fromMap(response.data ?? <String, dynamic>{});
   }
 
@@ -89,15 +90,21 @@ class FinanceRepository {
   }
 
   Future<List<MissionModel>> fetchMissions() async {
-    final response = await _client.client.get<List<dynamic>>(ApiEndpoints.missions);
+    final response =
+        await _client.client.get<List<dynamic>>(ApiEndpoints.missions);
     final data = response.data ?? <dynamic>[];
-    return data.map((e) => MissionModel.fromMap(e as Map<String, dynamic>)).toList();
+    return data
+        .map((e) => MissionModel.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<List<GoalModel>> fetchGoals() async {
-    final response = await _client.client.get<List<dynamic>>(ApiEndpoints.goals);
+    final response =
+        await _client.client.get<List<dynamic>>(ApiEndpoints.goals);
     final data = response.data ?? <dynamic>[];
-    return data.map((e) => GoalModel.fromMap(e as Map<String, dynamic>)).toList();
+    return data
+        .map((e) => GoalModel.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<GoalModel> createGoal({
@@ -112,7 +119,8 @@ class FinanceRepository {
       'description': description,
       'target_amount': targetAmount,
       'current_amount': currentAmount,
-      if (deadline != null) 'deadline': deadline.toIso8601String().split('T').first,
+      if (deadline != null)
+        'deadline': deadline.toIso8601String().split('T').first,
     };
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.goals,

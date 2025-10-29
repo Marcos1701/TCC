@@ -22,12 +22,12 @@ class GoalModel {
       description: (map['description'] as String?) ?? '',
       targetAmount: double.parse(map['target_amount'].toString()),
       currentAmount: double.parse(map['current_amount'].toString()),
-      deadline:
-          map['deadline'] != null ? DateTime.parse(map['deadline'] as String) : null,
+      deadline: map['deadline'] != null
+          ? DateTime.parse(map['deadline'] as String)
+          : null,
     );
   }
 
-  double get progress => targetAmount == 0
-      ? 0
-      : (currentAmount / targetAmount).clamp(0, 1);
+  double get progress =>
+      targetAmount == 0 ? 0 : (currentAmount / targetAmount).clamp(0, 1);
 }

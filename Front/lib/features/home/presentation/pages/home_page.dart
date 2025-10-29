@@ -92,9 +92,9 @@ class _HomePageState extends State<HomePage> {
 
           final data = snapshot.data!;
           final saldo = data.summary.totalIncome - data.summary.totalExpense;
-      final economia = data.summary.totalIncome > 0
-        ? data.summary.totalIncome - data.summary.totalExpense
-        : 0.0;
+          final economia = data.summary.totalIncome > 0
+              ? data.summary.totalIncome - data.summary.totalExpense
+              : 0.0;
 
           return CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -103,7 +103,10 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    _Header(profile: data.profile, saldo: saldo, currency: _currency),
+                    _Header(
+                        profile: data.profile,
+                        saldo: saldo,
+                        currency: _currency),
                     const SizedBox(height: 24.0),
                     _buildMetrics(data, economia),
                     const SizedBox(height: 24.0),
@@ -175,7 +178,8 @@ class _HomePageState extends State<HomePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth > 640;
-        final width = isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
+        final width =
+            isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
         return Wrap(
           spacing: 16,
           runSpacing: 16,
@@ -184,7 +188,8 @@ class _HomePageState extends State<HomePage> {
               width: width,
               child: MetricCard(
                 title: 'Saldo atual',
-                value: _currency.format(resumo.totalIncome - resumo.totalExpense),
+                value:
+                    _currency.format(resumo.totalIncome - resumo.totalExpense),
                 subtitle:
                     'Receitas ${_currency.format(resumo.totalIncome)} · Despesas ${_currency.format(resumo.totalExpense)}',
                 icon: Icons.account_balance_wallet_outlined,
@@ -195,7 +200,8 @@ class _HomePageState extends State<HomePage> {
               child: MetricCard(
                 title: 'Economia do mês',
                 value: _currency.format(economia),
-                subtitle: 'TPS ${resumo.tps.toStringAsFixed(1)}% · RDR ${resumo.rdr.toStringAsFixed(1)}%',
+                subtitle:
+                    'TPS ${resumo.tps.toStringAsFixed(1)}% · RDR ${resumo.rdr.toStringAsFixed(1)}%',
                 icon: Icons.trending_up_rounded,
                 color: AppColors.highlight,
               ),
@@ -228,7 +234,7 @@ class _Header extends StatelessWidget {
         borderRadius: tokens.sheetRadius,
         gradient: tokens.heroGradient,
         boxShadow: tokens.deepShadow,
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,7 +246,7 @@ class _Header extends StatelessWidget {
                 height: 56,
                 decoration: BoxDecoration(
                   borderRadius: tokens.tileRadius,
-                  color: Colors.white.withOpacity(0.18),
+                  color: Colors.white.withValues(alpha: 0.18),
                 ),
                 child: const Icon(Icons.person, color: Colors.white, size: 32),
               ),
@@ -324,7 +330,10 @@ class _CategoryBreakdownWidget extends StatelessWidget {
           Text('Receitas', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           ...incomes.map(
-            (slice) => _CategoryTile(name: slice.name, value: currency.format(slice.total), color: AppColors.primary),
+            (slice) => _CategoryTile(
+                name: slice.name,
+                value: currency.format(slice.total),
+                color: AppColors.primary),
           ),
           const SizedBox(height: 16),
         ],
@@ -334,7 +343,10 @@ class _CategoryBreakdownWidget extends StatelessWidget {
           const _EmptyState(message: 'Sem despesas categorizadas por enquanto.')
         else
           ...expenses.map(
-            (slice) => _CategoryTile(name: slice.name, value: currency.format(slice.total), color: AppColors.alert),
+            (slice) => _CategoryTile(
+                name: slice.name,
+                value: currency.format(slice.total),
+                color: AppColors.alert),
           ),
       ],
     );
@@ -365,7 +377,8 @@ class _InsightsSection extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth > 640;
-            final itemWidth = isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
+            final itemWidth =
+                isWide ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
             return Wrap(
               spacing: 16,
               runSpacing: 16,
@@ -393,23 +406,21 @@ class _InsightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     final color = _insightColor(insight.severity);
     final brightness = ThemeData.estimateBrightnessForColor(color);
-    final textColor = brightness == Brightness.dark ? Colors.white : AppColors.textPrimary;
-    final subtleColor = brightness == Brightness.dark ? Colors.white70 : AppColors.textSecondary;
+    final textColor =
+        brightness == Brightness.dark ? Colors.white : AppColors.textPrimary;
+    final subtleColor = brightness == Brightness.dark
+        ? Colors.white70
+        : AppColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 16,
-            offset: Offset(0, 8),
-          ),
-        ],
+        borderRadius: tokens.tileRadius,
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,7 +470,7 @@ class _InsightTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: tokens.tileRadius,
       ),
       child: Text(
@@ -481,7 +492,7 @@ Color _insightColor(String severity) {
       return AppColors.highlight;
     case 'warning':
       return Color.alphaBlend(
-        AppColors.alert.withOpacity(0.35),
+        AppColors.alert.withValues(alpha: 0.35),
         AppColors.highlight,
       );
     case 'critical':
@@ -492,7 +503,8 @@ Color _insightColor(String severity) {
 }
 
 class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({required this.name, required this.value, required this.color});
+  const _CategoryTile(
+      {required this.name, required this.value, required this.color});
 
   final String name;
   final String value;
@@ -500,38 +512,39 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 10,
-            offset: Offset(0, 6),
-          ),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.tileRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.softShadow,
       ),
       child: Row(
         children: [
           Container(
             width: 10,
             height: 10,
-            decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(4)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               name,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -551,6 +564,7 @@ class _CashflowChart extends StatelessWidget {
     }
 
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     final incomeSpots = <FlSpot>[];
     final expenseSpots = <FlSpot>[];
 
@@ -563,16 +577,10 @@ class _CashflowChart extends StatelessWidget {
       height: 220,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 14,
-            offset: Offset(0, 8),
-          ),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.mediumShadow,
       ),
       child: LineChart(
         LineChartData(
@@ -580,13 +588,16 @@ class _CashflowChart extends StatelessWidget {
             show: true,
             drawVerticalLine: false,
             getDrawingHorizontalLine: (value) => FlLine(
-              color: AppColors.border.withOpacity(0.3),
+              color: AppColors.border.withValues(alpha: 0.3),
               strokeWidth: 1,
             ),
           ),
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
-              sideTitles: SideTitles(showTitles: true, reservedSize: 44, getTitlesWidget: _leftTitle),
+              sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 44,
+                  getTitlesWidget: _leftTitle),
             ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
@@ -594,17 +605,22 @@ class _CashflowChart extends StatelessWidget {
                 reservedSize: 28,
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
-                  if (index < 0 || index >= points.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= points.length) {
+                    return const SizedBox.shrink();
+                  }
                   final month = points[index].month.split('-');
                   return Text(
                     '${month[1]}/${month[0].substring(2)}',
-                    style: theme.textTheme.labelSmall?.copyWith(color: AppColors.textSecondary),
+                    style: theme.textTheme.labelSmall
+                        ?.copyWith(color: AppColors.textSecondary),
                   );
                 },
               ),
             ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
           borderData: FlBorderData(show: false),
           lineBarsData: [
@@ -646,21 +662,16 @@ class _MissionProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-  final progressValue = mission.progress.clamp(0.0, 100.0) / 100.0;
+    final tokens = theme.extension<AppDecorations>()!;
+    final progressValue = mission.progress.clamp(0.0, 100.0) / 100.0;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -675,13 +686,14 @@ class _MissionProgressCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             mission.mission.description,
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
             value: progressValue,
             minHeight: 8,
-            backgroundColor: AppColors.surfaceAlt,
+            backgroundColor: theme.colorScheme.secondaryContainer,
             valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
           ),
           const SizedBox(height: 12),
@@ -690,7 +702,8 @@ class _MissionProgressCard extends StatelessWidget {
             children: [
               Text(
                 '${mission.progress.toStringAsFixed(0)}% • ${mission.mission.rewardPoints} XP',
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
               ),
               TextButton(
                 onPressed: onComplete,
@@ -713,20 +726,15 @@ class _MissionSuggestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,7 +749,8 @@ class _MissionSuggestionCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             mission.description,
-            style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           Row(
@@ -749,7 +758,8 @@ class _MissionSuggestionCard extends StatelessWidget {
             children: [
               Text(
                 '${mission.rewardPoints} XP • ${mission.durationDays} dias',
-                style: theme.textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
               ),
               ElevatedButton(
                 onPressed: onStart,
@@ -770,12 +780,14 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.tileRadius,
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Row(
         children: [
@@ -784,7 +796,8 @@ class _EmptyState extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: AppColors.textSecondary),
             ),
           ),
         ],

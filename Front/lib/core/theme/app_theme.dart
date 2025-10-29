@@ -17,27 +17,28 @@ class AppTheme {
       seedColor: AppColors.primary,
       brightness: brightness,
     );
+    final backgroundColor =
+        isDark ? const Color(0xFF0F1423) : AppColors.background;
     final colorScheme = baseScheme.copyWith(
       primary: AppColors.primary,
       primaryContainer: isDark ? const Color(0xFF1B2438) : AppColors.surfaceAlt,
       secondary: AppColors.highlight,
-      secondaryContainer: isDark ? const Color(0xFF222C44) : AppColors.surfaceAlt,
+      secondaryContainer:
+          isDark ? const Color(0xFF222C44) : AppColors.surfaceAlt,
       tertiary: AppColors.support,
       error: AppColors.alert,
       surface: isDark ? const Color(0xFF161E31) : AppColors.surface,
-      background: isDark ? const Color(0xFF0F1423) : AppColors.background,
       onPrimary: Colors.white,
       onSecondary: AppColors.textPrimary,
       onSurface: isDark ? Colors.white : AppColors.textPrimary,
-      onBackground: isDark ? Colors.white : AppColors.textPrimary,
     );
 
     final base = ThemeData(
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: colorScheme.background,
-      canvasColor: colorScheme.background,
+      scaffoldBackgroundColor: backgroundColor,
+      canvasColor: backgroundColor,
     );
 
     final montserrat = GoogleFonts.montserratTextTheme(base.textTheme);
@@ -116,15 +117,15 @@ class AppTheme {
       ],
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
-        foregroundColor: colorScheme.onBackground,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: textTheme.titleLarge?.copyWith(
-          color: colorScheme.onBackground,
+          color: colorScheme.onSurface,
         ),
       ),
       iconTheme: base.iconTheme.copyWith(
-        color: colorScheme.onBackground,
+        color: colorScheme.onSurface,
       ),
       dividerTheme: DividerThemeData(
         color: isDark ? Colors.white12 : AppColors.border,
@@ -163,34 +164,34 @@ class AppTheme {
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
-          if (states.contains(MaterialState.disabled)) {
+          if (states.contains(WidgetState.disabled)) {
             return AppColors.border;
           }
           return surfaceAlt;
         }),
-        checkColor: const MaterialStatePropertyAll<Color>(Colors.white),
+        checkColor: const WidgetStatePropertyAll<Color>(Colors.white),
       ),
       radioTheme: RadioThemeData(
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
           return AppColors.textSecondary;
         }),
       ),
       switchTheme: SwitchThemeData(
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return AppColors.primary.withOpacity(0.4);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppColors.primary.withValues(alpha: 0.4);
           }
           return AppColors.border;
         }),
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return AppColors.primary;
           }
           return AppColors.surface;
@@ -280,28 +281,30 @@ class AppTheme {
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          shape: MaterialStatePropertyAll(
+          shape: WidgetStatePropertyAll(
             RoundedRectangleBorder(borderRadius: decorations.tileRadius),
           ),
-          side: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
+          side: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
               return const BorderSide(color: AppColors.primary, width: 1.2);
             }
-            return BorderSide(color: AppColors.border.withOpacity(0.9));
+            return BorderSide(color: AppColors.border.withValues(alpha: 0.9));
           }),
-          backgroundColor: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
-              return AppColors.primary.withOpacity(0.12);
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return AppColors.primary.withValues(alpha: 0.12);
             }
             return surfaceAlt;
           }),
-          foregroundColor: const MaterialStatePropertyAll(AppColors.textPrimary),
+          foregroundColor:
+              const WidgetStatePropertyAll(AppColors.textPrimary),
         ),
       ),
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         tileColor: colorScheme.surface,
-        selectedTileColor: AppColors.primary.withOpacity(0.12),
+  selectedTileColor: AppColors.primary.withValues(alpha: 0.12),
         iconColor: isDark ? Colors.white70 : AppColors.textSecondary,
         textColor: colorScheme.onSurface,
         shape: RoundedRectangleBorder(borderRadius: decorations.tileRadius),
@@ -327,8 +330,7 @@ class AppTheme {
       bottomNavigationBarTheme: base.bottomNavigationBarTheme.copyWith(
         backgroundColor: isDark ? const Color(0xFF161E31) : Colors.white,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor:
-            isDark ? Colors.white70 : AppColors.textSecondary,
+        unselectedItemColor: isDark ? Colors.white70 : AppColors.textSecondary,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
         elevation: 0,
@@ -339,18 +341,18 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: isDark ? const Color(0xFF161E31) : Colors.white,
-        indicatorColor: AppColors.primary.withOpacity(0.12),
+  indicatorColor: AppColors.primary.withValues(alpha: 0.12),
         surfaceTintColor: Colors.transparent,
-        iconTheme: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return IconThemeData(color: AppColors.primary);
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.primary);
           }
           return IconThemeData(
             color: isDark ? Colors.white70 : AppColors.textSecondary,
           );
         }),
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: AppColors.primary,
@@ -382,35 +384,34 @@ class AppTheme {
       dropdownMenuTheme: DropdownMenuThemeData(
         inputDecorationTheme: base.inputDecorationTheme,
         menuStyle: MenuStyle(
-          backgroundColor: MaterialStatePropertyAll<Color>(colorScheme.surface),
-          elevation: const MaterialStatePropertyAll<double>(12),
-          shape: MaterialStatePropertyAll<OutlinedBorder>(
+          backgroundColor: WidgetStatePropertyAll<Color>(colorScheme.surface),
+          elevation: const WidgetStatePropertyAll<double>(12),
+          shape: WidgetStatePropertyAll<OutlinedBorder>(
             RoundedRectangleBorder(borderRadius: decorations.tileRadius),
           ),
-          shadowColor: const MaterialStatePropertyAll<Color>(AppColors.shadow),
+          shadowColor: const WidgetStatePropertyAll<Color>(AppColors.shadow),
         ),
       ),
       tabBarTheme: base.tabBarTheme.copyWith(
         indicatorSize: TabBarIndicatorSize.label,
         labelColor: AppColors.primary,
-        unselectedLabelColor:
-            isDark ? Colors.white70 : AppColors.textSecondary,
+        unselectedLabelColor: isDark ? Colors.white70 : AppColors.textSecondary,
         labelStyle: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         unselectedLabelStyle:
             textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
         indicator: BoxDecoration(
           borderRadius: decorations.tileRadius,
-          color: AppColors.primary.withOpacity(0.12),
+          color: AppColors.primary.withValues(alpha: 0.12),
         ),
       ),
       scrollbarTheme: ScrollbarThemeData(
         radius: const Radius.circular(48),
-        thickness: const MaterialStatePropertyAll<double>(6),
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.dragged)) {
+        thickness: const WidgetStatePropertyAll<double>(6),
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.dragged)) {
             return AppColors.primary;
           }
-          return AppColors.primary.withOpacity(0.6);
+          return AppColors.primary.withValues(alpha: 0.6);
         }),
       ),
       tooltipTheme: TooltipThemeData(
@@ -422,7 +423,7 @@ class AppTheme {
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: AppColors.primary,
-        selectionColor: AppColors.primary.withOpacity(0.24),
+  selectionColor: AppColors.primary.withValues(alpha: 0.24),
         selectionHandleColor: AppColors.primary,
       ),
     );

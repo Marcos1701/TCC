@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../presentation/widgets/register_transaction_sheet.dart';
 
 class TransactionsPage extends StatefulWidget {
@@ -71,7 +72,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openSheet,
         backgroundColor: AppColors.primary,
@@ -244,6 +245,7 @@ class _TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     final accent = _colorFor(transaction.type);
     final icon = _iconFor(transaction.type);
     final amountStyle = theme.textTheme.titleMedium?.copyWith(
@@ -259,15 +261,10 @@ class _TransactionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 14,
-              offset: Offset(0, 8),
-            ),
-          ],
+          color: theme.colorScheme.surface,
+          borderRadius: tokens.cardRadius,
+          border: Border.all(color: theme.dividerColor),
+          boxShadow: tokens.mediumShadow,
         ),
         child: Row(
           children: [
@@ -276,7 +273,7 @@ class _TransactionTile extends StatelessWidget {
               height: 48,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: tokens.tileRadius,
               ),
               child: Icon(icon, color: accent),
             ),

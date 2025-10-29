@@ -37,8 +37,10 @@ class SessionController extends ChangeNotifier {
   Future<bool> login({required String email, required String password}) async {
     _setLoading(true);
     try {
-      final tokens = await _authRepository.login(email: email, password: password);
-      await ApiClient().setTokens(access: tokens.access, refresh: tokens.refresh);
+      final tokens =
+          await _authRepository.login(email: email, password: password);
+      await ApiClient()
+          .setTokens(access: tokens.access, refresh: tokens.refresh);
       _session = await _authRepository.fetchSession();
       return true;
     } finally {
@@ -58,7 +60,8 @@ class SessionController extends ChangeNotifier {
         email: email,
         password: password,
       );
-      await ApiClient().setTokens(access: tokens.access, refresh: tokens.refresh);
+      await ApiClient()
+          .setTokens(access: tokens.access, refresh: tokens.refresh);
       _session = await _authRepository.fetchSession();
       return true;
     } finally {
@@ -72,7 +75,8 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateTargets({required int targetTps, required int targetRdr}) async {
+  Future<void> updateTargets(
+      {required int targetTps, required int targetRdr}) async {
     final profile = await _authRepository.updateTargets(
       payload: {'target_tps': targetTps, 'target_rdr': targetRdr},
     );
@@ -95,7 +99,8 @@ class SessionController extends ChangeNotifier {
 }
 
 class SessionScope extends InheritedNotifier<SessionController> {
-  const SessionScope({super.key, required SessionController controller, required super.child})
+  const SessionScope(
+      {super.key, required SessionController controller, required super.child})
       : super(notifier: controller);
 
   static SessionController of(BuildContext context) {

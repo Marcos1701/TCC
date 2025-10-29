@@ -25,8 +25,10 @@ class MetricCard extends StatelessWidget {
     final tokens = theme.extension<AppDecorations>()!;
     final baseColor = color ?? AppColors.primary;
     final contrast = ThemeData.estimateBrightnessForColor(baseColor);
-    final valueColor = contrast == Brightness.dark ? Colors.white : AppColors.textPrimary;
-    final subtitleColor = contrast == Brightness.dark ? Colors.white70 : AppColors.textSecondary;
+    final valueColor =
+        contrast == Brightness.dark ? Colors.white : AppColors.textPrimary;
+    final subtitleColor =
+        contrast == Brightness.dark ? Colors.white70 : AppColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -34,7 +36,7 @@ class MetricCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             baseColor,
-            baseColor.withOpacity(0.82),
+            baseColor.withValues(alpha: 0.82),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -50,14 +52,16 @@ class MetricCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(
+                color: Colors.white.withValues(alpha: 
                   contrast == Brightness.dark ? 0.18 : 0.28,
                 ),
                 borderRadius: tokens.tileRadius,
               ),
               child: Icon(
                 icon,
-                color: contrast == Brightness.dark ? Colors.white : AppColors.textPrimary,
+                color: contrast == Brightness.dark
+                    ? Colors.white
+                    : AppColors.textPrimary,
                 size: 26,
               ),
             ),

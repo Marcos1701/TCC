@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class RegisterTransactionSheet extends StatefulWidget {
   const RegisterTransactionSheet({
@@ -101,21 +102,17 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final tokens = theme.extension<AppDecorations>()!;
     final dateLabel = DateFormat('dd/MM/yyyy', 'pt_BR').format(_selectedDate);
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottomPadding),
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow,
-              blurRadius: 30,
-              offset: Offset(0, -8),
-            ),
-          ],
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.vertical(top: tokens.sheetRadius.topLeft),
+          boxShadow: tokens.deepShadow,
+          border: Border.all(color: theme.dividerColor),
         ),
         child: SafeArea(
           top: false,
@@ -133,7 +130,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                       width: 60,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: theme.dividerColor,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),

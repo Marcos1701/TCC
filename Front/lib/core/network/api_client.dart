@@ -57,7 +57,8 @@ class ApiClient {
     _refreshToken = await _storage.readRefreshToken();
   }
 
-  Future<void> setTokens({required String access, required String refresh}) async {
+  Future<void> setTokens(
+      {required String access, required String refresh}) async {
     _accessToken = access;
     _refreshToken = refresh;
     await _storage.saveToken(access);
@@ -118,7 +119,10 @@ class ApiClient {
     if (kIsWeb) {
       final uri = Uri.base;
       final host = uri.host;
-      if (uri.scheme.startsWith('http') && host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+      if (uri.scheme.startsWith('http') &&
+          host.isNotEmpty &&
+          host != 'localhost' &&
+          host != '127.0.0.1') {
         return uri.origin;
       }
       return 'http://localhost:8000';

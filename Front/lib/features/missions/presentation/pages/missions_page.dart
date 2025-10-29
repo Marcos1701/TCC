@@ -6,6 +6,7 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 import '../../../shared/widgets/section_header.dart';
 
 class MissionsPage extends StatefulWidget {
@@ -201,17 +202,16 @@ class _ActiveMissionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final progress = mission.progress.clamp(0, 100) / 100;
+    final tokens = theme.extension<AppDecorations>()!;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-              color: AppColors.shadow, blurRadius: 18, offset: Offset(0, 8)),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +233,7 @@ class _ActiveMissionCard extends StatelessWidget {
           LinearProgressIndicator(
             value: progress,
             minHeight: 8,
-            backgroundColor: AppColors.surfaceAlt,
+            backgroundColor: theme.colorScheme.secondaryContainer,
             valueColor: const AlwaysStoppedAnimation(AppColors.primary),
           ),
           const SizedBox(height: 12),
@@ -273,16 +273,15 @@ class _SuggestedMissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-              color: AppColors.shadow, blurRadius: 18, offset: Offset(0, 8)),
-        ],
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.cardRadius,
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: tokens.mediumShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,12 +328,13 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        color: theme.colorScheme.surface,
+        borderRadius: tokens.tileRadius,
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Row(
         children: [

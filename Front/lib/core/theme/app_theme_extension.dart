@@ -157,20 +157,20 @@ class AppDecorations extends ThemeExtension<AppDecorations> {
           BorderRadius.lerp(tileRadius, other.tileRadius, t) ?? tileRadius,
       sheetRadius:
           BorderRadius.lerp(sheetRadius, other.sheetRadius, t) ?? sheetRadius,
-      softShadow: BoxShadow.lerpList(softShadow, other.softShadow, t) ??
-          softShadow,
+      softShadow:
+          BoxShadow.lerpList(softShadow, other.softShadow, t) ?? softShadow,
       mediumShadow: BoxShadow.lerpList(mediumShadow, other.mediumShadow, t) ??
           mediumShadow,
-      deepShadow: BoxShadow.lerpList(deepShadow, other.deepShadow, t) ??
-          deepShadow,
+      deepShadow:
+          BoxShadow.lerpList(deepShadow, other.deepShadow, t) ?? deepShadow,
       heroGradient: LinearGradient.lerp(heroGradient, other.heroGradient, t) ??
           heroGradient,
       accentGradient:
           LinearGradient.lerp(accentGradient, other.accentGradient, t) ??
               accentGradient,
-      backgroundGradient:
-          LinearGradient.lerp(backgroundGradient, other.backgroundGradient, t) ??
-              backgroundGradient,
+      backgroundGradient: LinearGradient.lerp(
+              backgroundGradient, other.backgroundGradient, t) ??
+          backgroundGradient,
     );
   }
 }

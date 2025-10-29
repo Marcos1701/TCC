@@ -24,8 +24,9 @@ class MissionProgressModel {
       id: map['id'] as int,
       status: map['status'] as String,
       progress: double.parse(map['progress'].toString()),
-      startedAt:
-          map['started_at'] != null ? DateTime.parse(map['started_at'] as String) : null,
+      startedAt: map['started_at'] != null
+          ? DateTime.parse(map['started_at'] as String)
+          : null,
       completedAt: map['completed_at'] != null
           ? DateTime.parse(map['completed_at'] as String)
           : null,

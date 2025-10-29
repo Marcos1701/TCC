@@ -9,7 +9,8 @@ class AuthRepository {
 
   final ApiClient _client;
 
-  Future<AuthTokens> login({required String email, required String password}) async {
+  Future<AuthTokens> login(
+      {required String email, required String password}) async {
     final normalizedEmail = email.trim().toLowerCase();
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.token,
@@ -46,7 +47,8 @@ class AuthRepository {
   }
 
   Future<SessionData> fetchSession() async {
-    final response = await _client.client.get<Map<String, dynamic>>(ApiEndpoints.profile);
+    final response =
+        await _client.client.get<Map<String, dynamic>>(ApiEndpoints.profile);
     final data = response.data ?? <String, dynamic>{};
     final user = UserHeader.fromMap(data['user'] as Map<String, dynamic>);
     final profile = ProfileModel.fromMap(
@@ -55,13 +57,15 @@ class AuthRepository {
     return SessionData(user: user, profile: profile);
   }
 
-  Future<ProfileModel> updateTargets({required Map<String, dynamic> payload}) async {
+  Future<ProfileModel> updateTargets(
+      {required Map<String, dynamic> payload}) async {
     final response = await _client.client.put<Map<String, dynamic>>(
       ApiEndpoints.profile,
       data: payload,
     );
     final body = response.data ?? <String, dynamic>{};
-    return ProfileModel.fromMap((body['snapshot'] ?? body['profile']) as Map<String, dynamic>);
+    return ProfileModel.fromMap(
+        (body['snapshot'] ?? body['profile']) as Map<String, dynamic>);
   }
 
   Future<void> logout() async {
