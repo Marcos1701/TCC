@@ -112,7 +112,6 @@ class AppTheme {
       colorScheme: colorScheme,
       textTheme: textTheme,
       extensions: <ThemeExtension<dynamic>>[
-        ...base.extensions.values,
         decorations,
       ],
       appBarTheme: AppBarTheme(
@@ -304,7 +303,7 @@ class AppTheme {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         tileColor: colorScheme.surface,
-  selectedTileColor: AppColors.primary.withValues(alpha: 0.12),
+        selectedTileColor: AppColors.primary.withValues(alpha: 0.12),
         iconColor: isDark ? Colors.white70 : AppColors.textSecondary,
         textColor: colorScheme.onSurface,
         shape: RoundedRectangleBorder(borderRadius: decorations.tileRadius),
@@ -341,7 +340,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: isDark ? const Color(0xFF161E31) : Colors.white,
-  indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -423,7 +422,7 @@ class AppTheme {
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: AppColors.primary,
-  selectionColor: AppColors.primary.withValues(alpha: 0.24),
+        selectionColor: AppColors.primary.withValues(alpha: 0.24),
         selectionHandleColor: AppColors.primary,
       ),
     );
