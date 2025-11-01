@@ -14,6 +14,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _tpsController = TextEditingController();
   final _rdrController = TextEditingController();
+  final _iliController = TextEditingController();
   bool _editingTargets = false;
   bool _initialized = false;
 
@@ -26,6 +27,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (profile != null) {
       _tpsController.text = profile.targetTps.toString();
       _rdrController.text = profile.targetRdr.toString();
+      _iliController.text = profile.targetIli.toStringAsFixed(1);
     }
     _initialized = true;
   }
@@ -34,6 +36,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     _tpsController.dispose();
     _rdrController.dispose();
+    _iliController.dispose();
     super.dispose();
   }
 
@@ -43,7 +46,13 @@ class _ProfilePageState extends State<ProfilePage> {
         int.tryParse(_tpsController.text) ?? session.profile?.targetTps ?? 15;
     final rdr =
         int.tryParse(_rdrController.text) ?? session.profile?.targetRdr ?? 35;
-    await session.updateTargets(targetTps: tps, targetRdr: rdr);
+    final ili = double.tryParse(_iliController.text.replaceAll(',', '.')) ??
+        session.profile?.targetIli ?? 6;
+    await session.updateTargets(
+      targetTps: tps,
+      targetRdr: rdr,
+      targetIli: ili,
+    );
     if (!mounted) return;
     setState(() => _editingTargets = false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -204,6 +213,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         decoration:
                             const InputDecoration(labelText: 'Meta RDR (%)'),
                       ),
+                      TextField(
+                        controller: _iliController,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Meta ILI (meses)',
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
@@ -221,6 +238,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       const SizedBox(height: 8),
                       Text(
                         'Razão dívida/renda alvo: ${profile.targetRdr}%',
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Liquidez imediata alvo: ${profile.targetIli.toStringAsFixed(1)} meses',
                         style: theme.textTheme.bodyMedium
                             ?.copyWith(color: AppColors.textSecondary),
                       ),

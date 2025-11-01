@@ -75,10 +75,17 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateTargets(
-      {required int targetTps, required int targetRdr}) async {
+  Future<void> updateTargets({
+    required int targetTps,
+    required int targetRdr,
+    required double targetIli,
+  }) async {
     final profile = await _authRepository.updateTargets(
-      payload: {'target_tps': targetTps, 'target_rdr': targetRdr},
+      payload: {
+        'target_tps': targetTps,
+        'target_rdr': targetRdr,
+        'target_ili': targetIli,
+      },
     );
     if (_session != null) {
       _session = SessionData(user: _session!.user, profile: profile);

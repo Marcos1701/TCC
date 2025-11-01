@@ -20,6 +20,8 @@ migrate_working_dir/
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -50,10 +52,9 @@ app.*.map.json
 .env.*
 Api/.venv/
 Api/venv/
-Api/venv/*
-Api/venv/pyvenv.cfg
+venv/
 Api/.mypy_cache/
 
-.vscode/
+.vscode/*
 # build do front
 Front/build/

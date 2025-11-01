@@ -11,6 +11,12 @@ class UserProfile(models.Model):
     experience_points = models.PositiveIntegerField(default=0)
     target_tps = models.PositiveIntegerField(default=15, help_text="meta básica de poupança em %")
     target_rdr = models.PositiveIntegerField(default=35, help_text="meta de dívida/renda em %")
+    target_ili = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        default=Decimal("6.0"),
+        help_text="meta de liquidez imediata em meses",
+    )
 
     def __str__(self) -> str:
         return f"Perfil {self.user}"  # pragma: no cover
@@ -129,6 +135,8 @@ class Mission(models.Model):
     difficulty = models.CharField(max_length=8, choices=Difficulty.choices, default=Difficulty.MEDIUM)
     target_tps = models.PositiveIntegerField(null=True, blank=True)
     target_rdr = models.PositiveIntegerField(null=True, blank=True)
+    min_ili = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    max_ili = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
     duration_days = models.PositiveIntegerField(default=30)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

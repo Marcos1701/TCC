@@ -5,6 +5,7 @@ class ProfileModel {
     required this.nextLevelThreshold,
     required this.targetTps,
     required this.targetRdr,
+    required this.targetIli,
   });
 
   final int level;
@@ -12,6 +13,7 @@ class ProfileModel {
   final int nextLevelThreshold;
   final int targetTps;
   final int targetRdr;
+  final double targetIli;
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
     return ProfileModel(
@@ -20,6 +22,7 @@ class ProfileModel {
       nextLevelThreshold: map['next_level_threshold'] as int,
       targetTps: map['target_tps'] as int,
       targetRdr: map['target_rdr'] as int,
+      targetIli: double.parse(map['target_ili'].toString()),
     );
   }
 }

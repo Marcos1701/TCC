@@ -6,6 +6,7 @@ class SummaryMetrics {
   const SummaryMetrics({
     required this.tps,
     required this.rdr,
+    required this.ili,
     required this.totalIncome,
     required this.totalExpense,
     required this.totalDebt,
@@ -13,6 +14,7 @@ class SummaryMetrics {
 
   final double tps;
   final double rdr;
+  final double ili;
   final double totalIncome;
   final double totalExpense;
   final double totalDebt;
@@ -21,6 +23,7 @@ class SummaryMetrics {
     return SummaryMetrics(
       tps: double.parse(map['tps'].toString()),
       rdr: double.parse(map['rdr'].toString()),
+      ili: double.parse(map['ili'].toString()),
       totalIncome: double.parse(map['total_income'].toString()),
       totalExpense: double.parse(map['total_expense'].toString()),
       totalDebt: double.parse(map['total_debt'].toString()),
@@ -92,7 +95,7 @@ class IndicatorInsight {
   final String title;
   final String message;
   final double value;
-  final int target;
+  final double target;
 
   factory IndicatorInsight.fromMap(String indicator, Map<String, dynamic> map) {
     return IndicatorInsight(
@@ -101,7 +104,7 @@ class IndicatorInsight {
       title: map['title'] as String,
       message: map['message'] as String,
       value: double.parse(map['value'].toString()),
-      target: (map['target'] as num).toInt(),
+      target: double.parse(map['target'].toString()),
     );
   }
 }

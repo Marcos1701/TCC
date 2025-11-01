@@ -145,7 +145,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     icon: Icons.arrow_downward_rounded,
                   ),
                   _FilterChip(
-                    label: 'Dívidas',
+                    label: 'Pagamentos',
                     selected: _filter == 'DEBT_PAYMENT',
                     onTap: () => _applyFilter('DEBT_PAYMENT'),
                     icon: Icons.account_balance_wallet_outlined,
@@ -444,7 +444,7 @@ class _TransactionsSummaryStrip extends StatelessWidget {
       ),
       _SummaryMetric(
         key: 'DEBT_PAYMENT',
-        title: 'Dívidas',
+        title: 'Pagamentos de dívida',
         value: totals['DEBT_PAYMENT'] ?? 0,
         icon: Icons.account_balance_wallet_outlined,
         color: AppColors.highlight,

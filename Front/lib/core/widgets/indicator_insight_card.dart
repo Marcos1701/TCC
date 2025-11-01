@@ -37,8 +37,14 @@ class IndicatorInsightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final subtitle =
-        '${insight.value.toStringAsFixed(1)}% • meta ${insight.target}%';
+  final isLiquidity = insight.indicator == 'ili';
+  final valueLabel = isLiquidity
+    ? '${insight.value.toStringAsFixed(1)} meses'
+    : '${insight.value.toStringAsFixed(1)}%';
+  final targetLabel = isLiquidity
+    ? '${insight.target.toStringAsFixed(1)} meses'
+    : '${insight.target.toStringAsFixed(1)}%';
+  final subtitle = '$valueLabel • meta $targetLabel';
     final brightness = ThemeData.estimateBrightnessForColor(_baseColor);
     final titleColor =
         brightness == Brightness.dark ? Colors.white : AppColors.textPrimary;

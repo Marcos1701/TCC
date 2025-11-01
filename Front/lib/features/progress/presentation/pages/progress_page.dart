@@ -295,7 +295,7 @@ class _ProfileTargetsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'TPS alvo: ${profile.targetTps}% • RDR alvo: ${profile.targetRdr}%',
+            'TPS alvo: ${profile.targetTps}% • RDR alvo: ${profile.targetRdr}% • ILI alvo: ${profile.targetIli.toStringAsFixed(1)} meses',
             style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
           ),
         ],
