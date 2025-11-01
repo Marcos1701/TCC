@@ -300,19 +300,54 @@ class _SuggestedMissionCard extends StatelessWidget {
                 ?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final availableWidth = constraints.hasBoundedWidth
+                  ? constraints.maxWidth
+                  : MediaQuery.sizeOf(context).width;
+
+              final label = Text(
                 '${mission.rewardPoints} XP • ${mission.durationDays} dias',
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: AppColors.textSecondary),
-              ),
-              FilledButton(
-                onPressed: onStart,
-                child: const Text('Aceitar'),
-              ),
-            ],
+              );
+
+              final action = ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: 0,
+                  maxWidth: availableWidth.isFinite && availableWidth > 0
+                      ? availableWidth * 0.6
+                      : 220,
+                ),
+                child: FilledButton(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: const Size(0, 44),
+                  ),
+                  child: const Text('Aceitar'),
+                ),
+              );
+
+              if (availableWidth.isFinite && availableWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    label,
+                    const SizedBox(height: 12),
+                    Align(alignment: Alignment.centerRight, child: action),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: label),
+                  const SizedBox(width: 12),
+                  action,
+                ],
+              );
+            },
           ),
         ],
       ),

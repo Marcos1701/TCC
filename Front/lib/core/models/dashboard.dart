@@ -29,15 +29,21 @@ class SummaryMetrics {
 }
 
 class CategorySlice {
-  const CategorySlice({required this.name, required this.total});
+  const CategorySlice({
+    required this.name,
+    required this.total,
+    this.group,
+  });
 
   final String name;
   final double total;
+  final String? group;
 
   factory CategorySlice.fromMap(Map<String, dynamic> map) {
     return CategorySlice(
       name: map['name'] as String,
       total: double.parse(map['total'].toString()),
+      group: map['group'] as String?,
     );
   }
 }

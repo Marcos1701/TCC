@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Iterable, List
 
@@ -9,7 +9,7 @@ from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
-from .models import Mission, MissionProgress, Transaction, UserProfile
+from .models import Category, Mission, MissionProgress, Transaction, UserProfile
 
 
 def _decimal(value) -> Decimal:
@@ -52,7 +52,7 @@ def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
     buckets: Dict[str, List[Dict[str, str]]] = defaultdict(list)
     queryset = (
         Transaction.objects.filter(user=user, category__isnull=False)
-        .values("category__name", "category__type")
+        .values("category__name", "category__type", "category__group")
         .annotate(total=Sum("amount"))
         .order_by("category__name")
     )
@@ -61,6 +61,7 @@ def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
         buckets[item["category__type"]].append(
             {
                 "name": item["category__name"],
+                "group": item.get("category__group") or Category.CategoryGroup.OTHER,
                 "total": _decimal(item["total"]).quantize(Decimal("0.01")),
             }
         )
@@ -79,7 +80,11 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
 
     buckets: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     for item in data:
-        month = item["month"].date()
+        month_value = item["month"]
+        if isinstance(month_value, datetime):
+            month = month_value.date()
+        else:
+            month = month_value
         buckets[month][item["type"]] += _decimal(item["total"])
 
     series: List[Dict[str, str]] = []

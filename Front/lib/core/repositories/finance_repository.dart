@@ -30,6 +30,26 @@ class FinanceRepository {
         .toList();
   }
 
+  Future<CategoryModel> createCategory({
+    required String name,
+    required String type,
+    String? color,
+    String? group,
+  }) async {
+    final normalizedType = type == 'DEBT_PAYMENT' ? 'DEBT' : type;
+    final payload = {
+      'name': name,
+      'type': normalizedType,
+      if (color != null) 'color': color,
+      if (group != null) 'group': group,
+    };
+    final response = await _client.client.post<Map<String, dynamic>>(
+      ApiEndpoints.categories,
+      data: payload,
+    );
+    return CategoryModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
   Future<List<TransactionModel>> fetchTransactions({String? type}) async {
     final response = await _client.client.get<List<dynamic>>(
       ApiEndpoints.transactions,
@@ -47,6 +67,10 @@ class FinanceRepository {
     required double amount,
     required DateTime date,
     int? categoryId,
+    bool isRecurring = false,
+    int? recurrenceValue,
+    String? recurrenceUnit,
+    DateTime? recurrenceEndDate,
   }) async {
     final payload = {
       'type': type,
@@ -54,6 +78,14 @@ class FinanceRepository {
       'amount': amount,
       'date': date.toIso8601String().split('T').first,
       if (categoryId != null) 'category_id': categoryId,
+      if (isRecurring) 'is_recurring': true,
+      if (isRecurring && recurrenceValue != null)
+        'recurrence_value': recurrenceValue,
+      if (isRecurring && recurrenceUnit != null)
+        'recurrence_unit': recurrenceUnit,
+      if (isRecurring && recurrenceEndDate != null)
+        'recurrence_end_date':
+            recurrenceEndDate.toIso8601String().split('T').first,
     };
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.transactions,

@@ -27,9 +27,25 @@ class Category(models.Model):
         EXPENSE = "EXPENSE", "Despesa"
         DEBT = "DEBT", "Dívida"
 
+    class CategoryGroup(models.TextChoices):
+        REGULAR_INCOME = "REGULAR_INCOME", "Renda principal"
+        EXTRA_INCOME = "EXTRA_INCOME", "Renda extra"
+        SAVINGS = "SAVINGS", "Poupança / Reserva"
+        INVESTMENT = "INVESTMENT", "Investimentos"
+        ESSENTIAL_EXPENSE = "ESSENTIAL_EXPENSE", "Despesas essenciais"
+        LIFESTYLE_EXPENSE = "LIFESTYLE_EXPENSE", "Estilo de vida"
+        DEBT = "DEBT", "Dívidas"
+        GOAL = "GOAL", "Metas e sonhos"
+        OTHER = "OTHER", "Outros"
+
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=10, choices=CategoryType.choices)
     color = models.CharField(max_length=7, blank=True)
+    group = models.CharField(
+        max_length=24,
+        choices=CategoryGroup.choices,
+        default=CategoryGroup.OTHER,
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -54,12 +70,26 @@ class Transaction(models.Model):
         EXPENSE = "EXPENSE", "Despesa"
         DEBT_PAYMENT = "DEBT_PAYMENT", "Pagamento de dívida"
 
+    class RecurrenceUnit(models.TextChoices):
+        DAYS = "DAYS", "Dias"
+        WEEKS = "WEEKS", "Semanas"
+        MONTHS = "MONTHS", "Meses"
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
     type = models.CharField(max_length=14, choices=TransactionType.choices)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     date = models.DateField(default=timezone.now)
+    is_recurring = models.BooleanField(default=False)
+    recurrence_value = models.PositiveIntegerField(null=True, blank=True)
+    recurrence_unit = models.CharField(
+        max_length=10,
+        choices=RecurrenceUnit.choices,
+        null=True,
+        blank=True,
+    )
+    recurrence_end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

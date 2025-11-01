@@ -372,6 +372,26 @@ Níveis reduzidos de RDR indicam maior capacidade de administrar compromissos fi
 
 É importante notar que, embora estes sejam parâmetros comuns, a situação ideal pode variar conforme o perfil e objetivos de cada indivíduo.
 
+\subsection{Índice de Liquidez Imediata (ILI)}
+O Índice de Liquidez Imediata (ILI) é um indicador que avalia a capacidade do usuário de manter suas despesas essenciais mensais utilizando apenas recursos financeiros de alta liquidez, como a reserva de emergência \cite{FirstCitizens2023}. Em finanças pessoais, o ILI representa um parâmetro de resiliência financeira, pois reflete a capacidade do indivíduo de enfrentar períodos de instabilidade sem recorrer a empréstimos ou comprometer sua renda futura.
+
+O cálculo do ILI é realizado conforme a Equação~\ref{eq:ili}:
+
+\begin{equation}
+\label{eq:ili}
+ILI = \frac{\text{Valor da Reserva de Emergência}}{\text{Despesas Mensais Essenciais}}
+\end{equation}
+
+A interpretação do índice é feita com base na quantidade de meses que o usuário seria capaz de sustentar suas despesas apenas com a reserva disponível, conforme os níveis de segurança apresentados a seguir:
+
+\begin{itemize}
+    \item \textbf{ILI $\leq 3$:} Indica baixa segurança financeira. O sistema deve priorizar desafios relacionados à criação e consolidação da reserva de emergência.
+    \item \textbf{ILI entre 3 e 6:} Representa uma condição intermediária. O foco das missões deve ser o controle de gastos e a ampliação gradual da reserva.
+    \item \textbf{ILI $\geq 6$:} Indica estabilidade financeira. O usuário pode receber missões voltadas à diversificação de investimentos e aprimoramento da gestão de patrimônio.
+\end{itemize}
+
+Estudos e orientações de instituições financeiras como a Fidelity e o Consumer Financial Protection Bureau recomendam que a reserva de emergência cubra entre três e seis meses de despesas essenciais \cite{Fidelity2023,Money2024}. A inclusão do ILI no GenApp permite um diagnóstico mais detalhado da situação financeira do usuário, complementando os índices TPS e RDR e contribuindo para recomendações mais precisas e contextualizadas.
+
 \section{Distribuição de Desafios com Base nos Índices Financeiros}
 
 \subsection{Critérios Quantitativos e Qualitativos}

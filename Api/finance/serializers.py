@@ -9,7 +9,7 @@ from .models import Category, Goal, Mission, MissionProgress, Transaction, UserP
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "name", "type", "color")
+        fields = ("id", "name", "type", "color", "group")
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -28,6 +28,10 @@ class TransactionSerializer(serializers.ModelSerializer):
             "date",
             "category",
             "category_id",
+            "is_recurring",
+            "recurrence_value",
+            "recurrence_unit",
+            "recurrence_end_date",
         )
 
     def __init__(self, *args, **kwargs):
@@ -42,6 +46,37 @@ class TransactionSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         validated_data["user"] = user
         return super().create(validated_data)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        instance = getattr(self, "instance", None)
+
+        is_recurring = attrs.get("is_recurring")
+        if is_recurring is None and instance is not None:
+            is_recurring = instance.is_recurring
+
+        recurrence_value = attrs.get(
+            "recurrence_value",
+            getattr(instance, "recurrence_value", None),
+        )
+        recurrence_unit = attrs.get(
+            "recurrence_unit",
+            getattr(instance, "recurrence_unit", None),
+        )
+
+        if is_recurring:
+            if not recurrence_value or recurrence_value <= 0 or not recurrence_unit:
+                raise serializers.ValidationError(
+                    "Informe a frequência para transações recorrentes.",
+                )
+        else:
+            attrs["recurrence_value"] = None
+            attrs["recurrence_unit"] = None
+            attrs["recurrence_end_date"] = None
+            if "is_recurring" in attrs:
+                attrs["is_recurring"] = False
+
+        return attrs
 
 
 class GoalSerializer(serializers.ModelSerializer):
@@ -152,6 +187,7 @@ class DashboardSummarySerializer(serializers.Serializer):
 class CategoryBreakdownSerializer(serializers.Serializer):
     name = serializers.CharField()
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
+    group = serializers.CharField()
 
 
 class CashflowPointSerializer(serializers.Serializer):

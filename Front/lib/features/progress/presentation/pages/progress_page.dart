@@ -176,6 +176,7 @@ class _ProgressPageState extends State<ProgressPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'progressFab',
         onPressed: () => _openGoalDialog(),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_rounded),

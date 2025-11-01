@@ -39,6 +39,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
         category_type = self.request.query_params.get("type")
         if category_type:
             qs = qs.filter(type=category_type)
+        group = self.request.query_params.get("group")
+        if group:
+            qs = qs.filter(group=group)
         return qs.order_by("name")
 
     def perform_create(self, serializer):

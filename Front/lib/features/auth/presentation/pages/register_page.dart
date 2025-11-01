@@ -102,199 +102,231 @@ class _RegisterPageState extends State<RegisterPage> {
     return null;
   }
 
+  InputDecoration _buildInputDecoration({
+    required String hint,
+    Widget? suffix,
+  }) {
+    const baseBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(14)),
+      borderSide: BorderSide(color: Colors.white24, width: 1.2),
+    );
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white54),
+      filled: true,
+      fillColor: const Color(0xFF111111),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      enabledBorder: baseBorder,
+      focusedBorder: baseBorder.copyWith(
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+      ),
+      errorBorder: baseBorder.copyWith(
+        borderSide: const BorderSide(color: AppColors.alert, width: 1.4),
+      ),
+      focusedErrorBorder: baseBorder.copyWith(
+        borderSide: const BorderSide(color: AppColors.alert, width: 1.4),
+      ),
+      suffixIcon: suffix,
+      suffixIconColor: Colors.white70,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: Stack(
-          children: [
-            const _AuthBackground(),
-            SafeArea(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 32),
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 1, end: 0),
-                      duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, child) => Transform.translate(
-                        offset: Offset(0, 40 * value),
-                        child: Opacity(opacity: 1 - value, child: child),
-                      ),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: AppColors.shadow,
-                              blurRadius: 24,
-                              offset: Offset(0, 12),
-                            ),
-                          ],
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: Form(
+                  key: _formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Cadastro',
+                        style: textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w800,
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(28, 36, 28, 24),
-                          child: Form(
-                            key: _formKey,
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 12,
-                                      height: 12,
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.support,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Vamos começar',
-                                      style: textTheme.labelLarge?.copyWith(
-                                        color: AppColors.textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Criar conta',
-                                  style: textTheme.headlineMedium?.copyWith(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Chegue junto e comece a cuidar das finanças com o GenApp.',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 28),
-                                TextFormField(
-                                  controller: _nameController,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Nome completo',
-                                    prefixIcon: Icon(Icons.person_outline),
-                                  ),
-                                  validator: _validateName,
-                                ),
-                                const SizedBox(height: 18),
-                                TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email',
-                                    prefixIcon: Icon(Icons.mail_outline),
-                                  ),
-                                  validator: _validateEmail,
-                                ),
-                                const SizedBox(height: 18),
-                                TextFormField(
-                                  controller: _passwordController,
-                                  textInputAction: TextInputAction.done,
-                                  decoration: InputDecoration(
-                                    labelText: 'Senha',
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    suffixIcon: IconButton(
-                                      onPressed: () => setState(
-                                        () => _obscurePassword =
-                                            !_obscurePassword,
-                                      ),
-                                      icon: Icon(
-                                        _obscurePassword
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
-                                      ),
-                                    ),
-                                  ),
-                                  obscureText: _obscurePassword,
-                                  onFieldSubmitted: (_) => _submit(),
-                                  validator: _validatePassword,
-                                ),
-                                const SizedBox(height: 32),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _isSubmitting ? null : _submit,
-                                    child: AnimatedSwitcher(
-                                      duration:
-                                          const Duration(milliseconds: 220),
-                                      child: _isSubmitting
-                                          ? const SizedBox(
-                                              key: ValueKey('loading'),
-                                              height: 20,
-                                              width: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2.4,
-                                              ),
-                                            )
-                                          : const Text(
-                                              'Registrar',
-                                              key: ValueKey('label'),
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                Center(
-                                  child: TextButton(
-                                    onPressed:
-                                        _isSubmitting ? null : widget.onToggle,
-                                    child:
-                                        const Text('Já possui conta? Entrar'),
-                                  ),
-                                ),
-                              ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Entre com seu nome, Email e senha',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: Colors.white70,
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Nome',
+                        style: textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _nameController,
+                        textInputAction: TextInputAction.next,
+                        cursorColor: Colors.white,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _buildInputDecoration(hint: 'Nome'),
+                        validator: _validateName,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Email',
+                        style: textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        cursorColor: Colors.white,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _buildInputDecoration(hint: 'Email'),
+                        validator: _validateEmail,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Senha',
+                        style: textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontFamily: 'Montserrat',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _passwordController,
+                        textInputAction: TextInputAction.done,
+                        cursorColor: Colors.white,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _buildInputDecoration(
+                          hint: 'senha',
+                          suffix: IconButton(
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                             ),
                           ),
                         ),
+                        obscureText: _obscurePassword,
+                        onFieldSubmitted: (_) => _submit(),
+                        validator: _validatePassword,
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: _isSubmitting
+                            ? null
+                            : () => _showFeedback(
+                                  'Redefinição de senha disponível em breve.',
+                                ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          foregroundColor: AppColors.primary,
+                          textStyle: textTheme.bodyMedium?.copyWith(
+                            fontFamily: 'Montserrat',
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        child: const Text('Esqueceu a senha?'),
+                      ),
+                      const SizedBox(height: 36),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isSubmitting ? null : _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            child: _isSubmitting
+                                ? const SizedBox(
+                                    key: ValueKey('loading'),
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.4,
+                                      valueColor:
+                                          AlwaysStoppedAnimation(Colors.white),
+                                    ),
+                                  )
+                                : Text(
+                                    'Entrar',
+                                    key: const ValueKey('label'),
+                                    style: textTheme.titleMedium?.copyWith(
+                                      color: Colors.white,
+                                      fontFamily: 'Montserrat',
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Já possui uma conta? ',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: Colors.white60,
+                              fontFamily: 'Montserrat',
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed:
+                                _isSubmitting ? null : widget.onToggle,
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              foregroundColor: AppColors.primary,
+                              textStyle: textTheme.bodyMedium?.copyWith(
+                                fontFamily: 'Montserrat',
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: const Text('Entre aqui'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _AuthBackground extends StatelessWidget {
-  const _AuthBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.surfaceAlt],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: SizedBox.expand(),
     );
   }
 }
