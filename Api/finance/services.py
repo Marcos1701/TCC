@@ -352,6 +352,10 @@ def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dic
 
 
 def recommend_missions(user, summary: Dict[str, Decimal]) -> Iterable[Mission]:
+    """
+    DEPRECATED: Mantido apenas para compatibilidade.
+    Use assign_missions_automatically() para atribuição automática.
+    """
     user_tps = summary.get("tps", Decimal("0"))
     user_rdr = summary.get("rdr", Decimal("0"))
     user_ili = summary.get("ili", Decimal("0"))
@@ -378,3 +382,222 @@ def recommend_missions(user, summary: Dict[str, Decimal]) -> Iterable[Mission]:
         selected = list(base_queryset[:3])
 
     return selected[:3]
+
+
+def assign_missions_automatically(user) -> List[MissionProgress]:
+    """
+    Atribui missões automaticamente baseado nos índices do usuário.
+    
+    Lógica de atribuição:
+    1. Usuários novos (< 5 transações): missões ONBOARDING
+    2. ILI <= 3: prioriza ILI_BUILDING
+    3. RDR >= 50: prioriza RDR_REDUCTION
+    4. TPS < 10: prioriza TPS_IMPROVEMENT
+    5. ILI entre 3-6: missões de controle
+    6. ILI >= 6: missões ADVANCED
+    
+    Retorna lista de MissionProgress criadas ou atualizadas.
+    """
+    from django.utils import timezone
+    
+    summary = calculate_summary(user)
+    tps = float(summary.get("tps", Decimal("0")))
+    rdr = float(summary.get("rdr", Decimal("0")))
+    ili = float(summary.get("ili", Decimal("0")))
+    
+    transaction_count = Transaction.objects.filter(user=user).count()
+    
+    # Buscar missões já atribuídas
+    existing_progress = MissionProgress.objects.filter(
+        user=user,
+        status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+    )
+    
+    # Se já tem missões ativas, não atribui novas
+    if existing_progress.filter(status=MissionProgress.Status.ACTIVE).count() >= 3:
+        return list(existing_progress)
+    
+    # Determinar tipo de missão prioritária
+    priority_types = []
+    
+    if transaction_count < 5:
+        priority_types = [Mission.MissionType.ONBOARDING]
+    elif ili <= 3:
+        priority_types = [Mission.MissionType.ILI_BUILDING, Mission.MissionType.TPS_IMPROVEMENT]
+    elif rdr >= 50:
+        priority_types = [Mission.MissionType.RDR_REDUCTION]
+    elif tps < 10:
+        priority_types = [Mission.MissionType.TPS_IMPROVEMENT, Mission.MissionType.ILI_BUILDING]
+    elif 3 < ili < 6:
+        priority_types = [Mission.MissionType.TPS_IMPROVEMENT, Mission.MissionType.ILI_BUILDING]
+    elif ili >= 6:
+        priority_types = [Mission.MissionType.ADVANCED]
+    else:
+        priority_types = [Mission.MissionType.TPS_IMPROVEMENT]
+    
+    # Buscar missões já linkadas ao usuário
+    already_linked = set(
+        MissionProgress.objects.filter(user=user).values_list("mission_id", flat=True)
+    )
+    
+    # Buscar missões disponíveis
+    available_missions = Mission.objects.filter(
+        is_active=True,
+        mission_type__in=priority_types,
+    ).exclude(id__in=already_linked)
+    
+    # Filtrar por critérios de índices
+    suitable_missions = []
+    for mission in available_missions:
+        # Verificar número mínimo de transações
+        if mission.min_transactions and transaction_count < mission.min_transactions:
+            continue
+        
+        # Verificar TPS
+        if mission.target_tps is not None and tps >= mission.target_tps:
+            continue
+        
+        # Verificar RDR
+        if mission.target_rdr is not None and rdr <= mission.target_rdr:
+            continue
+        
+        # Verificar ILI
+        if mission.min_ili is not None and ili < float(mission.min_ili):
+            continue
+        if mission.max_ili is not None and ili > float(mission.max_ili):
+            continue
+        
+        suitable_missions.append(mission)
+    
+    # Se não encontrou missões adequadas, pega qualquer uma disponível do tipo prioritário
+    if not suitable_missions:
+        suitable_missions = list(available_missions[:3])
+    
+    # Se ainda não tem, pega qualquer missão ativa
+    if not suitable_missions:
+        suitable_missions = list(
+            Mission.objects.filter(is_active=True)
+            .exclude(id__in=already_linked)[:3]
+        )
+    
+    # Criar MissionProgress para as missões selecionadas (máximo 3)
+    created_progress = []
+    for mission in suitable_missions[:3]:
+        progress, created = MissionProgress.objects.get_or_create(
+            user=user,
+            mission=mission,
+            defaults={
+                'status': MissionProgress.Status.PENDING,
+                'progress': Decimal("0.00"),
+                'initial_tps': Decimal(str(tps)),
+                'initial_rdr': Decimal(str(rdr)),
+                'initial_ili': Decimal(str(ili)),
+                'initial_transaction_count': transaction_count,
+            }
+        )
+        if created:
+            created_progress.append(progress)
+    
+    return created_progress
+
+
+def update_mission_progress(user) -> List[MissionProgress]:
+    """
+    Atualiza o progresso das missões ativas do usuário baseado em seus dados atuais.
+    
+    Retorna lista de missões que tiveram progresso atualizado.
+    """
+    from django.utils import timezone
+    
+    active_missions = MissionProgress.objects.filter(
+        user=user,
+        status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+    )
+    
+    if not active_missions:
+        return []
+    
+    summary = calculate_summary(user)
+    current_tps = float(summary.get("tps", Decimal("0")))
+    current_rdr = float(summary.get("rdr", Decimal("0")))
+    current_ili = float(summary.get("ili", Decimal("0")))
+    current_transaction_count = Transaction.objects.filter(user=user).count()
+    
+    updated = []
+    
+    for progress in active_missions:
+        mission = progress.mission
+        old_progress = float(progress.progress)
+        new_progress = 0.0
+        
+        # Calcular progresso baseado no tipo de missão
+        if mission.mission_type == Mission.MissionType.ONBOARDING:
+            # Para onboarding, progresso é baseado em número de transações
+            if mission.min_transactions:
+                new_progress = min(100.0, (current_transaction_count / mission.min_transactions) * 100)
+            else:
+                # Se não especificou mínimo, considera 10 transações como meta
+                new_progress = min(100.0, (current_transaction_count / 10) * 100)
+        
+        elif mission.mission_type == Mission.MissionType.TPS_IMPROVEMENT:
+            # Progresso baseado em melhoria do TPS
+            if mission.target_tps and progress.initial_tps is not None:
+                initial = float(progress.initial_tps)
+                target = float(mission.target_tps)
+                if target > initial:
+                    improvement = current_tps - initial
+                    needed = target - initial
+                    new_progress = min(100.0, max(0.0, (improvement / needed) * 100))
+                elif current_tps >= target:
+                    new_progress = 100.0
+        
+        elif mission.mission_type == Mission.MissionType.RDR_REDUCTION:
+            # Progresso baseado em redução do RDR
+            if mission.target_rdr and progress.initial_rdr is not None:
+                initial = float(progress.initial_rdr)
+                target = float(mission.target_rdr)
+                if initial > target:
+                    reduction = initial - current_rdr
+                    needed = initial - target
+                    new_progress = min(100.0, max(0.0, (reduction / needed) * 100))
+                elif current_rdr <= target:
+                    new_progress = 100.0
+        
+        elif mission.mission_type == Mission.MissionType.ILI_BUILDING:
+            # Progresso baseado em construção do ILI
+            if mission.min_ili and progress.initial_ili is not None:
+                initial = float(progress.initial_ili)
+                target = float(mission.min_ili)
+                if target > initial:
+                    improvement = current_ili - initial
+                    needed = target - initial
+                    new_progress = min(100.0, max(0.0, (improvement / needed) * 100))
+                elif current_ili >= target:
+                    new_progress = 100.0
+        
+        # Atualizar progresso
+        progress.progress = Decimal(str(new_progress))
+        
+        # Ativar missão se estava pendente e tem algum progresso
+        if progress.status == MissionProgress.Status.PENDING and new_progress > 0:
+            progress.status = MissionProgress.Status.ACTIVE
+            progress.started_at = timezone.now()
+        
+        # Completar missão se chegou a 100%
+        if new_progress >= 100.0 and progress.status != MissionProgress.Status.COMPLETED:
+            progress.status = MissionProgress.Status.COMPLETED
+            progress.completed_at = timezone.now()
+            progress.progress = Decimal("100.00")
+            apply_mission_reward(progress)
+        
+        # Verificar se missão expirou
+        if progress.started_at and mission.duration_days:
+            deadline = progress.started_at + timedelta(days=mission.duration_days)
+            if timezone.now() > deadline and progress.status != MissionProgress.Status.COMPLETED:
+                progress.status = MissionProgress.Status.FAILED
+        
+        progress.save()
+        updated.append(progress)
+    
+    return updated
+

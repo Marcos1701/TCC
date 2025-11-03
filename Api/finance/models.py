@@ -129,21 +129,43 @@ class Mission(models.Model):
         MEDIUM = "MEDIUM", "Média"
         HARD = "HARD", "Difícil"
 
+    class MissionType(models.TextChoices):
+        ONBOARDING = "ONBOARDING", "Integração inicial"
+        TPS_IMPROVEMENT = "TPS_IMPROVEMENT", "Melhoria de poupança"
+        RDR_REDUCTION = "RDR_REDUCTION", "Redução de dívidas"
+        ILI_BUILDING = "ILI_BUILDING", "Construção de reserva"
+        ADVANCED = "ADVANCED", "Avançado"
+
     title = models.CharField(max_length=150)
     description = models.TextField()
     reward_points = models.PositiveIntegerField(default=50)
     difficulty = models.CharField(max_length=8, choices=Difficulty.choices, default=Difficulty.MEDIUM)
-    target_tps = models.PositiveIntegerField(null=True, blank=True)
-    target_rdr = models.PositiveIntegerField(null=True, blank=True)
-    min_ili = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
-    max_ili = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    mission_type = models.CharField(
+        max_length=20,
+        choices=MissionType.choices,
+        default=MissionType.ONBOARDING,
+        help_text="Tipo de missão que determina quando será aplicada",
+    )
+    priority = models.PositiveIntegerField(
+        default=1,
+        help_text="Ordem de prioridade para aplicação automática (menor = mais prioritário)",
+    )
+    target_tps = models.PositiveIntegerField(null=True, blank=True, help_text="TPS mínimo necessário (se aplicável)")
+    target_rdr = models.PositiveIntegerField(null=True, blank=True, help_text="RDR máximo permitido (se aplicável)")
+    min_ili = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, help_text="ILI mínimo necessário")
+    max_ili = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True, help_text="ILI máximo permitido")
+    min_transactions = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Número mínimo de transações registradas para desbloquear esta missão",
+    )
     duration_days = models.PositiveIntegerField(default=30)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ("title",)
+        ordering = ("priority", "title")
 
     def __str__(self) -> str:  # pragma: no cover
         return self.title
@@ -154,18 +176,23 @@ class MissionProgress(models.Model):
         PENDING = "PENDING", "Pendente"
         ACTIVE = "ACTIVE", "Em andamento"
         COMPLETED = "COMPLETED", "Concluída"
+        FAILED = "FAILED", "Falhou"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="mission_progress")
     mission = models.ForeignKey(Mission, on_delete=models.CASCADE, related_name="progress")
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     progress = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
+    initial_tps = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    initial_rdr = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    initial_ili = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    initial_transaction_count = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("user", "mission")
-        ordering = ("mission__title",)
+        ordering = ("mission__priority", "mission__title")
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} - {self.mission}"

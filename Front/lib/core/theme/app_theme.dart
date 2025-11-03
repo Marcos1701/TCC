@@ -248,7 +248,7 @@ class AppTheme {
           shadowColor: Colors.transparent,
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(borderRadius: decorations.tileRadius),
           textStyle: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
@@ -259,7 +259,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.highlight,
           foregroundColor: AppColors.textPrimary,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(0, 48),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: decorations.tileRadius),
           textStyle: textTheme.titleMedium?.copyWith(
@@ -271,7 +271,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary, width: 1.2),
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(0, 48),
           shape: RoundedRectangleBorder(borderRadius: decorations.tileRadius),
           textStyle: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
@@ -295,8 +295,7 @@ class AppTheme {
             }
             return surfaceAlt;
           }),
-          foregroundColor:
-              const WidgetStatePropertyAll(AppColors.textPrimary),
+          foregroundColor: const WidgetStatePropertyAll(AppColors.textPrimary),
         ),
       ),
       listTileTheme: ListTileThemeData(

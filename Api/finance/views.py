@@ -18,12 +18,14 @@ from .serializers import (
 )
 from .services import (
     apply_mission_reward,
+    assign_missions_automatically,
     calculate_summary,
     cashflow_series,
     category_breakdown,
     indicator_insights,
     profile_snapshot,
     recommend_missions,
+    update_mission_progress,
 )
 
 User = get_user_model()
@@ -79,48 +81,69 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
 class MissionProgressViewSet(viewsets.ModelViewSet):
     serializer_class = MissionProgressSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # Remove create/delete - missões são atribuídas automaticamente
+    http_method_names = ['get', 'put', 'patch', 'head', 'options']
 
     def get_queryset(self):
         return MissionProgress.objects.filter(user=self.request.user).select_related("mission")
 
-    def perform_create(self, serializer):
-        progress = serializer.save()
-        if progress.status == MissionProgress.Status.COMPLETED:
-            apply_mission_reward(progress)
-
     def perform_update(self, serializer):
         previous = serializer.instance.status
         progress = serializer.save()
+        
+        # Completar missão manualmente se usuário marcar como completa
         if (
             previous != MissionProgress.Status.COMPLETED
             and progress.status == MissionProgress.Status.COMPLETED
         ):
+            from django.utils import timezone
+            progress.progress = 100
+            progress.completed_at = timezone.now()
+            progress.save(update_fields=['progress', 'completed_at'])
             apply_mission_reward(progress)
+            
+            # Atribuir novas missões após completar uma
+            assign_missions_automatically(self.request.user)
 
 
 class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
+        # Atualizar progresso das missões antes de mostrar o dashboard
+        update_mission_progress(request.user)
+        
+        # Garantir que o usuário tem missões atribuídas
+        assign_missions_automatically(request.user)
+        
         summary = calculate_summary(request.user)
         breakdown = category_breakdown(request.user)
         cashflow = cashflow_series(request.user)
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         insights = indicator_insights(summary, profile)
-        missions = (
-            MissionProgress.objects.filter(user=request.user)
-            .exclude(status=MissionProgress.Status.COMPLETED)
+        
+        # Buscar missões ativas (PENDING ou ACTIVE)
+        active_missions = (
+            MissionProgress.objects.filter(
+                user=request.user,
+                status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+            )
             .select_related("mission")
+            .order_by("mission__priority")
         )
-        recommendations = recommend_missions(request.user, summary)
+        
+        # Não mostrar mais "recomendações" - todas são atribuídas automaticamente
+        # Mas mantém compatibilidade com serializer
+        recommendations = []
+        
         serializer = DashboardSerializer(
             {
                 "summary": summary,
                 "categories": breakdown,
                 "cashflow": cashflow,
                 "insights": insights,
-                "active_missions": missions,
-                "recommended_missions": list(recommendations),
+                "active_missions": active_missions,
+                "recommended_missions": recommendations,
                 "profile": profile,
             },
             context={"request": request},
@@ -129,6 +152,9 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     @action(detail=False, methods=["get"], url_path="missions")
     def missions_summary(self, request):
+        # Atualizar progresso antes de mostrar
+        update_mission_progress(request.user)
+        
         progress_qs = MissionProgress.objects.filter(user=request.user).select_related("mission")
         serializer = MissionProgressSerializer(progress_qs, many=True)
         return Response(serializer.data)

@@ -105,10 +105,13 @@ class MissionSerializer(serializers.ModelSerializer):
             "description",
             "reward_points",
             "difficulty",
+            "mission_type",
+            "priority",
             "target_tps",
             "target_rdr",
             "min_ili",
             "max_ili",
+            "min_transactions",
             "duration_days",
             "is_active",
         )
@@ -128,9 +131,19 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "mission_id",
             "status",
             "progress",
+            "initial_tps",
+            "initial_rdr",
+            "initial_ili",
+            "initial_transaction_count",
             "started_at",
             "completed_at",
             "updated_at",
+        )
+        read_only_fields = (
+            "initial_tps",
+            "initial_rdr",
+            "initial_ili",
+            "initial_transaction_count",
         )
 
     def create(self, validated_data):
