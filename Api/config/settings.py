@@ -162,7 +162,7 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000,tcc-production-d286.up.railway.app",
+    "http://localhost:3000,http://127.0.0.1:3000,https://tcc-production-d286.up.railway.app",
 )
 CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
 CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", True)
