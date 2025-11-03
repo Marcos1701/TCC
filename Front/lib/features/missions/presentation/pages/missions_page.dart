@@ -5,6 +5,7 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../widgets/mission_details_sheet.dart';
 
 class MissionsPage extends StatefulWidget {
   const MissionsPage({super.key});
@@ -130,7 +131,24 @@ class _MissionsPageState extends State<MissionsPage> {
                     )
                   else
                     ...data.activeMissions.map(
-                      (mission) => _ActiveMissionCard(mission: mission),
+                      (mission) => GestureDetector(
+                        onTap: () async {
+                          final updated = await showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            isScrollControlled: true,
+                            builder: (context) => MissionDetailsSheet(
+                              missionProgress: mission,
+                              repository: _repository,
+                              onUpdate: _refresh,
+                            ),
+                          );
+                          if (updated == true) {
+                            _refresh();
+                          }
+                        },
+                        child: _ActiveMissionCard(mission: mission),
+                      ),
                     ),
                 ],
               );

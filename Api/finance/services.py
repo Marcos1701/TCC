@@ -69,9 +69,9 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             "tps": profile.cached_tps or Decimal("0.00"),
             "rdr": profile.cached_rdr or Decimal("0.00"),
             "ili": profile.cached_ili or Decimal("0.00"),
-            "total_income": Decimal("0.00"),  # Não cacheia totais por enquanto
-            "total_expense": Decimal("0.00"),
-            "total_debt": Decimal("0.00"),
+            "total_income": profile.cached_total_income or Decimal("0.00"),
+            "total_expense": profile.cached_total_expense or Decimal("0.00"),
+            "total_debt": profile.cached_total_debt or Decimal("0.00"),
         }
     
     # Calcular indicadores
@@ -143,16 +143,27 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     profile.cached_tps = tps.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00")
     profile.cached_rdr = rdr.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00")
     profile.cached_ili = ili.quantize(Decimal("0.01")) if essential_expense > 0 else Decimal("0.00")
+    profile.cached_total_income = income.quantize(Decimal("0.01"))
+    profile.cached_total_expense = expense.quantize(Decimal("0.01"))
+    profile.cached_total_debt = debt_total.quantize(Decimal("0.01"))
     profile.indicators_updated_at = timezone.now()
-    profile.save(update_fields=['cached_tps', 'cached_rdr', 'cached_ili', 'indicators_updated_at'])
+    profile.save(update_fields=[
+        'cached_tps', 
+        'cached_rdr', 
+        'cached_ili', 
+        'cached_total_income',
+        'cached_total_expense',
+        'cached_total_debt',
+        'indicators_updated_at'
+    ])
 
     return {
         "tps": profile.cached_tps,
         "rdr": profile.cached_rdr,
         "ili": profile.cached_ili,
-        "total_income": income.quantize(Decimal("0.01")),
-        "total_expense": expense.quantize(Decimal("0.01")),
-        "total_debt": debt_total.quantize(Decimal("0.01")),
+        "total_income": profile.cached_total_income,
+        "total_expense": profile.cached_total_expense,
+        "total_debt": profile.cached_total_debt,
     }
 
 

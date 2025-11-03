@@ -40,6 +40,27 @@ class UserProfile(models.Model):
         blank=True,
         help_text="ILI em cache",
     )
+    cached_total_income = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total de receitas em cache",
+    )
+    cached_total_expense = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total de despesas em cache",
+    )
+    cached_total_debt = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total de dívidas em cache",
+    )
     indicators_updated_at = models.DateTimeField(
         null=True, 
         blank=True,

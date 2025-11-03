@@ -730,8 +730,22 @@ class _BalanceEvolutionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
     final spots = _generateMockData();
-    final maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
-    final minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
+    
+    var maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+    var minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
+    
+    // Garante que maxY e minY não sejam iguais (evita horizontalInterval = 0)
+    if (maxY == minY) {
+      if (maxY == 0) {
+        // Se ambos são zero, define valores padrão
+        maxY = 100;
+        minY = 0;
+      } else {
+        // Se são iguais mas não zero, adiciona margem
+        minY = maxY * 0.9;
+        maxY = maxY * 1.1;
+      }
+    }
     
     // Calcula a tendência (último valor vs primeiro)
     final trend = spots.last.y - spots.first.y;
