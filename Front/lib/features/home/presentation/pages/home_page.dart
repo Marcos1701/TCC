@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
+import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -156,10 +157,11 @@ class _HomePageState extends State<HomePage> {
                     currency: _currency,
                   ),
                   const SizedBox(height: 24),
-                  // Cards de Insights Personalizados
-                  _InsightsSection(
-                    profile: data.profile,
-                    summary: data.summary,
+                  // Histórico de Transações
+                  _TransactionHistorySection(
+                    repository: _repository,
+                    currency: _currency,
+                    onViewAll: () => _openPage(const TransactionsPage()),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -903,200 +905,307 @@ class _BalanceEvolutionCard extends StatelessWidget {
   }
 }
 
-/// Seção com cards de insights personalizados
-class _InsightsSection extends StatelessWidget {
-  const _InsightsSection({
-    required this.profile,
-    required this.summary,
+/// Seção com histórico das últimas transações
+class _TransactionHistorySection extends StatefulWidget {
+  const _TransactionHistorySection({
+    required this.repository,
+    required this.currency,
+    required this.onViewAll,
   });
 
-  final ProfileModel profile;
-  final SummaryMetrics summary;
-
-  List<_InsightData> _generateInsights() {
-    final insights = <_InsightData>[];
-    
-    // Insight baseado no TPS
-    if (summary.tps < 30) {
-      insights.add(_InsightData(
-        icon: Icons.savings_outlined,
-        title: 'Melhore sua Taxa de Poupança',
-        description: 'Seu TPS está em ${summary.tps.toStringAsFixed(1)}%. Tente economizar mais para alcançar 30%.',
-        color: AppColors.alert,
-        actionLabel: 'Ver Dicas',
-      ));
-    } else if (summary.tps >= 30) {
-      insights.add(_InsightData(
-        icon: Icons.trending_up,
-        title: 'Ótima Taxa de Poupança!',
-        description: 'Você está economizando ${summary.tps.toStringAsFixed(1)}% da sua renda. Continue assim!',
-        color: AppColors.support,
-        actionLabel: 'Ver Metas',
-      ));
-    }
-
-    // Insight baseado no RDR
-    if (summary.rdr > 35) {
-      insights.add(_InsightData(
-        icon: Icons.warning_amber_rounded,
-        title: 'Atenção às Dívidas',
-        description: 'Seu RDR está em ${summary.rdr.toStringAsFixed(1)}%. Reduza suas dívidas para manter abaixo de 35%.',
-        color: AppColors.alert,
-        actionLabel: 'Ver Dívidas',
-      ));
-    }
-
-    // Insight baseado no ILI
-    if (summary.ili < 3) {
-      insights.add(_InsightData(
-        icon: Icons.emergency,
-        title: 'Crie uma Reserva de Emergência',
-        description: 'Seu ILI é ${summary.ili.toStringAsFixed(1)} meses. Idealmente, tenha 6 meses de reserva para despesas essenciais.',
-        color: AppColors.highlight,
-        actionLabel: 'Saiba Mais',
-      ));
-    } else if (summary.ili >= 6) {
-      insights.add(_InsightData(
-        icon: Icons.shield_outlined,
-        title: 'Reserva de Emergência Sólida!',
-        description: 'Você tem ${summary.ili.toStringAsFixed(1)} meses de reserva. Sua segurança financeira está excelente!',
-        color: AppColors.support,
-        actionLabel: 'Ver Conquistas',
-      ));
-    }
-
-    // Se não houver insights específicos, adiciona motivacional
-    if (insights.isEmpty) {
-      insights.add(_InsightData(
-        icon: Icons.rocket_launch_outlined,
-        title: 'Continue Progredindo!',
-        description: 'Seus indicadores estão equilibrados. Continue registrando transações e completando missões!',
-        color: AppColors.primary,
-        actionLabel: 'Ver Missões',
-      ));
-    }
-
-    return insights.take(2).toList(); // Mostra no máximo 2 insights
-  }
+  final FinanceRepository repository;
+  final NumberFormat currency;
+  final VoidCallback onViewAll;
 
   @override
-  Widget build(BuildContext context) {
-    final insights = _generateInsights();
+  State<_TransactionHistorySection> createState() =>
+      _TransactionHistorySectionState();
+}
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Insights Personalizados',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...insights.map((insight) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _InsightCard(insight: insight),
-            )),
-      ],
-    );
+class _TransactionHistorySectionState
+    extends State<_TransactionHistorySection> {
+  late Future<List<TransactionModel>> _transactionsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _transactionsFuture = widget.repository.fetchTransactions();
   }
-}
-
-class _InsightData {
-  final IconData icon;
-  final String title;
-  final String description;
-  final Color color;
-  final String actionLabel;
-
-  _InsightData({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.color,
-    required this.actionLabel,
-  });
-}
-
-class _InsightCard extends StatelessWidget {
-  const _InsightCard({required this.insight});
-
-  final _InsightData insight;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.mediumShadow,
-        border: Border.all(
-          color: insight.color.withOpacity(0.3),
-          width: 1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Últimas Transações',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+              ),
+            ),
+            TextButton(
+              onPressed: widget.onViewAll,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
+              ),
+              child: const Text('Ver Todas'),
+            ),
+          ],
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: insight.color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              insight.icon,
-              color: insight.color,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  insight.title,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+        const SizedBox(height: 12),
+        FutureBuilder<List<TransactionModel>>(
+          future: _transactionsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  insight.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[400],
-                    fontSize: 12,
-                    height: 1.4,
-                  ),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: tokens.cardRadius,
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: insight.color,
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                child: Center(
                   child: Text(
-                    insight.actionLabel,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    'Erro ao carregar transações',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[400],
                     ),
                   ),
                 ),
-              ],
+              );
+            }
+
+            final transactions = snapshot.data ?? [];
+            if (transactions.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: tokens.cardRadius,
+                  boxShadow: tokens.mediumShadow,
+                ),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        color: Colors.grey[600],
+                        size: 48,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Nenhuma transação registrada',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Adicione sua primeira transação',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            // Pegar as 5 transações mais recentes
+            final recentTransactions = transactions.take(5).toList();
+
+            return Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: tokens.cardRadius,
+                boxShadow: tokens.mediumShadow,
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: recentTransactions.length,
+                separatorBuilder: (context, index) => Divider(
+                  color: Colors.grey[800],
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+                itemBuilder: (context, index) {
+                  final transaction = recentTransactions[index];
+                  return _TransactionTile(
+                    transaction: transaction,
+                    currency: widget.currency,
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _TransactionTile extends StatelessWidget {
+  const _TransactionTile({
+    required this.transaction,
+    required this.currency,
+  });
+
+  final TransactionModel transaction;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Determina o tipo de transação e cores correspondentes
+    final isIncome = transaction.type.toUpperCase() == 'INCOME';
+    final isPayment = transaction.type.toUpperCase() == 'DEBT_PAYMENT';
+    
+    // Define cores baseadas no tipo
+    Color color;
+    String prefix;
+    if (isIncome) {
+      color = AppColors.support; // Verde para receitas
+      prefix = '+';
+    } else if (isPayment) {
+      color = AppColors.highlight; // Laranja para pagamentos
+      prefix = '-';
+    } else {
+      color = AppColors.alert; // Vermelho para despesas
+      prefix = '-';
+    }
+    
+    final icon = _getCategoryIcon(transaction.category?.name, transaction.type);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          icon,
+          color: color,
+          size: 24,
+        ),
+      ),
+      title: Text(
+        transaction.description,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Row(
+        children: [
+          if (transaction.category != null) ...[
+            Text(
+              transaction.category!.name,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[500],
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              ' • ',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+          Text(
+            DateFormat('dd/MM/yyyy').format(transaction.date),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[500],
+              fontSize: 12,
             ),
           ),
+          if (transaction.isRecurring) ...[
+            const SizedBox(width: 6),
+            Icon(
+              Icons.repeat,
+              color: Colors.grey[600],
+              size: 14,
+            ),
+          ],
         ],
       ),
+      trailing: Text(
+        '$prefix ${currency.format(transaction.amount)}',
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
+  }
+
+  IconData _getCategoryIcon(String? categoryName, String transactionType) {
+    if (categoryName == null) {
+      // Ícones padrão por tipo de transação
+      switch (transactionType.toUpperCase()) {
+        case 'INCOME':
+          return Icons.arrow_upward;
+        case 'DEBT_PAYMENT':
+          return Icons.payment;
+        case 'EXPENSE':
+        default:
+          return Icons.arrow_downward;
+      }
+    }
+
+    // Mapeia categorias para ícones
+    final categoryIconMap = {
+      'Alimentação': Icons.restaurant,
+      'Transporte': Icons.directions_car,
+      'Moradia': Icons.home,
+      'Saúde': Icons.local_hospital,
+      'Educação': Icons.school,
+      'Lazer': Icons.movie,
+      'Compras': Icons.shopping_cart,
+      'Salário': Icons.work,
+      'Investimentos': Icons.trending_up,
+      'Freelance': Icons.attach_money,
+      'Cartão de Crédito': Icons.credit_card,
+      'Contas': Icons.receipt_long,
+      'Outros': Icons.category,
+    };
+
+    return categoryIconMap[categoryName] ?? _getDefaultIcon(transactionType);
+  }
+
+  IconData _getDefaultIcon(String transactionType) {
+    switch (transactionType.toUpperCase()) {
+      case 'INCOME':
+        return Icons.arrow_upward;
+      case 'DEBT_PAYMENT':
+        return Icons.payment;
+      case 'EXPENSE':
+      default:
+        return Icons.arrow_downward;
+    }
   }
 }
