@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/dashboard.dart';
-import '../../../../core/models/mission.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
@@ -24,16 +23,6 @@ class _MissionsPageState extends State<MissionsPage> {
     final data = await _repository.fetchDashboard();
     if (!mounted) return;
     setState(() => _future = Future.value(data));
-  }
-
-  Future<void> _startMission(int missionId) async {
-    final session = SessionScope.of(context);
-    await _repository.startMission(missionId);
-    if (!mounted) return;
-    await _refresh();
-    await session.refreshSession();
-    if (!mounted) return;
-    _showFeedback('Missão iniciada! Boa jornada.');
   }
 
   Future<void> _completeMission(MissionProgressModel mission) async {
@@ -159,23 +148,6 @@ class _MissionsPageState extends State<MissionsPage> {
                           onEdit: () => _editProgress(mission),
                         ),
                       ),
-                    const SizedBox(height: 28),
-                    SectionHeader(
-                      title: 'Sugestões inteligentes',
-                      actionLabel: 'ver todas',
-                      onActionTap: _refresh,
-                    ),
-                    const SizedBox(height: 12),
-                    if (data.recommendedMissions.isEmpty)
-                      const _EmptyState(
-                          message: 'Tudo certo! Sem novas sugestões agora.')
-                    else
-                      ...data.recommendedMissions.map(
-                        (mission) => _SuggestedMissionCard(
-                          mission: mission,
-                          onStart: () => _startMission(mission.id),
-                        ),
-                      ),
                   ]),
                 ),
               ),
@@ -198,6 +170,24 @@ class _ActiveMissionCard extends StatelessWidget {
   final VoidCallback onComplete;
   final VoidCallback onEdit;
 
+  /// Retorna cor baseada no tipo de missão
+  Color _getMissionTypeColor(String type) {
+    switch (type) {
+      case 'ONBOARDING':
+        return const Color(0xFF9C27B0); // Roxo
+      case 'TPS_IMPROVEMENT':
+        return const Color(0xFF4CAF50); // Verde
+      case 'RDR_REDUCTION':
+        return const Color(0xFFF44336); // Vermelho
+      case 'ILI_BUILDING':
+        return const Color(0xFF2196F3); // Azul
+      case 'ADVANCED':
+        return const Color(0xFFFF9800); // Laranja
+      default:
+        return const Color(0xFF607D8B); // Cinza
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -216,6 +206,23 @@ class _ActiveMissionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Badge do tipo de missão
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: _getMissionTypeColor(mission.mission.missionType),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              mission.mission.missionTypeLabel,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           Text(
             mission.mission.title,
             style: theme.textTheme.titleMedium?.copyWith(
@@ -254,100 +261,6 @@ class _ActiveMissionCard extends StatelessWidget {
                 ],
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SuggestedMissionCard extends StatelessWidget {
-  const _SuggestedMissionCard({
-    required this.mission,
-    required this.onStart,
-  });
-
-  final MissionModel mission;
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tokens = theme.extension<AppDecorations>()!;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: tokens.cardRadius,
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: tokens.mediumShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            mission.title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            mission.description,
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final availableWidth = constraints.hasBoundedWidth
-                  ? constraints.maxWidth
-                  : MediaQuery.sizeOf(context).width;
-
-              final label = Text(
-                '${mission.rewardPoints} XP • ${mission.durationDays} dias',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
-              );
-
-              final action = ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: 0,
-                  maxWidth: availableWidth.isFinite && availableWidth > 0
-                      ? availableWidth * 0.6
-                      : 220,
-                ),
-                child: FilledButton(
-                  onPressed: onStart,
-                  style: FilledButton.styleFrom(
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    minimumSize: const Size(0, 44),
-                  ),
-                  child: const Text('Aceitar'),
-                ),
-              );
-
-              if (availableWidth.isFinite && availableWidth < 360) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    label,
-                    const SizedBox(height: 12),
-                    Align(alignment: Alignment.centerRight, child: action),
-                  ],
-                );
-              }
-
-              return Row(
-                children: [
-                  Expanded(child: label),
-                  const SizedBox(width: 12),
-                  action,
-                ],
-              );
-            },
           ),
         ],
       ),

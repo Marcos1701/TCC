@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/dashboard.dart';
-import '../../../../core/models/mission.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
@@ -176,13 +175,7 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 12),
                   _MissionSection(
                     active: data.activeMissions,
-                    recommended: data.recommendedMissions,
                     onComplete: _completeMission,
-                    onStart: (id) async {
-                      await _repository.startMission(id);
-                      if (!mounted) return;
-                      await _refresh();
-                    },
                   ),
                 ],
               ),
@@ -859,21 +852,17 @@ class _CashflowChartCard extends StatelessWidget {
 class _MissionSection extends StatelessWidget {
   const _MissionSection({
     required this.active,
-    required this.recommended,
     required this.onComplete,
-    required this.onStart,
   });
 
   final List<MissionProgressModel> active;
-  final List<MissionModel> recommended;
   final void Function(MissionProgressModel) onComplete;
-  final Future<void> Function(int) onStart;
 
   @override
   Widget build(BuildContext context) {
-    if (active.isEmpty && recommended.isEmpty) {
+    if (active.isEmpty) {
       return const _EmptySection(
-        message: 'Sem missões no momento. Ative recomendações para avançar.',
+        message: 'Sem missões ativas. Continue registrando transações para receber novas missões.',
       );
     }
 
@@ -887,28 +876,6 @@ class _MissionSection extends StatelessWidget {
               onComplete: () => onComplete(mission),
             ),
           ),
-        if (recommended.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Sugestões para começar',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final mission in recommended)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _RecommendedMissionCard(
-                mission: mission,
-                onStart: () => onStart(mission.id),
-              ),
-            ),
-        ],
       ],
     );
   }
@@ -919,6 +886,24 @@ class _MissionTile extends StatelessWidget {
 
   final MissionProgressModel mission;
   final VoidCallback onComplete;
+
+  /// Retorna cor baseada no tipo de missão
+  Color _getMissionTypeColor(String type) {
+    switch (type) {
+      case 'ONBOARDING':
+        return const Color(0xFF9C27B0); // Roxo
+      case 'TPS_IMPROVEMENT':
+        return const Color(0xFF4CAF50); // Verde
+      case 'RDR_REDUCTION':
+        return const Color(0xFFF44336); // Vermelho
+      case 'ILI_BUILDING':
+        return const Color(0xFF2196F3); // Azul
+      case 'ADVANCED':
+        return const Color(0xFFFF9800); // Laranja
+      default:
+        return const Color(0xFF607D8B); // Cinza
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -948,8 +933,26 @@ class _MissionTile extends StatelessWidget {
         children: [
           Row(
             children: [
+              // Badge do tipo de missão
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getMissionTypeColor(mission.mission.missionType),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  mission.mission.missionTypeLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              // Indicador de prazo
+              Container(
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A2A2A),
                   shape: BoxShape.circle,
@@ -959,125 +962,53 @@ class _MissionTile extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mission.mission.title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      mission.mission.description,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[400],
-                        fontSize: 12,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            mission.mission.title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            mission.mission.description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[400],
+              fontSize: 12,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progressValue,
-              minHeight: 6,
-              backgroundColor: const Color(0xFF2A2A2A),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppColors.primary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecommendedMissionCard extends StatelessWidget {
-  const _RecommendedMissionCard({required this.mission, required this.onStart});
-
-  final MissionModel mission;
-  final VoidCallback onStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tokens = theme.extension<AppDecorations>()!;
-    
-    // Calcular prazo da missão
-    String deadlineText = '-';
-    if (mission.durationDays > 0) {
-      deadlineText = '0/${mission.durationDays}';
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.softShadow,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A2A),
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              deadlineText,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 11,
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progressValue,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFF2A2A2A),
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  mission.title,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+              const SizedBox(width: 12),
+              Text(
+                '${mission.progress.toStringAsFixed(0)}%',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  mission.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[400],
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onStart,
-            icon: const Icon(Icons.play_arrow_rounded, color: Colors.white),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+              ),
+            ],
           ),
         ],
       ),
