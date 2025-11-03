@@ -23,6 +23,7 @@ from .services import (
     cashflow_series,
     category_breakdown,
     indicator_insights,
+    invalidate_indicators_cache,
     profile_snapshot,
     recommend_missions,
     update_mission_progress,
@@ -60,6 +61,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if tx_type:
             qs = qs.filter(type=tx_type)
         return qs.order_by("-date", "-created_at")
+    
+    def perform_create(self, serializer):
+        serializer.save()
+        # Invalidar cache de indicadores após criar transação
+        invalidate_indicators_cache(self.request.user)
+    
+    def perform_update(self, serializer):
+        serializer.save()
+        # Invalidar cache de indicadores após atualizar transação
+        invalidate_indicators_cache(self.request.user)
+    
+    def perform_destroy(self, instance):
+        instance.delete()
+        # Invalidar cache de indicadores após deletar transação
+        invalidate_indicators_cache(self.request.user)
 
 
 class GoalViewSet(viewsets.ModelViewSet):

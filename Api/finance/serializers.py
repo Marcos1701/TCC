@@ -167,72 +167,7 @@ class DashboardSummarySerializer(serializers.Serializer):
     ili = serializers.DecimalField(max_digits=6, decimal_places=2)
     total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_expense = serializers.DecimalField(max_digits=12, decimal_places=2)
-
     total_debt = serializers.DecimalField(max_digits=12, decimal_places=2)
-
-    @staticmethod
-    def from_transactions(transactions):
-        totals = {
-            "INCOME": Decimal("0"),
-            "EXPENSE": Decimal("0"),
-            "DEBT_PAYMENT": Decimal("0"),
-        }
-        reserve_income = Decimal("0")
-        reserve_expense = Decimal("0")
-        essential_expense = Decimal("0")
-        debt_increases = Decimal("0")
-        debt_payments = Decimal("0")
-        debt_adjustments = Decimal("0")
-        for tx in transactions:
-            totals[tx.type] += tx.amount
-            category = tx.category
-            if category and category.group == Category.CategoryGroup.SAVINGS:
-                if tx.type == Transaction.TransactionType.EXPENSE:
-                    reserve_expense += tx.amount
-                else:
-                    reserve_income += tx.amount
-            if (
-                category
-                and category.group == Category.CategoryGroup.ESSENTIAL_EXPENSE
-                and tx.type == Transaction.TransactionType.EXPENSE
-            ):
-                essential_expense += tx.amount
-            if category and category.type == Category.CategoryType.DEBT:
-                if tx.type == Transaction.TransactionType.DEBT_PAYMENT:
-                    debt_payments += tx.amount
-                elif tx.type == Transaction.TransactionType.INCOME:
-                    debt_adjustments += tx.amount
-                else:
-                    debt_increases += tx.amount
-
-        total_income = totals["INCOME"]
-        total_expense = totals["EXPENSE"]
-        total_debt = debt_increases - debt_payments - debt_adjustments
-        if total_debt < 0:
-            total_debt = Decimal("0")
-
-        tps = Decimal("0")
-        rdr = Decimal("0")
-        ili = Decimal("0")
-        if total_income > 0:
-            tps = ((total_income - total_expense) / total_income) * 100
-            debt_reference = total_debt if total_debt > 0 else debt_payments
-            if debt_reference > 0:
-                rdr = (debt_reference / total_income) * 100
-
-        reserve_balance = reserve_income - reserve_expense
-        if essential_expense > 0:
-            ili = reserve_balance / essential_expense
-
-        return {
-            "tps": tps.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00"),
-            "rdr": rdr.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00"),
-            "ili": ili.quantize(Decimal("0.01")) if essential_expense > 0 else Decimal("0.00"),
-
-            "total_income": total_income.quantize(Decimal("0.01")),
-            "total_expense": total_expense.quantize(Decimal("0.01")),
-            "total_debt": total_debt.quantize(Decimal("0.01")),
-    }
 
 
 class CategoryBreakdownSerializer(serializers.Serializer):

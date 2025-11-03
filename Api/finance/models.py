@@ -17,6 +17,34 @@ class UserProfile(models.Model):
         default=Decimal("6.0"),
         help_text="meta de liquidez imediata em meses",
     )
+    
+    # Cache de indicadores para otimização
+    cached_tps = models.DecimalField(
+        max_digits=6, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="TPS em cache",
+    )
+    cached_rdr = models.DecimalField(
+        max_digits=6, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="RDR em cache",
+    )
+    cached_ili = models.DecimalField(
+        max_digits=6, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="ILI em cache",
+    )
+    indicators_updated_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Última atualização dos indicadores em cache",
+    )
 
     def __str__(self) -> str:
         return f"Perfil {self.user}"  # pragma: no cover
@@ -25,6 +53,15 @@ class UserProfile(models.Model):
     def next_level_threshold(self) -> int:
         base = 150 + (self.level - 1) * 50
         return max(base, 150)
+    
+    def should_recalculate_indicators(self) -> bool:
+        """Verifica se os indicadores precisam ser recalculados (cache expirado)."""
+        if self.indicators_updated_at is None:
+            return True
+        # Recalcular se passou mais de 5 minutos desde última atualização
+        from django.utils import timezone
+        time_since_update = timezone.now() - self.indicators_updated_at
+        return time_since_update.total_seconds() > 300  # 5 minutos
 
 
 class Category(models.Model):

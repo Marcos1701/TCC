@@ -46,6 +46,35 @@ def _debt_components(user) -> Dict[str, Decimal]:
 
 
 def calculate_summary(user) -> Dict[str, Decimal]:
+    """
+    Calcula os indicadores financeiros principais do usuário.
+    Utiliza cache quando disponível e não expirado.
+    
+    Indicadores calculados:
+    - TPS (Taxa de Poupança Pessoal): (Receitas - Despesas - Pagamentos de Dívida) / Receitas × 100
+    - RDR (Razão Dívida/Renda): Saldo de Dívidas / Receitas × 100
+    - ILI (Índice de Liquidez Imediata): Reservas Líquidas / Média Despesas Essenciais (3 meses)
+    
+    Args:
+        user: Usuário para cálculo dos indicadores
+        
+    Returns:
+        Dicionário com indicadores e totais financeiros
+    """
+    # Verificar cache
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    if not profile.should_recalculate_indicators():
+        # Usar valores em cache
+        return {
+            "tps": profile.cached_tps or Decimal("0.00"),
+            "rdr": profile.cached_rdr or Decimal("0.00"),
+            "ili": profile.cached_ili or Decimal("0.00"),
+            "total_income": Decimal("0.00"),  # Não cacheia totais por enquanto
+            "total_expense": Decimal("0.00"),
+            "total_debt": Decimal("0.00"),
+        }
+    
+    # Calcular indicadores
     totals = defaultdict(Decimal)
     for entry in (
         Transaction.objects.filter(user=user)
@@ -74,42 +103,73 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         elif tx_type == Transaction.TransactionType.INCOME:
             reserve_income = total
 
+    # Calcular média de despesas essenciais dos últimos 3 meses para ILI mais estável
     today = timezone.now().date()
-    month_start = today.replace(day=1)
-    essential_expense = _decimal(
+    three_months_ago = today - timedelta(days=90)
+    essential_expense_total = _decimal(
         Transaction.objects.filter(
             user=user,
             category__group=Category.CategoryGroup.ESSENTIAL_EXPENSE,
             type=Transaction.TransactionType.EXPENSE,
-            date__gte=month_start,
+            date__gte=three_months_ago,
             date__lte=today,
         ).aggregate(total=Sum("amount"))["total"]
     )
+    # Média mensal de despesas essenciais
+    essential_expense = essential_expense_total / Decimal("3") if essential_expense_total > 0 else Decimal("0")
 
+    # Cálculo do TPS: considera pagamentos de dívida como saída de receita
     tps = Decimal("0")
     rdr = Decimal("0")
     ili = Decimal("0")
+    
     if income > 0:
-        poupanca = income - expense
+        # TPS corrigido: desconta despesas E pagamentos de dívida da receita
+        poupanca = income - expense - debt_payments
         tps = (poupanca / income) * Decimal("100")
-        debt_reference = debt_balance if debt_balance > 0 else debt_payments
-        if debt_reference > 0:
-            rdr = (debt_reference / income) * Decimal("100")
+        
+        # RDR: usa saldo atual de dívidas se positivo
+        if debt_balance > 0:
+            rdr = (debt_balance / income) * Decimal("100")
 
+    # ILI: quantos meses a reserva cobre de despesas essenciais
     reserve_balance = reserve_income - reserve_expense
     if essential_expense > 0:
         ili = reserve_balance / essential_expense
 
     debt_total = debt_balance if debt_balance > 0 else Decimal("0")
 
+    # Atualizar cache
+    profile.cached_tps = tps.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00")
+    profile.cached_rdr = rdr.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00")
+    profile.cached_ili = ili.quantize(Decimal("0.01")) if essential_expense > 0 else Decimal("0.00")
+    profile.indicators_updated_at = timezone.now()
+    profile.save(update_fields=['cached_tps', 'cached_rdr', 'cached_ili', 'indicators_updated_at'])
+
     return {
-        "tps": tps.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00"),
-        "rdr": rdr.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00"),
-        "ili": ili.quantize(Decimal("0.01")) if essential_expense > 0 else Decimal("0.00"),
+        "tps": profile.cached_tps,
+        "rdr": profile.cached_rdr,
+        "ili": profile.cached_ili,
         "total_income": income.quantize(Decimal("0.01")),
         "total_expense": expense.quantize(Decimal("0.01")),
         "total_debt": debt_total.quantize(Decimal("0.01")),
     }
+
+
+def invalidate_indicators_cache(user) -> None:
+    """
+    Invalida o cache de indicadores, forçando recálculo na próxima consulta.
+    Deve ser chamado após criar/editar/deletar transações.
+    
+    Args:
+        user: Usuário cujo cache deve ser invalidado
+    """
+    try:
+        profile = UserProfile.objects.get(user=user)
+        profile.indicators_updated_at = None
+        profile.save(update_fields=['indicators_updated_at'])
+    except UserProfile.DoesNotExist:
+        pass
 
 
 def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
@@ -149,7 +209,49 @@ def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
     return buckets
 
 
+def _calculate_monthly_indicators(income: Decimal, expense: Decimal, debt_payments: Decimal, debt_balance: Decimal) -> Dict[str, Decimal]:
+    """
+    Calcula TPS e RDR para um período específico.
+    Extrai lógica comum usada em calculate_summary e cashflow_series.
+    
+    Args:
+        income: Total de receitas do período
+        expense: Total de despesas do período
+        debt_payments: Total de pagamentos de dívida do período
+        debt_balance: Saldo de dívidas do período
+        
+    Returns:
+        Dicionário com 'tps' e 'rdr' calculados
+    """
+    tps = Decimal("0")
+    rdr = Decimal("0")
+    
+    if income > 0:
+        # TPS: poupança líquida após despesas e pagamentos de dívida
+        poupanca = income - expense - debt_payments
+        tps = (poupanca / income) * Decimal("100")
+        
+        # RDR: usa saldo de dívidas se positivo
+        if debt_balance > 0:
+            rdr = (debt_balance / income) * Decimal("100")
+    
+    return {
+        "tps": tps.quantize(Decimal("0.01")),
+        "rdr": rdr.quantize(Decimal("0.01")),
+    }
+
+
 def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
+    """
+    Gera série temporal de fluxo de caixa e indicadores mensais.
+    
+    Args:
+        user: Usuário para análise
+        months: Número de meses retroativos a incluir (padrão: 6)
+        
+    Returns:
+        Lista de dicionários com dados mensais (income, expense, debt, tps, rdr)
+    """
     now = timezone.now().date()
     first_day = (now.replace(day=1) - timedelta(days=months * 31)).replace(day=1)
     data = (
@@ -196,25 +298,23 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         debt_increase = debt_buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
         debt_payment = debt_buckets[current].get(Transaction.TransactionType.DEBT_PAYMENT, Decimal("0"))
         debt_adjustment = debt_buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
+        
+        # Saldo de dívidas do mês
         debt = debt_increase - debt_payment - debt_adjustment
         if debt < 0:
             debt = Decimal("0")
-        tps = Decimal("0")
-        rdr = Decimal("0")
-        if income > 0:
-            poupanca = income - expense
-            tps = (poupanca / income) * Decimal("100")
-            debt_reference = debt if debt > 0 else debt_payment
-            if debt_reference > 0:
-                rdr = (debt_reference / income) * Decimal("100")
+        
+        # Usa função auxiliar para calcular indicadores de forma consistente
+        indicators = _calculate_monthly_indicators(income, expense, debt_payment, debt)
+        
         series.append(
             {
                 "month": current.strftime("%Y-%m"),
                 "income": income.quantize(Decimal("0.01")),
                 "expense": expense.quantize(Decimal("0.01")),
                 "debt": debt.quantize(Decimal("0.01")),
-                "tps": tps.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00"),
-                "rdr": rdr.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00"),
+                "tps": indicators["tps"],
+                "rdr": indicators["rdr"],
             }
         )
         if current.month == 1:
@@ -504,8 +604,10 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
 def update_mission_progress(user) -> List[MissionProgress]:
     """
     Atualiza o progresso das missões ativas do usuário baseado em seus dados atuais.
+    Trata corretamente casos onde valores iniciais são None.
     
-    Retorna lista de missões que tiveram progresso atualizado.
+    Returns:
+        Lista de missões que tiveram progresso atualizado.
     """
     from django.utils import timezone
     
@@ -530,6 +632,16 @@ def update_mission_progress(user) -> List[MissionProgress]:
         old_progress = float(progress.progress)
         new_progress = 0.0
         
+        # Inicializar valores iniciais se None (para missões antigas)
+        if progress.initial_tps is None:
+            progress.initial_tps = Decimal(str(current_tps))
+        if progress.initial_rdr is None:
+            progress.initial_rdr = Decimal(str(current_rdr))
+        if progress.initial_ili is None:
+            progress.initial_ili = Decimal(str(current_ili))
+        if progress.initial_transaction_count == 0:
+            progress.initial_transaction_count = max(1, current_transaction_count)
+        
         # Calcular progresso baseado no tipo de missão
         if mission.mission_type == Mission.MissionType.ONBOARDING:
             # Para onboarding, progresso é baseado em número de transações
@@ -541,39 +653,98 @@ def update_mission_progress(user) -> List[MissionProgress]:
         
         elif mission.mission_type == Mission.MissionType.TPS_IMPROVEMENT:
             # Progresso baseado em melhoria do TPS
-            if mission.target_tps and progress.initial_tps is not None:
+            if mission.target_tps is not None:
                 initial = float(progress.initial_tps)
                 target = float(mission.target_tps)
-                if target > initial:
+                
+                if current_tps >= target:
+                    # Atingiu ou superou a meta
+                    new_progress = 100.0
+                elif target > initial:
+                    # Precisa melhorar
                     improvement = current_tps - initial
                     needed = target - initial
                     new_progress = min(100.0, max(0.0, (improvement / needed) * 100))
-                elif current_tps >= target:
+                else:
+                    # Já estava acima da meta no início
                     new_progress = 100.0
         
         elif mission.mission_type == Mission.MissionType.RDR_REDUCTION:
             # Progresso baseado em redução do RDR
-            if mission.target_rdr and progress.initial_rdr is not None:
+            if mission.target_rdr is not None:
                 initial = float(progress.initial_rdr)
                 target = float(mission.target_rdr)
-                if initial > target:
+                
+                if current_rdr <= target:
+                    # Atingiu ou superou a meta (menor é melhor)
+                    new_progress = 100.0
+                elif initial > target:
+                    # Precisa reduzir
                     reduction = initial - current_rdr
                     needed = initial - target
                     new_progress = min(100.0, max(0.0, (reduction / needed) * 100))
-                elif current_rdr <= target:
+                else:
+                    # Já estava abaixo da meta no início
                     new_progress = 100.0
         
         elif mission.mission_type == Mission.MissionType.ILI_BUILDING:
             # Progresso baseado em construção do ILI
-            if mission.min_ili and progress.initial_ili is not None:
+            if mission.min_ili is not None:
                 initial = float(progress.initial_ili)
                 target = float(mission.min_ili)
-                if target > initial:
+                
+                if current_ili >= target:
+                    # Atingiu ou superou a meta
+                    new_progress = 100.0
+                elif target > initial:
+                    # Precisa melhorar
                     improvement = current_ili - initial
                     needed = target - initial
                     new_progress = min(100.0, max(0.0, (improvement / needed) * 100))
-                elif current_ili >= target:
+                else:
+                    # Já estava acima da meta no início
                     new_progress = 100.0
+        
+        elif mission.mission_type == Mission.MissionType.ADVANCED:
+            # Missões avançadas podem ter múltiplos critérios
+            # Por enquanto, usa lógica similar às outras com pesos
+            progress_components = []
+            
+            if mission.target_tps is not None:
+                initial = float(progress.initial_tps)
+                target = float(mission.target_tps)
+                if current_tps >= target:
+                    progress_components.append(100.0)
+                elif target > initial and (target - initial) > 0:
+                    progress_components.append(min(100.0, ((current_tps - initial) / (target - initial)) * 100))
+                else:
+                    progress_components.append(100.0)
+            
+            if mission.target_rdr is not None:
+                initial = float(progress.initial_rdr)
+                target = float(mission.target_rdr)
+                if current_rdr <= target:
+                    progress_components.append(100.0)
+                elif initial > target and (initial - target) > 0:
+                    progress_components.append(min(100.0, ((initial - current_rdr) / (initial - target)) * 100))
+                else:
+                    progress_components.append(100.0)
+            
+            if mission.min_ili is not None:
+                initial = float(progress.initial_ili)
+                target = float(mission.min_ili)
+                if current_ili >= target:
+                    progress_components.append(100.0)
+                elif target > initial and (target - initial) > 0:
+                    progress_components.append(min(100.0, ((current_ili - initial) / (target - initial)) * 100))
+                else:
+                    progress_components.append(100.0)
+            
+            # Média dos componentes
+            if progress_components:
+                new_progress = sum(progress_components) / len(progress_components)
+            else:
+                new_progress = 0.0
         
         # Atualizar progresso
         progress.progress = Decimal(str(new_progress))
