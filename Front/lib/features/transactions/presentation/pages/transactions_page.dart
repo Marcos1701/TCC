@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/category_groups.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../presentation/widgets/register_transaction_sheet.dart';
+import '../../presentation/widgets/transaction_details_sheet.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -238,6 +239,21 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         return _TransactionTile(
                           transaction: transaction,
                           currency: _currency,
+                          onTap: () async {
+                            final updated = await showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (context) => TransactionDetailsSheet(
+                                transaction: transaction,
+                                repository: _repository,
+                                onUpdate: _refresh,
+                              ),
+                            );
+                            if (updated == true) {
+                              _refresh();
+                            }
+                          },
                           onRemove: () => _deleteTransaction(transaction),
                         );
                       },
@@ -312,11 +328,13 @@ class _TransactionTile extends StatelessWidget {
   const _TransactionTile({
     required this.transaction,
     required this.currency,
+    required this.onTap,
     required this.onRemove,
   });
 
   final TransactionModel transaction;
   final NumberFormat currency;
+  final VoidCallback onTap;
   final VoidCallback onRemove;
 
   @override
@@ -331,14 +349,16 @@ class _TransactionTile extends StatelessWidget {
         : null;
     final recurrenceLabel = transaction.recurrenceLabel;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.mediumShadow,
-      ),
-      child: Row(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: tokens.cardRadius,
+          boxShadow: tokens.mediumShadow,
+        ),
+        child: Row(
         children: [
           Container(
             width: 48,
@@ -417,6 +437,7 @@ class _TransactionTile extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

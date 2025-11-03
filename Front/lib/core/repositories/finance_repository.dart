@@ -98,6 +98,49 @@ class FinanceRepository {
     await _client.client.delete('${ApiEndpoints.transactions}$id/');
   }
 
+  Future<Map<String, dynamic>> fetchTransactionDetails(int id) async {
+    final response = await _client.client
+        .get<Map<String, dynamic>>('${ApiEndpoints.transactions}$id/details/');
+    return response.data ?? <String, dynamic>{};
+  }
+
+  Future<TransactionModel> updateTransaction({
+    required int id,
+    String? type,
+    String? description,
+    double? amount,
+    DateTime? date,
+    int? categoryId,
+    bool? isRecurring,
+    int? recurrenceValue,
+    String? recurrenceUnit,
+    DateTime? recurrenceEndDate,
+  }) async {
+    final payload = <String, dynamic>{};
+    if (type != null) payload['type'] = type;
+    if (description != null) payload['description'] = description;
+    if (amount != null) payload['amount'] = amount;
+    if (date != null) {
+      payload['date'] = date.toIso8601String().split('T').first;
+    }
+    if (categoryId != null) {
+      payload['category_id'] = categoryId;
+    }
+    if (isRecurring != null) payload['is_recurring'] = isRecurring;
+    if (recurrenceValue != null) payload['recurrence_value'] = recurrenceValue;
+    if (recurrenceUnit != null) payload['recurrence_unit'] = recurrenceUnit;
+    if (recurrenceEndDate != null) {
+      payload['recurrence_end_date'] =
+          recurrenceEndDate.toIso8601String().split('T').first;
+    }
+
+    final response = await _client.client.patch<Map<String, dynamic>>(
+      '${ApiEndpoints.transactions}$id/',
+      data: payload,
+    );
+    return TransactionModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
   Future<MissionProgressModel> startMission(int missionId) async {
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.missionProgress,
@@ -186,5 +229,11 @@ class FinanceRepository {
 
   Future<void> deleteGoal(int id) async {
     await _client.client.delete('${ApiEndpoints.goals}$id/');
+  }
+
+  Future<Map<String, dynamic>> fetchMissionProgressDetails(int id) async {
+    final response = await _client.client.get<Map<String, dynamic>>(
+        '${ApiEndpoints.missionProgress}$id/details/');
+    return response.data ?? <String, dynamic>{};
   }
 }

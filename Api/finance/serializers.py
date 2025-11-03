@@ -17,6 +17,10 @@ class TransactionSerializer(serializers.ModelSerializer):
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.none(), source="category", write_only=True, allow_null=True, required=False
     )
+    # Campos calculados read-only
+    recurrence_description = serializers.SerializerMethodField()
+    days_since_created = serializers.SerializerMethodField()
+    formatted_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaction
@@ -32,7 +36,52 @@ class TransactionSerializer(serializers.ModelSerializer):
             "recurrence_value",
             "recurrence_unit",
             "recurrence_end_date",
+            "recurrence_description",
+            "days_since_created",
+            "formatted_amount",
+            "created_at",
+            "updated_at",
         )
+        read_only_fields = (
+            "recurrence_description",
+            "days_since_created",
+            "formatted_amount",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_recurrence_description(self, obj):
+        """Retorna descrição legível da recorrência."""
+        if not obj.is_recurring or not obj.recurrence_value or not obj.recurrence_unit:
+            return None
+        
+        value = obj.recurrence_value
+        unit_map = {
+            'DAYS': ('dia', 'dias'),
+            'WEEKS': ('semana', 'semanas'),
+            'MONTHS': ('mês', 'meses'),
+        }
+        
+        singular, plural = unit_map.get(obj.recurrence_unit, ('período', 'períodos'))
+        unit_text = singular if value == 1 else plural
+        
+        desc = f"A cada {value} {unit_text}"
+        if obj.recurrence_end_date:
+            from datetime import datetime
+            end_date = obj.recurrence_end_date.strftime('%d/%m/%Y')
+            desc += f" até {end_date}"
+        
+        return desc
+    
+    def get_days_since_created(self, obj):
+        """Retorna quantos dias desde a criação."""
+        from django.utils import timezone
+        delta = timezone.now() - obj.created_at
+        return delta.days
+    
+    def get_formatted_amount(self, obj):
+        """Retorna valor formatado em BRL."""
+        return f"R$ {obj.amount:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -122,6 +171,10 @@ class MissionProgressSerializer(serializers.ModelSerializer):
     mission_id = serializers.PrimaryKeyRelatedField(
         queryset=Mission.objects.all(), source="mission", write_only=True
     )
+    # Campos calculados
+    days_remaining = serializers.SerializerMethodField()
+    progress_percentage = serializers.SerializerMethodField()
+    current_vs_initial = serializers.SerializerMethodField()
 
     class Meta:
         model = MissionProgress
@@ -138,13 +191,65 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "started_at",
             "completed_at",
             "updated_at",
+            "days_remaining",
+            "progress_percentage",
+            "current_vs_initial",
         )
         read_only_fields = (
             "initial_tps",
             "initial_rdr",
             "initial_ili",
             "initial_transaction_count",
+            "days_remaining",
+            "progress_percentage",
+            "current_vs_initial",
         )
+
+    def get_days_remaining(self, obj):
+        """Retorna dias restantes até o prazo ou None se não tiver prazo."""
+        if not obj.started_at or not obj.mission.duration_days:
+            return None
+        
+        from django.utils import timezone
+        deadline = obj.started_at + timezone.timedelta(days=obj.mission.duration_days)
+        delta = deadline - timezone.now()
+        return max(0, delta.days)
+    
+    def get_progress_percentage(self, obj):
+        """Retorna progresso formatado como string."""
+        return f"{float(obj.progress):.1f}%"
+    
+    def get_current_vs_initial(self, obj):
+        """Retorna comparação dos indicadores atuais vs iniciais."""
+        from .services import calculate_summary
+        
+        # Pegar indicadores atuais
+        summary = calculate_summary(obj.user)
+        
+        result = {}
+        
+        if obj.initial_tps is not None:
+            result['tps'] = {
+                'initial': float(obj.initial_tps),
+                'current': float(summary.get('tps', 0)),
+                'change': float(summary.get('tps', 0)) - float(obj.initial_tps),
+            }
+        
+        if obj.initial_rdr is not None:
+            result['rdr'] = {
+                'initial': float(obj.initial_rdr),
+                'current': float(summary.get('rdr', 0)),
+                'change': float(obj.initial_rdr) - float(summary.get('rdr', 0)),  # Invertido: redução é positivo
+            }
+        
+        if obj.initial_ili is not None:
+            result['ili'] = {
+                'initial': float(obj.initial_ili),
+                'current': float(summary.get('ili', 0)),
+                'change': float(summary.get('ili', 0)) - float(obj.initial_ili),
+            }
+        
+        return result if result else None
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user

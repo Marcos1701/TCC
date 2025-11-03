@@ -120,10 +120,10 @@ class Transaction(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
-    type = models.CharField(max_length=14, choices=TransactionType.choices)
+    type = models.CharField(max_length=14, choices=TransactionType.choices, db_index=True)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    date = models.DateField(default=timezone.now)
+    date = models.DateField(default=timezone.now, db_index=True)
     is_recurring = models.BooleanField(default=False)
     recurrence_value = models.PositiveIntegerField(null=True, blank=True)
     recurrence_unit = models.CharField(
@@ -138,6 +138,11 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ("-date", "-created_at")
+        indexes = [
+            models.Index(fields=['user', 'date']),
+            models.Index(fields=['user', 'type']),
+            models.Index(fields=['user', 'category']),
+        ]
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.description} ({self.amount})"
