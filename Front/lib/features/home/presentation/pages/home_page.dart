@@ -7,15 +7,18 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/gamification_service.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
+import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
 import '../../../transactions/presentation/widgets/register_transaction_sheet.dart';
+import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -32,6 +35,18 @@ class _HomePageState extends State<HomePage> {
   Future<void> _refresh() async {
     final data = await _repository.fetchDashboard();
     if (!mounted) return;
+    
+    // Verificar celebrações de gamificação
+    await GamificationService.checkLevelUp(
+      context: context,
+      profile: data.profile,
+    );
+    
+    await GamificationService.checkMissionCompletions(
+      context: context,
+      missions: data.activeMissions,
+    );
+    
     setState(() => _future = Future.value(data));
   }
 
@@ -187,6 +202,8 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 12),
                   _MissionSection(
                     active: data.activeMissions,
+                    repository: _repository,
+                    onRefresh: _refresh,
                   ),
                 ],
               ),
@@ -486,9 +503,13 @@ class _ActionButton extends StatelessWidget {
 class _MissionSection extends StatelessWidget {
   const _MissionSection({
     required this.active,
+    required this.repository,
+    required this.onRefresh,
   });
 
   final List<MissionProgressModel> active;
+  final FinanceRepository repository;
+  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +524,21 @@ class _MissionSection extends StatelessWidget {
         for (final mission in active)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _MissionTile(mission: mission),
+            child: GestureDetector(
+              onTap: () async {
+                await showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (context) => MissionDetailsSheet(
+                    missionProgress: mission,
+                    repository: repository,
+                    onUpdate: onRefresh,
+                  ),
+                );
+              },
+              child: _MissionTile(mission: mission),
+            ),
           ),
       ],
     );
@@ -1063,9 +1098,27 @@ class _TransactionHistorySectionState
                 ),
                 itemBuilder: (context, index) {
                   final transaction = recentTransactions[index];
-                  return _TransactionTile(
-                    transaction: transaction,
-                    currency: widget.currency,
+                  return GestureDetector(
+                    onTap: () async {
+                      await showModalBottomSheet(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        isScrollControlled: true,
+                        builder: (context) => TransactionDetailsSheet(
+                          transaction: transaction,
+                          repository: widget.repository,
+                          onUpdate: () {
+                            setState(() {
+                              _transactionsFuture = widget.repository.fetchTransactions();
+                            });
+                          },
+                        ),
+                      );
+                    },
+                    child: _TransactionTile(
+                      transaction: transaction,
+                      currency: widget.currency,
+                    ),
                   );
                 },
               ),

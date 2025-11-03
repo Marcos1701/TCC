@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/gamification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../widgets/mission_details_sheet.dart';
@@ -21,6 +22,13 @@ class _MissionsPageState extends State<MissionsPage> {
   Future<void> _refresh() async {
     final data = await _repository.fetchDashboard();
     if (!mounted) return;
+    
+    // Verificar celebrações de missões completadas
+    await GamificationService.checkMissionCompletions(
+      context: context,
+      missions: data.activeMissions,
+    );
+    
     setState(() => _future = Future.value(data));
   }
 

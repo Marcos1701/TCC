@@ -460,6 +460,19 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     final progress = (component['progress'] as num).toDouble() / 100;
     final met = component['met'] as bool;
 
+    // Determinar se deve formatar como inteiro ou decimal
+    final isInteger = indicator == 'Transações' || 
+                      (initial == initial.toInt() && 
+                       current == current.toInt() && 
+                       target == target.toInt());
+
+    String formatNumber(num value) {
+      if (isInteger) {
+        return value.toInt().toString();
+      }
+      return value.toStringAsFixed(1);
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -517,7 +530,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                     ),
                   ),
                   Text(
-                    initial.toStringAsFixed(1),
+                    formatNumber(initial),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[400],
                       fontWeight: FontWeight.w600,
@@ -536,7 +549,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                     ),
                   ),
                   Text(
-                    current.toStringAsFixed(1),
+                    formatNumber(current),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -555,7 +568,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                     ),
                   ),
                   Text(
-                    target.toStringAsFixed(1),
+                    formatNumber(target),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: met ? AppColors.support : AppColors.primary,
                       fontWeight: FontWeight.w600,
@@ -673,10 +686,18 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Comparação de Indicadores',
+            'Evolução dos Indicadores',
             style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Comparação entre os valores no início da missão e os valores atuais',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[400],
+              fontSize: 12,
             ),
           ),
           const SizedBox(height: 16),
@@ -701,63 +722,133 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     final change = data['change'] as num;
     final isPositive = change > 0;
 
+    // Determinar a mensagem de mudança baseada no indicador
+    String getChangeDescription() {
+      if (change == 0) return 'Sem alteração';
+      
+      switch (indicator) {
+        case 'TPS':
+          return isPositive ? 'Poupando mais' : 'Poupando menos';
+        case 'RDR':
+          return isPositive ? 'Dívida aumentou' : 'Dívida reduziu';
+        case 'ILI':
+          return isPositive ? 'Reserva cresceu' : 'Reserva diminuiu';
+        default:
+          return isPositive ? 'Aumentou' : 'Diminuiu';
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  indicator,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                indicator,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: 8),
-                Row(
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (isPositive ? AppColors.support : AppColors.alert)
+                      .withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(
+                      isPositive ? Icons.trending_up : Icons.trending_down,
+                      color: isPositive ? AppColors.support : AppColors.alert,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      '${initial.toStringAsFixed(1)} → ${current.toStringAsFixed(1)}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[400],
+                      '${isPositive ? '+' : ''}${change.toStringAsFixed(1)}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: isPositive ? AppColors.support : AppColors.alert,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: (isPositive ? AppColors.support : AppColors.alert)
-                  .withOpacity(0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isPositive ? Icons.trending_up : Icons.trending_down,
-                  color: isPositive ? AppColors.support : AppColors.alert,
-                  size: 16,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No início',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      initial.toStringAsFixed(1),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '${isPositive ? '+' : ''}${change.toStringAsFixed(1)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: isPositive ? AppColors.support : AppColors.alert,
-                    fontWeight: FontWeight.w700,
-                  ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Icon(
+                  Icons.arrow_forward,
+                  color: Colors.grey[600],
+                  size: 20,
                 ),
-              ],
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Atualmente',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      current.toStringAsFixed(1),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            getChangeDescription(),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[400],
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],

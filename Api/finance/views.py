@@ -354,7 +354,7 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
         if mission.min_transactions:
             from .models import Transaction
             current_count = Transaction.objects.filter(user=mission_progress.user).count()
-            initial_count = mission_progress.initial_transaction_count
+            initial_count = mission_progress.initial_transaction_count or 0
             target_count = mission.min_transactions
             
             if target_count > initial_count:
@@ -363,11 +363,11 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
                 progress_pct = 100 if current_count >= target_count else 0
             
             breakdown['components'].append({
-                'indicator': 'TRANSACTIONS',
+                'indicator': 'Transações',
                 'name': 'Transações Registradas',
-                'initial': initial_count,
-                'current': current_count,
-                'target': target_count,
+                'initial': int(initial_count),
+                'current': int(current_count),
+                'target': int(target_count),
                 'progress': round(progress_pct, 1),
                 'met': current_count >= target_count,
             })
