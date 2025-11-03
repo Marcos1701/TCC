@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 
+enum FeedbackType { success, error, warning, offline, serverError }
+
 class LoginPage extends StatefulWidget {
   const LoginPage({
     super.key,
@@ -42,27 +44,119 @@ class _LoginPageState extends State<LoginPage> {
         password: _passwordController.text,
       );
       if (!success && mounted) {
-        _showFeedback('Falha no login. Confira os dados informados.',
-            isError: true);
+        _showFeedback(
+          'Credenciais inválidas. Verifique email e senha.',
+          type: FeedbackType.error,
+        );
+      } else if (success && mounted) {
+        _showFeedback(
+          'Login realizado com sucesso! 🎉',
+          type: FeedbackType.success,
+        );
       }
     } on DioException catch (error) {
-      final detail = error.response?.data is Map
-          ? error.response!.data['detail'] as String?
-          : null;
       if (!mounted) return;
-      _showFeedback(detail ?? 'Não foi possível entrar. Tente novamente.',
-          isError: true);
+      
+      // Verifica tipo de erro
+      if (error.type == DioExceptionType.connectionTimeout ||
+          error.type == DioExceptionType.receiveTimeout ||
+          error.type == DioExceptionType.sendTimeout) {
+        _showFeedback(
+          'Tempo de conexão esgotado. Verifique sua internet.',
+          type: FeedbackType.warning,
+        );
+      } else if (error.type == DioExceptionType.connectionError) {
+        _showFeedback(
+          'Servidor offline. Tente novamente mais tarde.',
+          type: FeedbackType.offline,
+        );
+      } else if (error.response?.statusCode == 401) {
+        _showFeedback(
+          'Email ou senha incorretos.',
+          type: FeedbackType.error,
+        );
+      } else if (error.response?.statusCode != null && 
+                 error.response!.statusCode! >= 500) {
+        _showFeedback(
+          'Problema no servidor. Tente novamente em instantes.',
+          type: FeedbackType.serverError,
+        );
+      } else {
+        final detail = error.response?.data is Map
+            ? error.response!.data['detail'] as String?
+            : null;
+        _showFeedback(
+          detail ?? 'Erro ao conectar. Verifique sua conexão.',
+          type: FeedbackType.error,
+        );
+      }
+    } catch (error) {
+      if (!mounted) return;
+      _showFeedback(
+        'Erro inesperado. Tente novamente.',
+        type: FeedbackType.error,
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
-  void _showFeedback(String message, {bool isError = false}) {
-    final theme = Theme.of(context);
+  void _showFeedback(String message, {required FeedbackType type}) {
+    Color backgroundColor;
+    IconData icon;
+    
+    switch (type) {
+      case FeedbackType.success:
+        backgroundColor = AppColors.support;
+        icon = Icons.check_circle;
+        break;
+      case FeedbackType.error:
+        backgroundColor = AppColors.alert;
+        icon = Icons.error;
+        break;
+      case FeedbackType.warning:
+        backgroundColor = AppColors.highlight;
+        icon = Icons.warning_amber;
+        break;
+      case FeedbackType.offline:
+        backgroundColor = Colors.grey[700]!;
+        icon = Icons.cloud_off;
+        break;
+      case FeedbackType.serverError:
+        backgroundColor = const Color(0xFFFF6B6B);
+        icon = Icons.dns;
+        break;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? AppColors.alert : theme.colorScheme.primary,
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {},
+        ),
       ),
     );
   }
@@ -101,7 +195,7 @@ class _LoginPageState extends State<LoginPage> {
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.white54),
       filled: true,
-      fillColor: const Color(0xFF111111),
+      fillColor: const Color(0xFF1E1E1E),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
       enabledBorder: baseBorder,
       focusedBorder: baseBorder.copyWith(
@@ -213,6 +307,7 @@ class _LoginPageState extends State<LoginPage> {
                             ? null
                             : () => _showFeedback(
                                   'Redefinição de senha disponível em breve.',
+                                  type: FeedbackType.warning,
                                 ),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,

@@ -21,9 +21,9 @@ class _GenAppState extends State<GenApp> {
       controller: _sessionController,
       child: MaterialApp(
         title: 'GenApp',
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.dark,
         debugShowCheckedModeBanner: false,
         home: const AuthFlow(),
       ),

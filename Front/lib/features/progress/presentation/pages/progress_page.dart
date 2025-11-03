@@ -7,7 +7,6 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../shared/widgets/section_header.dart';
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
@@ -38,78 +37,418 @@ class _ProgressPageState extends State<ProgressPage> {
       text: goal != null ? goal.currentAmount.toStringAsFixed(2) : '',
     );
     DateTime? deadline = goal?.deadline;
+    String? selectedCategory;
+    bool isLoading = false;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(goal == null ? 'Nova meta' : 'Editar meta'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
             children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Título'),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  goal == null ? Icons.add_circle_outline : Icons.edit_outlined,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
               ),
-              TextField(
-                controller: descriptionController,
-                decoration:
-                    const InputDecoration(labelText: 'Descrição (opcional)'),
-              ),
-              TextField(
-                controller: targetController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration:
-                    const InputDecoration(labelText: 'Valor alvo (ex: 5000)'),
-              ),
-              TextField(
-                controller: currentController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration:
-                    const InputDecoration(labelText: 'Valor atual (ex: 1200)'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      deadline == null
-                          ? 'Sem prazo definido'
-                          : 'Prazo: ${DateFormat('dd/MM/yyyy').format(deadline!)}',
-                      style: const TextStyle(color: AppColors.textSecondary),
-                    ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  goal == null ? 'Nova Meta' : 'Editar Meta',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: deadline ?? DateTime.now(),
-                        firstDate:
-                            DateTime.now().subtract(const Duration(days: 1)),
-                        lastDate: DateTime(2035),
-                      );
-                      if (picked != null) {
-                        deadline = picked;
-                      }
-                    },
-                    child: const Text('Escolher prazo'),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Seletor de Categoria
+                Text(
+                  'Categoria',
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.grey[700]!,
+                      width: 1,
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedCategory,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF1E1E1E),
+                      hint: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'Selecione uma categoria',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      ),
+                      icon: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+                      ),
+                      onChanged: isLoading ? null : (value) async {
+                        setState(() {
+                          selectedCategory = value;
+                          isLoading = true;
+                        });
+
+                        // Buscar valor atual da categoria se não for "Externa"
+                        if (value != null && value != 'Externa') {
+                          try {
+                            // TODO: Implementar busca do valor atual da categoria via API
+                            // Por enquanto, apenas limpa o campo
+                            currentController.clear();
+                          } catch (e) {
+                            // Ignora erro
+                          }
+                        }
+
+                        setState(() => isLoading = false);
+                      },
+                      items: [
+                        DropdownMenuItem(
+                          value: 'Renda',
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.trending_up, color: AppColors.support, size: 20),
+                                const SizedBox(width: 12),
+                                const Text('Renda', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Investimentos',
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.account_balance_wallet, color: AppColors.highlight, size: 20),
+                                const SizedBox(width: 12),
+                                const Text('Investimentos', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Despesa',
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.trending_down, color: AppColors.alert, size: 20),
+                                const SizedBox(width: 12),
+                                const Text('Despesa (Redução)', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'Externa',
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.category, color: AppColors.primary, size: 20),
+                                const SizedBox(width: 12),
+                                const Text('Externa (Valor Livre)', style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                if (selectedCategory != null) ...[
+                  const SizedBox(height: 20),
+                  
+                  // Título
+                  TextField(
+                    controller: titleController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Título',
+                      labelStyle: TextStyle(color: Colors.grey[400]),
+                      filled: true,
+                      fillColor: Colors.black.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Descrição
+                  TextField(
+                    controller: descriptionController,
+                    style: const TextStyle(color: Colors.white),
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Descrição (opcional)',
+                      labelStyle: TextStyle(color: Colors.grey[400]),
+                      filled: true,
+                      fillColor: Colors.black.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Valor Alvo
+                  TextField(
+                    controller: targetController,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: 'Valor alvo',
+                      labelStyle: TextStyle(color: Colors.grey[400]),
+                      prefixText: 'R\$ ',
+                      prefixStyle: const TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Colors.black.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Valor Atual
+                  TextField(
+                    controller: currentController,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    enabled: selectedCategory == 'Externa',
+                    decoration: InputDecoration(
+                      labelText: selectedCategory == 'Externa' 
+                        ? 'Valor atual' 
+                        : 'Valor atual (automático)',
+                      labelStyle: TextStyle(color: Colors.grey[400]),
+                      prefixText: 'R\$ ',
+                      prefixStyle: const TextStyle(color: Colors.white),
+                      filled: true,
+                      fillColor: Colors.black.withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[800]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                      helperText: selectedCategory != 'Externa'
+                        ? 'Valor obtido automaticamente da categoria'
+                        : null,
+                      helperStyle: TextStyle(color: Colors.grey[500], fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Prazo
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[700]!),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            deadline == null
+                                ? 'Sem prazo definido'
+                                : 'Prazo: ${DateFormat('dd/MM/yyyy').format(deadline!)}',
+                            style: TextStyle(
+                              color: deadline == null ? Colors.grey[500] : Colors.white,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: deadline ?? DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2035),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: ThemeData.dark().copyWith(
+                                    colorScheme: ColorScheme.dark(
+                                      primary: AppColors.primary,
+                                      surface: const Color(0xFF1E1E1E),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() => deadline = picked);
+                            }
+                          },
+                          child: Text(
+                            deadline == null ? 'Definir' : 'Alterar',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Salvar')),
-        ],
+              child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
+            ),
+            ElevatedButton(
+              onPressed: selectedCategory == null || isLoading
+                  ? null
+                  : () {
+                      // Validações
+                      if (titleController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Título é obrigatório'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      final target = double.tryParse(targetController.text.replaceAll(',', '.'));
+                      final current = double.tryParse(currentController.text.replaceAll(',', '.'));
+                      
+                      if (target == null || target <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Valor alvo deve ser maior que zero'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      
+                      // Validação por categoria
+                      if (selectedCategory == 'Renda' || selectedCategory == 'Investimentos') {
+                        if (current != null && target <= current) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Meta de $selectedCategory deve ser maior que o valor atual'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      } else if (selectedCategory == 'Despesa') {
+                        if (current != null && target >= current) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Meta de redução deve ser menor que o valor atual'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                      }
+                      
+                      Navigator.pop(context, true);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                disabledBackgroundColor: Colors.grey[800],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Salvar', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -141,22 +480,46 @@ class _ProgressPageState extends State<ProgressPage> {
 
     if (!mounted) return;
     await _refresh();
+    
+    // Feedback de sucesso
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(goal == null ? 'Meta criada com sucesso!' : 'Meta atualizada!'),
+          ],
+        ),
+        backgroundColor: AppColors.support,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   Future<void> _deleteGoal(GoalModel goal) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('Remover meta'),
-        content: Text('Tem certeza que quer remover "${goal.title}"?'),
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: const Text('Remover meta', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Tem certeza que quer remover "${goal.title}"?',
+          style: TextStyle(color: Colors.grey[400]),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
+          ),
           ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Remover')),
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.alert,
+            ),
+            child: const Text('Remover'),
+          ),
         ],
       ),
     );
@@ -174,131 +537,594 @@ class _ProgressPageState extends State<ProgressPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        elevation: 0,
+        title: Text(
+          'Metas',
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: _refresh,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'progressFab',
         onPressed: () => _openGoalDialog(),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Nova meta'),
+        label: const Text('Nova Meta'),
       ),
       body: SafeArea(
-        child: FutureBuilder<List<GoalModel>>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
+        child: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: _refresh,
+          child: FutureBuilder<List<GoalModel>>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return ListView(
+                  padding: const EdgeInsets.all(24),
+                  children: [
+                    Text(
+                      'Não foi possível carregar as metas.',
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: _refresh,
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ],
+                );
+              }
+
+              final goals = snapshot.data ?? [];
+
               return ListView(
-                padding: const EdgeInsets.all(24),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
                 children: [
                   Text(
-                    'Não deu pra carregar as metas agora.',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                      onPressed: _refresh, child: const Text('Tentar de novo')),
-                ],
-              );
-            }
-
-            final goals = snapshot.data ?? [];
-
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
-              children: [
-                Text(
-                  'Acompanhamento',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Veja seus indicadores e metas financeiras em um só lugar.',
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 20),
-                if (profile != null)
-                  _ProfileTargetsCard(profile: profile, currency: _currency),
-                if (profile != null) const SizedBox(height: 28),
-                SectionHeader(
-                  title: 'Metas financeiras',
-                  actionLabel: 'atualizar',
-                  onActionTap: _refresh,
-                ),
-                const SizedBox(height: 12),
-                if (goals.isEmpty)
-                  const _EmptyState(
-                      message:
-                          'Sem metas ainda. Crie uma nova com o botão acima.')
-                else
-                  ...goals.map(
-                    (goal) => _GoalCard(
-                      goal: goal,
-                      currency: _currency,
-                      onEdit: () => _openGoalDialog(goal: goal),
-                      onDelete: () => _deleteGoal(goal),
+                    'Defina e acompanhe suas metas financeiras. Configure valores e prazos para manter o foco nos seus objetivos.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[400],
+                      height: 1.4,
                     ),
                   ),
-              ],
-            );
-          },
+                  const SizedBox(height: 20),
+                  if (profile != null)
+                    _ProfileTargetsCard(profile: profile, currency: _currency),
+                  if (profile != null) const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Minhas Metas',
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${goals.length} ${goals.length == 1 ? 'meta' : 'metas'}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (goals.isEmpty)
+                    const _EmptyState(
+                      message:
+                          'Sem metas cadastradas ainda.\nCrie uma nova meta com o botão abaixo!',
+                    )
+                  else
+                    ...goals.map(
+                      (goal) => _GoalCard(
+                        goal: goal,
+                        currency: _currency,
+                        onEdit: () => _openGoalDialog(goal: goal),
+                        onDelete: () => _deleteGoal(goal),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-class _ProfileTargetsCard extends StatelessWidget {
+class _ProfileTargetsCard extends StatefulWidget {
   const _ProfileTargetsCard({required this.profile, required this.currency});
 
   final ProfileModel profile;
   final NumberFormat currency;
 
   @override
+  State<_ProfileTargetsCard> createState() => _ProfileTargetsCardState();
+}
+
+class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
+  final _repository = FinanceRepository();
+  
+  String _calculateIdealTps(double currentTps) {
+    if (currentTps < 20) {
+      return '≥ 20%';
+    } else {
+      return '≥ 20%';
+    }
+  }
+  
+  String _calculateIdealRdr(double currentRdr) {
+    return '< 35%';
+  }
+  
+  String _calculateIdealIli(double currentIli) {
+    return '≥ 6m';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
+    
+    final progressToNextLevel = widget.profile.experiencePoints / widget.profile.nextLevelThreshold;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: tokens.heroGradient,
-        borderRadius: tokens.sheetRadius,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withOpacity(0.7),
+          ],
+        ),
+        borderRadius: tokens.cardRadius,
         boxShadow: tokens.deepShadow,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Missão pessoal',
-            style: theme.textTheme.titleMedium
-                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.emoji_events,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Progresso Geral',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Nível ${widget.profile.level}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Nível ${profile.level} • ${profile.experiencePoints} XP',
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progressToNextLevel,
+              minHeight: 10,
+              backgroundColor: Colors.white24,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
           ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: profile.experiencePoints / profile.nextLevelThreshold,
-            minHeight: 8,
-            backgroundColor: Colors.white24,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            'TPS alvo: ${profile.targetTps}% • RDR alvo: ${profile.targetRdr}% • ILI alvo: ${profile.targetIli.toStringAsFixed(1)} meses',
-            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+            '${widget.profile.experiencePoints} / ${widget.profile.nextLevelThreshold} XP',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white24, height: 1),
+          const SizedBox(height: 16),
+          Text(
+            'Indicadores Alvo',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Busca dinâmica dos valores reais
+          FutureBuilder(
+            future: _repository.fetchDashboard(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                );
+              }
+              
+              // Valores padrão se não houver dados
+              double tpsCurrent = 0;
+              double rdrCurrent = 0;
+              double iliCurrent = 0;
+              
+              if (snapshot.hasData) {
+                final summary = snapshot.data!.summary;
+                tpsCurrent = summary.tps;
+                rdrCurrent = summary.rdr;
+                iliCurrent = summary.ili;
+              }
+              
+              return Row(
+                children: [
+                  Expanded(
+                    child: _TargetBadge(
+                      label: 'TPS',
+                      currentValue: '${tpsCurrent.toStringAsFixed(0)}%',
+                      idealRange: _calculateIdealTps(tpsCurrent),
+                      icon: Icons.savings_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TargetBadge(
+                      label: 'RDR',
+                      currentValue: '${rdrCurrent.toStringAsFixed(0)}%',
+                      idealRange: _calculateIdealRdr(rdrCurrent),
+                      icon: Icons.pie_chart_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TargetBadge(
+                      label: 'ILI',
+                      currentValue: '${iliCurrent.toStringAsFixed(1)}m',
+                      idealRange: _calculateIdealIli(iliCurrent),
+                      icon: Icons.health_and_safety_outlined,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TargetBadge extends StatelessWidget {
+  const _TargetBadge({
+    required this.label,
+    required this.currentValue,
+    required this.idealRange,
+    required this.icon,
+  });
+
+  final String label;
+  final String currentValue;
+  final String idealRange;
+  final IconData icon;
+
+  void _showExplanationDialog(BuildContext context) {
+    String title = '';
+    String formula = '';
+    String explanation = '';
+    String example = '';
+    Color color = AppColors.primary;
+
+    if (label == 'TPS') {
+      title = 'Taxa de Poupança Pessoal (TPS)';
+      formula = 'TPS = (Receitas - Despesas) / Receitas × 100';
+      explanation = 'A TPS mede quanto da sua renda você consegue poupar. '
+          'É calculada dividindo o valor poupado (receitas menos despesas) '
+          'pelo total de receitas, multiplicado por 100 para obter a porcentagem.';
+      example = 'Se você ganhou R\$ 5.000 e gastou R\$ 4.000:\n'
+          'TPS = (5.000 - 4.000) / 5.000 × 100 = 20%\n\n'
+          'Seu valor atual: $currentValue\n'
+          'Faixa ideal: $idealRange';
+      color = const Color(0xFF4CAF50);
+    } else if (label == 'RDR') {
+      title = 'Razão Dívida/Renda (RDR)';
+      formula = 'RDR = Dívidas / Receitas × 100';
+      explanation = 'A RDR indica quanto da sua renda está comprometida com dívidas. '
+          'É calculada dividindo o total de dívidas (ou pagamentos de dívida) '
+          'pelo total de receitas, multiplicado por 100.';
+      example = 'Se você ganhou R\$ 5.000 e tem R\$ 2.000 em dívidas:\n'
+          'RDR = 2.000 / 5.000 × 100 = 40%\n\n'
+          'Seu valor atual: $currentValue\n'
+          'Faixa ideal: $idealRange';
+      color = const Color(0xFFFF9800);
+    } else if (label == 'ILI') {
+      title = 'Índice de Liquidez Imediata (ILI)';
+      formula = 'ILI = Reservas Líquidas / Despesas Essenciais Mensais';
+      explanation = 'O ILI mostra por quantos meses você consegue manter seu padrão de vida '
+          'usando apenas suas reservas (poupança), sem nenhuma receita. É calculado dividindo '
+          'seu saldo de reservas pela média de despesas essenciais mensais.';
+      example = 'Se você tem R\$ 12.000 em reservas e gasta R\$ 3.000/mês em essenciais:\n'
+          'ILI = 12.000 / 3.000 = 4 meses\n\n'
+          'Seu valor atual: $currentValue\n'
+          'Faixa ideal: $idealRange';
+      color = const Color(0xFF2196F3);
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Valores
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: color.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Valor Atual:',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey[400],
+                              ),
+                        ),
+                        Text(
+                          currentValue,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Faixa Ideal:',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey[400],
+                              ),
+                        ),
+                        Text(
+                          idealRange,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Fórmula
+              Text(
+                'Cálculo:',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  formula,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: color,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Explicação
+              Text(
+                'O que significa?',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                explanation,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[300],
+                      height: 1.5,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Exemplo
+              Text(
+                'Exemplo:',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  example,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[400],
+                        height: 1.5,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Entendi',
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showExplanationDialog(context),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(height: 6),
+              Text(
+                currentValue,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white70,
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                idealRange,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white60,
+                  fontSize: 9,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -322,14 +1148,38 @@ class _GoalCard extends StatelessWidget {
     final theme = Theme.of(context);
     final progressPercent = (goal.progress * 100).clamp(0, 100);
     final tokens = theme.extension<AppDecorations>()!;
+    final isCompleted = goal.progress >= 1.0;
+    
+    // Calcular dias restantes
+    String? deadlineInfo;
+    Color? deadlineColor;
+    if (goal.deadline != null) {
+      final daysRemaining = goal.deadline!.difference(DateTime.now()).inDays;
+      if (daysRemaining < 0) {
+        deadlineInfo = 'Prazo expirado';
+        deadlineColor = AppColors.alert;
+      } else if (daysRemaining == 0) {
+        deadlineInfo = 'Último dia';
+        deadlineColor = AppColors.alert;
+      } else if (daysRemaining <= 7) {
+        deadlineInfo = '$daysRemaining dias restantes';
+        deadlineColor = const Color(0xFFFF9800);
+      } else {
+        deadlineInfo = DateFormat('dd/MM/yyyy').format(goal.deadline!);
+        deadlineColor = Colors.grey[400];
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: const Color(0xFF1E1E1E),
         borderRadius: tokens.cardRadius,
-        border: Border.all(color: theme.dividerColor),
         boxShadow: tokens.mediumShadow,
+        border: isCompleted
+            ? Border.all(color: AppColors.support.withOpacity(0.3), width: 1.5)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,63 +1188,166 @@ class _GoalCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  goal.title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (goal.description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        goal.description,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[400],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               PopupMenuButton<String>(
-                color: AppColors.surface,
+                color: const Color(0xFF2A2A2A),
+                icon: Icon(Icons.more_vert, color: Colors.grey[400]),
                 onSelected: (value) {
                   if (value == 'edit') onEdit();
                   if (value == 'delete') onDelete();
                 },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Editar')),
-                  PopupMenuItem(value: 'delete', child: Text('Remover')),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, size: 18, color: Colors.grey[300]),
+                        const SizedBox(width: 8),
+                        Text('Editar', style: TextStyle(color: Colors.grey[300])),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, size: 18, color: AppColors.alert),
+                        const SizedBox(width: 8),
+                        const Text('Remover', style: TextStyle(color: AppColors.alert)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
-          if (goal.description.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              goal.description,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            '${currency.format(goal.currentAmount)} de ${currency.format(goal.targetAmount)}',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                currency.format(goal.currentAmount),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                'de ${currency.format(goal.targetAmount)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[400],
+                ),
+              ),
+            ],
           ),
-          if (goal.deadline != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                'Prazo: ${DateFormat('dd/MM/yyyy').format(goal.deadline!)}',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: goal.progress,
+              minHeight: 8,
+              backgroundColor: const Color(0xFF2A2A2A),
+              valueColor: AlwaysStoppedAnimation(
+                isCompleted ? AppColors.support : AppColors.primary,
               ),
             ),
+          ),
           const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: goal.progress,
-            minHeight: 8,
-            backgroundColor: theme.colorScheme.secondaryContainer,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    isCompleted ? Icons.check_circle : Icons.trending_up,
+                    color: isCompleted ? AppColors.support : AppColors.primary,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${progressPercent.toStringAsFixed(1)}% concluído',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: isCompleted ? AppColors.support : Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              if (deadlineInfo != null)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: deadlineColor,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      deadlineInfo,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: deadlineColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${progressPercent.toStringAsFixed(1)}% concluído',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: AppColors.textSecondary),
-          ),
+          if (isCompleted) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.support.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.support.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.celebration,
+                    color: AppColors.support,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Meta alcançada! Parabéns pelo seu compromisso!',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.support,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -411,21 +1364,25 @@ class _EmptyState extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: tokens.tileRadius,
-        border: Border.all(color: theme.dividerColor),
+        color: const Color(0xFF1E1E1E),
+        borderRadius: tokens.cardRadius,
       ),
-      child: Row(
+      child: Column(
         children: [
-          const Icon(Icons.info_outline, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              message,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: AppColors.textSecondary),
+          Icon(
+            Icons.flag_outlined,
+            color: Colors.grey[600],
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[400],
+              height: 1.5,
             ),
           ),
         ],
