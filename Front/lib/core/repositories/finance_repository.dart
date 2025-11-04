@@ -334,4 +334,53 @@ class FinanceRepository {
     
     return response.data ?? <String, dynamic>{};
   }
+
+  // ============ USER PROFILE ENDPOINTS ============
+
+  Future<Map<String, dynamic>> fetchUserProfile() async {
+    final response = await _client.client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.user}me/',
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> updateUserProfile({
+    required String name,
+    required String email,
+  }) async {
+    final response = await _client.client.patch<Map<String, dynamic>>(
+      '${ApiEndpoints.user}update_profile/',
+      data: {
+        'name': name,
+        'email': email,
+      },
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.user}change_password/',
+      data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> deleteAccount({
+    required String password,
+  }) async {
+    final response = await _client.client.delete<Map<String, dynamic>>(
+      '${ApiEndpoints.user}delete_account/',
+      data: {
+        'password': password,
+      },
+    );
+    return response.data ?? {};
+  }
 }

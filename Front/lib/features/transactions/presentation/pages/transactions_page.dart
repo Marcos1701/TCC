@@ -8,6 +8,7 @@ import '../../../../core/constants/category_groups.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../presentation/widgets/register_transaction_sheet.dart';
 import '../../presentation/widgets/transaction_details_sheet.dart';
+import 'debt_payment_page.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -120,6 +121,16 @@ class _TransactionsPageState extends State<TransactionsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.payment, color: Colors.white),
+            tooltip: 'Pagar Dívida',
+            onPressed: () async {
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DebtPaymentPage()),
+              );
+              if (result == true) _refresh();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _refresh,

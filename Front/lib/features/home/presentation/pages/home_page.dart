@@ -18,7 +18,9 @@ import '../../../missions/presentation/pages/missions_page.dart';
 import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
+import '../../../transactions/presentation/pages/debt_payment_page.dart';
 import '../../../transactions/presentation/widgets/register_transaction_sheet.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 
@@ -122,6 +124,11 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            tooltip: 'Configurações',
+            onPressed: () => _openPage(const SettingsPage()),
+          ),
           IconButton(
             icon: const Icon(Icons.leaderboard, color: Colors.white),
             tooltip: 'Ranking',
@@ -442,6 +449,22 @@ class _HomeSummaryCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
+              Expanded(
+                child: _ActionButton(
+                  icon: Icons.payment,
+                  label: 'Pagar Dívida',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const DebtPaymentPage()),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
                 child: _ActionButton(
                   icon: Icons.flag_outlined,

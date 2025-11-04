@@ -839,3 +839,130 @@ class RegisterView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class UserProfileViewSet(
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    ViewSet para gerenciar perfil do usuário.
+    - GET /me/ - Obter dados do usuário autenticado
+    - PATCH /me/ - Atualizar nome/email
+    - POST /change_password/ - Alterar senha
+    - DELETE /me/ - Excluir conta
+    """
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Retorna dados do usuário autenticado."""
+        user = request.user
+        return Response({
+            'id': user.id,
+            'email': user.email,
+            'name': user.get_full_name() or user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'username': user.username,
+        })
+
+    @action(detail=False, methods=['patch'])
+    def update_profile(self, request):
+        """Atualiza nome e/ou email do usuário."""
+        user = request.user
+        name = request.data.get('name', '').strip()
+        email = request.data.get('email', '').strip().lower()
+
+        # Validar e atualizar nome
+        if name:
+            parts = name.split(' ', 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ''
+
+        # Validar e atualizar email
+        if email and email != user.email:
+            if User.objects.filter(email__iexact=email).exclude(id=user.id).exists():
+                return Response(
+                    {'detail': 'Este email já está em uso.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user.email = email
+            user.username = email.split('@')[0]
+
+        user.save()
+
+        return Response({
+            'id': user.id,
+            'email': user.email,
+            'name': user.get_full_name() or user.username,
+            'message': 'Perfil atualizado com sucesso.',
+        })
+
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        """Altera senha do usuário após validar senha atual."""
+        user = request.user
+        current_password = request.data.get('current_password', '')
+        new_password = request.data.get('new_password', '')
+
+        if not current_password or not new_password:
+            return Response(
+                {'detail': 'Senha atual e nova senha são obrigatórias.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validar senha atual
+        if not user.check_password(current_password):
+            return Response(
+                {'detail': 'Senha atual incorreta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validar nova senha
+        if len(new_password) < 6:
+            return Response(
+                {'detail': 'A nova senha deve ter pelo menos 6 caracteres.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Atualizar senha
+        user.set_password(new_password)
+        user.save()
+
+        return Response({
+            'message': 'Senha alterada com sucesso.',
+        })
+
+    @action(detail=False, methods=['delete'])
+    def delete_account(self, request):
+        """Exclui conta do usuário após validar senha."""
+        user = request.user
+        password = request.data.get('password', '')
+
+        if not password:
+            return Response(
+                {'detail': 'Senha é obrigatória para excluir a conta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validar senha
+        if not user.check_password(password):
+            return Response(
+                {'detail': 'Senha incorreta.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Excluir usuário (cascade irá excluir perfil e transações)
+        user_id = user.id
+        user.delete()
+
+        return Response({
+            'message': f'Conta {user_id} excluída permanentemente.',
+        }, status=status.HTTP_200_OK)

@@ -11,6 +11,7 @@ from .views import (
     RegisterView,
     TransactionLinkViewSet,
     TransactionViewSet,
+    UserProfileViewSet,
     XPHistoryView,
 )
 
@@ -22,6 +23,7 @@ router.register(r"goals", GoalViewSet, basename="goal")
 router.register(r"missions", MissionViewSet, basename="mission")
 router.register(r"mission-progress", MissionProgressViewSet, basename="mission-progress")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
+router.register(r"user", UserProfileViewSet, basename="user")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
