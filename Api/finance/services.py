@@ -360,13 +360,45 @@ def _xp_threshold(level: int) -> int:
 
 
 def apply_mission_reward(progress: MissionProgress) -> None:
-    profile: UserProfile = progress.user.userprofile
-    profile.experience_points += progress.mission.reward_points
+    """
+    Aplica recompensa de XP ao completar uma missão.
+    Usa transaction.atomic e select_for_update para evitar race conditions.
+    Cria registro de auditoria para rastreamento.
+    
+    Args:
+        progress: MissionProgress que foi completada
+    """
+    from django.db import transaction
+    from .models import XPTransaction
+    
+    with transaction.atomic():
+        # Lock no perfil para evitar condições de corrida
+        profile = UserProfile.objects.select_for_update().get(user=progress.user)
+        
+        # Salvar estado anterior para auditoria
+        level_before = profile.level
+        xp_before = profile.experience_points
+        
+        # Adicionar XP da recompensa
+        profile.experience_points += progress.mission.reward_points
 
-    while profile.experience_points >= _xp_threshold(profile.level):
-        profile.experience_points -= _xp_threshold(profile.level)
-        profile.level += 1
-    profile.save(update_fields=["experience_points", "level"])
+        # Processar level ups
+        while profile.experience_points >= _xp_threshold(profile.level):
+            profile.experience_points -= _xp_threshold(profile.level)
+            profile.level += 1
+        
+        profile.save(update_fields=["experience_points", "level"])
+        
+        # Criar registro de auditoria
+        XPTransaction.objects.create(
+            user=progress.user,
+            mission_progress=progress,
+            points_awarded=progress.mission.reward_points,
+            level_before=level_before,
+            level_after=profile.level,
+            xp_before=xp_before,
+            xp_after=profile.experience_points,
+        )
 
 
 def profile_snapshot(user) -> Dict[str, int]:
@@ -608,6 +640,27 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
                 # Usuário está acima do máximo, missão não faz sentido
                 continue
         
+        # Validação adicional: não atribuir missão que seria completada instantaneamente
+        # Apenas para missões que não são de ONBOARDING
+        if mission.mission_type != Mission.MissionType.ONBOARDING:
+            would_complete_instantly = False
+            
+            # Verificar se TPS já atende o target
+            if mission.target_tps is not None and tps >= mission.target_tps * 0.95:
+                would_complete_instantly = True
+            
+            # Verificar se RDR já atende o target
+            if mission.target_rdr is not None and rdr <= mission.target_rdr * 1.05:
+                would_complete_instantly = True
+            
+            # Verificar se ILI já atende o target
+            if mission.min_ili is not None and ili >= float(mission.min_ili) * 0.95:
+                would_complete_instantly = True
+            
+            if would_complete_instantly:
+                # Missão seria completada muito rapidamente, buscar outra
+                continue
+        
         suitable_missions.append(mission)
         
         # Limitar para preencher até 3 missões ativas
@@ -652,19 +705,26 @@ def update_mission_progress(user) -> List[MissionProgress]:
     """
     Atualiza o progresso das missões ativas do usuário baseado em seus dados atuais.
     Trata corretamente casos onde valores iniciais são None.
+    Usa select_for_update para evitar race conditions ao completar missões.
     
     Returns:
         Lista de missões que tiveram progresso atualizado.
     """
+    from django.db import transaction
     from django.utils import timezone
     
-    active_missions = MissionProgress.objects.filter(
-        user=user,
-        status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
-    )
-    
-    if not active_missions:
-        return []
+    # Usar select_for_update para evitar condições de corrida
+    with transaction.atomic():
+        active_missions = MissionProgress.objects.select_for_update().filter(
+            user=user,
+            status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+        )
+        
+        if not active_missions:
+            return []
+        
+        # Converter para lista para trabalhar fora do lock
+        missions_to_update = list(active_missions)
     
     summary = calculate_summary(user)
     current_tps = float(summary.get("tps", Decimal("0")))
@@ -674,7 +734,7 @@ def update_mission_progress(user) -> List[MissionProgress]:
     
     updated = []
     
-    for progress in active_missions:
+    for progress in missions_to_update:
         mission = progress.mission
         old_progress = float(progress.progress)
         new_progress = 0.0

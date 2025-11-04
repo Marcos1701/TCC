@@ -10,6 +10,7 @@ from .views import (
     ProfileView,
     RegisterView,
     TransactionViewSet,
+    XPHistoryView,
 )
 
 router = DefaultRouter()
@@ -23,5 +24,6 @@ router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("profile/", ProfileView.as_view(), name="profile"),
+    path("profile/xp-history/", XPHistoryView.as_view(), name="xp-history"),
     path("", include(router.urls)),
 ]

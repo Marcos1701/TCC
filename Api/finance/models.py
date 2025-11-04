@@ -259,3 +259,45 @@ class MissionProgress(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} - {self.mission}"
+
+
+class XPTransaction(models.Model):
+    """
+    Modelo de auditoria para rastrear concessões de XP.
+    Facilita debugging e análise de progressão de usuários.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="xp_transactions",
+    )
+    mission_progress = models.ForeignKey(
+        MissionProgress,
+        on_delete=models.CASCADE,
+        related_name="xp_transactions",
+    )
+    points_awarded = models.PositiveIntegerField(
+        help_text="Quantidade de XP concedida",
+    )
+    level_before = models.PositiveIntegerField(
+        help_text="Nível do usuário antes da recompensa",
+    )
+    level_after = models.PositiveIntegerField(
+        help_text="Nível do usuário após a recompensa",
+    )
+    xp_before = models.PositiveIntegerField(
+        help_text="XP do usuário antes da recompensa",
+    )
+    xp_after = models.PositiveIntegerField(
+        help_text="XP do usuário após a recompensa",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user} - {self.points_awarded} XP - {self.mission_progress.mission.title}"

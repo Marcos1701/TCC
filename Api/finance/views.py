@@ -512,6 +512,42 @@ class ProfileView(APIView):
         return Response(data)
 
 
+class XPHistoryView(APIView):
+    """
+    Endpoint para visualizar histórico de XP do usuário.
+    Útil para debugging e análise de progressão.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .models import XPTransaction
+        
+        # Buscar últimas 50 transações de XP
+        transactions = XPTransaction.objects.filter(
+            user=request.user
+        ).select_related('mission_progress__mission')[:50]
+        
+        data = []
+        for tx in transactions:
+            data.append({
+                'id': tx.id,
+                'mission_title': tx.mission_progress.mission.title,
+                'mission_type': tx.mission_progress.mission.mission_type,
+                'points_awarded': tx.points_awarded,
+                'level_before': tx.level_before,
+                'level_after': tx.level_after,
+                'xp_before': tx.xp_before,
+                'xp_after': tx.xp_after,
+                'created_at': tx.created_at.isoformat(),
+                'leveled_up': tx.level_after > tx.level_before,
+            })
+        
+        return Response({
+            'count': len(data),
+            'transactions': data,
+        })
+
+
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
