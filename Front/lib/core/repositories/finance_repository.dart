@@ -4,6 +4,7 @@ import '../models/mission.dart';
 import '../models/mission_progress.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
+import '../models/transaction_link.dart';
 import '../network/api_client.dart';
 import '../network/endpoints.dart';
 
@@ -234,6 +235,103 @@ class FinanceRepository {
   Future<Map<String, dynamic>> fetchMissionProgressDetails(int id) async {
     final response = await _client.client.get<Map<String, dynamic>>(
         '${ApiEndpoints.missionProgress}$id/details/');
+    return response.data ?? <String, dynamic>{};
+  }
+
+  // ============================================================================
+  // TRANSACTION LINK METHODS
+  // ============================================================================
+
+  /// Buscar receitas com saldo disponível
+  Future<List<TransactionModel>> fetchAvailableIncomes({double? minAmount}) async {
+    final queryParams = <String, dynamic>{};
+    if (minAmount != null) {
+      queryParams['min_amount'] = minAmount.toString();
+    }
+    
+    final response = await _client.client.get<List<dynamic>>(
+      '${ApiEndpoints.transactionLinks}available_sources/',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+    
+    final items = response.data ?? <dynamic>[];
+    return items
+        .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Buscar dívidas pendentes
+  Future<List<TransactionModel>> fetchPendingDebts({double? maxAmount}) async {
+    final queryParams = <String, dynamic>{};
+    if (maxAmount != null) {
+      queryParams['max_amount'] = maxAmount.toString();
+    }
+    
+    final response = await _client.client.get<List<dynamic>>(
+      '${ApiEndpoints.transactionLinks}available_targets/',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+    
+    final items = response.data ?? <dynamic>[];
+    return items
+        .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Criar vinculação
+  Future<TransactionLinkModel> createTransactionLink(
+      CreateTransactionLinkRequest request) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.transactionLinks}quick_link/',
+      data: request.toMap(),
+    );
+    
+    return TransactionLinkModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  /// Deletar vinculação
+  Future<void> deleteTransactionLink(int linkId) async {
+    await _client.client.delete('${ApiEndpoints.transactionLinks}$linkId/');
+  }
+
+  /// Listar vinculações
+  Future<List<TransactionLinkModel>> fetchTransactionLinks({
+    String? linkType,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final queryParams = <String, dynamic>{};
+    if (linkType != null) queryParams['link_type'] = linkType;
+    if (dateFrom != null) queryParams['date_from'] = dateFrom;
+    if (dateTo != null) queryParams['date_to'] = dateTo;
+    
+    final response = await _client.client.get<List<dynamic>>(
+      ApiEndpoints.transactionLinks,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+    
+    final items = response.data ?? <dynamic>[];
+    return items
+        .map((e) => TransactionLinkModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Buscar relatório de pagamentos
+  Future<Map<String, dynamic>> fetchPaymentReport({
+    String? startDate,
+    String? endDate,
+    int? categoryId,
+  }) async {
+    final queryParams = <String, dynamic>{};
+    if (startDate != null) queryParams['start_date'] = startDate;
+    if (endDate != null) queryParams['end_date'] = endDate;
+    if (categoryId != null) queryParams['category'] = categoryId.toString();
+    
+    final response = await _client.client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.transactionLinks}payment_report/',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+    
     return response.data ?? <String, dynamic>{};
   }
 }

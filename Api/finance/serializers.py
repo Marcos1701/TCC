@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -21,6 +21,13 @@ class TransactionSerializer(serializers.ModelSerializer):
     recurrence_description = serializers.SerializerMethodField()
     days_since_created = serializers.SerializerMethodField()
     formatted_amount = serializers.SerializerMethodField()
+    
+    # NOVOS CAMPOS para vinculação
+    linked_amount = serializers.SerializerMethodField()
+    available_amount = serializers.SerializerMethodField()
+    link_percentage = serializers.SerializerMethodField()
+    outgoing_links_count = serializers.SerializerMethodField()
+    incoming_links_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaction
@@ -39,6 +46,12 @@ class TransactionSerializer(serializers.ModelSerializer):
             "recurrence_description",
             "days_since_created",
             "formatted_amount",
+            # Novos campos
+            "linked_amount",
+            "available_amount",
+            "link_percentage",
+            "outgoing_links_count",
+            "incoming_links_count",
             "created_at",
             "updated_at",
         )
@@ -46,6 +59,11 @@ class TransactionSerializer(serializers.ModelSerializer):
             "recurrence_description",
             "days_since_created",
             "formatted_amount",
+            "linked_amount",
+            "available_amount",
+            "link_percentage",
+            "outgoing_links_count",
+            "incoming_links_count",
             "created_at",
             "updated_at",
         )
@@ -82,6 +100,26 @@ class TransactionSerializer(serializers.ModelSerializer):
     def get_formatted_amount(self, obj):
         """Retorna valor formatado em BRL."""
         return f"R$ {obj.amount:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    def get_linked_amount(self, obj):
+        """Retorna valor total vinculado."""
+        return float(obj.linked_amount)
+    
+    def get_available_amount(self, obj):
+        """Retorna valor disponível (não vinculado)."""
+        return float(obj.available_amount)
+    
+    def get_link_percentage(self, obj):
+        """Retorna percentual vinculado."""
+        return float(obj.link_percentage)
+    
+    def get_outgoing_links_count(self, obj):
+        """Retorna número de links de saída."""
+        return obj.outgoing_links.count()
+    
+    def get_incoming_links_count(self, obj):
+        """Retorna número de links de entrada."""
+        return obj.incoming_links.count()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -322,3 +360,127 @@ class DashboardSerializer(serializers.Serializer):
     active_missions = MissionProgressSerializer(many=True)
     recommended_missions = MissionSerializer(many=True)
     profile = UserProfileSerializer()
+
+
+class TransactionLinkSerializer(serializers.ModelSerializer):
+    """Serializer para TransactionLink."""
+    
+    # Campos read-only nested
+    source_transaction = TransactionSerializer(read_only=True)
+    target_transaction = TransactionSerializer(read_only=True)
+    
+    # Campos write-only para criação
+    source_id = serializers.IntegerField(write_only=True)
+    target_id = serializers.IntegerField(write_only=True)
+    
+    # Campos calculados
+    source_description = serializers.SerializerMethodField()
+    target_description = serializers.SerializerMethodField()
+    formatted_amount = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = TransactionLink
+        fields = (
+            'id',
+            'source_transaction',
+            'target_transaction',
+            'source_id',
+            'target_id',
+            'linked_amount',
+            'link_type',
+            'description',
+            'is_recurring',
+            'created_at',
+            'updated_at',
+            'source_description',
+            'target_description',
+            'formatted_amount',
+        )
+        read_only_fields = (
+            'created_at',
+            'updated_at',
+            'source_description',
+            'target_description',
+            'formatted_amount',
+        )
+    
+    def get_source_description(self, obj):
+        return obj.source_transaction.description if obj.source_transaction else None
+    
+    def get_target_description(self, obj):
+        return obj.target_transaction.description if obj.target_transaction else None
+    
+    def get_formatted_amount(self, obj):
+        return f"R$ {obj.linked_amount:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    def validate(self, attrs):
+        """Validações customizadas."""
+        request = self.context.get('request')
+        if not request:
+            raise serializers.ValidationError("Request context is required.")
+        
+        user = request.user
+        source_id = attrs.get('source_id')
+        target_id = attrs.get('target_id')
+        linked_amount = attrs.get('linked_amount')
+        
+        # Validar que source existe e pertence ao usuário
+        try:
+            source = Transaction.objects.get(id=source_id, user=user)
+        except Transaction.DoesNotExist:
+            raise serializers.ValidationError({"source_id": "Transação de origem não encontrada."})
+        
+        # Validar que target existe e pertence ao usuário
+        try:
+            target = Transaction.objects.get(id=target_id, user=user)
+        except Transaction.DoesNotExist:
+            raise serializers.ValidationError({"target_id": "Transação de destino não encontrada."})
+        
+        # Validar que linked_amount não excede disponível na source
+        if linked_amount > source.available_amount:
+            raise serializers.ValidationError({
+                "linked_amount": f"Valor excede o disponível na receita (R$ {source.available_amount})"
+            })
+        
+        # Validar que linked_amount não excede devido na target (se for dívida)
+        if target.category and target.category.type == 'DEBT':
+            if linked_amount > target.available_amount:
+                raise serializers.ValidationError({
+                    "linked_amount": f"Valor excede o devido na dívida (R$ {target.available_amount})"
+                })
+        
+        # Adicionar transações ao attrs para uso no create()
+        attrs['source_transaction'] = source
+        attrs['target_transaction'] = target
+        
+        return attrs
+    
+    def create(self, validated_data):
+        """Criar vinculação."""
+        from .services import invalidate_indicators_cache
+        
+        # Remover campos write-only
+        validated_data.pop('source_id', None)
+        validated_data.pop('target_id', None)
+        
+        # Adicionar usuário
+        request = self.context.get('request')
+        validated_data['user'] = request.user
+        
+        # Criar link
+        link = TransactionLink.objects.create(**validated_data)
+        
+        # Invalidar cache de indicadores
+        invalidate_indicators_cache(request.user)
+        
+        return link
+
+
+class TransactionLinkSummarySerializer(serializers.Serializer):
+    """Serializer para resumo de vinculações por transação."""
+    transaction_id = serializers.IntegerField()
+    transaction_description = serializers.CharField()
+    transaction_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    linked_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    available_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    link_percentage = serializers.DecimalField(max_digits=5, decimal_places=2)

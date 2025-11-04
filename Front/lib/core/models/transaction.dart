@@ -12,6 +12,11 @@ class TransactionModel {
     this.recurrenceValue,
     this.recurrenceUnit,
     this.recurrenceEndDate,
+    this.linkedAmount,
+    this.availableAmount,
+    this.linkPercentage,
+    this.outgoingLinksCount,
+    this.incomingLinksCount,
   });
 
   final int id;
@@ -24,6 +29,13 @@ class TransactionModel {
   final int? recurrenceValue;
   final String? recurrenceUnit;
   final DateTime? recurrenceEndDate;
+  
+  // Campos de vinculação
+  final double? linkedAmount;
+  final double? availableAmount;
+  final double? linkPercentage;
+  final int? outgoingLinksCount;
+  final int? incomingLinksCount;
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
@@ -36,15 +48,31 @@ class TransactionModel {
           ? CategoryModel.fromMap(map['category'] as Map<String, dynamic>)
           : null,
       isRecurring: map['is_recurring'] as bool? ?? false,
-    recurrenceValue: map['recurrence_value'] != null
-      ? int.tryParse(map['recurrence_value'].toString())
-      : null,
+      recurrenceValue: map['recurrence_value'] != null
+          ? int.tryParse(map['recurrence_value'].toString())
+          : null,
       recurrenceUnit: map['recurrence_unit'] as String?,
       recurrenceEndDate: map['recurrence_end_date'] != null
           ? DateTime.tryParse(map['recurrence_end_date'] as String)
           : null,
+      linkedAmount: map['linked_amount'] != null
+          ? double.tryParse(map['linked_amount'].toString())
+          : null,
+      availableAmount: map['available_amount'] != null
+          ? double.tryParse(map['available_amount'].toString())
+          : null,
+      linkPercentage: map['link_percentage'] != null
+          ? double.tryParse(map['link_percentage'].toString())
+          : null,
+      outgoingLinksCount: map['outgoing_links_count'] as int?,
+      incomingLinksCount: map['incoming_links_count'] as int?,
     );
   }
+  
+  // Helpers para vinculações
+  bool get hasLinks => (outgoingLinksCount ?? 0) > 0 || (incomingLinksCount ?? 0) > 0;
+  bool get hasAvailableAmount => availableAmount != null && availableAmount! > 0;
+  bool get isFullyLinked => linkPercentage != null && linkPercentage! >= 100.0;
 
   String? get recurrenceLabel {
     if (!isRecurring || recurrenceValue == null || recurrenceUnit == null) {

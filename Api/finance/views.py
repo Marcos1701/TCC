@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile
 from .serializers import (
     CategorySerializer,
     DashboardSerializer,
@@ -14,6 +14,7 @@ from .serializers import (
     MissionProgressSerializer,
     MissionSerializer,
     TransactionSerializer,
+    TransactionLinkSerializer,
     UserProfileSerializer,
 )
 from .services import (
@@ -200,6 +201,249 @@ class TransactionViewSet(viewsets.ModelViewSet):
             'category_stats': category_stats,
             'type_stats': type_stats,
         }
+
+
+class TransactionLinkViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gerenciar vinculações entre transações.
+    
+    Endpoints:
+    - GET /transaction-links/ - Listar vinculações
+    - POST /transaction-links/ - Criar vinculação
+    - GET /transaction-links/{id}/ - Detalhe de vinculação
+    - DELETE /transaction-links/{id}/ - Remover vinculação
+    - GET /transaction-links/available_sources/ - Listar receitas disponíveis
+    - GET /transaction-links/available_targets/ - Listar dívidas pendentes
+    - POST /transaction-links/quick_link/ - Vincular rapidamente
+    - GET /transaction-links/payment_report/ - Relatório de pagamentos
+    """
+    serializer_class = TransactionLinkSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        qs = TransactionLink.objects.filter(
+            user=self.request.user
+        ).select_related(
+            'source_transaction',
+            'target_transaction',
+            'source_transaction__category',
+            'target_transaction__category'
+        )
+        
+        # Filtros
+        link_type = self.request.query_params.get('link_type')
+        if link_type:
+            qs = qs.filter(link_type=link_type)
+        
+        date_from = self.request.query_params.get('date_from')
+        if date_from:
+            qs = qs.filter(created_at__gte=date_from)
+        
+        date_to = self.request.query_params.get('date_to')
+        if date_to:
+            qs = qs.filter(created_at__lte=date_to)
+        
+        return qs.order_by('-created_at')
+    
+    def perform_destroy(self, instance):
+        """Ao deletar, invalidar cache de indicadores."""
+        user = instance.user
+        instance.delete()
+        invalidate_indicators_cache(user)
+    
+    @action(detail=False, methods=['get'])
+    def available_sources(self, request):
+        """
+        Lista receitas que ainda têm saldo disponível.
+        
+        Query params:
+        - min_amount: Filtrar receitas com saldo >= min_amount
+        - category: Filtrar por categoria
+        """
+        from decimal import Decimal
+        
+        min_amount = request.query_params.get('min_amount', 0)
+        
+        transactions = Transaction.objects.filter(
+            user=request.user,
+            type=Transaction.TransactionType.INCOME
+        ).select_related('category')
+        
+        # Filtrar por categoria se fornecido
+        category_id = request.query_params.get('category')
+        if category_id:
+            transactions = transactions.filter(category_id=category_id)
+        
+        # Filtrar apenas com saldo disponível
+        available = [tx for tx in transactions if tx.available_amount > Decimal(min_amount)]
+        
+        serializer = TransactionSerializer(available, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def available_targets(self, request):
+        """
+        Lista dívidas que ainda têm saldo devedor.
+        
+        Query params:
+        - max_amount: Filtrar dívidas com saldo <= max_amount
+        - category: Filtrar por categoria
+        """
+        from decimal import Decimal
+        
+        transactions = Transaction.objects.filter(
+            user=request.user,
+            category__type=Category.CategoryType.DEBT
+        ).select_related('category')
+        
+        # Filtrar por categoria se fornecido
+        category_id = request.query_params.get('category')
+        if category_id:
+            transactions = transactions.filter(category_id=category_id)
+        
+        # Filtrar apenas com saldo devedor
+        max_amount = request.query_params.get('max_amount')
+        available = [
+            tx for tx in transactions 
+            if tx.available_amount > 0 and (not max_amount or tx.available_amount <= Decimal(max_amount))
+        ]
+        
+        serializer = TransactionSerializer(available, many=True, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['post'])
+    def quick_link(self, request):
+        """
+        Criar vinculação rapidamente com validações.
+        
+        Payload:
+        {
+            "source_id": 123,
+            "target_id": 456,
+            "amount": "150.00",
+            "link_type": "DEBT_PAYMENT",  # opcional
+            "description": "...",  # opcional
+            "is_recurring": false  # opcional
+        }
+        """
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        link = serializer.save()
+        
+        return Response(
+            TransactionLinkSerializer(link, context={'request': request}).data,
+            status=status.HTTP_201_CREATED
+        )
+    
+    @action(detail=False, methods=['get'])
+    def payment_report(self, request):
+        """
+        Gera relatório de pagamentos de dívidas por período.
+        
+        Query params:
+        - start_date: Data inicial (YYYY-MM-DD)
+        - end_date: Data final (YYYY-MM-DD)
+        - category: Filtrar por categoria de dívida
+        
+        Response:
+        {
+            "summary": {
+                "total_paid": "5000.00",
+                "total_remaining": "15000.00",
+                "payment_count": 10
+            },
+            "by_debt": [
+                {
+                    "debt_id": 123,
+                    "debt_description": "Cartão de Crédito",
+                    "total_amount": "2000.00",
+                    "paid_amount": "800.00",
+                    "remaining_amount": "1200.00",
+                    "payment_percentage": 40.0,
+                    "payments": [...]
+                }
+            ]
+        }
+        """
+        from django.db.models import Sum
+        from collections import defaultdict
+        from decimal import Decimal
+        
+        # Filtros de data
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        links = TransactionLink.objects.filter(
+            user=request.user,
+            link_type=TransactionLink.LinkType.DEBT_PAYMENT
+        ).select_related('target_transaction', 'target_transaction__category')
+        
+        if start_date:
+            links = links.filter(created_at__gte=start_date)
+        if end_date:
+            links = links.filter(created_at__lte=end_date)
+        
+        # Filtrar por categoria se fornecido
+        category_id = request.query_params.get('category')
+        if category_id:
+            links = links.filter(target_transaction__category_id=category_id)
+        
+        # Agrupar por dívida
+        by_debt = defaultdict(lambda: {
+            'debt_id': None,
+            'debt_description': '',
+            'total_amount': Decimal('0'),
+            'paid_amount': Decimal('0'),
+            'remaining_amount': Decimal('0'),
+            'payment_percentage': Decimal('0'),
+            'payments': []
+        })
+        
+        total_paid = Decimal('0')
+        
+        for link in links:
+            debt = link.target_transaction
+            debt_id = debt.id
+            
+            if by_debt[debt_id]['debt_id'] is None:
+                by_debt[debt_id]['debt_id'] = debt_id
+                by_debt[debt_id]['debt_description'] = debt.description
+                by_debt[debt_id]['total_amount'] = debt.amount
+            
+            by_debt[debt_id]['paid_amount'] += link.linked_amount
+            total_paid += link.linked_amount
+            
+            by_debt[debt_id]['payments'].append({
+                'id': link.id,
+                'amount': float(link.linked_amount),
+                'date': link.created_at.isoformat(),
+                'source': link.source_transaction.description
+            })
+        
+        # Calcular remaining e percentage
+        total_remaining = Decimal('0')
+        for debt_data in by_debt.values():
+            debt_data['remaining_amount'] = debt_data['total_amount'] - debt_data['paid_amount']
+            total_remaining += debt_data['remaining_amount']
+            
+            if debt_data['total_amount'] > 0:
+                debt_data['payment_percentage'] = float(
+                    (debt_data['paid_amount'] / debt_data['total_amount']) * Decimal('100')
+                )
+            
+            # Converter Decimal para float para JSON
+            debt_data['total_amount'] = float(debt_data['total_amount'])
+            debt_data['paid_amount'] = float(debt_data['paid_amount'])
+            debt_data['remaining_amount'] = float(debt_data['remaining_amount'])
+        
+        return Response({
+            'summary': {
+                'total_paid': float(total_paid),
+                'total_remaining': float(total_remaining),
+                'payment_count': links.count()
+            },
+            'by_debt': list(by_debt.values())
+        })
 
 
 class GoalViewSet(viewsets.ModelViewSet):

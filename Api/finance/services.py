@@ -49,14 +49,17 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     """
     Calcula os indicadores financeiros principais do usuário.
     Utiliza cache quando disponível e não expirado.
+    ATUALIZADO: Considera vinculações de transações para evitar dupla contagem.
     
     Indicadores calculados:
-    - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas - Pagamentos de Dívida) / Receitas) × 100
+    - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas - Pagamentos via Links) / Receitas) × 100
       Mede quanto % da renda foi efetivamente poupado após pagar todas as despesas e dívidas.
+      IMPORTANTE: Usa pagamentos REAIS via vinculação, não duplica com DEBT_PAYMENT.
       
-    - RDR (Razão Dívida/Renda): (Pagamentos Mensais de Dívidas / Receitas) × 100
+    - RDR (Razão Dívida/Renda): (Pagamentos via Links / Receitas) × 100
       Mede quanto % da renda está comprometido com pagamento de dívidas.
       Valores saudáveis: ≤35%. Atenção: 35-42%. Crítico: ≥42%.
+      IMPORTANTE: Usa apenas valores VINCULADOS, não conta DEBT_PAYMENT separado.
       
     - ILI (Índice de Liquidez Imediata): Reservas Líquidas / Média Despesas Essenciais (3 meses)
       Mede quantos meses a reserva de emergência consegue cobrir despesas essenciais.
@@ -68,6 +71,8 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     Returns:
         Dicionário com indicadores e totais financeiros
     """
+    from .models import TransactionLink
+    
     # Verificar cache
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if not profile.should_recalculate_indicators():
@@ -81,21 +86,38 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             "total_debt": profile.cached_total_debt or Decimal("0.00"),
         }
     
-    # Calcular totais por tipo de transação
-    totals = defaultdict(Decimal)
-    for entry in (
-        Transaction.objects.filter(user=user)
-        .values("type")
-        .annotate(total=Sum("amount"))
-    ):
-        totals[entry["type"]] = _decimal(entry["total"])
-
-    # Totais gerais por tipo de transação
-    income = totals.get(Transaction.TransactionType.INCOME, Decimal("0"))
-    expense = totals.get(Transaction.TransactionType.EXPENSE, Decimal("0"))
-    debt_info = _debt_components(user)
-    debt_balance = debt_info["balance"]
-    debt_payments = debt_info["payments"]
+    # ============================================================================
+    # CÁLCULO ATUALIZADO: Considerar vinculações
+    # ============================================================================
+    
+    # Total de receitas (bruto)
+    total_income = _decimal(
+        Transaction.objects.filter(
+            user=user,
+            type=Transaction.TransactionType.INCOME
+        ).aggregate(total=Sum('amount'))['total']
+    )
+    
+    # Total de despesas normais (não-dívida, bruto)
+    # Excluir despesas em categorias de DEBT
+    total_expense = _decimal(
+        Transaction.objects.filter(
+            user=user,
+            type=Transaction.TransactionType.EXPENSE,
+        ).exclude(
+            category__type=Category.CategoryType.DEBT
+        ).aggregate(total=Sum('amount'))['total']
+    )
+    
+    # Total vinculado para pagamento de dívidas
+    # Soma de todos os links onde target é uma dívida
+    # NOVO: Usar vinculações em vez de DEBT_PAYMENT
+    debt_payments_via_links = _decimal(
+        TransactionLink.objects.filter(
+            user=user,
+            link_type=TransactionLink.LinkType.DEBT_PAYMENT
+        ).aggregate(total=Sum('linked_amount'))['total']
+    )
 
     # Calcular reserva de emergência usando o grupo SAVINGS
     # - INCOME em categoria SAVINGS = aporte na reserva (dinheiro guardado)
@@ -133,37 +155,37 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     essential_expense = essential_expense_total / Decimal("3") if essential_expense_total > 0 else Decimal("0")
 
     # ============================================================================
-    # CÁLCULO DOS INDICADORES - Abordagem Prática Moderna
+    # CÁLCULO DOS INDICADORES - NOVA ABORDAGEM COM VINCULAÇÕES
     # ============================================================================
     
     tps = Decimal("0")
     rdr = Decimal("0")
     ili = Decimal("0")
     
-    if income > 0:
-        # TPS (Taxa de Poupança Pessoal)
-        # Fórmula: ((Receitas - Despesas - Pagamentos de Dívida) / Receitas) × 100
-        # Representa quanto % da renda foi efetivamente poupado
+    if total_income > 0:
+        # TPS (Taxa de Poupança Pessoal) - CORRIGIDO
+        # Fórmula: ((Receitas - Despesas - Pagamentos Dívida Vinculados) / Receitas) × 100
+        # Agora usa pagamentos REAIS via vinculação, não duplica
         # 
-        # Exemplo: Ganhou R$ 5.000, gastou R$ 2.000, pagou R$ 1.500 de dívida
+        # Exemplo: Ganhou R$ 5.000, gastou R$ 2.000, pagou R$ 1.500 de dívida via link
         # TPS = (5.000 - 2.000 - 1.500) / 5.000 × 100 = 30%
-        savings = income - expense - debt_payments
-        tps = (savings / income) * Decimal("100")
+        savings = total_income - total_expense - debt_payments_via_links
+        tps = (savings / total_income) * Decimal("100")
         
-        # RDR (Razão Dívida/Renda)
-        # Fórmula: (Pagamentos Mensais de Dívidas / Receitas) × 100
-        # Representa quanto % da renda está comprometido com dívidas
+        # RDR (Razão Dívida/Renda) - CORRIGIDO
+        # Fórmula: (Pagamentos Dívida Vinculados / Receitas) × 100
+        # Agora usa valor REAL pago via vinculação
         # 
-        # Exemplo: Ganhou R$ 5.000, paga R$ 1.500 de dívidas por mês
+        # Exemplo: Ganhou R$ 5.000, pagou R$ 1.500 de dívidas via link
         # RDR = 1.500 / 5.000 × 100 = 30%
         # 
         # Referências (CFPB, bancos brasileiros):
         # - ≤35%: Saudável
         # - 36-42%: Atenção
         # - ≥43%: Crítico (risco de inadimplência)
-        rdr = (debt_payments / income) * Decimal("100")
+        rdr = (debt_payments_via_links / total_income) * Decimal("100")
     
-    # ILI (Índice de Liquidez Imediata)
+    # ILI (Índice de Liquidez Imediata) - MANTÉM LÓGICA ATUAL
     # Fórmula: Reserva de Emergência / Despesas Essenciais Mensais
     # Representa quantos meses a reserva consegue cobrir despesas essenciais
     # 
@@ -175,14 +197,16 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     if essential_expense > 0:
         ili = reserve_balance / essential_expense
 
-    debt_total = debt_balance if debt_balance > 0 else Decimal("0")
+    # Total de dívidas (saldo devedor atual)
+    debt_info = _debt_components(user)
+    debt_total = debt_info["balance"] if debt_info["balance"] > 0 else Decimal("0")
 
     # Atualizar cache
-    profile.cached_tps = tps.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00")
-    profile.cached_rdr = rdr.quantize(Decimal("0.01")) if income > 0 else Decimal("0.00")
+    profile.cached_tps = tps.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00")
+    profile.cached_rdr = rdr.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00")
     profile.cached_ili = ili.quantize(Decimal("0.01")) if essential_expense > 0 else Decimal("0.00")
-    profile.cached_total_income = income.quantize(Decimal("0.01"))
-    profile.cached_total_expense = expense.quantize(Decimal("0.01"))
+    profile.cached_total_income = total_income.quantize(Decimal("0.01"))
+    profile.cached_total_expense = total_expense.quantize(Decimal("0.01"))
     profile.cached_total_debt = debt_total.quantize(Decimal("0.01"))
     profile.indicators_updated_at = timezone.now()
     profile.save(update_fields=[
@@ -208,7 +232,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
 def invalidate_indicators_cache(user) -> None:
     """
     Invalida o cache de indicadores, forçando recálculo na próxima consulta.
-    Deve ser chamado após criar/editar/deletar transações.
+    Deve ser chamado após criar/editar/deletar transações e transaction links.
     
     Args:
         user: Usuário cujo cache deve ser invalidado
@@ -219,6 +243,113 @@ def invalidate_indicators_cache(user) -> None:
         profile.save(update_fields=['indicators_updated_at'])
     except UserProfile.DoesNotExist:
         pass
+
+
+def auto_link_recurring_transactions(user) -> int:
+    """
+    Vincula automaticamente transações recorrentes baseado em configuração.
+    
+    Lógica:
+    1. Buscar todos os TransactionLinks com is_recurring=True do usuário
+    2. Para cada link recorrente:
+       - Verificar se existem novas instâncias das transações recorrentes
+       - Criar links automáticos entre as novas instâncias
+    
+    Args:
+        user: Usuário para processar vinculações automáticas
+    
+    Returns:
+        Número de links criados automaticamente
+    """
+    from .models import Transaction, TransactionLink
+    
+    links_created = 0
+    
+    # Buscar links recorrentes ativos
+    recurring_links = TransactionLink.objects.filter(
+        user=user,
+        is_recurring=True
+    ).select_related('source_transaction', 'target_transaction')
+    
+    for link in recurring_links:
+        source = link.source_transaction
+        target = link.target_transaction
+        
+        # Verificar se ambas são recorrentes
+        if not (source.is_recurring and target.is_recurring):
+            continue
+        
+        # Calcular delta de tempo baseado na recorrência
+        if source.recurrence_unit == Transaction.RecurrenceUnit.DAYS:
+            delta_days = source.recurrence_value
+        elif source.recurrence_unit == Transaction.RecurrenceUnit.WEEKS:
+            delta_days = source.recurrence_value * 7
+        elif source.recurrence_unit == Transaction.RecurrenceUnit.MONTHS:
+            delta_days = source.recurrence_value * 30  # Aproximado
+        else:
+            continue
+        
+        # Buscar transações similares criadas após a original
+        # (mesma categoria, descrição, valor, tipo, recorrentes)
+        next_sources = Transaction.objects.filter(
+            user=user,
+            type=source.type,
+            category=source.category,
+            description=source.description,
+            amount=source.amount,
+            date__gt=source.date,
+            is_recurring=True,
+        ).exclude(
+            # Excluir transações já vinculadas como source
+            id__in=TransactionLink.objects.filter(
+                user=user,
+                link_type=link.link_type
+            ).values_list('source_transaction_id', flat=True)
+        )
+        
+        next_targets = Transaction.objects.filter(
+            user=user,
+            category=target.category,
+            description=target.description,
+            amount=target.amount,
+            date__gt=target.date,
+            is_recurring=True,
+        ).exclude(
+            # Excluir transações já vinculadas como target
+            id__in=TransactionLink.objects.filter(
+                user=user,
+                link_type=link.link_type
+            ).values_list('target_transaction_id', flat=True)
+        )
+        
+        # Criar links entre pares correspondentes (uma de cada vez para segurança)
+        for next_source in next_sources[:1]:
+            for next_target in next_targets[:1]:
+                # Verificar se há saldo disponível
+                if next_source.available_amount >= link.linked_amount:
+                    if next_target.available_amount >= link.linked_amount:
+                        try:
+                            # Criar link automático
+                            TransactionLink.objects.create(
+                                user=user,
+                                source_transaction=next_source,
+                                target_transaction=next_target,
+                                linked_amount=link.linked_amount,
+                                link_type=link.link_type,
+                                description=f"Auto: {link.description}" if link.description else "Vinculação automática recorrente",
+                                is_recurring=True
+                            )
+                            links_created += 1
+                        except Exception as e:
+                            # Log erro mas continua processando outros links
+                            print(f"Erro ao criar link automático: {e}")
+                            continue
+    
+    # Invalidar cache se criou links
+    if links_created > 0:
+        invalidate_indicators_cache(user)
+    
+    return links_created
 
 
 def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:

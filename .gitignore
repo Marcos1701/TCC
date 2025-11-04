@@ -58,3 +58,5 @@ Api/.mypy_cache/
 .vscode/*
 # build do front
 Front/build/
+
+.venv/

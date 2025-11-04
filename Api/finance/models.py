@@ -167,6 +167,169 @@ class Transaction(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.description} ({self.amount})"
+    
+    @property
+    def linked_amount(self) -> Decimal:
+        """
+        Retorna o valor total vinculado desta transação.
+        - Para receitas (source): soma dos outgoing_links
+        - Para dívidas (target): soma dos incoming_links
+        """
+        from django.db.models import Sum
+        
+        # Soma links de saída (quando esta é a source)
+        outgoing = self.outgoing_links.aggregate(
+            total=Sum('linked_amount')
+        )['total'] or Decimal('0')
+        
+        # Soma links de entrada (quando esta é a target)
+        incoming = self.incoming_links.aggregate(
+            total=Sum('linked_amount')
+        )['total'] or Decimal('0')
+        
+        # Para receitas, usar outgoing; para dívidas, usar incoming
+        if self.type == self.TransactionType.INCOME:
+            return outgoing
+        elif self.category and self.category.type == Category.CategoryType.DEBT:
+            return incoming
+        
+        return Decimal('0')
+    
+    @property
+    def available_amount(self) -> Decimal:
+        """
+        Retorna o valor disponível desta transação (não vinculado).
+        - Para receitas: amount - linked_amount (quanto ainda pode ser usado)
+        - Para dívidas: amount - linked_amount (quanto ainda deve)
+        """
+        return self.amount - self.linked_amount
+    
+    @property
+    def link_percentage(self) -> Decimal:
+        """
+        Retorna o percentual vinculado (0-100).
+        Útil para exibir barras de progresso.
+        """
+        if self.amount == 0:
+            return Decimal('0')
+        return (self.linked_amount / self.amount) * Decimal('100')
+
+
+class TransactionLink(models.Model):
+    """
+    Representa uma vinculação entre transações que se anulam parcial ou totalmente.
+    Usado principalmente para pagamento de dívidas: vincular receita → dívida.
+    
+    Exemplo:
+    - Receita (Salário) R$ 5.000 → Dívida (Cartão) R$ 2.000
+    - Após vinculação:
+      - Salário tem R$ 3.000 disponíveis
+      - Cartão tem R$ 0 devendo
+    """
+    
+    class LinkType(models.TextChoices):
+        DEBT_PAYMENT = "DEBT_PAYMENT", "Pagamento de dívida"
+        INTERNAL_TRANSFER = "INTERNAL_TRANSFER", "Transferência interna"
+        SAVINGS_ALLOCATION = "SAVINGS_ALLOCATION", "Alocação para poupança"
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='transaction_links',
+        help_text="Usuário proprietário da vinculação"
+    )
+    
+    # Transação de origem (de onde vem o dinheiro)
+    source_transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.CASCADE,
+        related_name='outgoing_links',
+        help_text="Transação de origem (normalmente uma receita)"
+    )
+    
+    # Transação de destino (para onde vai o dinheiro)
+    target_transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.CASCADE,
+        related_name='incoming_links',
+        help_text="Transação de destino (normalmente uma dívida)"
+    )
+    
+    # Valor vinculado (pode ser parcial)
+    linked_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Valor que está sendo transferido/vinculado"
+    )
+    
+    link_type = models.CharField(
+        max_length=20,
+        choices=LinkType.choices,
+        default=LinkType.DEBT_PAYMENT
+    )
+    
+    # Metadados
+    description = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Descrição opcional da vinculação"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Vincular recorrências se aplicável
+    is_recurring = models.BooleanField(
+        default=False,
+        help_text="Se True, vincular automaticamente transações recorrentes futuras"
+    )
+    
+    class Meta:
+        ordering = ('-created_at',)
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['source_transaction']),
+            models.Index(fields=['target_transaction']),
+        ]
+        # Prevenir vinculações duplicadas
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(linked_amount__gt=0),
+                name='linked_amount_positive'
+            )
+        ]
+    
+    def __str__(self) -> str:
+        return f"{self.source_transaction.description} → {self.target_transaction.description} (R$ {self.linked_amount})"
+    
+    def clean(self):
+        """Validações personalizadas."""
+        from django.core.exceptions import ValidationError
+        
+        # Validar que source e target pertencem ao mesmo usuário
+        if self.source_transaction.user != self.target_transaction.user:
+            raise ValidationError("As transações devem pertencer ao mesmo usuário.")
+        
+        # Validar que user da vinculação é o mesmo das transações
+        if self.user != self.source_transaction.user:
+            raise ValidationError("Usuário da vinculação deve ser o mesmo das transações.")
+        
+        # Validar que linked_amount não excede o disponível na source
+        if self.linked_amount > self.source_transaction.available_amount:
+            raise ValidationError(
+                f"Valor vinculado (R$ {self.linked_amount}) excede o disponível na transação de origem (R$ {self.source_transaction.available_amount})"
+            )
+        
+        # Validar que linked_amount não excede o devido na target (se for dívida)
+        if self.target_transaction.category and self.target_transaction.category.type == Category.CategoryType.DEBT:
+            if self.linked_amount > self.target_transaction.available_amount:
+                raise ValidationError(
+                    f"Valor vinculado (R$ {self.linked_amount}) excede o devido na dívida (R$ {self.target_transaction.available_amount})"
+                )
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Goal(models.Model):

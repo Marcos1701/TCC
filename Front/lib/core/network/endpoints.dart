@@ -8,6 +8,7 @@ class ApiEndpoints {
   static const String dashboard = '/api/dashboard/';
   static const String categories = '/api/categories/';
   static const String transactions = '/api/transactions/';
+  static const String transactionLinks = '/api/transaction-links/';
   static const String missions = '/api/missions/';
   static const String missionProgress = '/api/mission-progress/';
   static const String goals = '/api/goals/';

@@ -9,6 +9,7 @@ from .views import (
     MissionViewSet,
     ProfileView,
     RegisterView,
+    TransactionLinkViewSet,
     TransactionViewSet,
     XPHistoryView,
 )
@@ -16,6 +17,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"transactions", TransactionViewSet, basename="transaction")
+router.register(r"transaction-links", TransactionLinkViewSet, basename="transaction-link")
 router.register(r"goals", GoalViewSet, basename="goal")
 router.register(r"missions", MissionViewSet, basename="mission")
 router.register(r"mission-progress", MissionProgressViewSet, basename="mission-progress")

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile, XPTransaction
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, XPTransaction
 
 
 @admin.register(UserProfile)
@@ -22,6 +22,24 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ("type", "date")
     search_fields = ("description", "user__username", "user__email")
     autocomplete_fields = ("category",)
+
+
+@admin.register(TransactionLink)
+class TransactionLinkAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'source_description', 'target_description', 'linked_amount', 'link_type', 'created_at')
+    list_filter = ('link_type', 'is_recurring', 'created_at')
+    search_fields = ('user__username', 'description', 'source_transaction__description', 'target_transaction__description')
+    readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
+    autocomplete_fields = ('user', 'source_transaction', 'target_transaction')
+    
+    def source_description(self, obj):
+        return obj.source_transaction.description
+    source_description.short_description = 'Origem'
+    
+    def target_description(self, obj):
+        return obj.target_transaction.description
+    target_description.short_description = 'Destino'
 
 
 @admin.register(Goal)
