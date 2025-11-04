@@ -362,6 +362,12 @@ class Goal(models.Model):
     description = models.TextField(blank=True)
     target_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    initial_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Valor inicial da meta (transações anteriores à criação)"
+    )
     deadline = models.DateField(null=True, blank=True)
     
     # Novos campos para metas avançadas

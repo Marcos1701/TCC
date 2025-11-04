@@ -193,6 +193,7 @@ class GoalSerializer(serializers.ModelSerializer):
             "description",
             "target_amount",
             "current_amount",
+            "initial_amount",
             "deadline",
             "goal_type",
             "target_category",

@@ -58,6 +58,7 @@ class GoalModel {
     required this.description,
     required this.targetAmount,
     required this.currentAmount,
+    this.initialAmount = 0.0,
     this.deadline,
     required this.goalType,
     this.targetCategory,
@@ -76,6 +77,7 @@ class GoalModel {
   final String description;
   final double targetAmount;
   final double currentAmount;
+  final double initialAmount;
   final DateTime? deadline;
   final GoalType goalType;
   final int? targetCategory;
@@ -104,6 +106,9 @@ class GoalModel {
       description: (map['description'] as String?) ?? '',
       targetAmount: double.parse(map['target_amount'].toString()),
       currentAmount: double.parse(map['current_amount'].toString()),
+      initialAmount: map['initial_amount'] != null
+          ? double.parse(map['initial_amount'].toString())
+          : 0.0,
       deadline: map['deadline'] != null
           ? DateTime.parse(map['deadline'] as String)
           : null,

@@ -188,6 +188,7 @@ class FinanceRepository {
     String description = '',
     required double targetAmount,
     double currentAmount = 0,
+    double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
     int? targetCategoryId,
@@ -201,6 +202,7 @@ class FinanceRepository {
       'description': description,
       'target_amount': targetAmount,
       'current_amount': currentAmount,
+      'initial_amount': initialAmount,
       if (deadline != null)
         'deadline': deadline.toIso8601String().split('T').first,
       'goal_type': goalType,

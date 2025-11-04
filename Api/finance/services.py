@@ -1081,6 +1081,9 @@ def update_goal_progress(goal) -> None:
         transactions.aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
     )
     
+    # Adicionar o valor inicial (se houver)
+    total_with_initial = total + goal.initial_amount
+    
     # Para metas de redução, calcular quanto foi reduzido
     # (quanto deixou de gastar em relação ao alvo)
     if goal.is_reduction_goal:
@@ -1092,7 +1095,7 @@ def update_goal_progress(goal) -> None:
             goal.current_amount = Decimal('0.00')
     else:
         # Para metas normais (juntar dinheiro, pagar dívidas, etc)
-        goal.current_amount = total
+        goal.current_amount = total_with_initial
     
     goal.save(update_fields=['current_amount', 'updated_at'])
 

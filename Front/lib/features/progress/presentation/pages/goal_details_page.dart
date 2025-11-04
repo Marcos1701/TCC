@@ -7,6 +7,23 @@ import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
+/// Classe para armazenar estatísticas por categoria
+class CategoryStats {
+  final int categoryId;
+  final String categoryName;
+  final String? categoryColor;
+  int count;
+  double totalAmount;
+
+  CategoryStats({
+    required this.categoryId,
+    required this.categoryName,
+    this.categoryColor,
+    required this.count,
+    required this.totalAmount,
+  });
+}
+
 /// Página de detalhes de uma meta
 class GoalDetailsPage extends StatefulWidget {
   final GoalModel goal;
@@ -25,7 +42,7 @@ class GoalDetailsPage extends StatefulWidget {
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   final _repository = FinanceRepository();
   List<TransactionModel>? _transactions;
-  Map<String, dynamic>? _insights;
+  Map<int, CategoryStats>? _categoryStats;
   bool _isLoading = true;
   String? _error;
 
@@ -42,14 +59,30 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     });
 
     try {
-      final results = await Future.wait([
-        _repository.fetchGoalTransactions(widget.goal.id),
-        _repository.fetchGoalInsights(widget.goal.id),
-      ]);
+      final transactions = await _repository.fetchGoalTransactions(widget.goal.id);
+
+      // Calcular estatísticas por categoria
+      final stats = <int, CategoryStats>{};
+      for (final transaction in transactions) {
+        if (transaction.category != null) {
+          final catId = transaction.category!.id;
+          if (!stats.containsKey(catId)) {
+            stats[catId] = CategoryStats(
+              categoryId: catId,
+              categoryName: transaction.category!.name,
+              categoryColor: transaction.category!.color,
+              count: 0,
+              totalAmount: 0,
+            );
+          }
+          stats[catId]!.count++;
+          stats[catId]!.totalAmount += transaction.amount;
+        }
+      }
 
       setState(() {
-        _transactions = results[0] as List<TransactionModel>;
-        _insights = results[1] as Map<String, dynamic>;
+        _transactions = transactions;
+        _categoryStats = stats;
         _isLoading = false;
       });
     } catch (e) {
@@ -93,9 +126,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     final tokens = theme.extension<AppDecorations>()!;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.black,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -151,9 +184,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                         _buildProgressCard(theme, tokens),
                         const SizedBox(height: 20),
                         _buildInfoCard(theme, tokens),
-                        if (_insights != null && _insights!.isNotEmpty) ...[
+                        if (_categoryStats != null && _categoryStats!.isNotEmpty) ...[
                           const SizedBox(height: 20),
-                          _buildInsightsCard(theme, tokens),
+                          _buildCategoryStatsCard(theme, tokens),
                         ],
                         if (_transactions != null && _transactions!.isNotEmpty) ...[
                           const SizedBox(height: 20),
@@ -299,6 +332,15 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           _buildInfoRow(Icons.category, 'Tipo', widget.goal.goalType.label, theme),
           if (widget.goal.categoryName != null)
             _buildInfoRow(Icons.label, 'Categoria', widget.goal.categoryName!, theme),
+          if (widget.goal.trackedCategories.isNotEmpty)
+            _buildInfoRow(
+              Icons.folder_special,
+              'Categorias monitoradas',
+              '${widget.goal.trackedCategories.length} selecionada${widget.goal.trackedCategories.length > 1 ? "s" : ""}',
+              theme,
+              subtitle: widget.goal.trackedCategories.map((c) => c.name).join(', '),
+              color: AppColors.primary,
+            ),
           _buildInfoRow(
             Icons.sync,
             'Atualização',
@@ -383,9 +425,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     );
   }
 
-  Widget _buildInsightsCard(ThemeData theme, AppDecorations tokens) {
-    final status = _insights!['status'] as String? ?? '';
-    final suggestions = _insights!['suggestions'] as List<dynamic>? ?? [];
+  Widget _buildCategoryStatsCard(ThemeData theme, AppDecorations tokens) {
+    final sortedStats = _categoryStats!.values.toList()
+      ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -399,10 +441,10 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb_outline, color: AppColors.primary, size: 20),
+              Icon(Icons.pie_chart, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(
-                'Insights',
+                'Transações por Categoria',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -410,36 +452,85 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               ),
             ],
           ),
-          if (status.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              status,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[300],
+          const SizedBox(height: 16),
+          ...sortedStats.map((stat) => _buildCategoryStatRow(stat, theme)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryStatRow(CategoryStats stat, ThemeData theme) {
+    Color categoryColor = Colors.grey;
+    if (stat.categoryColor != null && stat.categoryColor!.isNotEmpty) {
+      try {
+        final hexColor = stat.categoryColor!.replaceAll('#', '');
+        if (hexColor.length == 6) {
+          categoryColor = Color(int.parse('FF$hexColor', radix: 16));
+        }
+      } catch (e) {
+        // Mantém cor padrão se falhar
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: categoryColor,
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-          ],
-          if (suggestions.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ...suggestions.map((suggestion) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.arrow_right, color: AppColors.primary, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          suggestion.toString(),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                      ),
-                    ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  stat.categoryName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
-                )),
-          ],
+                ),
+              ),
+              Text(
+                widget.currency.format(stat.totalAmount),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const SizedBox(width: 24),
+              Icon(Icons.receipt, size: 14, color: Colors.grey[500]),
+              const SizedBox(width: 6),
+              Text(
+                '${stat.count} transaç${stat.count == 1 ? "ão" : "ões"}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(Icons.trending_up, size: 14, color: Colors.grey[500]),
+              const SizedBox(width: 6),
+              Text(
+                'Média: ${widget.currency.format(stat.totalAmount / stat.count)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
