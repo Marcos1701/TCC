@@ -123,7 +123,12 @@ class _HomePageState extends State<HomePage> {
       missions: data.activeMissions,
     );
     
-    setState(() => _future = Future.value(data));
+    // Atualiza o estado DEPOIS de todo trabalho assíncrono
+    if (mounted) {
+      setState(() {
+        _future = Future.value(data);
+      });
+    }
   }
 
   Future<void> _openTransactionSheet() async {
@@ -253,6 +258,7 @@ class _HomePageState extends State<HomePage> {
                     profile: data.profile,
                     summary: data.summary,
                     currency: _currency,
+                    repository: _repository,
                   ),
                   const SizedBox(height: 24),
                   // Histórico de Transações
@@ -823,55 +829,177 @@ class _EmptySection extends StatelessWidget {
 }
 
 /// Card com gráfico de evolução do saldo
-class _BalanceEvolutionCard extends StatelessWidget {
+class _BalanceEvolutionCard extends StatefulWidget {
   const _BalanceEvolutionCard({
     required this.profile,
     required this.summary,
     required this.currency,
+    required this.repository,
   });
 
   final ProfileModel profile;
   final SummaryMetrics summary;
   final NumberFormat currency;
+  final FinanceRepository repository;
 
-  List<FlSpot> _generateMockData() {
-    // Gera dados baseados no saldo atual
-    final currentBalance = summary.totalIncome - summary.totalExpense;
+  @override
+  State<_BalanceEvolutionCard> createState() => _BalanceEvolutionCardState();
+}
+
+class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
+  int _selectedPeriod = 7; // Padrão: 7 dias
+  List<TransactionModel>? _transactions;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTransactions();
+  }
+
+  Future<void> _loadTransactions() async {
+    setState(() => _isLoading = true);
+    try {
+      final transactions = await widget.repository.fetchTransactions();
+      if (mounted) {
+        setState(() {
+          _transactions = transactions;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  List<FlSpot> _calculateBalanceEvolution() {
+    if (_transactions == null || _transactions!.isEmpty) {
+      // Retorna dados zerados se não houver transações
+      return List.generate(_selectedPeriod, (index) => FlSpot(index.toDouble(), 0));
+    }
+
+    // Data final (hoje)
+    final now = DateTime.now();
+    final endDate = DateTime(now.year, now.month, now.day);
     
-    // Cria evolução realista dos últimos 7 dias
-    return List.generate(7, (index) {
-      // Aumenta o saldo gradualmente até o dia atual
-      final daysFactor = index / 6; // De 0.0 (dia 0) a 1.0 (dia 6)
-      final previousBalance = currentBalance * (0.7 + (daysFactor * 0.3)); // De 70% (início) a 100% (hoje) do saldo atual
-      return FlSpot(index.toDouble(), previousBalance > 0 ? previousBalance : 0);
-    });
+    // Data inicial baseada no período selecionado
+    final startDate = endDate.subtract(Duration(days: _selectedPeriod - 1));
+
+    // Filtra transações dentro do período
+    final relevantTransactions = _transactions!.where((t) {
+      final txDate = DateTime(t.date.year, t.date.month, t.date.day);
+      return !txDate.isBefore(startDate) && !txDate.isAfter(endDate);
+    }).toList();
+
+    // Ordena por data
+    relevantTransactions.sort((a, b) => a.date.compareTo(b.date));
+
+    // Calcula saldo inicial (todas as transações antes do período)
+    double initialBalance = 0;
+    for (final tx in _transactions!) {
+      final txDate = DateTime(tx.date.year, tx.date.month, tx.date.day);
+      if (txDate.isBefore(startDate)) {
+        if (tx.type == 'INCOME') {
+          initialBalance += tx.amount;
+        } else {
+          initialBalance -= tx.amount;
+        }
+      }
+    }
+
+    // Gera pontos do gráfico
+    final spots = <FlSpot>[];
+    double currentBalance = initialBalance;
+
+    for (int i = 0; i < _selectedPeriod; i++) {
+      final currentDate = startDate.add(Duration(days: i));
+      
+      // Soma transações do dia atual
+      for (final tx in relevantTransactions) {
+        final txDate = DateTime(tx.date.year, tx.date.month, tx.date.day);
+        if (txDate.isAtSameMomentAs(currentDate)) {
+          if (tx.type == 'INCOME') {
+            currentBalance += tx.amount;
+          } else {
+            currentBalance -= tx.amount;
+          }
+        }
+      }
+      
+      spots.add(FlSpot(i.toDouble(), currentBalance));
+    }
+
+    return spots;
+  }
+
+  String _getBottomTitle(int index) {
+    final now = DateTime.now();
+    final endDate = DateTime(now.year, now.month, now.day);
+    final startDate = endDate.subtract(Duration(days: _selectedPeriod - 1));
+    final date = startDate.add(Duration(days: index));
+
+    if (_selectedPeriod <= 7) {
+      // Para 7 dias ou menos, mostra inicial do dia da semana
+      const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+      return days[date.weekday % 7];
+    } else if (_selectedPeriod <= 15) {
+      // Para 15 dias, mostra dia do mês a cada 2 dias
+      if (index % 2 == 0) {
+        return '${date.day}';
+      }
+      return '';
+    } else {
+      // Para 30 dias, mostra dia do mês a cada 5 dias
+      if (index % 5 == 0) {
+        return '${date.day}';
+      }
+      return '';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final spots = _generateMockData();
+    
+    if (_isLoading) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: tokens.cardRadius,
+          boxShadow: tokens.mediumShadow,
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
+    }
+
+    final spots = _calculateBalanceEvolution();
     
     var maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
     var minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
     
-    // Garante que maxY e minY não sejam iguais (evita horizontalInterval = 0)
+    // Garante que maxY e minY não sejam iguais
     if (maxY == minY) {
       if (maxY == 0) {
-        // Se ambos são zero, define valores padrão
         maxY = 100;
         minY = 0;
-      } else {
-        // Se são iguais mas não zero, adiciona margem
+      } else if (maxY > 0) {
         minY = maxY * 0.9;
         maxY = maxY * 1.1;
+      } else {
+        minY = minY * 1.1;
+        maxY = minY * 0.9;
       }
     }
     
-    // Calcula a tendência (último valor vs primeiro)
+    // Calcula a tendência
     final trend = spots.last.y - spots.first.y;
-    final trendPercent = spots.first.y > 0 ? (trend / spots.first.y) * 100 : 0;
+    final trendPercent = spots.first.y != 0 ? (trend / spots.first.y.abs()) * 100 : 0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -898,7 +1026,7 @@ class _BalanceEvolutionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Últimos 7 dias',
+                    'Últimos $_selectedPeriod dias',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey[400],
                       fontSize: 12,
@@ -933,6 +1061,35 @@ class _BalanceEvolutionCard extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Seletor de período
+          Row(
+            children: [
+              _PeriodChip(
+                label: '7d',
+                isSelected: _selectedPeriod == 7,
+                onTap: () {
+                  setState(() => _selectedPeriod = 7);
+                },
+              ),
+              const SizedBox(width: 8),
+              _PeriodChip(
+                label: '15d',
+                isSelected: _selectedPeriod == 15,
+                onTap: () {
+                  setState(() => _selectedPeriod = 15);
+                },
+              ),
+              const SizedBox(width: 8),
+              _PeriodChip(
+                label: '30d',
+                isSelected: _selectedPeriod == 30,
+                onTap: () {
+                  setState(() => _selectedPeriod = 30);
+                },
               ),
             ],
           ),
@@ -987,20 +1144,19 @@ class _BalanceEvolutionCard extends StatelessWidget {
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
-                        const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
-                        if (value.toInt() < days.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              days[value.toInt()],
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.grey[600],
-                                fontSize: 10,
-                              ),
+                        final title = _getBottomTitle(value.toInt());
+                        if (title.isEmpty) return const SizedBox();
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            title,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                              fontSize: 10,
                             ),
-                          );
-                        }
-                        return const Text('');
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -1021,11 +1177,18 @@ class _BalanceEvolutionCard extends StatelessWidget {
                   touchTooltipData: LineTouchTooltipData(
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
+                        // Calcula a data do ponto
+                        final now = DateTime.now();
+                        final endDate = DateTime(now.year, now.month, now.day);
+                        final startDate = endDate.subtract(Duration(days: _selectedPeriod - 1));
+                        final pointDate = startDate.add(Duration(days: spot.x.toInt()));
+                        
                         return LineTooltipItem(
-                          currency.format(spot.y),
+                          '${pointDate.day}/${pointDate.month}\n${widget.currency.format(spot.y)}',
                           theme.textTheme.bodySmall!.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
+                            fontSize: 11,
                           ),
                         );
                       }).toList();
@@ -1036,6 +1199,46 @@ class _BalanceEvolutionCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Chip para seleção de período
+class _PeriodChip extends StatelessWidget {
+  const _PeriodChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected 
+              ? AppColors.primary.withValues(alpha: 0.2)
+              : Colors.grey[800],
+          borderRadius: BorderRadius.circular(8),
+          border: isSelected 
+              ? Border.all(color: AppColors.primary, width: 1.5)
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppColors.primary : Colors.grey[400],
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

@@ -7,9 +7,15 @@ from .models import Category, Goal, Mission, MissionProgress, Transaction, Trans
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    is_user_created = serializers.SerializerMethodField()
+    
     class Meta:
         model = Category
-        fields = ("id", "name", "type", "color", "group")
+        fields = ("id", "name", "type", "color", "group", "is_user_created")
+    
+    def get_is_user_created(self, obj):
+        """Retorna True se a categoria foi criada pelo usuário (não é padrão)."""
+        return obj.user is not None
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -208,7 +214,9 @@ class GoalSerializer(serializers.ModelSerializer):
             {
                 'id': cat.id,
                 'name': cat.name,
-                'icon': cat.icon,
+                'color': cat.color,
+                'type': cat.type,
+                'group': cat.group,
             }
             for cat in obj.tracked_categories.all()
         ]

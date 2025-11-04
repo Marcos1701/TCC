@@ -50,7 +50,12 @@ class _MissionsPageState extends State<MissionsPage> {
       missions: data.activeMissions,
     );
     
-    setState(() => _future = Future.value(data));
+    // Atualiza o estado DEPOIS de todo trabalho assíncrono
+    if (mounted) {
+      setState(() {
+        _future = Future.value(data);
+      });
+    }
   }
 
   @override

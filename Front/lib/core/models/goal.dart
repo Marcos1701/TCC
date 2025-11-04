@@ -28,18 +28,24 @@ class TrackedCategory {
   const TrackedCategory({
     required this.id,
     required this.name,
-    required this.icon,
+    required this.color,
+    required this.type,
+    this.group,
   });
 
   final int id;
   final String name;
-  final String icon;
+  final String color;
+  final String type;
+  final String? group;
 
   factory TrackedCategory.fromMap(Map<String, dynamic> map) {
     return TrackedCategory(
       id: map['id'] as int,
       name: map['name'] as String,
-      icon: (map['icon'] as String?) ?? '📁',
+      color: (map['color'] as String?) ?? '#808080',
+      type: map['type'] as String,
+      group: map['group'] as String?,
     );
   }
 }

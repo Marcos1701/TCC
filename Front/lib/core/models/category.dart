@@ -5,6 +5,7 @@ class CategoryModel {
     required this.type,
     this.color,
     this.group,
+    this.isUserCreated = false,
   });
 
   final int id;
@@ -12,6 +13,7 @@ class CategoryModel {
   final String type;
   final String? color;
   final String? group;
+  final bool isUserCreated;
 
   factory CategoryModel.fromMap(Map<String, dynamic> map) {
     return CategoryModel(
@@ -20,6 +22,7 @@ class CategoryModel {
       type: map['type'] as String,
       color: map['color'] as String?,
       group: map['group'] as String?,
+      isUserCreated: (map['is_user_created'] as bool?) ?? false,
     );
   }
 }

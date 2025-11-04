@@ -56,7 +56,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Future<void> _refresh() async {
     final data = await _fetchData();
     if (!mounted) return;
-    setState(() => _future = Future.value(data));
+    
+    // Atualiza o estado DEPOIS de todo trabalho assíncrono
+    if (mounted) {
+      setState(() {
+        _future = Future.value(data);
+      });
+    }
   }
 
   Future<void> _openSheet() async {

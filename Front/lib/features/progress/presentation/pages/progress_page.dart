@@ -43,10 +43,38 @@ class _ProgressPageState extends State<ProgressPage> {
     }
   }
 
+  /// Parse seguro de cor hexadecimal
+  Color _parseColor(String? colorHex) {
+    if (colorHex == null || colorHex.isEmpty) {
+      return Colors.grey;
+    }
+    
+    try {
+      // Remove # se existir
+      final hex = colorHex.replaceAll('#', '');
+      
+      // Valida se é hexadecimal válido
+      if (hex.length != 6) {
+        return Colors.grey;
+      }
+      
+      return Color(int.parse('0xFF$hex', radix: 16));
+    } catch (e) {
+      // Em caso de erro, retorna cor padrão
+      return Colors.grey;
+    }
+  }
+
   Future<void> _refresh() async {
     final data = await _repository.fetchGoals();
     if (!mounted) return;
-    setState(() => _future = Future.value(data));
+    
+    // Atualiza o estado DEPOIS de todo trabalho assíncrono
+    if (mounted) {
+      setState(() {
+        _future = Future.value(data);
+      });
+    }
   }
 
   Future<void> _openGoalDialog({GoalModel? goal}) async {
@@ -75,6 +103,40 @@ class _ProgressPageState extends State<ProgressPage> {
       categories = await _repository.fetchCategories();
     } catch (e) {
       // Ignora erro
+    }
+    
+    // Função para filtrar categorias com base no tipo de meta
+    List<CategoryModel> getFilteredCategories(GoalType goalType) {
+      // CUSTOM: mostra todas as categorias
+      if (goalType == GoalType.custom) {
+        return categories;
+      }
+      
+      // SAVINGS: apenas categorias de receita (INCOME) e categorias criadas pelo usuário
+      if (goalType == GoalType.savings) {
+        return categories.where((cat) {
+          return cat.type == 'INCOME' || cat.isUserCreated;
+        }).toList();
+      }
+      
+      // DEBT_REDUCTION: apenas categorias de dívida (DEBT) e categorias criadas pelo usuário
+      if (goalType == GoalType.debtReduction) {
+        return categories.where((cat) {
+          return cat.type == 'DEBT' || cat.isUserCreated;
+        }).toList();
+      }
+      
+      // CATEGORY_EXPENSE: apenas categorias de despesa (EXPENSE)
+      if (goalType == GoalType.categoryExpense) {
+        return categories.where((cat) => cat.type == 'EXPENSE').toList();
+      }
+      
+      // CATEGORY_INCOME: apenas categorias de receita (INCOME)
+      if (goalType == GoalType.categoryIncome) {
+        return categories.where((cat) => cat.type == 'INCOME').toList();
+      }
+      
+      return categories;
     }
 
     final confirmed = await showDialog<bool>(
@@ -236,7 +298,7 @@ class _ProgressPageState extends State<ProgressPage> {
                           onChanged: isLoading ? null : (value) {
                             setState(() => selectedCategoryId = value);
                           },
-                          items: categories.map<DropdownMenuItem<int>>((cat) {
+                          items: getFilteredCategories(selectedGoalType).map<DropdownMenuItem<int>>((cat) {
                             return DropdownMenuItem<int>(
                               value: cat.id,
                               child: Padding(
@@ -274,7 +336,6 @@ class _ProgressPageState extends State<ProgressPage> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      constraints: const BoxConstraints(maxHeight: 200),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(12),
@@ -283,9 +344,9 @@ class _ProgressPageState extends State<ProgressPage> {
                           width: 1,
                         ),
                       ),
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: categories.map((cat) {
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: getFilteredCategories(selectedGoalType).map((cat) {
                           final isSelected = selectedTrackedCategoryIds.contains(cat.id);
                           return CheckboxListTile(
                             value: isSelected,
@@ -304,9 +365,7 @@ class _ProgressPageState extends State<ProgressPage> {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: cat.color != null 
-                                        ? Color(int.parse('0xFF${cat.color}'))
-                                        : Colors.grey,
+                                    color: _parseColor(cat.color),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
@@ -681,7 +740,9 @@ class _ProgressPageState extends State<ProgressPage> {
             children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 12),
-              Text(goal == null ? 'Meta criada com sucesso!' : 'Meta atualizada!'),
+              Expanded(
+                child: Text(goal == null ? 'Meta criada com sucesso!' : 'Meta atualizada!'),
+              ),
             ],
           ),
           backgroundColor: AppColors.support,
@@ -700,7 +761,9 @@ class _ProgressPageState extends State<ProgressPage> {
             children: [
               const Icon(Icons.error_outline, color: Colors.white),
               const SizedBox(width: 12),
-              Text('Erro ao salvar meta: $e'),
+              Expanded(
+                child: Text('Erro ao salvar meta: $e'),
+              ),
             ],
           ),
           backgroundColor: AppColors.alert,

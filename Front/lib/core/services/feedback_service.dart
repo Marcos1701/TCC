@@ -278,6 +278,13 @@ class FeedbackService {
     final config = _configs[type]!;
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
+    bool isRemoving = false;
+
+    void removeEntry() {
+      if (isRemoving || !entry.mounted) return;
+      isRemoving = true;
+      entry.remove();
+    }
 
     entry = OverlayEntry(
       builder: (context) => Positioned(
@@ -291,17 +298,21 @@ class FeedbackService {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
             builder: (context, value, child) {
+              // Garante que opacity esteja sempre entre 0.0 e 1.0
+              final clampedValue = value.clamp(0.0, 1.0);
+              final offset = (-50.0 * (1.0 - clampedValue)).clamp(-50.0, 0.0);
+              
               return Transform.translate(
-                offset: Offset(0, -50 * (1 - value)),
+                offset: Offset(0, offset),
                 child: Opacity(
-                  opacity: value,
+                  opacity: clampedValue,
                   child: child,
                 ),
               );
             },
             child: GestureDetector(
               onTap: () {
-                entry.remove();
+                removeEntry();
                 onTap?.call();
               },
               child: Container(
@@ -349,10 +360,6 @@ class FeedbackService {
     overlay.insert(entry);
 
     // Remove automaticamente após o duration
-    Future.delayed(duration, () {
-      if (entry.mounted) {
-        entry.remove();
-      }
-    });
+    Future.delayed(duration, removeEntry);
   }
 }
