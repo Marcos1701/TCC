@@ -80,8 +80,23 @@ class SessionController extends ChangeNotifier {
 
   Future<void> refreshSession() async {
     if (!isAuthenticated) return;
-    _session = await _authRepository.fetchSession();
-    notifyListeners();
+    try {
+      _session = await _authRepository.fetchSession();
+      notifyListeners();
+    } catch (e) {
+      // Silenciosamente falhar se não conseguir atualizar
+      // Mantém sessão atual para não deslogar o usuário
+      debugPrint('Erro ao atualizar sessão: $e');
+    }
+  }
+
+  /// Força atualização do profile sem fazer nova requisição
+  /// Útil quando o profile já foi obtido de outro endpoint (ex: dashboard)
+  void updateProfile(ProfileModel newProfile) {
+    if (_session != null) {
+      _session = SessionData(user: _session!.user, profile: newProfile);
+      notifyListeners();
+    }
   }
 
   Future<void> updateTargets({

@@ -38,6 +38,10 @@ class _HomePageState extends State<HomePage> {
     final data = await _repository.fetchDashboard();
     if (!mounted) return;
     
+    // Atualizar sessão com o profile do dashboard (evita requisição extra)
+    final session = SessionScope.of(context);
+    session.updateProfile(data.profile);
+    
     // Verificar celebrações de gamificação
     await GamificationService.checkLevelUp(
       context: context,
@@ -85,7 +89,7 @@ class _HomePageState extends State<HomePage> {
     // Aguardar um pouco antes de atualizar
     await Future.delayed(const Duration(milliseconds: 500));
     
-    // Atualizar dados
+    // Atualizar dados e sessão
     await _refresh();
   }
 
