@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Iterable, List
 
-from django.db.models import Case, DecimalField, F, Sum, When
+from django.db.models import Case, DecimalField, F, Q, Sum, When
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 
@@ -89,19 +89,43 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     debt_balance = debt_info["balance"]
     debt_payments = debt_info["payments"]
 
+    # Calcular reserva de emergência
+    # Busca categoria "Reserva de Emergência" do sistema ou do usuário
+    emergency_category = Category.objects.filter(
+        Q(name__icontains="Reserva") | Q(name__icontains="Emergência") | Q(name__icontains="Emergency"),
+        group=Category.CategoryGroup.SAVINGS
+    ).filter(Q(user=user) | Q(user__isnull=True)).first()
+    
     reserve_income = Decimal("0")
     reserve_expense = Decimal("0")
-    for item in (
-        Transaction.objects.filter(user=user, category__group=Category.CategoryGroup.SAVINGS)
-        .values("type")
-        .annotate(total=Sum("amount"))
-    ):
-        tx_type = item["type"]
-        total = _decimal(item["total"])
-        if tx_type == Transaction.TransactionType.EXPENSE:
-            reserve_expense = total
-        elif tx_type == Transaction.TransactionType.INCOME:
-            reserve_income = total
+    
+    if emergency_category:
+        # Se tem categoria específica de reserva, usa ela
+        reserve_transactions = Transaction.objects.filter(
+            user=user, 
+            category=emergency_category
+        ).values("type").annotate(total=Sum("amount"))
+        
+        for item in reserve_transactions:
+            tx_type = item["type"]
+            total = _decimal(item["total"])
+            if tx_type == Transaction.TransactionType.EXPENSE:
+                reserve_expense = total
+            elif tx_type == Transaction.TransactionType.INCOME:
+                reserve_income = total
+    else:
+        # Fallback: usa todas as transações do grupo SAVINGS
+        for item in (
+            Transaction.objects.filter(user=user, category__group=Category.CategoryGroup.SAVINGS)
+            .values("type")
+            .annotate(total=Sum("amount"))
+        ):
+            tx_type = item["type"]
+            total = _decimal(item["total"])
+            if tx_type == Transaction.TransactionType.EXPENSE:
+                reserve_expense = total
+            elif tx_type == Transaction.TransactionType.INCOME:
+                reserve_income = total
 
     # Calcular média de despesas essenciais dos últimos 3 meses para ILI mais estável
     today = timezone.now().date()
@@ -518,15 +542,17 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
     
     transaction_count = Transaction.objects.filter(user=user).count()
     
-    # Buscar missões já atribuídas
-    existing_progress = MissionProgress.objects.filter(
-        user=user,
+    # Buscar missões já atribuídas (incluindo completadas para não repetir)
+    existing_progress = MissionProgress.objects.filter(user=user)
+    active_count = existing_progress.filter(
         status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
-    )
+    ).count()
     
-    # Se já tem missões ativas, não atribui novas
-    if existing_progress.filter(status=MissionProgress.Status.ACTIVE).count() >= 3:
-        return list(existing_progress)
+    # Se já tem 3 ou mais missões ativas, não atribui novas
+    if active_count >= 3:
+        return list(existing_progress.filter(
+            status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+        ))
     
     # Determinar tipo de missão prioritária
     priority_types = []
@@ -546,54 +572,69 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
     else:
         priority_types = [Mission.MissionType.TPS_IMPROVEMENT]
     
-    # Buscar missões já linkadas ao usuário
+    # Buscar missões já linkadas ao usuário (incluindo completadas para não repetir)
     already_linked = set(
-        MissionProgress.objects.filter(user=user).values_list("mission_id", flat=True)
+        existing_progress.values_list("mission_id", flat=True)
     )
     
     # Buscar missões disponíveis
     available_missions = Mission.objects.filter(
         is_active=True,
         mission_type__in=priority_types,
-    ).exclude(id__in=already_linked)
+    ).exclude(id__in=already_linked).order_by('priority')
     
-    # Filtrar por critérios de índices
+    # Filtrar por critérios de índices - apenas missões que fazem sentido
     suitable_missions = []
     for mission in available_missions:
         # Verificar número mínimo de transações
         if mission.min_transactions and transaction_count < mission.min_transactions:
             continue
         
-        # Verificar TPS
-        if mission.target_tps is not None and tps >= mission.target_tps:
-            continue
+        # Verificar TPS - só atribui se usuário está ABAIXO do target (precisa melhorar)
+        if mission.target_tps is not None:
+            if tps >= mission.target_tps:
+                # Usuário já está acima do target, missão não faz sentido
+                continue
         
-        # Verificar RDR
-        if mission.target_rdr is not None and rdr <= mission.target_rdr:
-            continue
+        # Verificar RDR - só atribui se usuário está ACIMA do target (precisa reduzir)
+        if mission.target_rdr is not None:
+            if rdr <= mission.target_rdr:
+                # Usuário já está abaixo do target, missão não faz sentido
+                continue
         
-        # Verificar ILI
-        if mission.min_ili is not None and ili < float(mission.min_ili):
-            continue
-        if mission.max_ili is not None and ili > float(mission.max_ili):
-            continue
+        # Verificar ILI - só atribui se está na faixa adequada
+        if mission.min_ili is not None:
+            if ili >= float(mission.min_ili):
+                # Usuário já atingiu o mínimo, missão não faz sentido
+                continue
+        
+        if mission.max_ili is not None:
+            if ili > float(mission.max_ili):
+                # Usuário está acima do máximo, missão não faz sentido
+                continue
         
         suitable_missions.append(mission)
+        
+        # Limitar para preencher até 3 missões ativas
+        if len(suitable_missions) >= (3 - active_count):
+            break
     
-    # Se não encontrou missões adequadas, pega qualquer uma disponível do tipo prioritário
-    if not suitable_missions:
+    # Se não encontrou missões adequadas com filtros rigorosos, relaxa um pouco
+    if not suitable_missions and active_count == 0:
+        # Pega qualquer missão do tipo prioritário que o usuário não tenha
         suitable_missions = list(available_missions[:3])
     
-    # Se ainda não tem, pega qualquer missão ativa
-    if not suitable_missions:
+    # Se ainda não tem e usuário tem 0 missões, pega qualquer missão ativa
+    if not suitable_missions and active_count == 0:
         suitable_missions = list(
             Mission.objects.filter(is_active=True)
-            .exclude(id__in=already_linked)[:3]
+            .exclude(id__in=already_linked)
+            .order_by('priority')[:3]
         )
     
-    # Criar MissionProgress para as missões selecionadas (máximo 3)
+    # Criar MissionProgress para as missões selecionadas
     created_progress = []
-    for mission in suitable_missions[:3]:
+    for mission in suitable_missions:
         progress, created = MissionProgress.objects.get_or_create(
             user=user,
             mission=mission,
@@ -653,6 +694,11 @@ def update_mission_progress(user) -> List[MissionProgress]:
         if progress.initial_transaction_count == 0:
             progress.initial_transaction_count = max(1, current_transaction_count)
         
+        # Garantir que valores não sejam None antes de calcular
+        initial_tps = float(progress.initial_tps) if progress.initial_tps is not None else 0.0
+        initial_rdr = float(progress.initial_rdr) if progress.initial_rdr is not None else 0.0
+        initial_ili = float(progress.initial_ili) if progress.initial_ili is not None else 0.0
+        
         # Calcular progresso baseado no tipo de missão
         if mission.mission_type == Mission.MissionType.ONBOARDING:
             # Para onboarding, progresso é baseado em número de transações
@@ -665,91 +711,106 @@ def update_mission_progress(user) -> List[MissionProgress]:
         elif mission.mission_type == Mission.MissionType.TPS_IMPROVEMENT:
             # Progresso baseado em melhoria do TPS
             if mission.target_tps is not None:
-                initial = float(progress.initial_tps)
+                initial = float(progress.initial_tps) if progress.initial_tps else 0.0
                 target = float(mission.target_tps)
                 
                 if current_tps >= target:
                     # Atingiu ou superou a meta
                     new_progress = 100.0
-                elif target > initial:
+                elif target > initial and (target - initial) > 0:
                     # Precisa melhorar
                     improvement = current_tps - initial
                     needed = target - initial
                     new_progress = min(100.0, max(0.0, (improvement / needed) * 100))
-                else:
-                    # Já estava acima da meta no início
+                elif initial >= target:
+                    # Já estava acima da meta no início - missão inadequada mas considera completa
                     new_progress = 100.0
+                else:
+                    # Casos edge
+                    new_progress = 100.0 if current_tps >= target else 0.0
         
         elif mission.mission_type == Mission.MissionType.RDR_REDUCTION:
             # Progresso baseado em redução do RDR
             if mission.target_rdr is not None:
-                initial = float(progress.initial_rdr)
+                initial = float(progress.initial_rdr) if progress.initial_rdr else 0.0
                 target = float(mission.target_rdr)
                 
                 if current_rdr <= target:
                     # Atingiu ou superou a meta (menor é melhor)
                     new_progress = 100.0
-                elif initial > target:
+                elif initial > target and (initial - target) > 0:
                     # Precisa reduzir
                     reduction = initial - current_rdr
                     needed = initial - target
                     new_progress = min(100.0, max(0.0, (reduction / needed) * 100))
-                else:
-                    # Já estava abaixo da meta no início
+                elif initial <= target:
+                    # Já estava abaixo da meta no início - missão inadequada mas considera completa
                     new_progress = 100.0
+                else:
+                    # Casos edge
+                    new_progress = 100.0 if current_rdr <= target else 0.0
         
         elif mission.mission_type == Mission.MissionType.ILI_BUILDING:
             # Progresso baseado em construção do ILI
             if mission.min_ili is not None:
-                initial = float(progress.initial_ili)
+                initial = float(progress.initial_ili) if progress.initial_ili else 0.0
                 target = float(mission.min_ili)
                 
                 if current_ili >= target:
                     # Atingiu ou superou a meta
                     new_progress = 100.0
-                elif target > initial:
+                elif target > initial and (target - initial) > 0:
                     # Precisa melhorar
                     improvement = current_ili - initial
                     needed = target - initial
                     new_progress = min(100.0, max(0.0, (improvement / needed) * 100))
-                else:
-                    # Já estava acima da meta no início
+                elif initial >= target:
+                    # Já estava acima da meta no início - missão inadequada mas considera completa
                     new_progress = 100.0
+                else:
+                    # Casos edge: se initial == target ou lógica não se aplica
+                    new_progress = 100.0 if current_ili >= target else 0.0
         
         elif mission.mission_type == Mission.MissionType.ADVANCED:
             # Missões avançadas podem ter múltiplos critérios
             # Por enquanto, usa lógica similar às outras com pesos
             progress_components = []
             
-            if mission.target_tps is not None:
+            if mission.target_tps is not None and progress.initial_tps is not None:
                 initial = float(progress.initial_tps)
                 target = float(mission.target_tps)
                 if current_tps >= target:
                     progress_components.append(100.0)
                 elif target > initial and (target - initial) > 0:
-                    progress_components.append(min(100.0, ((current_tps - initial) / (target - initial)) * 100))
-                else:
+                    progress_components.append(min(100.0, max(0.0, ((current_tps - initial) / (target - initial)) * 100)))
+                elif initial >= target:
                     progress_components.append(100.0)
+                else:
+                    progress_components.append(100.0 if current_tps >= target else 0.0)
             
-            if mission.target_rdr is not None:
+            if mission.target_rdr is not None and progress.initial_rdr is not None:
                 initial = float(progress.initial_rdr)
                 target = float(mission.target_rdr)
                 if current_rdr <= target:
                     progress_components.append(100.0)
                 elif initial > target and (initial - target) > 0:
-                    progress_components.append(min(100.0, ((initial - current_rdr) / (initial - target)) * 100))
-                else:
+                    progress_components.append(min(100.0, max(0.0, ((initial - current_rdr) / (initial - target)) * 100)))
+                elif initial <= target:
                     progress_components.append(100.0)
+                else:
+                    progress_components.append(100.0 if current_rdr <= target else 0.0)
             
-            if mission.min_ili is not None:
+            if mission.min_ili is not None and progress.initial_ili is not None:
                 initial = float(progress.initial_ili)
                 target = float(mission.min_ili)
                 if current_ili >= target:
                     progress_components.append(100.0)
                 elif target > initial and (target - initial) > 0:
-                    progress_components.append(min(100.0, ((current_ili - initial) / (target - initial)) * 100))
-                else:
+                    progress_components.append(min(100.0, max(0.0, ((current_ili - initial) / (target - initial)) * 100)))
+                elif initial >= target:
                     progress_components.append(100.0)
+                else:
+                    progress_components.append(100.0 if current_ili >= target else 0.0)
             
             # Média dos componentes
             if progress_components:

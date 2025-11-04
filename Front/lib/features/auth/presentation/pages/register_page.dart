@@ -1,10 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
-
-enum FeedbackType { success, error, warning, offline, serverError }
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({
@@ -47,14 +46,14 @@ class _RegisterPageState extends State<RegisterPage> {
         password: _passwordController.text,
       );
       if (!success && mounted) {
-        _showFeedback(
+        FeedbackService.showError(
+          context,
           'Não foi possível concluir o cadastro.',
-          type: FeedbackType.error,
         );
       } else if (success && mounted) {
-        _showFeedback(
+        FeedbackService.showSuccess(
+          context,
           'Cadastro realizado com sucesso! Bem-vindo(a)! 🎉',
-          type: FeedbackType.success,
         );
       }
     } on DioException catch (error) {
@@ -64,12 +63,13 @@ class _RegisterPageState extends State<RegisterPage> {
       if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
           error.type == DioExceptionType.sendTimeout) {
-        _showFeedback(
+        FeedbackService.showWarning(
+          context,
           'Tempo de conexão esgotado. Verifique sua internet.',
-          type: FeedbackType.warning,
         );
       } else if (error.type == DioExceptionType.connectionError) {
-        _showFeedback(
+        FeedbackService.show(
+          context,
           'Servidor offline. Tente novamente mais tarde.',
           type: FeedbackType.offline,
         );
@@ -77,13 +77,14 @@ class _RegisterPageState extends State<RegisterPage> {
         final detail = error.response?.data is Map
             ? error.response!.data['detail'] as String?
             : null;
-        _showFeedback(
+        FeedbackService.showError(
+          context,
           detail ?? 'Email já cadastrado ou dados inválidos.',
-          type: FeedbackType.error,
         );
       } else if (error.response?.statusCode != null && 
                  error.response!.statusCode! >= 500) {
-        _showFeedback(
+        FeedbackService.show(
+          context,
           'Problema no servidor. Tente novamente em instantes.',
           type: FeedbackType.serverError,
         );
@@ -91,80 +92,20 @@ class _RegisterPageState extends State<RegisterPage> {
         final detail = error.response?.data is Map
             ? error.response!.data['detail'] as String?
             : null;
-        _showFeedback(
+        FeedbackService.showError(
+          context,
           detail ?? 'Erro ao conectar. Verifique sua conexão.',
-          type: FeedbackType.error,
         );
       }
     } catch (error) {
       if (!mounted) return;
-      _showFeedback(
+      FeedbackService.showError(
+        context,
         'Erro inesperado. Tente novamente.',
-        type: FeedbackType.error,
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
-  }
-
-  void _showFeedback(String message, {required FeedbackType type}) {
-    Color backgroundColor;
-    IconData icon;
-    
-    switch (type) {
-      case FeedbackType.success:
-        backgroundColor = AppColors.support;
-        icon = Icons.check_circle;
-        break;
-      case FeedbackType.error:
-        backgroundColor = AppColors.alert;
-        icon = Icons.error;
-        break;
-      case FeedbackType.warning:
-        backgroundColor = AppColors.highlight;
-        icon = Icons.warning_amber;
-        break;
-      case FeedbackType.offline:
-        backgroundColor = Colors.grey[700]!;
-        icon = Icons.cloud_off;
-        break;
-      case FeedbackType.serverError:
-        backgroundColor = const Color(0xFFFF6B6B);
-        icon = Icons.dns;
-        break;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: backgroundColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {},
-        ),
-      ),
-    );
   }
 
   String? _validateName(String? value) {
@@ -340,9 +281,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       TextButton(
                         onPressed: _isSubmitting
                             ? null
-                            : () => _showFeedback(
-                                  'Redefinição de senha disponível em breve.',
-                                  type: FeedbackType.warning,
+                            : () => FeedbackService.showInfo(
+                                  context,
+                                  'Termos de uso disponíveis em breve.',
                                 ),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,

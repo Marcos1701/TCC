@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// Sheet simples para editar uma transação existente
@@ -96,14 +97,16 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
 
       if (!mounted) return;
       Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transação atualizada com sucesso!')),
+      FeedbackService.showSuccess(
+        context,
+        'Transação atualizada com sucesso!',
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao atualizar: $e')),
+      FeedbackService.showError(
+        context,
+        'Erro ao atualizar transação. Tente novamente.',
       );
     }
   }

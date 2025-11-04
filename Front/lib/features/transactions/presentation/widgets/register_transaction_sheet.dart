@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/category_groups.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 enum _RecurrenceUnit { days, weeks, months }
@@ -307,11 +308,9 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
       Navigator.of(context).pop(created);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível registrar a transação. Tente novamente.'),
-          backgroundColor: AppColors.alert,
-        ),
+      FeedbackService.showError(
+        context,
+        'Não foi possível registrar a transação. Tente novamente.',
       );
     } finally {
       if (mounted) {
@@ -336,10 +335,9 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     if (created == null || !mounted) return;
     await _loadCategories(focusId: created.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Categoria "${created.name}" criada.'),
-      ),
+    FeedbackService.showSuccess(
+      context,
+      'Categoria "${created.name}" criada com sucesso!',
     );
   }
 

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/category_groups.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../../core/constants/category_groups.dart';
 import 'edit_transaction_sheet.dart';
 
 /// Sheet que exibe detalhes completos de uma transação
@@ -82,31 +83,15 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
   }
 
   Future<void> _deleteTransaction() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await FeedbackService.showConfirmationDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text('Excluir transação',
-            style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Tem certeza que deseja excluir "${widget.transaction.description}"?',
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.alert),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
+      title: 'Excluir transação',
+      message: 'Tem certeza que deseja excluir "${widget.transaction.description}"?',
+      confirmText: 'Excluir',
+      isDangerous: true,
     );
 
-    if (confirm != true) return;
+    if (!confirm) return;
 
     try {
       await widget.repository.deleteTransaction(widget.transaction.id);
@@ -115,13 +100,15 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       widget.onUpdate();
       Navigator.pop(context, true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Transação removida.')),
+      FeedbackService.showSuccess(
+        context,
+        'Transação removida com sucesso!',
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao remover: $e')),
+      FeedbackService.showError(
+        context,
+        'Erro ao remover transação. Tente novamente.',
       );
     }
   }

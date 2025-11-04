@@ -293,16 +293,20 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
             initial_tps = float(mission_progress.initial_tps)
             target_tps = float(mission.target_tps)
             
-            if target_tps > initial_tps:
+            if current_tps >= target_tps:
+                progress_pct = 100.0
+            elif target_tps > initial_tps and (target_tps - initial_tps) > 0:
                 progress_pct = min(100, max(0, ((current_tps - initial_tps) / (target_tps - initial_tps)) * 100))
+            elif initial_tps >= target_tps:
+                progress_pct = 100.0
             else:
-                progress_pct = 100 if current_tps >= target_tps else 0
+                progress_pct = 100.0 if current_tps >= target_tps else 0.0
             
             breakdown['components'].append({
                 'indicator': 'TPS',
                 'name': 'Taxa de Poupança Pessoal',
-                'initial': initial_tps,
-                'current': current_tps,
+                'initial': round(initial_tps, 2),
+                'current': round(current_tps, 2),
                 'target': target_tps,
                 'progress': round(progress_pct, 1),
                 'met': current_tps >= target_tps,
@@ -314,16 +318,20 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
             initial_rdr = float(mission_progress.initial_rdr)
             target_rdr = float(mission.target_rdr)
             
-            if initial_rdr > target_rdr:
+            if current_rdr <= target_rdr:
+                progress_pct = 100.0
+            elif initial_rdr > target_rdr and (initial_rdr - target_rdr) > 0:
                 progress_pct = min(100, max(0, ((initial_rdr - current_rdr) / (initial_rdr - target_rdr)) * 100))
+            elif initial_rdr <= target_rdr:
+                progress_pct = 100.0
             else:
-                progress_pct = 100 if current_rdr <= target_rdr else 0
+                progress_pct = 100.0 if current_rdr <= target_rdr else 0.0
             
             breakdown['components'].append({
                 'indicator': 'RDR',
                 'name': 'Razão Dívida/Renda',
-                'initial': initial_rdr,
-                'current': current_rdr,
+                'initial': round(initial_rdr, 2),
+                'current': round(current_rdr, 2),
                 'target': target_rdr,
                 'progress': round(progress_pct, 1),
                 'met': current_rdr <= target_rdr,
@@ -335,16 +343,20 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
             initial_ili = float(mission_progress.initial_ili)
             target_ili = float(mission.min_ili)
             
-            if target_ili > initial_ili:
+            if current_ili >= target_ili:
+                progress_pct = 100.0
+            elif target_ili > initial_ili and (target_ili - initial_ili) > 0:
                 progress_pct = min(100, max(0, ((current_ili - initial_ili) / (target_ili - initial_ili)) * 100))
+            elif initial_ili >= target_ili:
+                progress_pct = 100.0
             else:
-                progress_pct = 100 if current_ili >= target_ili else 0
+                progress_pct = 100.0 if current_ili >= target_ili else 0.0
             
             breakdown['components'].append({
                 'indicator': 'ILI',
                 'name': 'Índice de Liquidez Imediata',
-                'initial': initial_ili,
-                'current': current_ili,
+                'initial': round(initial_ili, 2),
+                'current': round(current_ili, 2),
                 'target': target_ili,
                 'progress': round(progress_pct, 1),
                 'met': current_ili >= target_ili,

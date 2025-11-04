@@ -7,7 +7,9 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/services/gamification_service.dart';
+import '../../../../core/services/mission_notification_service.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
@@ -47,6 +49,18 @@ class _HomePageState extends State<HomePage> {
       missions: data.activeMissions,
     );
     
+    // Verificar missões próximas de expirar
+    await MissionNotificationService.checkExpiringMissions(
+      context: context,
+      missions: data.activeMissions,
+    );
+    
+    // Verificar novas missões
+    await MissionNotificationService.checkNewMissions(
+      context: context,
+      missions: data.activeMissions,
+    );
+    
     setState(() => _future = Future.value(data));
   }
 
@@ -61,13 +75,18 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (created == null || !mounted) return;
-    await _refresh();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Transação registrada com sucesso.'),
-      ),
+    
+    // Mostrar feedback de sucesso
+    FeedbackService.showSuccess(
+      context,
+      '✅ Transação registrada! Confira seu progresso nas missões.',
     );
+    
+    // Aguardar um pouco antes de atualizar
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // Atualizar dados
+    await _refresh();
   }
 
   void _openPage(Widget page) {
@@ -318,18 +337,6 @@ class _HomeSummaryCard extends StatelessWidget {
               color: Colors.white,
               fontWeight: FontWeight.w700,
               fontSize: 32,
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: onTransactionsTap,
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('Nova Transação'),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
           const SizedBox(height: 20),
