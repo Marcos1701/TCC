@@ -623,12 +623,40 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                                                 ),
                                               ),
                                             ];
-                      return DropdownButtonFormField<int?>(
-                        key: ValueKey(_categoryId ?? -1),
-                        initialValue: _categoryId,
-                        dropdownColor: fieldColor,
-                        style: sheetTheme.textTheme.bodyMedium
-                            ?.copyWith(color: Colors.white),
+                                            return DropdownButtonFormField<int?>(
+                                              key: ValueKey(_categoryId ?? -1),
+                                              initialValue: _categoryId,
+                                              dropdownColor: fieldColor,
+                                              isExpanded: true,
+                                              style: sheetTheme.textTheme.bodyMedium
+                                                  ?.copyWith(color: Colors.white),
+                                              decoration: InputDecoration(
+                                                contentPadding: const EdgeInsets.symmetric(
+                                                  horizontal: 18,
+                                                  vertical: 16,
+                                                ),
+                                                filled: true,
+                                                fillColor: fieldColor,
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(18),
+                                                  borderSide: BorderSide(
+                                                    color: dividerColor,
+                                                  ),
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(18),
+                                                  borderSide: BorderSide(
+                                                    color: dividerColor,
+                                                  ),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(18),
+                                                  borderSide: const BorderSide(
+                                                    color: AppColors.primary,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                              ),
                                               borderRadius:
                                                   BorderRadius.circular(18),
                                               iconEnabledColor: Colors.white70,

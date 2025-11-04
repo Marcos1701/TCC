@@ -31,15 +31,45 @@ Receitas variáveis e não recorrentes.
 **Uso**: Receitas ocasionais que complementam a renda principal.
 
 #### 3. SAVINGS - Poupança / Reserva
+
 Aportes em reserva de emergência e poupança.
+
 - Reserva de Emergência
 - Poupança
 
-**Uso**: Registrar como EXPENSE quando guardar dinheiro. O valor acumulado é usado no cálculo do ILI (Índice de Liquidez Imediata).
+**Uso**: Registrar como INCOME quando guardar dinheiro. O valor acumulado é usado no cálculo do ILI (Índice de Liquidez Imediata).
 
-**⚠️ IMPORTANTE**: 
-- Aporte na reserva = EXPENSE em categoria SAVINGS
-- Resgate da reserva = INCOME em categoria SAVINGS (raro)
+**⚠️ IMPORTANTE - LEIA COM ATENÇÃO**: 
+
+Estas categorias são do tipo **INCOME** (não EXPENSE), por uma razão específica:
+
+- **Aporte na reserva = INCOME em categoria SAVINGS**
+  - Quando você guarda R$ 300, registra como INCOME em "Reserva de Emergência"
+  - Parece estranho, mas garante que o TPS seja calculado corretamente
+  - O sistema entende que você está "pagando para si mesmo"
+
+- **Resgate da reserva = EXPENSE em categoria SAVINGS (raro)**
+  - Quando você tira dinheiro da reserva, registra como EXPENSE
+  - Isso reduz o saldo da reserva
+
+**Por que INCOME e não EXPENSE?**
+
+Se fosse EXPENSE, o cálculo do TPS ficaria errado:
+```
+❌ ERRADO (se fosse EXPENSE):
+Salário: R$ 3.000 (INCOME)
+Reserva: R$ 300 (EXPENSE)
+Outras despesas: R$ 2.500 (EXPENSE)
+TPS = (3.000 - 2.500 - 300) / 3.000 = 6,67% ← ERRADO!
+
+✅ CORRETO (como INCOME):
+Salário: R$ 3.000 (INCOME - receita real)
+Reserva: R$ 300 (INCOME - aporte em SAVINGS)
+Outras despesas: R$ 2.500 (EXPENSE)
+TPS = 300 / 3.000 = 10% ← CORRETO!
+```
+
+O sistema automaticamente separa a "receita real" dos "aportes em reserva" no cálculo.
 
 #### 4. INVESTMENT - Investimentos
 Aplicações financeiras de médio e longo prazo.
@@ -123,7 +153,7 @@ TPS = ((Receitas Totais - Despesas Totais - Pagamentos de Dívida) / Receitas To
 - **Pagamentos de Dívida**: DEBT_PAYMENT em categorias DEBT
 
 **Para melhorar TPS**:
-1. Aumentar aportes em SAVINGS (conta como despesa mas melhora capacidade de poupança)
+1. Aumentar aportes em SAVINGS (registrar como INCOME em "Reserva de Emergência")
 2. Reduzir LIFESTYLE_EXPENSE
 3. Reduzir DEBT (menos pagamentos de dívida)
 
@@ -147,16 +177,16 @@ ILI = Reserva Acumulada / Média Mensal de Despesas Essenciais (3 meses)
 ```
 
 - **Reserva Acumulada**: 
-  - Saldo = EXPENSE em SAVINGS - INCOME em SAVINGS
-  - Quanto mais EXPENSE em "Reserva de Emergência", maior a reserva
+  - Saldo = INCOME em SAVINGS - EXPENSE em SAVINGS
+  - Quanto mais INCOME em "Reserva de Emergência", maior a reserva
 - **Despesas Essenciais**: 
   - Média dos últimos 3 meses de EXPENSE em ESSENTIAL_EXPENSE
   - Inclui moradia, alimentação, transporte, saúde, educação
 
 **Para melhorar ILI**:
-1. Aumentar aportes (EXPENSE) em "Reserva de Emergência"
+1. Aumentar aportes (INCOME) em "Reserva de Emergência"
 2. Reduzir despesas essenciais (otimização)
-3. Não resgatar (INCOME) da reserva
+3. Não resgatar (EXPENSE) da reserva
 
 ## Como as Missões Usam as Categorias
 
@@ -191,7 +221,7 @@ Combinam múltiplos indicadores e grupos de categorias.
 1. **Seja consistente**: Use sempre a mesma categoria para o mesmo tipo de gasto
 2. **Seja específico**: Prefira categorias detalhadas (ex: "Aluguel" em vez de "Moradia")
 3. **Classifique corretamente**:
-   - Guardar dinheiro = EXPENSE em SAVINGS
+   - Guardar dinheiro = INCOME em SAVINGS
    - Pagar dívida = DEBT_PAYMENT em DEBT
    - Nova dívida = EXPENSE em DEBT
 4. **Revise periodicamente**: Suas categorias estão alinhadas com seus objetivos?
@@ -208,12 +238,12 @@ Combinam múltiplos indicadores e grupos de categorias.
 ### Exemplo 1: Construindo Reserva
 ```
 1. Recebe salário: INCOME em "Salário" (REGULAR_INCOME)
-2. Guarda 10%: EXPENSE em "Reserva de Emergência" (SAVINGS)
+2. Guarda 10%: INCOME em "Reserva de Emergência" (SAVINGS)
 3. Paga aluguel: EXPENSE em "Aluguel" (ESSENTIAL_EXPENSE)
 4. Vai ao mercado: EXPENSE em "Mercado" (ESSENTIAL_EXPENSE)
 ```
 
-Resultado: TPS positivo, ILI aumentando
+Resultado: TPS = 10%, ILI aumentando
 
 ### Exemplo 2: Pagando Dívida
 ```
@@ -241,9 +271,9 @@ Resultado: Patrimônio crescendo, sem afetar negativamente indicadores
 - Revise despesas em LIFESTYLE_EXPENSE
 
 ### "Meu ILI não aumenta"
-- Confirme que está usando EXPENSE em categorias SAVINGS
+- Confirme que está usando INCOME em categorias SAVINGS
 - Verifique se despesas essenciais não estão muito altas
-- Não use categorias erradas (ex: INCOME em SAVINGS)
+- Não use categorias erradas (ex: EXPENSE em SAVINGS para aportes)
 
 ### "Meu RDR está alto"
 - Priorize DEBT_PAYMENT sobre novos gastos

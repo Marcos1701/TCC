@@ -90,29 +90,27 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     debt_payments = debt_info["payments"]
 
     # Calcular reserva de emergência usando o grupo SAVINGS
-    # Receitas em SAVINGS = aportes na reserva
-    # Despesas em SAVINGS = resgates da reserva
+    # Lógica correta após mudança de tipo:
+    # - INCOME em categoria SAVINGS = aporte na reserva (dinheiro guardado)
+    # - EXPENSE em categoria SAVINGS = resgate da reserva (dinheiro retirado)
+    # Saldo da reserva = Total de aportes (INCOME) - Total de resgates (EXPENSE)
     reserve_transactions = Transaction.objects.filter(
         user=user, 
         category__group=Category.CategoryGroup.SAVINGS
     ).values("type").annotate(total=Sum("amount"))
     
-    reserve_income = Decimal("0")
-    reserve_expense = Decimal("0")
+    reserve_deposits = Decimal("0")  # Aportes (INCOME)
+    reserve_withdrawals = Decimal("0")  # Resgates (EXPENSE)
     
     for item in reserve_transactions:
         tx_type = item["type"]
         total = _decimal(item["total"])
         if tx_type == Transaction.TransactionType.INCOME:
-            # Receita na categoria de reserva = dinheiro entrando na reserva (raro)
-            reserve_income += total
+            # INCOME em SAVINGS = guardar dinheiro na reserva
+            reserve_deposits += total
         elif tx_type == Transaction.TransactionType.EXPENSE:
-            # Despesa na categoria de reserva = aporte na reserva
-            reserve_income += total
-    
-    # Para calcular resgates, precisamos de uma categoria específica ou usar lógica invertida
-    # Vamos considerar que SAVINGS em EXPENSE = aportes (entrada na reserva)
-    # E SAVINGS em INCOME = resgates (saída da reserva) - cenário raro mas possível
+            # EXPENSE em SAVINGS = resgatar dinheiro da reserva
+            reserve_withdrawals += total
 
     # Calcular média de despesas essenciais dos últimos 3 meses para ILI mais estável
     today = timezone.now().date()
@@ -130,21 +128,31 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     essential_expense = essential_expense_total / Decimal("3") if essential_expense_total > 0 else Decimal("0")
 
     # Cálculo do TPS: considera pagamentos de dívida como saída de receita
+    # Importante: Aportes em SAVINGS estão em INCOME, mas não são receita real
+    # TPS = (Receita Real - Despesas - Pagamentos de Dívida) / Receita Real × 100
+    # TPS = (Aportes em Reserva) / Receita Real × 100
+    # Portanto: TPS = reserve_deposits / (income - reserve_deposits) × 100
+    # Ou simplificando: poupança = income - expense - debt_payments - reserve_withdrawals
     tps = Decimal("0")
     rdr = Decimal("0")
     ili = Decimal("0")
     
-    if income > 0:
-        # TPS corrigido: desconta despesas E pagamentos de dívida da receita
-        poupanca = income - expense - debt_payments
-        tps = (poupanca / income) * Decimal("100")
+    # Receita real = receita total - aportes em reserva (que estão contados em INCOME)
+    real_income = income - reserve_deposits
+    
+    if real_income > 0:
+        # TPS: quanto da receita real foi guardado na reserva
+        # Poupança efetiva = aportes na reserva - resgates
+        net_savings = reserve_deposits - reserve_withdrawals
+        tps = (net_savings / real_income) * Decimal("100")
         
         # RDR: usa saldo atual de dívidas se positivo
         if debt_balance > 0:
-            rdr = (debt_balance / income) * Decimal("100")
+            rdr = (debt_balance / real_income) * Decimal("100")
 
     # ILI: quantos meses a reserva cobre de despesas essenciais
-    reserve_balance = reserve_income - reserve_expense
+    # Saldo da reserva = Aportes - Resgates
+    reserve_balance = reserve_deposits - reserve_withdrawals
     if essential_expense > 0:
         ili = reserve_balance / essential_expense
 

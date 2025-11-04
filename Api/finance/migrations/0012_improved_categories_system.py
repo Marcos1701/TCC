@@ -275,15 +275,22 @@ def create_default_categories(apps, schema_editor):
         },
         
         # Poupança e Reserva
+        # IMPORTANTE: Estas categorias são do tipo INCOME (não EXPENSE)
+        # Quando o usuário GUARDA dinheiro, registra como INCOME em "Reserva de Emergência"
+        # Quando o usuário RESGATA dinheiro, registra como EXPENSE em "Reserva de Emergência"
+        # Isso permite:
+        # 1. Calcular TPS corretamente (poupança não conta como despesa)
+        # 2. Rastrear aportes vs resgates
+        # 3. Calcular saldo da reserva = INCOME (aportes) - EXPENSE (resgates)
         {
             "name": "Reserva de Emergência",
-            "type": "EXPENSE",
+            "type": "INCOME",
             "group": "SAVINGS",
             "color": "#8BC34A",
         },
         {
             "name": "Poupança",
-            "type": "EXPENSE",
+            "type": "INCOME",
             "group": "SAVINGS",
             "color": "#9CCC65",
         },
