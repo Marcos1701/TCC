@@ -490,7 +490,13 @@ class Goal(models.Model):
                     category__group=Category.CategoryGroup.DEBT
                 )
         else:  # CUSTOM
-            return Transaction.objects.none()
+            # Para metas personalizadas com atualização automática,
+            # monitorar categorias específicas se definidas
+            if self.tracked_categories.exists():
+                qs = qs.filter(category__in=self.tracked_categories.all())
+            else:
+                # Sem categorias definidas, não retorna transações
+                return Transaction.objects.none()
         
         return qs.order_by('-date')
 

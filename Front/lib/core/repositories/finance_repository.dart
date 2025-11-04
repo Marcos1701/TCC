@@ -226,6 +226,7 @@ class FinanceRepository {
     String? description,
     double? targetAmount,
     double? currentAmount,
+    double? initialAmount,
     DateTime? deadline,
     String? goalType,
     int? targetCategoryId,
@@ -239,6 +240,7 @@ class FinanceRepository {
     if (description != null) payload['description'] = description;
     if (targetAmount != null) payload['target_amount'] = targetAmount;
     if (currentAmount != null) payload['current_amount'] = currentAmount;
+    if (initialAmount != null) payload['initial_amount'] = initialAmount;
     if (deadline != null) {
       payload['deadline'] = deadline.toIso8601String().split('T').first;
     }

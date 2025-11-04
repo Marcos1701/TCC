@@ -28,11 +28,13 @@ class CategoryStats {
 class GoalDetailsPage extends StatefulWidget {
   final GoalModel goal;
   final NumberFormat currency;
+  final VoidCallback? onEdit;
 
   const GoalDetailsPage({
     super.key,
     required this.goal,
     required this.currency,
+    this.onEdit,
   });
 
   @override
@@ -192,18 +194,136 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                           const SizedBox(height: 20),
                           _buildTransactionsSection(theme, tokens),
                         ],
-                        const SizedBox(height: 80), // Espaço para o botão flutuante
+                        const SizedBox(height: 80), // Espaço para os botões flutuantes
                       ],
                     ),
                   ),
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.pop(context, true),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.edit),
-        label: const Text('Editar Meta'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Botão Editar Valor Atual (só para metas personalizadas)
+          if (widget.goal.goalType.value == 'CUSTOM') ...[
+            FloatingActionButton(
+              heroTag: 'edit_current',
+              onPressed: _showEditCurrentAmountDialog,
+              backgroundColor: AppColors.support,
+              child: const Icon(Icons.edit_note),
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Botão Editar Meta
+          FloatingActionButton.extended(
+            heroTag: 'edit_goal',
+            onPressed: () {
+              if (widget.onEdit != null) {
+                Navigator.pop(context);
+                widget.onEdit!();
+              }
+            },
+            backgroundColor: AppColors.primary,
+            icon: const Icon(Icons.edit),
+            label: const Text('Editar Meta'),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _showEditCurrentAmountDialog() async {
+    final controller = TextEditingController(
+      text: widget.goal.currentAmount.toStringAsFixed(2),
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Editar Valor Atual',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: 'Valor atual',
+            labelStyle: TextStyle(color: Colors.grey[400]),
+            prefixText: 'R\$ ',
+            prefixStyle: const TextStyle(color: Colors.white),
+            filled: true,
+            fillColor: Colors.black.withValues(alpha: 0.3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[700]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[700]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Salvar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final newAmount = double.tryParse(controller.text.replaceAll(',', '.'));
+      if (newAmount != null) {
+        try {
+          await _repository.updateGoal(
+            goalId: widget.goal.id,
+            currentAmount: newAmount,
+          );
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Valor atualizado com sucesso!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            // Recarrega os dados
+            _loadData();
+            // Invalida cache
+            CacheManager().invalidateAfterGoalUpdate();
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Erro ao atualizar: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    }
   }
 
   Widget _buildProgressCard(ThemeData theme, AppDecorations tokens) {
@@ -578,7 +698,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   }
 
   Widget _buildTransactionCard(TransactionModel transaction, ThemeData theme, AppDecorations tokens) {
-    final isIncome = transaction.type == 'income';
+    final isIncome = transaction.type.toUpperCase() == 'INCOME';
     final amount = transaction.amount;
 
     return Container(

@@ -84,6 +84,9 @@ class _ProgressPageState extends State<ProgressPage> {
     final targetController = TextEditingController(
       text: goal != null ? goal.targetAmount.toStringAsFixed(2) : '',
     );
+    final initialAmountController = TextEditingController(
+      text: goal != null && goal.initialAmount > 0 ? goal.initialAmount.toStringAsFixed(2) : '',
+    );
     
     // Novos controladores
     GoalType selectedGoalType = goal?.goalType ?? GoalType.custom;
@@ -467,6 +470,51 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  
+                  // Valor Inicial (Opcional)
+                  TextField(
+                    controller: initialAmountController,
+                    enabled: !autoUpdate,
+                    style: TextStyle(
+                      color: autoUpdate ? Colors.grey[600] : Colors.white,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      labelText: autoUpdate 
+                          ? 'Valor inicial (preenchido automaticamente)' 
+                          : 'Valor inicial (opcional)',
+                      labelStyle: TextStyle(color: Colors.grey[400]),
+                      hintText: autoUpdate 
+                          ? 'Será calculado automaticamente' 
+                          : 'Transações antes da criação da meta',
+                      hintStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      prefixText: 'R\$ ',
+                      prefixStyle: TextStyle(
+                        color: autoUpdate ? Colors.grey[600] : Colors.white,
+                      ),
+                      filled: true,
+                      fillColor: autoUpdate 
+                          ? Colors.grey[900]!.withValues(alpha: 0.5)
+                          : Colors.black.withValues(alpha: 0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[800]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   
                   // Toggle de Atualização Automática
@@ -691,6 +739,8 @@ class _ProgressPageState extends State<ProgressPage> {
 
     final target =
         double.tryParse(targetController.text.replaceAll(',', '.')) ?? 0;
+    final initialAmount =
+        double.tryParse(initialAmountController.text.replaceAll(',', '.')) ?? 0;
 
     setState(() => isLoading = true);
 
@@ -700,6 +750,7 @@ class _ProgressPageState extends State<ProgressPage> {
           title: titleController.text.trim(),
           description: descriptionController.text.trim(),
           targetAmount: target,
+          initialAmount: initialAmount,
           deadline: deadline,
           goalType: selectedGoalType.value,
           targetCategoryId: selectedCategoryId,
@@ -716,6 +767,7 @@ class _ProgressPageState extends State<ProgressPage> {
           title: titleController.text.trim(),
           description: descriptionController.text.trim(),
           targetAmount: target,
+          initialAmount: initialAmount,
           deadline: deadline,
           goalType: selectedGoalType.value,
           targetCategoryId: selectedCategoryId,
@@ -1485,6 +1537,7 @@ class _GoalCard extends StatelessWidget {
             builder: (context) => GoalDetailsPage(
               goal: goal,
               currency: currency,
+              onEdit: onEdit,
             ),
           ),
         );

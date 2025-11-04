@@ -1069,10 +1069,6 @@ def update_goal_progress(goal) -> None:
     if not goal.auto_update:
         return
     
-    # Para metas personalizadas, não fazer nada (atualização manual)
-    if goal.goal_type == Goal.GoalType.CUSTOM:
-        return
-    
     # Obter transações relacionadas
     transactions = goal.get_related_transactions()
     
