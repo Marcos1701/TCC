@@ -4,26 +4,28 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class DebtPaymentPage extends StatefulWidget {
-  const DebtPaymentPage({super.key});
+class ExpensePaymentPage extends StatefulWidget {
+  const ExpensePaymentPage({super.key});
 
   @override
-  State<DebtPaymentPage> createState() => _DebtPaymentPageState();
+  State<ExpensePaymentPage> createState() => _ExpensePaymentPageState();
 }
 
-class _DebtPaymentPageState extends State<DebtPaymentPage> {
+class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
   final _repository = FinanceRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final _cacheManager = CacheManager();
   
   List<TransactionModel> _availableIncomes = [];
-  List<TransactionModel> _pendingDebts = [];
+  List<TransactionModel> _pendingExpenses = [];
   bool _isLoading = true;
   String? _errorMessage;
   
   TransactionModel? _selectedIncome;
-  TransactionModel? _selectedDebt;
+  TransactionModel? _selectedExpense;
   int _currentStep = 0;
 
   @override
@@ -45,7 +47,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
       if (!mounted) return;
       setState(() {
         _availableIncomes = incomes;
-        _pendingDebts = debts;
+        _pendingExpenses = debts;
         _isLoading = false;
       });
     } catch (e) {
@@ -70,12 +72,12 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
   }
 
   Future<void> _createLink(double amount) async {
-    if (_selectedIncome == null || _selectedDebt == null) return;
+    if (_selectedIncome == null || _selectedExpense == null) return;
 
     try {
       final request = CreateTransactionLinkRequest(
         sourceId: _selectedIncome!.id,
-        targetId: _selectedDebt!.id,
+        targetId: _selectedExpense!.id,
         amount: amount,
         linkType: 'DEBT_PAYMENT',
       );
@@ -83,6 +85,9 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
       await _repository.createTransactionLink(request);
 
       if (!mounted) return;
+      
+      // Invalida cache após pagar despesa
+      _cacheManager.invalidateAfterPayment();
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -116,7 +121,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? _buildError()
-              : _availableIncomes.isEmpty || _pendingDebts.isEmpty
+              : _availableIncomes.isEmpty || _pendingExpenses.isEmpty
                   ? _buildEmpty()
                   : _buildStepper(),
     );
@@ -303,7 +308,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
       case 0:
         return _selectedIncome != null;
       case 1:
-        return _selectedDebt != null;
+        return _selectedExpense != null;
       case 2:
         return true;
       default:
@@ -321,7 +326,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          color: isSelected ? AppColors.primary.withOpacity(0.2) : const Color(0xFF1E1E1E),
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -340,7 +345,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.2),
+                      color: AppColors.success.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.account_balance_wallet, color: AppColors.success),
@@ -357,32 +362,42 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           income.category?.name ?? 'Sem categoria',
                           style: const TextStyle(color: Colors.white54, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text(
-                              'Total: ${_currency.format(income.amount)}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
-                            ),
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                            Flexible(
                               child: Text(
-                                'Disponível: ${_currency.format(income.availableAmount ?? income.amount)}',
-                                style: const TextStyle(
-                                  color: AppColors.success,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                                'Total: ${_currency.format(income.amount)}',
+                                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Disponível: ${_currency.format(income.availableAmount ?? income.amount)}',
+                                  style: const TextStyle(
+                                    color: AppColors.success,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
@@ -405,16 +420,16 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
   Widget _buildDebtSelection() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _pendingDebts.length,
+      itemCount: _pendingExpenses.length,
       itemBuilder: (context, index) {
-        final debt = _pendingDebts[index];
-        final isSelected = _selectedDebt?.id == debt.id;
+        final debt = _pendingExpenses[index];
+        final isSelected = _selectedExpense?.id == debt.id;
         final percentage = debt.linkPercentage ?? 0.0;
         final remaining = debt.availableAmount ?? debt.amount;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          color: isSelected ? AppColors.primary.withOpacity(0.2) : const Color(0xFF1E1E1E),
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -423,7 +438,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
             ),
           ),
           child: InkWell(
-            onTap: () => setState(() => _selectedDebt = debt),
+            onTap: () => setState(() => _selectedExpense = debt),
             borderRadius: BorderRadius.circular(12),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -436,7 +451,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.alert.withOpacity(0.2),
+                          color: AppColors.alert.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.credit_card, color: AppColors.alert),
@@ -453,11 +468,15 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               debt.category?.name ?? 'Dívida',
                               style: const TextStyle(color: Colors.white54, fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ],
                         ),
@@ -470,22 +489,29 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total: ${_currency.format(debt.amount)}',
-                        style: const TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.alert.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                      Flexible(
                         child: Text(
-                          'Falta: ${_currency.format(remaining)}',
-                          style: const TextStyle(
-                            color: AppColors.alert,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                          'Total: ${_currency.format(debt.amount)}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.alert.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Falta: ${_currency.format(remaining)}',
+                            style: const TextStyle(
+                              color: AppColors.alert,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
@@ -519,7 +545,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
 
   Widget _buildAmountInput() {
     final income = _selectedIncome;
-    final debt = _selectedDebt;
+    final debt = _selectedExpense;
 
     if (income == null || debt == null) {
       return const Center(
@@ -588,8 +614,15 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.success,
                     side: const BorderSide(color: AppColors.success),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   ),
-                  child: Text('Máximo\n${_currency.format(availableIncome)}', textAlign: TextAlign.center),
+                  child: Text(
+                    'Máximo\n${_currency.format(availableIncome)}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -599,8 +632,15 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.alert,
                     side: const BorderSide(color: AppColors.alert),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   ),
-                  child: Text('Quitar\n${_currency.format(remainingDebt)}', textAlign: TextAlign.center),
+                  child: Text(
+                    'Quitar\n${_currency.format(remainingDebt)}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
                 ),
               ),
             ],
@@ -652,7 +692,7 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color),
@@ -665,9 +705,16 @@ class _DebtPaymentPageState extends State<DebtPaymentPage> {
                   Text(
                     title,
                     style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(color: color, fontSize: 14)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: color, fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ],
               ),
             ),

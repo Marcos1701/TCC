@@ -13,11 +13,13 @@ class SessionController extends ChangeNotifier {
   SessionData? _session;
   bool _loading = true;
   bool _bootstrapDone = false;
+  bool _isNewRegistration = false; // Flag para indicar novo cadastro
 
   SessionData? get session => _session;
   bool get isAuthenticated => _session != null;
   bool get isLoading => _loading;
   bool get bootstrapDone => _bootstrapDone;
+  bool get isNewRegistration => _isNewRegistration;
 
   ProfileModel? get profile => _session?.profile;
 
@@ -37,6 +39,7 @@ class SessionController extends ChangeNotifier {
 
   Future<void> login({required String email, required String password}) async {
     _loading = true;
+    _isNewRegistration = false; // Não é novo cadastro
     notifyListeners();
     try {
       final tokens =
@@ -59,6 +62,7 @@ class SessionController extends ChangeNotifier {
     required String password,
   }) async {
     _loading = true;
+    _isNewRegistration = true; // É novo cadastro!
     notifyListeners();
     try {
       final tokens = await _authRepository.register(
@@ -73,6 +77,7 @@ class SessionController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _loading = false;
+      _isNewRegistration = false; // Reset em caso de erro
       notifyListeners();
       rethrow;
     }
@@ -120,7 +125,13 @@ class SessionController extends ChangeNotifier {
   Future<void> logout() async {
     await _authRepository.logout();
     _session = null;
+    _isNewRegistration = false;
     notifyListeners();
+  }
+
+  /// Reseta a flag de novo registro (chamado após verificar onboarding)
+  void clearNewRegistrationFlag() {
+    _isNewRegistration = false;
   }
 }
 

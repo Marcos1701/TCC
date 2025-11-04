@@ -86,7 +86,7 @@ class CreateTransactionLinkRequest {
     return {
       'source_id': sourceId,
       'target_id': targetId,
-      'amount': amount.toString(),
+      'linked_amount': amount.toString(),
       if (linkType != null) 'link_type': linkType,
       if (description != null) 'description': description,
       if (isRecurring != null) 'is_recurring': isRecurring,

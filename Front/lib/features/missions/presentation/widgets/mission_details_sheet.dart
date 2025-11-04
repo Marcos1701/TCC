@@ -117,7 +117,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: typeColor.withOpacity(0.2),
+                      color: typeColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -231,8 +231,8 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         borderRadius: tokens.cardRadius,
         border: Border.all(
           color: isCompleted
-              ? AppColors.support.withOpacity(0.3)
-              : AppColors.primary.withOpacity(0.3),
+              ? AppColors.support.withValues(alpha: 0.3)
+              : AppColors.primary.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -253,7 +253,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: (isCompleted ? AppColors.support : AppColors.primary)
-                      .withOpacity(0.2),
+                      .withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -445,7 +445,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildComponentCard(theme, component),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -479,7 +479,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(12),
         border:
-            met ? Border.all(color: AppColors.support.withOpacity(0.3)) : null,
+            met ? Border.all(color: AppColors.support.withValues(alpha: 0.3)) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,7 +611,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           ...timeline.map((item) {
             final event = item as Map<String, dynamic>;
             return _buildTimelineItem(theme, event);
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -632,7 +632,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             decoration: BoxDecoration(
               color: isFuture
                   ? Colors.grey[800]
-                  : AppColors.primary.withOpacity(0.2),
+                  : AppColors.primary.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -709,7 +709,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
               child:
                   _buildComparisonRow(theme, indicator, data),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -761,7 +761,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: (isPositive ? AppColors.support : AppColors.alert)
-                      .withOpacity(0.15),
+                      .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

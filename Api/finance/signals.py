@@ -45,3 +45,24 @@ def update_missions_on_transaction(sender, instance, created, **kwargs):
         
         # Verificar se precisa atribuir novas missões
         assign_missions_automatically(instance.user)
+
+
+@receiver(post_save, sender=Transaction)
+def update_goals_on_transaction_change(sender, instance, **kwargs):
+    """
+    Atualiza metas com auto_update quando uma transação é criada ou atualizada.
+    """
+    from .services import update_all_active_goals
+    update_all_active_goals(instance.user)
+
+
+from django.db.models.signals import post_delete
+
+
+@receiver(post_delete, sender=Transaction)
+def update_goals_on_transaction_delete(sender, instance, **kwargs):
+    """
+    Atualiza metas com auto_update quando uma transação é deletada.
+    """
+    from .services import update_all_active_goals
+    update_all_active_goals(instance.user)

@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/transaction.dart';
+import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/category_groups.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../presentation/widgets/register_transaction_sheet.dart';
 import '../../presentation/widgets/transaction_details_sheet.dart';
-import 'debt_payment_page.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -20,11 +21,40 @@ class TransactionsPage extends StatefulWidget {
 class _TransactionsPageState extends State<TransactionsPage> {
   final _repository = FinanceRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final _cacheManager = CacheManager();
   String? _filter;
-  late Future<List<TransactionModel>> _future = _repository.fetchTransactions();
+  late Future<Map<String, dynamic>> _future = _fetchData();
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheManager.addListener(_onCacheInvalidated);
+  }
+
+  @override
+  void dispose() {
+    _cacheManager.removeListener(_onCacheInvalidated);
+    super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    if (_cacheManager.isInvalidated(CacheType.transactions)) {
+      _refresh();
+      _cacheManager.clearInvalidation(CacheType.transactions);
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchData() async {
+    final transactions = await _repository.fetchTransactions(type: _filter);
+    final links = await _repository.fetchTransactionLinks();
+    return {
+      'transactions': transactions,
+      'links': links,
+    };
+  }
 
   Future<void> _refresh() async {
-    final data = await _repository.fetchTransactions(type: _filter);
+    final data = await _fetchData();
     if (!mounted) return;
     setState(() => _future = Future.value(data));
   }
@@ -38,7 +68,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
 
     if (created == null) return;
-    await _refresh();
+    
+    // Invalida cache após criar transação
+    _cacheManager.invalidateAfterTransaction(action: 'transaction created');
+    
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Transação adicionada com sucesso.')),
@@ -72,7 +105,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
     if (confirm != true) return;
     await _repository.deleteTransaction(transaction.id);
     if (!mounted) return;
-    await _refresh();
+    
+    // Invalida cache após deletar transação
+    _cacheManager.invalidateAfterTransaction(action: 'transaction deleted');
+    
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Transação removida.')),
@@ -82,7 +118,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   void _applyFilter(String? type) {
     setState(() {
       _filter = type;
-      _future = _repository.fetchTransactions(type: _filter);
+      _future = _fetchData();
     });
   }
 
@@ -97,6 +133,27 @@ class _TransactionsPageState extends State<TransactionsPage> {
           ifAbsent: () => tx.amount);
     }
     return totals;
+  }
+
+  void _showLinkDetails(TransactionLinkModel link) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _TransactionLinkDetailsSheet(
+        link: link,
+        currency: _currency,
+        onDelete: () async {
+          await _repository.deleteTransactionLink(link.id);
+          if (!mounted) return;
+          Navigator.pop(context);
+          _refresh();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Vínculo removido com sucesso.')),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -121,16 +178,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.payment, color: Colors.white),
-            tooltip: 'Pagar Dívida',
-            onPressed: () async {
-              final result = await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DebtPaymentPage()),
-              );
-              if (result == true) _refresh();
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _refresh,
@@ -195,7 +242,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
               child: RefreshIndicator(
                 color: AppColors.primary,
                 onRefresh: _refresh,
-                child: FutureBuilder<List<TransactionModel>>(
+                child: FutureBuilder<Map<String, dynamic>>(
                   future: _future,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -219,8 +266,11 @@ class _TransactionsPageState extends State<TransactionsPage> {
                       );
                     }
 
-                    final transactions = snapshot.data ?? [];
-                    if (transactions.isEmpty) {
+                    final data = snapshot.data ?? {};
+                    final transactions = (data['transactions'] as List<TransactionModel>?) ?? [];
+                    final links = (data['links'] as List<TransactionLinkModel>?) ?? [];
+                    
+                    if (transactions.isEmpty && links.isEmpty) {
                       return ListView(
                         padding: const EdgeInsets.all(24),
                         children: const [
@@ -233,10 +283,34 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     }
 
                     final totals = _buildTotals(transactions);
+                    
+                    // Criar lista combinada de transações e links ordenados por data
+                    final allItems = <Map<String, dynamic>>[];
+                    
+                    // Adicionar transações
+                    for (final transaction in transactions) {
+                      allItems.add({
+                        'type': 'transaction',
+                        'data': transaction,
+                        'date': transaction.date,
+                      });
+                    }
+                    
+                    // Adicionar links
+                    for (final link in links) {
+                      allItems.add({
+                        'type': 'link',
+                        'data': link,
+                        'date': link.createdAt,
+                      });
+                    }
+                    
+                    // Ordenar por data (mais recente primeiro)
+                    allItems.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
 
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-                      itemCount: transactions.length + 1,
+                      itemCount: allItems.length + 1,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         if (index == 0) {
@@ -246,27 +320,44 @@ class _TransactionsPageState extends State<TransactionsPage> {
                             activeFilter: _filter,
                           );
                         }
-                        final transaction = transactions[index - 1];
-                        return _TransactionTile(
-                          transaction: transaction,
-                          currency: _currency,
-                          onTap: () async {
-                            final updated = await showModalBottomSheet(
-                              context: context,
-                              backgroundColor: Colors.transparent,
-                              isScrollControlled: true,
-                              builder: (context) => TransactionDetailsSheet(
-                                transaction: transaction,
-                                repository: _repository,
-                                onUpdate: _refresh,
-                              ),
-                            );
-                            if (updated == true) {
-                              _refresh();
-                            }
-                          },
-                          onRemove: () => _deleteTransaction(transaction),
-                        );
+                        
+                        final item = allItems[index - 1];
+                        final itemType = item['type'] as String;
+                        
+                        if (itemType == 'transaction') {
+                          final transaction = item['data'] as TransactionModel;
+                          return _TransactionTile(
+                            transaction: transaction,
+                            currency: _currency,
+                            onTap: () async {
+                              final updated = await showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                isScrollControlled: true,
+                                builder: (context) => TransactionDetailsSheet(
+                                  transaction: transaction,
+                                  repository: _repository,
+                                  onUpdate: _refresh,
+                                ),
+                              );
+                              if (updated == true) {
+                                _refresh();
+                              }
+                            },
+                            onRemove: () => _deleteTransaction(transaction),
+                          );
+                        } else {
+                          // É um link de transação
+                          final link = item['data'] as TransactionLinkModel;
+                          return _TransactionLinkTile(
+                            link: link,
+                            currency: _currency,
+                            onTap: () {
+                              // Exibir detalhes do link
+                              _showLinkDetails(link);
+                            },
+                          );
+                        }
                       },
                     );
                   },
@@ -375,7 +466,7 @@ class _TransactionTile extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.2),
+              color: accent.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: accent, size: 24),
@@ -592,9 +683,9 @@ class _SummaryMetricCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: metric.color.withOpacity(0.15),
+          color: metric.color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: metric.color.withOpacity(0.3)),
+          border: Border.all(color: metric.color.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,9 +733,9 @@ class _RecurringBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.15),
+        color: AppColors.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -714,3 +805,451 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
+class _TransactionLinkTile extends StatelessWidget {
+  const _TransactionLinkTile({
+    required this.link,
+    required this.currency,
+    required this.onTap,
+  });
+
+  final TransactionLinkModel link;
+  final NumberFormat currency;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
+    
+    return InkWell(
+      onTap: onTap,
+      borderRadius: tokens.cardRadius,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: tokens.cardRadius,
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.link, color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        link.linkTypeLabel,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        DateFormat('dd/MM/yyyy • HH:mm').format(link.createdAt),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  currency.format(link.linkedAmount),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            if (link.sourceTransaction != null && link.targetTransaction != null) ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: Colors.grey),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'De:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          link.sourceTransaction!.description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Icon(Icons.arrow_forward, color: Colors.grey, size: 16),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Para:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          link.targetTransaction!.description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TransactionLinkDetailsSheet extends StatelessWidget {
+  const _TransactionLinkDetailsSheet({
+    required this.link,
+    required this.currency,
+    required this.onDelete,
+  });
+
+  final TransactionLinkModel link;
+  final NumberFormat currency;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[700],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.link, color: AppColors.primary, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              link.linkTypeLabel,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('dd/MM/yyyy • HH:mm').format(link.createdAt),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Valor vinculado',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey[400],
+                          ),
+                        ),
+                        Text(
+                          currency.format(link.linkedAmount),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (link.sourceTransaction != null) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Receita utilizada',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: tokens.cardRadius,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.support.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.trending_up,
+                              color: AppColors.support,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  link.sourceTransaction!.description,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateFormat('dd/MM/yyyy').format(link.sourceTransaction!.date),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            currency.format(link.sourceTransaction!.amount),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.support,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (link.targetTransaction != null) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Dívida paga',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        borderRadius: tokens.cardRadius,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.alert.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.trending_down,
+                              color: AppColors.alert,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  link.targetTransaction!.description,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateFormat('dd/MM/yyyy').format(link.targetTransaction!.date),
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            currency.format(link.targetTransaction!.amount),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.alert,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (link.description != null && link.description!.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Descrição',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.grey[400],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      link.description!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                          label: const Text('Fechar'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: const Color(0xFF1E1E1E),
+                                title: const Text(
+                                  'Remover vínculo',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                                content: Text(
+                                  'Tem certeza que deseja remover este vínculo? Esta ação não pode ser desfeita.',
+                                  style: TextStyle(color: Colors.grey[400]),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: Text(
+                                      'Cancelar',
+                                      style: TextStyle(color: Colors.grey[400]),
+                                    ),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.alert,
+                                    ),
+                                    child: const Text('Remover'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              onDelete();
+                            }
+                          },
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Remover'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.alert,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

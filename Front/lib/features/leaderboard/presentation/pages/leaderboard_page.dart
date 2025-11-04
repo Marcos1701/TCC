@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
@@ -12,6 +13,30 @@ class LeaderboardPage extends StatefulWidget {
 }
 
 class _LeaderboardPageState extends State<LeaderboardPage> {
+  final _cacheManager = CacheManager();
+  
+  @override
+  void initState() {
+    super.initState();
+    _cacheManager.addListener(_onCacheInvalidated);
+  }
+
+  @override
+  void dispose() {
+    _cacheManager.removeListener(_onCacheInvalidated);
+    super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    if (_cacheManager.isInvalidated(CacheType.leaderboard)) {
+      // Atualiza a UI quando o cache é invalidado
+      if (mounted) {
+        setState(() {});
+      }
+      _cacheManager.clearInvalidation(CacheType.leaderboard);
+    }
+  }
+  
   // Dados simulados de ranking
   final List<_UserRankData> _topUsers = [
     _UserRankData(
@@ -186,7 +211,7 @@ class _CurrentUserRankCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             AppColors.primary,
-            AppColors.primary.withOpacity(0.7),
+            AppColors.primary.withValues(alpha: 0.7),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -194,7 +219,7 @@ class _CurrentUserRankCard extends StatelessWidget {
         borderRadius: tokens.cardRadius,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -206,7 +231,7 @@ class _CurrentUserRankCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 32,
-                backgroundColor: Colors.white.withOpacity(0.2),
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
                 child: const Icon(
                   Icons.person,
                   color: Colors.white,
@@ -229,7 +254,7 @@ class _CurrentUserRankCard extends StatelessWidget {
                     Text(
                       'Nível ${rank.level} • ${rank.xp} XP',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -241,7 +266,7 @@ class _CurrentUserRankCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -260,7 +285,7 @@ class _CurrentUserRankCard extends StatelessWidget {
                     Text(
                       'Sua Posição',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 12,
                       ),
                     ),
@@ -331,7 +356,7 @@ class _PodiumWidget extends StatelessWidget {
                 // Avatar e nome
                 CircleAvatar(
                   radius: user.rank == 1 ? 40 : 32,
-                  backgroundColor: _getMedalColor(user.rank).withOpacity(0.2),
+                  backgroundColor: _getMedalColor(user.rank).withValues(alpha: 0.2),
                   child: Icon(
                     Icons.person,
                     color: _getMedalColor(user.rank),
@@ -365,8 +390,8 @@ class _PodiumWidget extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _getMedalColor(user.rank).withOpacity(0.3),
-                        _getMedalColor(user.rank).withOpacity(0.1),
+                        _getMedalColor(user.rank).withValues(alpha: 0.3),
+                        _getMedalColor(user.rank).withValues(alpha: 0.1),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -375,7 +400,7 @@ class _PodiumWidget extends StatelessWidget {
                       top: Radius.circular(12),
                     ),
                     border: Border.all(
-                      color: _getMedalColor(user.rank).withOpacity(0.5),
+                      color: _getMedalColor(user.rank).withValues(alpha: 0.5),
                       width: 2,
                     ),
                   ),
@@ -427,7 +452,7 @@ class _RankTile extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: user.isCurrentUser
-            ? AppColors.primary.withOpacity(0.15)
+            ? AppColors.primary.withValues(alpha: 0.15)
             : const Color(0xFF1E1E1E),
         borderRadius: tokens.cardRadius,
         border: user.isCurrentUser
@@ -436,7 +461,7 @@ class _RankTile extends StatelessWidget {
         boxShadow: user.isCurrentUser
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

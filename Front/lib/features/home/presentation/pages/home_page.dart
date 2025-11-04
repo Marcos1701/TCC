@@ -7,6 +7,7 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/services/gamification_service.dart';
 import '../../../../core/services/mission_notification_service.dart';
@@ -20,7 +21,7 @@ import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
-import '../../../transactions/presentation/pages/debt_payment_page.dart';
+import '../../../transactions/presentation/pages/expense_payment_page.dart';
 import '../../../transactions/presentation/widgets/register_transaction_sheet.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 
@@ -34,7 +35,59 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _repository = FinanceRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final _cacheManager = CacheManager();
   late Future<DashboardData> _future = _repository.fetchDashboard();
+
+  @override
+  void initState() {
+    super.initState();
+    // Escuta mudanças no cache para atualizar automaticamente
+    _cacheManager.addListener(_onCacheInvalidated);
+  }
+
+  @override
+  void dispose() {
+    _cacheManager.removeListener(_onCacheInvalidated);
+    super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    // Recarrega dados quando o cache é invalidado
+    if (_cacheManager.isInvalidated(CacheType.dashboard) && mounted) {
+      _cacheManager.clearInvalidation(CacheType.dashboard);
+      // Força o recarregamento imediato
+      setState(() {
+        _future = _repository.fetchDashboard().then((data) {
+          if (mounted) {
+            final session = SessionScope.of(context);
+            session.updateProfile(data.profile);
+            
+            // Verificar celebrações de gamificação em background
+            GamificationService.checkLevelUp(
+              context: context,
+              profile: data.profile,
+            );
+            
+            GamificationService.checkMissionCompletions(
+              context: context,
+              missions: data.activeMissions,
+            );
+            
+            MissionNotificationService.checkExpiringMissions(
+              context: context,
+              missions: data.activeMissions,
+            );
+            
+            MissionNotificationService.checkNewMissions(
+              context: context,
+              missions: data.activeMissions,
+            );
+          }
+          return data;
+        });
+      });
+    }
+  }
 
   Future<void> _refresh() async {
     final data = await _repository.fetchDashboard();
@@ -50,18 +103,21 @@ class _HomePageState extends State<HomePage> {
       profile: data.profile,
     );
     
+    if (!context.mounted) return;
     await GamificationService.checkMissionCompletions(
       context: context,
       missions: data.activeMissions,
     );
     
     // Verificar missões próximas de expirar
+    if (!context.mounted) return;
     await MissionNotificationService.checkExpiringMissions(
       context: context,
       missions: data.activeMissions,
     );
     
     // Verificar novas missões
+    if (!context.mounted) return;
     await MissionNotificationService.checkNewMissions(
       context: context,
       missions: data.activeMissions,
@@ -82,17 +138,14 @@ class _HomePageState extends State<HomePage> {
 
     if (created == null || !mounted) return;
     
+    // Invalida cache globalmente após criar transação
+    _cacheManager.invalidateAfterTransaction(action: 'transaction created');
+    
     // Mostrar feedback de sucesso
     FeedbackService.showSuccess(
       context,
       '✅ Transação registrada! Confira seu progresso nas missões.',
     );
-    
-    // Aguardar um pouco antes de atualizar
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Atualizar dados e sessão
-    await _refresh();
   }
 
   void _openPage(Widget page) {
@@ -452,10 +505,10 @@ class _HomeSummaryCard extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   icon: Icons.payment,
-                  label: 'Pagar Dívida',
+                  label: 'Pagar Despesa',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const DebtPaymentPage()),
+                      MaterialPageRoute(builder: (_) => const ExpensePaymentPage()),
                     );
                   },
                 ),
@@ -858,8 +911,8 @@ class _BalanceEvolutionCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: trend >= 0 
-                      ? AppColors.support.withOpacity(0.2)
-                      : AppColors.alert.withOpacity(0.2),
+                      ? AppColors.support.withValues(alpha: 0.2)
+                      : AppColors.alert.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -911,8 +964,8 @@ class _BalanceEvolutionCard extends StatelessWidget {
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary.withOpacity(0.3),
-                          AppColors.primary.withOpacity(0.0),
+                          AppColors.primary.withValues(alpha: 0.3),
+                          AppColors.primary.withValues(alpha: 0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -1007,12 +1060,28 @@ class _TransactionHistorySection extends StatefulWidget {
 
 class _TransactionHistorySectionState
     extends State<_TransactionHistorySection> {
+  final _cacheManager = CacheManager();
   late Future<List<TransactionModel>> _transactionsFuture;
 
   @override
   void initState() {
     super.initState();
     _transactionsFuture = widget.repository.fetchTransactions();
+    _cacheManager.addListener(_onCacheInvalidated);
+  }
+
+  @override
+  void dispose() {
+    _cacheManager.removeListener(_onCacheInvalidated);
+    super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    if (_cacheManager.isInvalidated(CacheType.transactions) && mounted) {
+      setState(() {
+        _transactionsFuture = widget.repository.fetchTransactions();
+      });
+    }
   }
 
   @override
@@ -1202,7 +1271,7 @@ class _TransactionTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
+          color: color.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/models/category.dart';
 import '../../../../core/models/goal.dart';
 import '../../../../core/models/profile.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
@@ -18,7 +20,27 @@ class ProgressPage extends StatefulWidget {
 class _ProgressPageState extends State<ProgressPage> {
   final _repository = FinanceRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
+  final _cacheManager = CacheManager();
   late Future<List<GoalModel>> _future = _repository.fetchGoals();
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheManager.addListener(_onCacheInvalidated);
+  }
+
+  @override
+  void dispose() {
+    _cacheManager.removeListener(_onCacheInvalidated);
+    super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    if (_cacheManager.isInvalidated(CacheType.progress)) {
+      _refresh();
+      _cacheManager.clearInvalidation(CacheType.progress);
+    }
+  }
 
   Future<void> _refresh() async {
     final data = await _repository.fetchGoals();
@@ -33,167 +55,193 @@ class _ProgressPageState extends State<ProgressPage> {
     final targetController = TextEditingController(
       text: goal != null ? goal.targetAmount.toStringAsFixed(2) : '',
     );
-    final currentController = TextEditingController(
-      text: goal != null ? goal.currentAmount.toStringAsFixed(2) : '',
-    );
+    
+    // Novos controladores
+    GoalType selectedGoalType = goal?.goalType ?? GoalType.custom;
+    int? selectedCategoryId = goal?.targetCategory;
+    bool autoUpdate = goal?.autoUpdate ?? false;
+    TrackingPeriod trackingPeriod = goal?.trackingPeriod ?? TrackingPeriod.total;
+    bool isReductionGoal = goal?.isReductionGoal ?? false;
     DateTime? deadline = goal?.deadline;
-    String? selectedCategory;
     bool isLoading = false;
+    
+    // Buscar categorias disponíveis
+    List<CategoryModel> categories = [];
+    try {
+      categories = await _repository.fetchCategories();
+    } catch (e) {
+      // Ignora erro
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  goal == null ? Icons.add_circle_outline : Icons.edit_outlined,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  goal == null ? 'Nova Meta' : 'Editar Meta',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (context, setState) {
+          // Verifica se precisa de categoria
+          final needsCategory = selectedGoalType == GoalType.categoryExpense ||
+              selectedGoalType == GoalType.categoryIncome;
+          
+          // Automaticamente define isReductionGoal para CATEGORY_EXPENSE
+          if (selectedGoalType == GoalType.categoryExpense && !isReductionGoal) {
+            isReductionGoal = true;
+          }
+          
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
               children: [
-                // Seletor de Categoria
-                Text(
-                  'Categoria',
-                  style: TextStyle(
-                    color: Colors.grey[300],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Container(
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.grey[700]!,
-                      width: 1,
-                    ),
                   ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedCategory,
-                      isExpanded: true,
-                      dropdownColor: const Color(0xFF1E1E1E),
-                      hint: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'Selecione uma categoria',
-                          style: TextStyle(color: Colors.grey[500]),
-                        ),
-                      ),
-                      icon: Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
-                      ),
-                      onChanged: isLoading ? null : (value) async {
-                        setState(() {
-                          selectedCategory = value;
-                          isLoading = true;
-                        });
-
-                        // Buscar valor atual da categoria se não for "Externa"
-                        if (value != null && value != 'Externa') {
-                          try {
-                            // TODO: Implementar busca do valor atual da categoria via API
-                            // Por enquanto, apenas limpa o campo
-                            currentController.clear();
-                          } catch (e) {
-                            // Ignora erro
-                          }
-                        }
-
-                        setState(() => isLoading = false);
-                      },
-                      items: [
-                        DropdownMenuItem(
-                          value: 'Renda',
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.trending_up, color: AppColors.support, size: 20),
-                                const SizedBox(width: 12),
-                                const Text('Renda', style: TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Investimentos',
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.account_balance_wallet, color: AppColors.highlight, size: 20),
-                                const SizedBox(width: 12),
-                                const Text('Investimentos', style: TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Despesa',
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.trending_down, color: AppColors.alert, size: 20),
-                                const SizedBox(width: 12),
-                                const Text('Despesa (Redução)', style: TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Externa',
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.category, color: AppColors.primary, size: 20),
-                                const SizedBox(width: 12),
-                                const Text('Externa (Valor Livre)', style: TextStyle(color: Colors.white)),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                  child: Icon(
+                    goal == null ? Icons.add_circle_outline : Icons.edit_outlined,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    goal == null ? 'Nova Meta' : 'Editar Meta',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
                     ),
                   ),
                 ),
-                
-                if (selectedCategory != null) ...[
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Seletor de Tipo de Meta
+                  Text(
+                    'Tipo de Meta',
+                    style: TextStyle(
+                      color: Colors.grey[300],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey[700]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<GoalType>(
+                        value: selectedGoalType,
+                        isExpanded: true,
+                        dropdownColor: const Color(0xFF1E1E1E),
+                        icon: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+                        ),
+                        onChanged: isLoading ? null : (value) {
+                          setState(() {
+                            selectedGoalType = value!;
+                            // Limpar categoria se não for necessária
+                            if (!needsCategory) {
+                              selectedCategoryId = null;
+                            }
+                          });
+                        },
+                        items: GoalType.values.map((type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    type.icon,
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    type.label,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 20),
+                  
+                  // Seletor de Categoria (condicional)
+                  if (needsCategory) ...[
+                    Text(
+                      'Categoria',
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey[700]!,
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          value: selectedCategoryId,
+                          isExpanded: true,
+                          dropdownColor: const Color(0xFF1E1E1E),
+                          hint: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'Selecione uma categoria',
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          ),
+                          icon: Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+                          ),
+                          onChanged: isLoading ? null : (value) {
+                            setState(() => selectedCategoryId = value);
+                          },
+                          items: categories.map<DropdownMenuItem<int>>((cat) {
+                            return DropdownMenuItem<int>(
+                              value: cat.id,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                child: Text(
+                                  cat.name,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   
                   // Título
                   TextField(
@@ -203,7 +251,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       labelText: 'Título',
                       labelStyle: TextStyle(color: Colors.grey[400]),
                       filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
+                      fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -229,7 +277,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       labelText: 'Descrição (opcional)',
                       labelStyle: TextStyle(color: Colors.grey[400]),
                       filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
+                      fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -257,7 +305,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       prefixText: 'R\$ ',
                       prefixStyle: const TextStyle(color: Colors.white),
                       filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
+                      fillColor: Colors.black.withValues(alpha: 0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -272,51 +320,104 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   
-                  // Valor Atual
-                  TextField(
-                    controller: currentController,
-                    style: const TextStyle(color: Colors.white),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    enabled: selectedCategory == 'Externa',
-                    decoration: InputDecoration(
-                      labelText: selectedCategory == 'Externa' 
-                        ? 'Valor atual' 
-                        : 'Valor atual (automático)',
-                      labelStyle: TextStyle(color: Colors.grey[400]),
-                      prefixText: 'R\$ ',
-                      prefixStyle: const TextStyle(color: Colors.white),
-                      filled: true,
-                      fillColor: Colors.black.withOpacity(0.3),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      disabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey[800]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
-                      ),
-                      helperText: selectedCategory != 'Externa'
-                        ? 'Valor obtido automaticamente da categoria'
-                        : null,
-                      helperStyle: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  // Toggle de Atualização Automática
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[700]!),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          autoUpdate ? Icons.sync : Icons.sync_disabled,
+                          color: autoUpdate ? AppColors.support : Colors.grey[500],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Atualização Automática',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                autoUpdate
+                                    ? 'Progresso atualizado com transações'
+                                    : 'Controle manual do progresso',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: autoUpdate,
+                          onChanged: selectedGoalType == GoalType.custom
+                              ? null
+                              : (value) {
+                                  setState(() => autoUpdate = value);
+                                },
+                          activeColor: AppColors.support,
+                        ),
+                      ],
                     ),
                   ),
+                  
+                  // Período de Tracking (se auto_update ativado)
+                  if (autoUpdate && needsCategory) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Período de Rastreamento',
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: TrackingPeriod.values.map((period) {
+                        final isSelected = trackingPeriod == period;
+                        return ChoiceChip(
+                          label: Text(period.label),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => trackingPeriod = period);
+                            }
+                          },
+                          selectedColor: AppColors.primary.withValues(alpha: 0.3),
+                          backgroundColor: Colors.black.withValues(alpha: 0.3),
+                          labelStyle: TextStyle(
+                            color: isSelected ? AppColors.primary : Colors.white,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                          side: BorderSide(
+                            color: isSelected ? AppColors.primary : Colors.grey[700]!,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                  
                   const SizedBox(height: 16),
                   
                   // Prazo
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[700]!),
                     ),
@@ -367,88 +468,75 @@ class _ProgressPageState extends State<ProgressPage> {
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
-            ),
-            ElevatedButton(
-              onPressed: selectedCategory == null || isLoading
-                  ? null
-                  : () {
-                      // Validações
-                      if (titleController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Título é obrigatório'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-                      
-                      final target = double.tryParse(targetController.text.replaceAll(',', '.'));
-                      final current = double.tryParse(currentController.text.replaceAll(',', '.'));
-                      
-                      if (target == null || target <= 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Valor alvo deve ser maior que zero'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                        return;
-                      }
-                      
-                      // Validação por categoria
-                      if (selectedCategory == 'Renda' || selectedCategory == 'Investimentos') {
-                        if (current != null && target <= current) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Meta de $selectedCategory deve ser maior que o valor atual'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
-                          return;
-                        }
-                      } else if (selectedCategory == 'Despesa') {
-                        if (current != null && target >= current) {
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        // Validações
+                        if (titleController.text.trim().isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Meta de redução deve ser menor que o valor atual'),
+                              content: Text('Título é obrigatório'),
                               backgroundColor: Colors.red,
                             ),
                           );
                           return;
                         }
-                      }
-                      
-                      Navigator.pop(context, true);
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                disabledBackgroundColor: Colors.grey[800],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                        
+                        final target = double.tryParse(targetController.text.replaceAll(',', '.'));
+                        
+                        if (target == null || target <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Valor alvo deve ser maior que zero'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        
+                        // Validar categoria obrigatória
+                        if (needsCategory && selectedCategoryId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Selecione uma categoria para este tipo de meta'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                          return;
+                        }
+                        
+                        Navigator.pop(context, true);
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: Colors.grey[800],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text('Salvar', style: TextStyle(fontWeight: FontWeight.w600)),
               ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text('Salvar', style: TextStyle(fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
 
@@ -456,46 +544,81 @@ class _ProgressPageState extends State<ProgressPage> {
 
     final target =
         double.tryParse(targetController.text.replaceAll(',', '.')) ?? 0;
-    final current =
-        double.tryParse(currentController.text.replaceAll(',', '.')) ?? 0;
 
-    if (goal == null) {
-      await _repository.createGoal(
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
-        targetAmount: target,
-        currentAmount: current,
-        deadline: deadline,
-      );
-    } else {
-      await _repository.updateGoal(
-        goalId: goal.id,
-        title: titleController.text.trim(),
-        description: descriptionController.text.trim(),
-        targetAmount: target,
-        currentAmount: current,
-        deadline: deadline,
-      );
-    }
+    setState(() => isLoading = true);
 
-    if (!mounted) return;
-    await _refresh();
-    
-    // Feedback de sucesso
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Text(goal == null ? 'Meta criada com sucesso!' : 'Meta atualizada!'),
-          ],
+    try {
+      if (goal == null) {
+        await _repository.createGoal(
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim(),
+          targetAmount: target,
+          deadline: deadline,
+          goalType: selectedGoalType.value,
+          targetCategoryId: selectedCategoryId,
+          autoUpdate: autoUpdate,
+          trackingPeriod: trackingPeriod.value,
+          isReductionGoal: isReductionGoal,
+        );
+      } else {
+        await _repository.updateGoal(
+          goalId: goal.id,
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim(),
+          targetAmount: target,
+          deadline: deadline,
+          goalType: selectedGoalType.value,
+          targetCategoryId: selectedCategoryId,
+          autoUpdate: autoUpdate,
+          trackingPeriod: trackingPeriod.value,
+          isReductionGoal: isReductionGoal,
+        );
+      }
+      
+      if (!mounted) return;
+      
+      // Invalida cache após criar/editar meta
+      _cacheManager.invalidateAfterGoalUpdate();
+      
+      // Feedback de sucesso
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(goal == null ? 'Meta criada com sucesso!' : 'Meta atualizada!'),
+            ],
+          ),
+          backgroundColor: AppColors.support,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        backgroundColor: AppColors.support,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+      );
+      
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Text('Erro ao salvar meta: $e'),
+            ],
+          ),
+          backgroundColor: AppColors.alert,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
 
   Future<void> _deleteGoal(GoalModel goal) async {
@@ -526,7 +649,9 @@ class _ProgressPageState extends State<ProgressPage> {
     if (confirm == true) {
       await _repository.deleteGoal(goal.id);
       if (!mounted) return;
-      await _refresh();
+      
+      // Invalida cache após deletar meta
+      _cacheManager.invalidateAfterGoalUpdate();
     }
   }
 
@@ -628,7 +753,7 @@ class _ProgressPageState extends State<ProgressPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -710,7 +835,7 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
           end: Alignment.bottomRight,
           colors: [
             AppColors.primary,
-            AppColors.primary.withOpacity(0.7),
+            AppColors.primary.withValues(alpha: 0.7),
           ],
         ),
         borderRadius: tokens.cardRadius,
@@ -724,7 +849,7 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -942,7 +1067,7 @@ class _TargetBadge extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -969,10 +1094,10 @@ class _TargetBadge extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: color.withOpacity(0.3),
+                    color: color.withValues(alpha: 0.3),
                     width: 1,
                   ),
                 ),
@@ -1032,7 +1157,7 @@ class _TargetBadge extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1076,7 +1201,7 @@ class _TargetBadge extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1117,7 +1242,7 @@ class _TargetBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
@@ -1170,15 +1295,16 @@ class _GoalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final progressPercent = (goal.progress * 100).clamp(0, 100);
+    final progressPercent = goal.progressPercentage.clamp(0, 100);
     final tokens = theme.extension<AppDecorations>()!;
-    final isCompleted = goal.progress >= 1.0;
+    final isCompleted = goal.isCompleted;
+    final isExpired = goal.isExpired;
     
     // Calcular dias restantes
     String? deadlineInfo;
     Color? deadlineColor;
     if (goal.deadline != null) {
-      final daysRemaining = goal.deadline!.difference(DateTime.now()).inDays;
+      final daysRemaining = goal.daysRemaining!;
       if (daysRemaining < 0) {
         deadlineInfo = 'Prazo expirado';
         deadlineColor = AppColors.alert;
@@ -1202,31 +1328,134 @@ class _GoalCard extends StatelessWidget {
         borderRadius: tokens.cardRadius,
         boxShadow: tokens.mediumShadow,
         border: isCompleted
-            ? Border.all(color: AppColors.support.withOpacity(0.3), width: 1.5)
-            : null,
+            ? Border.all(color: AppColors.support.withValues(alpha: 0.3), width: 1.5)
+            : isExpired
+                ? Border.all(color: AppColors.alert.withValues(alpha: 0.3), width: 1.5)
+                : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header com tipo e menu
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Ícone do tipo de meta
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  goal.goalType.icon,
+                  style: const TextStyle(fontSize: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      goal.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            goal.title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        // Badge do tipo
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            goal.goalType.label,
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        // Badge de atualização automática
+                        if (goal.autoUpdate)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.support.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.sync, size: 10, color: AppColors.support),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Auto',
+                                  style: TextStyle(
+                                    color: AppColors.support,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        // Badge da categoria (se houver)
+                        if (goal.categoryName != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[800],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              goal.categoryName!,
+                              style: TextStyle(
+                                color: Colors.grey[300],
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        // Badge do período (se não for TOTAL)
+                        if (goal.trackingPeriod != TrackingPeriod.total)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF9800).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              goal.trackingPeriod.label,
+                              style: const TextStyle(
+                                color: Color(0xFFFF9800),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     if (goal.description.isNotEmpty) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Text(
                         goal.description,
-                        style: theme.textTheme.bodyMedium?.copyWith(
+                        style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.grey[400],
                         ),
                       ),
@@ -1344,10 +1573,10 @@ class _GoalCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.support.withOpacity(0.1),
+                color: AppColors.support.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.support.withOpacity(0.3),
+                  color: AppColors.support.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -1363,6 +1592,38 @@ class _GoalCard extends StatelessWidget {
                       'Meta alcançada! Parabéns pelo seu compromisso!',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.support,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isExpired) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.alert.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.alert.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.warning_amber,
+                    color: AppColors.alert,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Prazo expirado. Considere ajustar sua meta ou criar uma nova.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.alert,
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
                       ),

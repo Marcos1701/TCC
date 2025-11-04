@@ -333,20 +333,140 @@ class TransactionLink(models.Model):
 
 
 class Goal(models.Model):
+    """
+    Modelo de Metas Financeiras.
+    
+    Tipos de metas:
+    - SAVINGS: Juntar dinheiro (soma de SAVINGS + INVESTMENT)
+    - CATEGORY_EXPENSE: Reduzir gastos em categoria específica
+    - CATEGORY_INCOME: Aumentar receita em categoria específica
+    - DEBT_REDUCTION: Reduzir dívidas (soma de DEBT)
+    - CUSTOM: Meta personalizada (atualização manual)
+    """
+    
+    class GoalType(models.TextChoices):
+        SAVINGS = "SAVINGS", "Juntar Dinheiro"
+        CATEGORY_EXPENSE = "CATEGORY_EXPENSE", "Reduzir Gastos"
+        CATEGORY_INCOME = "CATEGORY_INCOME", "Aumentar Receita"
+        DEBT_REDUCTION = "DEBT_REDUCTION", "Reduzir Dívidas"
+        CUSTOM = "CUSTOM", "Personalizada"
+    
+    class TrackingPeriod(models.TextChoices):
+        MONTHLY = "MONTHLY", "Mensal"
+        QUARTERLY = "QUARTERLY", "Trimestral"
+        TOTAL = "TOTAL", "Total"
+    
+    # Campos básicos
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="goals")
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
     target_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     deadline = models.DateField(null=True, blank=True)
+    
+    # Novos campos para metas avançadas
+    goal_type = models.CharField(
+        max_length=20,
+        choices=GoalType.choices,
+        default=GoalType.CUSTOM,
+        help_text="Tipo da meta"
+    )
+    target_category = models.ForeignKey(
+        Category,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="goals",
+        help_text="Categoria vinculada (para metas CATEGORY_*)"
+    )
+    auto_update = models.BooleanField(
+        default=False,
+        help_text="Atualizar automaticamente com base nas transações"
+    )
+    tracking_period = models.CharField(
+        max_length=10,
+        choices=TrackingPeriod.choices,
+        default=TrackingPeriod.TOTAL,
+        help_text="Período de rastreamento"
+    )
+    is_reduction_goal = models.BooleanField(
+        default=False,
+        help_text="True se o objetivo é reduzir (gastos/dívidas)"
+    )
+    
+    # Metadados
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ("deadline", "title")
+        ordering = ("-created_at",)
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.title} ({self.user})"
+    
+    @property
+    def progress_percentage(self) -> float:
+        """Calcula a porcentagem de progresso da meta."""
+        if self.target_amount == 0:
+            return 0.0
+        return min(100.0, (float(self.current_amount) / float(self.target_amount)) * 100.0)
+    
+    def get_tracking_date_range(self):
+        """Retorna o intervalo de datas para rastreamento baseado no período."""
+        from django.utils import timezone
+        
+        end_date = self.deadline or timezone.now().date()
+        
+        if self.tracking_period == self.TrackingPeriod.MONTHLY:
+            # Primeiro dia do mês atual
+            start_date = timezone.now().replace(day=1).date()
+        elif self.tracking_period == self.TrackingPeriod.QUARTERLY:
+            # Primeiro dia do trimestre atual
+            current = timezone.now()
+            quarter_month = ((current.month - 1) // 3) * 3 + 1
+            start_date = current.replace(month=quarter_month, day=1).date()
+        else:  # TOTAL
+            start_date = self.created_at.date()
+        
+        return start_date, end_date
+    
+    def get_related_transactions(self):
+        """Retorna as transações relacionadas a esta meta."""
+        start_date, end_date = self.get_tracking_date_range()
+        
+        # Base queryset
+        qs = Transaction.objects.filter(
+            user=self.user,
+            date__range=[start_date, end_date]
+        )
+        
+        # Filtrar por tipo de meta
+        if self.goal_type == self.GoalType.SAVINGS:
+            # Inclui SAVINGS e INVESTMENT
+            qs = qs.filter(
+                category__group__in=[Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]
+            )
+        elif self.goal_type == self.GoalType.CATEGORY_EXPENSE:
+            # Gastos em categoria específica
+            qs = qs.filter(
+                category=self.target_category,
+                type=Transaction.TransactionType.EXPENSE
+            )
+        elif self.goal_type == self.GoalType.CATEGORY_INCOME:
+            # Receitas em categoria específica
+            qs = qs.filter(
+                category=self.target_category,
+                type=Transaction.TransactionType.INCOME
+            )
+        elif self.goal_type == self.GoalType.DEBT_REDUCTION:
+            # Pagamentos de dívidas
+            qs = qs.filter(
+                category__group=Category.CategoryGroup.DEBT
+            )
+        else:  # CUSTOM
+            return Transaction.objects.none()
+        
+        return qs.order_by('-date')
 
 
 class Mission(models.Model):

@@ -1,13 +1,106 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
+import '../../../../core/storage/onboarding_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../home/presentation/pages/home_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
+import '../../../onboarding/presentation/pages/initial_setup_page.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final _repository = FinanceRepository();
+
+  void _showEditProfileSheet(BuildContext context, dynamic user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _EditProfileSheet(
+        currentName: user?.name ?? '',
+        currentEmail: user?.email ?? '',
+        onSave: (name, email) async {
+          try {
+            await _repository.updateUserProfile(name: name, email: email);
+            if (!context.mounted) return;
+            final session = SessionScope.of(context);
+            await session.refreshSession();
+            if (!context.mounted) return;
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Perfil atualizado com sucesso!')),
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao atualizar perfil: $e')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _showChangePasswordSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ChangePasswordSheet(
+        onSave: (currentPassword, newPassword) async {
+          try {
+            await _repository.changePassword(currentPassword: currentPassword, newPassword: newPassword);
+            if (!context.mounted) return;
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Senha alterada com sucesso!')),
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao alterar senha: $e')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _DeleteAccountDialog(
+        onConfirm: (password) async {
+          try {
+            await _repository.deleteAccount(password: password);
+            if (!context.mounted) return;
+            Navigator.pop(context);
+            await SessionScope.of(context).logout();
+            if (!context.mounted) return;
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomePage()),
+              (route) => false,
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao excluir conta: $e')),
+            );
+          }
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +133,15 @@ class SettingsPage extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withOpacity(0.2),
-                  AppColors.primary.withOpacity(0.05),
+                  AppColors.primary.withValues(alpha: 0.2),
+                  AppColors.primary.withValues(alpha: 0.05),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: tokens.cardRadius,
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -61,9 +154,9 @@ class SettingsPage extends StatelessWidget {
                       height: 60,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: AppColors.primary.withOpacity(0.2),
+                        color: AppColors.primary.withValues(alpha: 0.2),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.person,
                         color: AppColors.primary,
                         size: 32,
@@ -139,12 +232,20 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 12),
           
           _SettingsTile(
-            icon: Icons.person_outline,
+            icon: Icons.edit_outlined,
             title: 'Editar Perfil',
-            subtitle: 'Altere suas informações pessoais',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ProfilePage()),
-            ),
+            subtitle: 'Alterar nome e e-mail',
+            onTap: () => _showEditProfileSheet(context, user),
+            tokens: tokens,
+            theme: theme,
+          ),
+          const SizedBox(height: 12),
+          
+          _SettingsTile(
+            icon: Icons.lock_outline,
+            title: 'Alterar Senha',
+            subtitle: 'Atualizar sua senha de acesso',
+            onTap: () => _showChangePasswordSheet(context),
             tokens: tokens,
             theme: theme,
           ),
@@ -160,111 +261,33 @@ class SettingsPage extends StatelessWidget {
             tokens: tokens,
             theme: theme,
           ),
-          const SizedBox(height: 24),
-
-          // Seção de Preferências
-          Text(
-            'Preferências',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.grey[400],
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
           const SizedBox(height: 12),
           
           _SettingsTile(
-            icon: Icons.notifications_outlined,
-            title: 'Notificações',
-            subtitle: 'Gerencie suas notificações',
-            onTap: () => _showComingSoon(context),
+            icon: Icons.replay_rounded,
+            title: 'Refazer Configuração Inicial',
+            subtitle: 'Adicionar mais transações essenciais',
+            onTap: () async {
+              // Reseta o onboarding e abre a tela
+              await OnboardingStorage.resetOnboarding();
+              if (!context.mounted) return;
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const InitialSetupPage(),
+                  fullscreenDialog: true,
+                ),
+              );
+            },
             tokens: tokens,
             theme: theme,
           ),
           const SizedBox(height: 12),
           
           _SettingsTile(
-            icon: Icons.dark_mode_outlined,
-            title: 'Tema',
-            subtitle: 'Modo escuro ativado',
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: AppColors.primary,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Ativo',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            onTap: null,
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.language_outlined,
-            title: 'Idioma',
-            subtitle: 'Português (Brasil)',
-            onTap: () => _showComingSoon(context),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 24),
-
-          // Seção de Suporte
-          Text(
-            'Suporte',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.grey[400],
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.help_outline,
-            title: 'Central de Ajuda',
-            subtitle: 'Encontre respostas para suas dúvidas',
-            onTap: () => _showComingSoon(context),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.bug_report_outlined,
-            title: 'Reportar Problema',
-            subtitle: 'Nos ajude a melhorar o app',
-            onTap: () => _showComingSoon(context),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.info_outline,
-            title: 'Sobre',
-            subtitle: 'Versão 1.0.0',
-            onTap: () => _showAboutDialog(context),
+            icon: Icons.delete_forever_outlined,
+            title: 'Excluir Conta',
+            subtitle: 'Remover permanentemente sua conta',
+            onTap: () => _showDeleteAccountDialog(context),
             tokens: tokens,
             theme: theme,
           ),
@@ -289,92 +312,6 @@ class SettingsPage extends StatelessWidget {
                 color: AppColors.alert,
                 fontWeight: FontWeight.w700,
               ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Funcionalidade em desenvolvimento'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
-  static void _showAboutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.account_balance_wallet,
-                color: AppColors.primary,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'GenApp',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Versão 1.0.0',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[400],
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Um aplicativo de educação financeira gamificado para ajudar você a alcançar seus objetivos financeiros.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[300],
-                    height: 1.5,
-                  ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '© 2025 GenApp',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
-                    fontSize: 11,
-                  ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Fechar',
-              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],
@@ -492,14 +429,12 @@ class _SettingsTile extends StatelessWidget {
     required this.onTap,
     required this.tokens,
     required this.theme,
-    this.trailing,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
-  final Widget? trailing;
   final AppDecorations tokens;
   final ThemeData theme;
 
@@ -523,7 +458,7 @@ class _SettingsTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: Colors.white, size: 22),
@@ -551,9 +486,7 @@ class _SettingsTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null)
-                  trailing!
-                else if (onTap != null)
+                if (onTap != null)
                   Icon(
                     Icons.chevron_right_rounded,
                     color: Colors.grey[600],
@@ -564,6 +497,405 @@ class _SettingsTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EditProfileSheet extends StatefulWidget {
+  final String currentName;
+  final String currentEmail;
+  final Function(String name, String email) onSave;
+
+  const _EditProfileSheet({
+    required this.currentName,
+    required this.currentEmail,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends State<_EditProfileSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.currentName);
+    _emailController = TextEditingController(text: widget.currentEmail);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Editar Perfil',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Nome',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.person, color: Colors.white70),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, insira seu nome';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'E-mail',
+                  labelStyle: TextStyle(color: Colors.white70),
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.email, color: Colors.white70),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, insira seu e-mail';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Por favor, insira um e-mail válido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      widget.onSave(
+                        _nameController.text.trim(),
+                        _emailController.text.trim(),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Salvar Alterações'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChangePasswordSheet extends StatefulWidget {
+  final Function(String currentPassword, String newPassword) onSave;
+
+  const _ChangePasswordSheet({required this.onSave});
+
+  @override
+  State<_ChangePasswordSheet> createState() => _ChangePasswordSheetState();
+}
+
+class _ChangePasswordSheetState extends State<_ChangePasswordSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Alterar Senha',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: _currentPasswordController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Senha Atual',
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outline, color: Colors.white70),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscureCurrentPassword = !_obscureCurrentPassword);
+                    },
+                  ),
+                ),
+                obscureText: _obscureCurrentPassword,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, insira sua senha atual';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _newPasswordController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Nova Senha',
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.white70),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscureNewPassword = !_obscureNewPassword);
+                    },
+                  ),
+                ),
+                obscureText: _obscureNewPassword,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, insira a nova senha';
+                  }
+                  if (value.length < 6) {
+                    return 'A senha deve ter pelo menos 6 caracteres';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmPasswordController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'Confirmar Nova Senha',
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.white70),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white70,
+                    ),
+                    onPressed: () {
+                      setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                    },
+                  ),
+                ),
+                obscureText: _obscureConfirmPassword,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Por favor, confirme a nova senha';
+                  }
+                  if (value != _newPasswordController.text) {
+                    return 'As senhas não coincidem';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      widget.onSave(
+                        _currentPasswordController.text,
+                        _newPasswordController.text,
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Alterar Senha'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  final Function(String password) onConfirm;
+
+  const _DeleteAccountDialog({required this.onConfirm});
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.grey[900],
+      title: const Row(
+        children: [
+          Icon(Icons.warning, color: Colors.red, size: 28),
+          SizedBox(width: 12),
+          Text('Excluir Conta', style: TextStyle(color: Colors.white)),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Esta ação é irreversível!',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Todos os seus dados, incluindo transações, missões e progresso serão permanentemente excluídos.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _passwordController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Digite sua senha para confirmar',
+              labelStyle: const TextStyle(color: Colors.white70),
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.lock, color: Colors.white70),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.white70,
+                ),
+                onPressed: () {
+                  setState(() => _obscurePassword = !_obscurePassword);
+                },
+              ),
+            ),
+            obscureText: _obscurePassword,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (_passwordController.text.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Por favor, digite sua senha')),
+              );
+              return;
+            }
+            widget.onConfirm(_passwordController.text);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Excluir Conta'),
+        ),
+      ],
     );
   }
 }

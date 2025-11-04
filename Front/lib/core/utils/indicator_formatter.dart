@@ -1,4 +1,5 @@
 /// Utilitários para formatação e validação de indicadores financeiros
+library;
 
 /// Formata um valor de indicador com validação e tratamento de erros
 String formatIndicator(double? value, {int decimals = 1, String suffix = '%'}) {

@@ -187,7 +187,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
-                  value: _type,
+                  initialValue: _type,
                   decoration: const InputDecoration(
                     labelText: 'Tipo',
                     prefixIcon: Icon(Icons.category_outlined),
@@ -195,9 +195,6 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                   items: const [
                     DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
                     DropdownMenuItem(value: 'EXPENSE', child: Text('Despesa')),
-                    DropdownMenuItem(
-                        value: 'DEBT_PAYMENT',
-                        child: Text('Pagamento de Dívida')),
                   ],
                   onChanged: _onTypeChanged,
                 ),
@@ -254,7 +251,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                   const Center(child: CircularProgressIndicator())
                 else
                   DropdownButtonFormField<int>(
-                    value: _categoryId,
+                    initialValue: _categoryId,
                     decoration: const InputDecoration(
                       labelText: 'Categoria',
                       prefixIcon: Icon(Icons.label_outline),

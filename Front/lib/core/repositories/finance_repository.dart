@@ -189,6 +189,11 @@ class FinanceRepository {
     required double targetAmount,
     double currentAmount = 0,
     DateTime? deadline,
+    String goalType = 'CUSTOM',
+    int? targetCategoryId,
+    bool autoUpdate = false,
+    String trackingPeriod = 'TOTAL',
+    bool isReductionGoal = false,
   }) async {
     final payload = {
       'title': title,
@@ -197,6 +202,11 @@ class FinanceRepository {
       'current_amount': currentAmount,
       if (deadline != null)
         'deadline': deadline.toIso8601String().split('T').first,
+      'goal_type': goalType,
+      if (targetCategoryId != null) 'target_category': targetCategoryId,
+      'auto_update': autoUpdate,
+      'tracking_period': trackingPeriod,
+      'is_reduction_goal': isReductionGoal,
     };
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.goals,
@@ -212,6 +222,11 @@ class FinanceRepository {
     double? targetAmount,
     double? currentAmount,
     DateTime? deadline,
+    String? goalType,
+    int? targetCategoryId,
+    bool? autoUpdate,
+    String? trackingPeriod,
+    bool? isReductionGoal,
   }) async {
     final payload = <String, dynamic>{};
     if (title != null) payload['title'] = title;
@@ -221,6 +236,12 @@ class FinanceRepository {
     if (deadline != null) {
       payload['deadline'] = deadline.toIso8601String().split('T').first;
     }
+    if (goalType != null) payload['goal_type'] = goalType;
+    if (targetCategoryId != null) payload['target_category'] = targetCategoryId;
+    if (autoUpdate != null) payload['auto_update'] = autoUpdate;
+    if (trackingPeriod != null) payload['tracking_period'] = trackingPeriod;
+    if (isReductionGoal != null) payload['is_reduction_goal'] = isReductionGoal;
+    
     final response = await _client.client.patch<Map<String, dynamic>>(
       '${ApiEndpoints.goals}$goalId/',
       data: payload,
@@ -230,6 +251,30 @@ class FinanceRepository {
 
   Future<void> deleteGoal(int id) async {
     await _client.client.delete('${ApiEndpoints.goals}$id/');
+  }
+
+  /// Buscar transações relacionadas a uma meta
+  Future<List<TransactionModel>> fetchGoalTransactions(int goalId) async {
+    final response = await _client.client
+        .get<List<dynamic>>('${ApiEndpoints.goals}$goalId/transactions/');
+    final data = response.data ?? <dynamic>[];
+    return data
+        .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Atualizar progresso da meta manualmente
+  Future<GoalModel> refreshGoalProgress(int goalId) async {
+    final response = await _client.client
+        .post<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/refresh/');
+    return GoalModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  /// Buscar insights sobre a meta
+  Future<Map<String, dynamic>> fetchGoalInsights(int goalId) async {
+    final response = await _client.client
+        .get<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/insights/');
+    return response.data ?? <String, dynamic>{};
   }
 
   Future<Map<String, dynamic>> fetchMissionProgressDetails(int id) async {

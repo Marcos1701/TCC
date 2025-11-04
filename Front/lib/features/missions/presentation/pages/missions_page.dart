@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/gamification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
@@ -17,7 +18,27 @@ class MissionsPage extends StatefulWidget {
 
 class _MissionsPageState extends State<MissionsPage> {
   final _repository = FinanceRepository();
+  final _cacheManager = CacheManager();
   late Future<DashboardData> _future = _repository.fetchDashboard();
+
+  @override
+  void initState() {
+    super.initState();
+    _cacheManager.addListener(_onCacheInvalidated);
+  }
+
+  @override
+  void dispose() {
+    _cacheManager.removeListener(_onCacheInvalidated);
+    super.dispose();
+  }
+
+  void _onCacheInvalidated() {
+    if (_cacheManager.isInvalidated(CacheType.missions)) {
+      _refresh();
+      _cacheManager.clearInvalidation(CacheType.missions);
+    }
+  }
 
   Future<void> _refresh() async {
     final data = await _repository.fetchDashboard();
@@ -118,7 +139,7 @@ class _MissionsPageState extends State<MissionsPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.2),
+                          color: AppColors.primary.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -250,7 +271,7 @@ class _ActiveMissionCard extends StatelessWidget {
         borderRadius: tokens.cardRadius,
         boxShadow: tokens.mediumShadow,
         border: isCompleted
-            ? Border.all(color: AppColors.support.withOpacity(0.3), width: 1.5)
+            ? Border.all(color: AppColors.support.withValues(alpha: 0.3), width: 1.5)
             : null,
       ),
       child: Column(
@@ -352,7 +373,7 @@ class _ActiveMissionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -383,10 +404,10 @@ class _ActiveMissionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.support.withOpacity(0.1),
+                color: AppColors.support.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.support.withOpacity(0.3),
+                  color: AppColors.support.withValues(alpha: 0.3),
                 ),
               ),
               child: Row(

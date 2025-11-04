@@ -9,7 +9,7 @@ from django.db.models import Case, DecimalField, F, Q, Sum, When
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 
-from .models import Category, Mission, MissionProgress, Transaction, UserProfile
+from .models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile
 
 
 def _decimal(value) -> Decimal:
@@ -1049,4 +1049,131 @@ def update_mission_progress(user) -> List[MissionProgress]:
         updated.append(progress)
     
     return updated
+
+
+# ======= Funções de Metas =======
+
+def update_goal_progress(goal) -> None:
+    """
+    Atualiza o progresso de uma meta baseado nas transações relacionadas.
+    
+    Args:
+        goal: Instância do modelo Goal
+    
+    Chamado automaticamente após criar/atualizar/deletar transação
+    quando goal.auto_update=True.
+    """
+    from .models import Goal
+    
+    # Só atualiza se auto_update estiver ativado
+    if not goal.auto_update:
+        return
+    
+    # Para metas personalizadas, não fazer nada (atualização manual)
+    if goal.goal_type == Goal.GoalType.CUSTOM:
+        return
+    
+    # Obter transações relacionadas
+    transactions = goal.get_related_transactions()
+    
+    # Calcular total
+    total = _decimal(
+        transactions.aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
+    )
+    
+    # Para metas de redução, calcular quanto foi reduzido
+    # (quanto deixou de gastar em relação ao alvo)
+    if goal.is_reduction_goal:
+        # Se o alvo é gastar no máximo R$ 500
+        # E gastou R$ 300, progresso = R$ 200 economizados
+        if total < goal.target_amount:
+            goal.current_amount = goal.target_amount - total
+        else:
+            goal.current_amount = Decimal('0.00')
+    else:
+        # Para metas normais (juntar dinheiro, pagar dívidas, etc)
+        goal.current_amount = total
+    
+    goal.save(update_fields=['current_amount', 'updated_at'])
+
+
+def update_all_active_goals(user) -> None:
+    """
+    Atualiza todas as metas ativas do usuário que têm auto_update=True.
+    
+    Args:
+        user: Usuário cujas metas devem ser atualizadas
+    
+    Chamado após criar/atualizar/deletar qualquer transação.
+    """
+    from .models import Goal
+    
+    goals = Goal.objects.filter(user=user, auto_update=True)
+    for goal in goals:
+        update_goal_progress(goal)
+
+
+def get_goal_insights(goal) -> Dict[str, str]:
+    """
+    Gera insights e sugestões para uma meta específica.
+    
+    Args:
+        goal: Instância do modelo Goal
+    
+    Returns:
+        Dict com insights sobre o progresso da meta
+    """
+    from .models import Goal
+    
+    insights = {
+        'status': '',
+        'message': '',
+        'suggestion': ''
+    }
+    
+    progress = goal.progress_percentage
+    
+    # Insights baseados no progresso
+    if progress >= 100:
+        insights['status'] = 'completed'
+        insights['message'] = '🎉 Parabéns! Você atingiu sua meta!'
+        insights['suggestion'] = 'Considere criar uma nova meta para continuar evoluindo.'
+    elif progress >= 75:
+        insights['status'] = 'almost_there'
+        insights['message'] = '💪 Falta pouco! Você está quase lá!'
+        remaining = goal.target_amount - goal.current_amount
+        insights['suggestion'] = f'Faltam apenas R$ {remaining:.2f} para completar.'
+    elif progress >= 50:
+        insights['status'] = 'on_track'
+        insights['message'] = '📈 Você está no caminho certo!'
+        insights['suggestion'] = 'Continue assim e você alcançará sua meta.'
+    elif progress >= 25:
+        insights['status'] = 'needs_attention'
+        insights['message'] = '⚠️ Atenção! Progresso está lento.'
+        insights['suggestion'] = 'Considere aumentar seu esforço para atingir a meta.'
+    else:
+        insights['status'] = 'just_started'
+        insights['message'] = '🚀 Você está começando!'
+        insights['suggestion'] = 'Mantenha o foco e a disciplina.'
+    
+    # Insights baseados no prazo
+    if goal.deadline:
+        today = date.today()
+        days_remaining = (goal.deadline - today).days
+        
+        if days_remaining < 0:
+            insights['message'] += f' (Prazo expirou há {abs(days_remaining)} dias)'
+        elif days_remaining <= 7:
+            insights['message'] += f' (Faltam {days_remaining} dias!)'
+        elif days_remaining <= 30:
+            insights['message'] += f' (Faltam {days_remaining} dias)'
+    
+    # Insights específicos por tipo de meta
+    if goal.goal_type == Goal.GoalType.CATEGORY_EXPENSE and goal.is_reduction_goal:
+        if progress < 50 and goal.tracking_period == Goal.TrackingPeriod.MONTHLY:
+            # Se está gastando muito no mês
+            insights['suggestion'] = f'Tente reduzir gastos em {goal.target_category.name}. ' + insights['suggestion']
+    
+    return insights
+
 

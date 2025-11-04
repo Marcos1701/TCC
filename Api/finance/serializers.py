@@ -167,6 +167,9 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class GoalSerializer(serializers.ModelSerializer):
+    progress_percentage = serializers.FloatField(read_only=True)
+    category_name = serializers.CharField(source='target_category.name', read_only=True, allow_null=True)
+    
     class Meta:
         model = Goal
         fields = (
@@ -176,11 +179,43 @@ class GoalSerializer(serializers.ModelSerializer):
             "target_amount",
             "current_amount",
             "deadline",
+            "goal_type",
+            "target_category",
+            "category_name",
+            "auto_update",
+            "tracking_period",
+            "is_reduction_goal",
+            "progress_percentage",
+            "created_at",
+            "updated_at",
         )
+        read_only_fields = ("current_amount", "created_at", "updated_at")
 
     def create(self, validated_data):
         validated_data["user"] = self.context["request"].user
         return super().create(validated_data)
+    
+    def validate(self, attrs):
+        """Valida que metas por categoria têm uma categoria vinculada."""
+        goal_type = attrs.get('goal_type', Goal.GoalType.CUSTOM)
+        target_category = attrs.get('target_category')
+        
+        # Metas de categoria precisam ter uma categoria vinculada
+        if goal_type in [Goal.GoalType.CATEGORY_EXPENSE, Goal.GoalType.CATEGORY_INCOME]:
+            if not target_category:
+                raise serializers.ValidationError({
+                    'target_category': 'Metas por categoria precisam de uma categoria vinculada.'
+                })
+        
+        # Validar que a categoria pertence ao usuário ou é global
+        if target_category:
+            user = self.context['request'].user
+            if target_category.user and target_category.user != user:
+                raise serializers.ValidationError({
+                    'target_category': 'Você não pode usar uma categoria de outro usuário.'
+                })
+        
+        return attrs
 
 
 class MissionSerializer(serializers.ModelSerializer):

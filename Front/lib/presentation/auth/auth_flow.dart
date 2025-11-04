@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
+import '../../core/storage/onboarding_storage.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
+import '../../features/onboarding/presentation/pages/initial_setup_page.dart';
 import '../shell/root_shell.dart';
 
 class AuthFlow extends StatefulWidget {
@@ -14,8 +16,62 @@ class AuthFlow extends StatefulWidget {
 
 class _AuthFlowState extends State<AuthFlow> {
   bool _showLogin = true;
+  bool _onboardingAlreadyChecked = false; // Flag para verificar apenas uma vez
+  final _rootShellKey = GlobalKey(); // Key para forçar rebuild da home
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
+
+  Future<void> _checkAndShowOnboardingIfNeeded() async {
+    // Se já verificou nesta sessão do app, não verifica novamente
+    // Isso evita que o onboarding apareça múltiplas vezes durante a mesma sessão
+    if (_onboardingAlreadyChecked) return;
+    
+    _onboardingAlreadyChecked = true;
+    
+    try {
+      final session = SessionScope.of(context);
+      
+      // Verifica se o usuário já completou o onboarding alguma vez
+      // O estado persiste entre logins (não é resetado no logout)
+      // Apenas novo cadastro terá onboarding pendente
+      final isComplete = await OnboardingStorage.isOnboardingComplete();
+      if (mounted && !isComplete) {
+        // Primeira vez que o usuário acessa - mostra setup inicial
+        final result = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (context) => InitialSetupPage(
+              onComplete: () async {
+                // Força rebuild da home após conclusão
+                if (mounted) {
+                  await session.refreshSession();
+                  setState(() {
+                    // Força recriação do RootShell com nova key
+                    _rootShellKey.currentState?.setState(() {});
+                  });
+                }
+              },
+            ),
+            fullscreenDialog: true,
+          ),
+        );
+        
+        // Se completou com sucesso, força rebuild
+        if (result == true && mounted) {
+          setState(() {
+            // Força rebuild do widget tree
+          });
+        }
+      }
+      
+      // Reseta a flag de novo registro após verificar onboarding
+      if (mounted && session.isNewRegistration) {
+        session.clearNewRegistrationFlag();
+      }
+    } catch (e) {
+      // Se houver erro, apenas continua sem mostrar onboarding
+      debugPrint('Erro ao verificar onboarding: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +89,16 @@ class _AuthFlowState extends State<AuthFlow> {
 
         // Se autenticado, vai para a home
         if (session.isAuthenticated) {
-          return const RootShell();
+          // Se for novo cadastro, reseta a flag para permitir verificação
+          if (session.isNewRegistration && _onboardingAlreadyChecked) {
+            _onboardingAlreadyChecked = false;
+          }
+          
+          // Verifica onboarding apenas uma vez por sessão do app
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _checkAndShowOnboardingIfNeeded();
+          });
+          return RootShell(key: _rootShellKey);
         }
 
         // Retorna o child que contém as páginas de auth

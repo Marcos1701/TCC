@@ -451,7 +451,42 @@ class GoalViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Goal.objects.filter(user=self.request.user).order_by("deadline", "title")
+        return Goal.objects.filter(user=self.request.user).select_related(
+            'target_category'
+        ).order_by("-created_at")
+    
+    @action(detail=True, methods=['get'])
+    def transactions(self, request, pk=None):
+        """Retorna transações relacionadas à meta."""
+        goal = self.get_object()
+        transactions = goal.get_related_transactions()
+        
+        serializer = TransactionSerializer(transactions, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def refresh(self, request, pk=None):
+        """Força atualização do progresso da meta."""
+        from .services import update_goal_progress
+        
+        goal = self.get_object()
+        
+        if goal.auto_update:
+            update_goal_progress(goal)
+            goal.refresh_from_db()
+        
+        serializer = self.get_serializer(goal)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'])
+    def insights(self, request, pk=None):
+        """Retorna insights sobre o progresso da meta."""
+        from .services import get_goal_insights
+        
+        goal = self.get_object()
+        insights = get_goal_insights(goal)
+        
+        return Response(insights)
 
 
 class MissionViewSet(viewsets.ReadOnlyModelViewSet):

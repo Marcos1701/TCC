@@ -541,10 +541,6 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                                     value: 'EXPENSE',
                                     child: Text('Despesa'),
                                   ),
-                                  DropdownMenuItem(
-                                    value: 'DEBT_PAYMENT',
-                                    child: Text('Pagamento de dívida'),
-                                  ),
                                 ],
                                 onChanged: (value) {
                                   if (value == null) return;
@@ -553,7 +549,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                                     _categoryId = null;
                                   });
                                   _loadCategories();
-                                },
+                },
                               ),
                               const SizedBox(height: 6),
                               Text(
