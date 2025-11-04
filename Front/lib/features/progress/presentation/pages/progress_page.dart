@@ -9,6 +9,7 @@ import '../../../../core/services/cache_manager.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import 'goal_details_page.dart';
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
@@ -1320,22 +1321,40 @@ class _GoalCard extends StatelessWidget {
       }
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.mediumShadow,
-        border: isCompleted
-            ? Border.all(color: AppColors.support.withValues(alpha: 0.3), width: 1.5)
-            : isExpired
-                ? Border.all(color: AppColors.alert.withValues(alpha: 0.3), width: 1.5)
-                : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return InkWell(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GoalDetailsPage(
+              goal: goal,
+              currency: currency,
+            ),
+          ),
+        );
+        // Se retornou true, significa que houve alteração
+        if (result == true && context.mounted) {
+          // Recarrega a página principal
+          (context.findAncestorStateOfType<_ProgressPageState>())?._refresh();
+        }
+      },
+      borderRadius: tokens.cardRadius,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: tokens.cardRadius,
+          boxShadow: tokens.mediumShadow,
+          border: isCompleted
+              ? Border.all(color: AppColors.support.withValues(alpha: 0.3), width: 1.5)
+              : isExpired
+                  ? Border.all(color: AppColors.alert.withValues(alpha: 0.3), width: 1.5)
+                  : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Header com tipo e menu
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1634,6 +1653,7 @@ class _GoalCard extends StatelessWidget {
             ),
           ],
         ],
+        ),
       ),
     );
   }
