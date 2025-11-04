@@ -17,6 +17,7 @@ class SessionController extends ChangeNotifier {
   SessionData? get session => _session;
   bool get isAuthenticated => _session != null;
   bool get isLoading => _loading;
+  bool get bootstrapDone => _bootstrapDone;
 
   ProfileModel? get profile => _session?.profile;
 
@@ -34,26 +35,31 @@ class SessionController extends ChangeNotifier {
     }
   }
 
-  Future<bool> login({required String email, required String password}) async {
-    _setLoading(true);
+  Future<void> login({required String email, required String password}) async {
+    _loading = true;
+    notifyListeners();
     try {
       final tokens =
           await _authRepository.login(email: email, password: password);
       await ApiClient()
           .setTokens(access: tokens.access, refresh: tokens.refresh);
       _session = await _authRepository.fetchSession();
-      return true;
-    } finally {
-      _setLoading(false);
+      _loading = false;
+      notifyListeners();
+    } catch (e) {
+      _loading = false;
+      notifyListeners();
+      rethrow;
     }
   }
 
-  Future<bool> register({
+  Future<void> register({
     required String name,
     required String email,
     required String password,
   }) async {
-    _setLoading(true);
+    _loading = true;
+    notifyListeners();
     try {
       final tokens = await _authRepository.register(
         name: name,
@@ -63,9 +69,12 @@ class SessionController extends ChangeNotifier {
       await ApiClient()
           .setTokens(access: tokens.access, refresh: tokens.refresh);
       _session = await _authRepository.fetchSession();
-      return true;
-    } finally {
-      _setLoading(false);
+      _loading = false;
+      notifyListeners();
+    } catch (e) {
+      _loading = false;
+      notifyListeners();
+      rethrow;
     }
   }
 
@@ -96,11 +105,6 @@ class SessionController extends ChangeNotifier {
   Future<void> logout() async {
     await _authRepository.logout();
     _session = null;
-    notifyListeners();
-  }
-
-  void _setLoading(bool value) {
-    _loading = value;
     notifyListeners();
   }
 }

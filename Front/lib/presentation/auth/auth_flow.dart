@@ -19,29 +19,34 @@ class _AuthFlowState extends State<AuthFlow> {
 
   @override
   Widget build(BuildContext context) {
-    final session = SessionScope.of(context);
+    return AnimatedBuilder(
+      animation: SessionScope.of(context),
+      builder: (context, child) {
+        final session = SessionScope.of(context);
 
-    if (session.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+        // Mostra loading apenas durante bootstrap
+        if (!session.bootstrapDone && session.isLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    if (session.isAuthenticated) {
-      return const RootShell();
-    }
+        // Se autenticado, vai para a home
+        if (session.isAuthenticated) {
+          return const RootShell();
+        }
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 350),
-      child: _showLogin
-          ? LoginPage(
-              key: const ValueKey('login'),
-              onToggle: _toggle,
-            )
-          : RegisterPage(
-              key: const ValueKey('register'),
-              onToggle: _toggle,
-            ),
+        // Retorna o child que contém as páginas de auth
+        return child!;
+      },
+      // Child não é reconstruído, apenas o AnimatedBuilder
+      child: IndexedStack(
+        index: _showLogin ? 0 : 1,
+        children: [
+          LoginPage(key: const ValueKey('login'), onToggle: _toggle),
+          RegisterPage(key: const ValueKey('register'), onToggle: _toggle),
+        ],
+      ),
     );
   }
 }

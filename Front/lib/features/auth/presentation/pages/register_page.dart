@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/state/session_controller.dart';
@@ -40,69 +41,65 @@ class _RegisterPageState extends State<RegisterPage> {
 
     final session = SessionScope.of(context);
     try {
-      final success = await session.register(
+      await session.register(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      if (!success && mounted) {
-        FeedbackService.showError(
-          context,
-          'Não foi possível concluir o cadastro.',
-        );
-      } else if (success && mounted) {
-        FeedbackService.showSuccess(
-          context,
-          'Cadastro realizado com sucesso! Bem-vindo(a)! 🎉',
-        );
-      }
-    } on DioException catch (error) {
-      if (!mounted) return;
-      
-      // Verifica tipo de erro
-      if (error.type == DioExceptionType.connectionTimeout ||
-          error.type == DioExceptionType.receiveTimeout ||
-          error.type == DioExceptionType.sendTimeout) {
-        FeedbackService.showWarning(
-          context,
-          'Tempo de conexão esgotado. Verifique sua internet.',
-        );
-      } else if (error.type == DioExceptionType.connectionError) {
-        FeedbackService.show(
-          context,
-          'Servidor offline. Tente novamente mais tarde.',
-          type: FeedbackType.offline,
-        );
-      } else if (error.response?.statusCode == 400) {
-        final detail = error.response?.data is Map
-            ? error.response!.data['detail'] as String?
-            : null;
-        FeedbackService.showError(
-          context,
-          detail ?? 'Email já cadastrado ou dados inválidos.',
-        );
-      } else if (error.response?.statusCode != null && 
-                 error.response!.statusCode! >= 500) {
-        FeedbackService.show(
-          context,
-          'Problema no servidor. Tente novamente em instantes.',
-          type: FeedbackType.serverError,
-        );
-      } else {
-        final detail = error.response?.data is Map
-            ? error.response!.data['detail'] as String?
-            : null;
-        FeedbackService.showError(
-          context,
-          detail ?? 'Erro ao conectar. Verifique sua conexão.',
-        );
+      if (mounted) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            FeedbackService.showSuccess(
+              context,
+              'Cadastro realizado com sucesso! Bem-vindo(a)! 🎉',
+            );
+          }
+        });
       }
     } catch (error) {
       if (!mounted) return;
-      FeedbackService.showError(
-        context,
-        'Erro inesperado. Tente novamente.',
-      );
+      
+      String message;
+      FeedbackType type = FeedbackType.error;
+      
+      if (error is DioException) {
+        // Verifica tipo de erro
+        if (error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.receiveTimeout ||
+            error.type == DioExceptionType.sendTimeout) {
+          message = 'Tempo de conexão esgotado. Verifique sua internet.';
+          type = FeedbackType.warning;
+        } else if (error.type == DioExceptionType.connectionError) {
+          message = 'Servidor offline. Tente novamente mais tarde.';
+          type = FeedbackType.offline;
+        } else if (error.response?.statusCode == 400) {
+          final detail = error.response?.data is Map
+              ? error.response!.data['detail'] as String?
+              : null;
+          message = detail ?? 'Email já cadastrado ou dados inválidos.';
+        } else if (error.response?.statusCode == 401) {
+          message = 'Credenciais inválidas.';
+        } else if (error.response?.statusCode != null && 
+                   error.response!.statusCode! >= 500) {
+          message = 'Problema no servidor. Tente novamente em instantes.';
+          type = FeedbackType.serverError;
+        } else {
+          final detail = error.response?.data is Map
+              ? error.response!.data['detail'] as String?
+              : null;
+          message = detail ?? 'Erro ao conectar. Verifique sua conexão.';
+        }
+      } else if (error is FormatException) {
+        message = 'Email já cadastrado ou dados inválidos.';
+      } else {
+        message = 'Erro inesperado. Tente novamente.';
+      }
+      
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          FeedbackService.show(context, message, type: type);
+        }
+      });
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -276,24 +273,6 @@ class _RegisterPageState extends State<RegisterPage> {
                         obscureText: _obscurePassword,
                         onFieldSubmitted: (_) => _submit(),
                         validator: _validatePassword,
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => FeedbackService.showInfo(
-                                  context,
-                                  'Termos de uso disponíveis em breve.',
-                                ),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          foregroundColor: AppColors.primary,
-                          textStyle: textTheme.bodyMedium?.copyWith(
-                            fontFamily: 'Montserrat',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        child: const Text('Esqueceu a senha?'),
                       ),
                       const SizedBox(height: 36),
                       SizedBox(

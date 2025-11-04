@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../models/auth_tokens.dart';
 import '../models/profile.dart';
 import '../models/session_data.dart';
@@ -20,6 +22,16 @@ class AuthRepository {
         'password': password,
       },
     );
+    
+    // Verifica se a resposta é um erro (mesmo com validateStatus permitindo)
+    if (response.statusCode != null && response.statusCode! >= 400) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+      );
+    }
+    
     final data = response.data ?? <String, dynamic>{};
     return AuthTokens.fromMap(data);
   }
@@ -38,6 +50,16 @@ class AuthRepository {
         'password': password,
       },
     );
+    
+    // Verifica se a resposta é um erro (mesmo com validateStatus permitindo)
+    if (response.statusCode != null && response.statusCode! >= 400) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        type: DioExceptionType.badResponse,
+      );
+    }
+    
     final body = response.data ?? <String, dynamic>{};
     final tokens = body['tokens'];
     if (tokens is Map<String, dynamic>) {

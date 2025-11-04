@@ -74,7 +74,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             "total_debt": profile.cached_total_debt or Decimal("0.00"),
         }
     
-    # Calcular indicadores
+    # Calcular totais por tipo de transação
     totals = defaultdict(Decimal)
     for entry in (
         Transaction.objects.filter(user=user)
@@ -89,43 +89,30 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     debt_balance = debt_info["balance"]
     debt_payments = debt_info["payments"]
 
-    # Calcular reserva de emergência
-    # Busca categoria "Reserva de Emergência" do sistema ou do usuário
-    emergency_category = Category.objects.filter(
-        Q(name__icontains="Reserva") | Q(name__icontains="Emergência") | Q(name__icontains="Emergency"),
-        group=Category.CategoryGroup.SAVINGS
-    ).filter(Q(user=user) | Q(user__isnull=True)).first()
+    # Calcular reserva de emergência usando o grupo SAVINGS
+    # Receitas em SAVINGS = aportes na reserva
+    # Despesas em SAVINGS = resgates da reserva
+    reserve_transactions = Transaction.objects.filter(
+        user=user, 
+        category__group=Category.CategoryGroup.SAVINGS
+    ).values("type").annotate(total=Sum("amount"))
     
     reserve_income = Decimal("0")
     reserve_expense = Decimal("0")
     
-    if emergency_category:
-        # Se tem categoria específica de reserva, usa ela
-        reserve_transactions = Transaction.objects.filter(
-            user=user, 
-            category=emergency_category
-        ).values("type").annotate(total=Sum("amount"))
-        
-        for item in reserve_transactions:
-            tx_type = item["type"]
-            total = _decimal(item["total"])
-            if tx_type == Transaction.TransactionType.EXPENSE:
-                reserve_expense = total
-            elif tx_type == Transaction.TransactionType.INCOME:
-                reserve_income = total
-    else:
-        # Fallback: usa todas as transações do grupo SAVINGS
-        for item in (
-            Transaction.objects.filter(user=user, category__group=Category.CategoryGroup.SAVINGS)
-            .values("type")
-            .annotate(total=Sum("amount"))
-        ):
-            tx_type = item["type"]
-            total = _decimal(item["total"])
-            if tx_type == Transaction.TransactionType.EXPENSE:
-                reserve_expense = total
-            elif tx_type == Transaction.TransactionType.INCOME:
-                reserve_income = total
+    for item in reserve_transactions:
+        tx_type = item["type"]
+        total = _decimal(item["total"])
+        if tx_type == Transaction.TransactionType.INCOME:
+            # Receita na categoria de reserva = dinheiro entrando na reserva (raro)
+            reserve_income += total
+        elif tx_type == Transaction.TransactionType.EXPENSE:
+            # Despesa na categoria de reserva = aporte na reserva
+            reserve_income += total
+    
+    # Para calcular resgates, precisamos de uma categoria específica ou usar lógica invertida
+    # Vamos considerar que SAVINGS em EXPENSE = aportes (entrada na reserva)
+    # E SAVINGS em INCOME = resgates (saída da reserva) - cenário raro mas possível
 
     # Calcular média de despesas essenciais dos últimos 3 meses para ILI mais estável
     today = timezone.now().date()

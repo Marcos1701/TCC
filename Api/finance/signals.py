@@ -5,24 +5,15 @@ from django.dispatch import receiver
 
 from .models import Category, Transaction, UserProfile
 
-# lista curtinha só pra dar o pontapé inicial
-DEFAULT_CATEGORIES = {
-    Category.CategoryType.INCOME: ["Salário", "Freela", "Outros ganhos"],
-    Category.CategoryType.EXPENSE: [
-        "Alimentação",
-        "Transporte",
-        "Lazer",
-        "Moradia",
-        "Educação",
-    ],
-    Category.CategoryType.DEBT: ["Cartão", "Empréstimo", "Financiamento"],
-}
-
 
 def _ensure_default_categories(user):
-    for cat_type, names in DEFAULT_CATEGORIES.items():
-        for name in names:
-            Category.objects.get_or_create(user=user, name=name, type=cat_type)
+    """
+    Não cria mais categorias para novos usuários.
+    As categorias padrão do sistema (user=None) são compartilhadas por todos.
+    Usuários podem criar suas próprias categorias personalizadas quando necessário.
+    """
+    # Removida criação automática - usuários usam categorias do sistema
+    pass
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

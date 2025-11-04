@@ -5,9 +5,19 @@ class AuthTokens {
   final String refresh;
 
   factory AuthTokens.fromMap(Map<String, dynamic> map) {
+    final access = map['access'];
+    final refresh = map['refresh'];
+    
+    if (access == null || access is! String) {
+      throw const FormatException('Token de acesso inválido ou ausente');
+    }
+    if (refresh == null || refresh is! String) {
+      throw const FormatException('Token de refresh inválido ou ausente');
+    }
+    
     return AuthTokens(
-      access: map['access'] as String,
-      refresh: map['refresh'] as String,
+      access: access,
+      refresh: refresh,
     );
   }
 }
