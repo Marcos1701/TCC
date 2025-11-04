@@ -337,10 +337,10 @@ class Goal(models.Model):
     Modelo de Metas Financeiras.
     
     Tipos de metas:
-    - SAVINGS: Juntar dinheiro (soma de SAVINGS + INVESTMENT)
+    - SAVINGS: Juntar dinheiro (pode monitorar categorias específicas via tracked_categories)
     - CATEGORY_EXPENSE: Reduzir gastos em categoria específica
     - CATEGORY_INCOME: Aumentar receita em categoria específica
-    - DEBT_REDUCTION: Reduzir dívidas (soma de DEBT)
+    - DEBT_REDUCTION: Reduzir dívidas (pode monitorar categorias específicas via tracked_categories)
     - CUSTOM: Meta personalizada (atualização manual)
     """
     
@@ -377,7 +377,13 @@ class Goal(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="goals",
-        help_text="Categoria vinculada (para metas CATEGORY_*)"
+        help_text="Categoria principal vinculada (para metas CATEGORY_* - retrocompatibilidade)"
+    )
+    tracked_categories = models.ManyToManyField(
+        Category,
+        blank=True,
+        related_name="tracked_in_goals",
+        help_text="Categorias monitoradas para atualização automática (usado em metas como Juntar Dinheiro)"
     )
     auto_update = models.BooleanField(
         default=False,
@@ -442,27 +448,41 @@ class Goal(models.Model):
         
         # Filtrar por tipo de meta
         if self.goal_type == self.GoalType.SAVINGS:
-            # Inclui SAVINGS e INVESTMENT
-            qs = qs.filter(
-                category__group__in=[Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]
-            )
+            # Se há categorias específicas sendo monitoradas, usa elas
+            if self.tracked_categories.exists():
+                qs = qs.filter(category__in=self.tracked_categories.all())
+            else:
+                # Comportamento padrão: SAVINGS e INVESTMENT
+                qs = qs.filter(
+                    category__group__in=[Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]
+                )
         elif self.goal_type == self.GoalType.CATEGORY_EXPENSE:
-            # Gastos em categoria específica
-            qs = qs.filter(
-                category=self.target_category,
-                type=Transaction.TransactionType.EXPENSE
-            )
+            # Gastos em categoria específica (retrocompatibilidade com target_category)
+            if self.target_category:
+                qs = qs.filter(
+                    category=self.target_category,
+                    type=Transaction.TransactionType.EXPENSE
+                )
+            else:
+                return Transaction.objects.none()
         elif self.goal_type == self.GoalType.CATEGORY_INCOME:
-            # Receitas em categoria específica
-            qs = qs.filter(
-                category=self.target_category,
-                type=Transaction.TransactionType.INCOME
-            )
+            # Receitas em categoria específica (retrocompatibilidade com target_category)
+            if self.target_category:
+                qs = qs.filter(
+                    category=self.target_category,
+                    type=Transaction.TransactionType.INCOME
+                )
+            else:
+                return Transaction.objects.none()
         elif self.goal_type == self.GoalType.DEBT_REDUCTION:
-            # Pagamentos de dívidas
-            qs = qs.filter(
-                category__group=Category.CategoryGroup.DEBT
-            )
+            # Se há categorias específicas sendo monitoradas, usa elas
+            if self.tracked_categories.exists():
+                qs = qs.filter(category__in=self.tracked_categories.all())
+            else:
+                # Comportamento padrão: todas as dívidas
+                qs = qs.filter(
+                    category__group=Category.CategoryGroup.DEBT
+                )
         else:  # CUSTOM
             return Transaction.objects.none()
         

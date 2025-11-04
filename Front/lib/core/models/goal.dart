@@ -23,6 +23,27 @@ enum TrackingPeriod {
   final String label;
 }
 
+/// Categoria monitorada em uma meta
+class TrackedCategory {
+  const TrackedCategory({
+    required this.id,
+    required this.name,
+    required this.icon,
+  });
+
+  final int id;
+  final String name;
+  final String icon;
+
+  factory TrackedCategory.fromMap(Map<String, dynamic> map) {
+    return TrackedCategory(
+      id: map['id'] as int,
+      name: map['name'] as String,
+      icon: (map['icon'] as String?) ?? '📁',
+    );
+  }
+}
+
 /// Modelo de Meta Financeira
 class GoalModel {
   const GoalModel({
@@ -35,6 +56,7 @@ class GoalModel {
     required this.goalType,
     this.targetCategory,
     this.categoryName,
+    this.trackedCategories = const [],
     required this.autoUpdate,
     required this.trackingPeriod,
     required this.isReductionGoal,
@@ -52,6 +74,7 @@ class GoalModel {
   final GoalType goalType;
   final int? targetCategory;
   final String? categoryName;
+  final List<TrackedCategory> trackedCategories;
   final bool autoUpdate;
   final TrackingPeriod trackingPeriod;
   final bool isReductionGoal;
@@ -60,6 +83,15 @@ class GoalModel {
   final DateTime updatedAt;
 
   factory GoalModel.fromMap(Map<String, dynamic> map) {
+    // Parse tracked categories
+    List<TrackedCategory> trackedCats = [];
+    if (map['tracked_categories_data'] != null) {
+      final List<dynamic> catsData = map['tracked_categories_data'] as List<dynamic>;
+      trackedCats = catsData
+          .map((cat) => TrackedCategory.fromMap(cat as Map<String, dynamic>))
+          .toList();
+    }
+
     return GoalModel(
       id: map['id'] as int,
       title: map['title'] as String,
@@ -72,6 +104,7 @@ class GoalModel {
       goalType: _parseGoalType(map['goal_type'] as String?),
       targetCategory: map['target_category'] as int?,
       categoryName: map['category_name'] as String?,
+      trackedCategories: trackedCats,
       autoUpdate: (map['auto_update'] as bool?) ?? false,
       trackingPeriod: _parseTrackingPeriod(map['tracking_period'] as String?),
       isReductionGoal: (map['is_reduction_goal'] as bool?) ?? false,

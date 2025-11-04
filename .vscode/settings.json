@@ -4,5 +4,6 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}/Api"
     ],
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }

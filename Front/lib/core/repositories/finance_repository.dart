@@ -191,6 +191,7 @@ class FinanceRepository {
     DateTime? deadline,
     String goalType = 'CUSTOM',
     int? targetCategoryId,
+    List<int>? trackedCategoryIds,
     bool autoUpdate = false,
     String trackingPeriod = 'TOTAL',
     bool isReductionGoal = false,
@@ -204,6 +205,8 @@ class FinanceRepository {
         'deadline': deadline.toIso8601String().split('T').first,
       'goal_type': goalType,
       if (targetCategoryId != null) 'target_category': targetCategoryId,
+      if (trackedCategoryIds != null && trackedCategoryIds.isNotEmpty)
+        'tracked_category_ids': trackedCategoryIds,
       'auto_update': autoUpdate,
       'tracking_period': trackingPeriod,
       'is_reduction_goal': isReductionGoal,
@@ -224,6 +227,7 @@ class FinanceRepository {
     DateTime? deadline,
     String? goalType,
     int? targetCategoryId,
+    List<int>? trackedCategoryIds,
     bool? autoUpdate,
     String? trackingPeriod,
     bool? isReductionGoal,
@@ -238,6 +242,9 @@ class FinanceRepository {
     }
     if (goalType != null) payload['goal_type'] = goalType;
     if (targetCategoryId != null) payload['target_category'] = targetCategoryId;
+    if (trackedCategoryIds != null) {
+      payload['tracked_category_ids'] = trackedCategoryIds;
+    }
     if (autoUpdate != null) payload['auto_update'] = autoUpdate;
     if (trackingPeriod != null) payload['tracking_period'] = trackingPeriod;
     if (isReductionGoal != null) payload['is_reduction_goal'] = isReductionGoal;

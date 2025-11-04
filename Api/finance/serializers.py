@@ -169,6 +169,15 @@ class TransactionSerializer(serializers.ModelSerializer):
 class GoalSerializer(serializers.ModelSerializer):
     progress_percentage = serializers.FloatField(read_only=True)
     category_name = serializers.CharField(source='target_category.name', read_only=True, allow_null=True)
+    tracked_category_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Category.objects.all(),
+        source='tracked_categories',
+        required=False,
+        allow_null=True,
+        write_only=True
+    )
+    tracked_categories_data = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Goal
@@ -182,6 +191,8 @@ class GoalSerializer(serializers.ModelSerializer):
             "goal_type",
             "target_category",
             "category_name",
+            "tracked_category_ids",
+            "tracked_categories_data",
             "auto_update",
             "tracking_period",
             "is_reduction_goal",
@@ -190,29 +201,65 @@ class GoalSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("current_amount", "created_at", "updated_at")
+    
+    def get_tracked_categories_data(self, obj):
+        """Retorna dados das categorias monitoradas."""
+        return [
+            {
+                'id': cat.id,
+                'name': cat.name,
+                'icon': cat.icon,
+            }
+            for cat in obj.tracked_categories.all()
+        ]
 
     def create(self, validated_data):
+        tracked_categories = validated_data.pop('tracked_categories', [])
         validated_data["user"] = self.context["request"].user
-        return super().create(validated_data)
+        goal = super().create(validated_data)
+        
+        # Adicionar categorias monitoradas
+        if tracked_categories:
+            goal.tracked_categories.set(tracked_categories)
+        
+        return goal
+    
+    def update(self, instance, validated_data):
+        tracked_categories = validated_data.pop('tracked_categories', None)
+        goal = super().update(instance, validated_data)
+        
+        # Atualizar categorias monitoradas se fornecidas
+        if tracked_categories is not None:
+            goal.tracked_categories.set(tracked_categories)
+        
+        return goal
     
     def validate(self, attrs):
         """Valida que metas por categoria têm uma categoria vinculada."""
         goal_type = attrs.get('goal_type', Goal.GoalType.CUSTOM)
         target_category = attrs.get('target_category')
+        tracked_categories = attrs.get('tracked_categories', [])
         
-        # Metas de categoria precisam ter uma categoria vinculada
+        # Metas de categoria EXPENSE/INCOME precisam ter uma categoria vinculada
         if goal_type in [Goal.GoalType.CATEGORY_EXPENSE, Goal.GoalType.CATEGORY_INCOME]:
             if not target_category:
                 raise serializers.ValidationError({
                     'target_category': 'Metas por categoria precisam de uma categoria vinculada.'
                 })
         
-        # Validar que a categoria pertence ao usuário ou é global
+        # Validar que as categorias pertencem ao usuário ou são globais
+        user = self.context['request'].user
+        
         if target_category:
-            user = self.context['request'].user
             if target_category.user and target_category.user != user:
                 raise serializers.ValidationError({
                     'target_category': 'Você não pode usar uma categoria de outro usuário.'
+                })
+        
+        for cat in tracked_categories:
+            if cat.user and cat.user != user:
+                raise serializers.ValidationError({
+                    'tracked_category_ids': f'A categoria "{cat.name}" não pertence a você.'
                 })
         
         return attrs

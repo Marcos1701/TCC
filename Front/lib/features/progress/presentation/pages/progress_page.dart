@@ -60,6 +60,9 @@ class _ProgressPageState extends State<ProgressPage> {
     // Novos controladores
     GoalType selectedGoalType = goal?.goalType ?? GoalType.custom;
     int? selectedCategoryId = goal?.targetCategory;
+    Set<int> selectedTrackedCategoryIds = goal?.trackedCategories
+            .map((cat) => cat.id)
+            .toSet() ?? {};
     bool autoUpdate = goal?.autoUpdate ?? false;
     TrackingPeriod trackingPeriod = goal?.trackingPeriod ?? TrackingPeriod.total;
     bool isReductionGoal = goal?.isReductionGoal ?? false;
@@ -78,9 +81,13 @@ class _ProgressPageState extends State<ProgressPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          // Verifica se precisa de categoria
-          final needsCategory = selectedGoalType == GoalType.categoryExpense ||
+          // Verifica se precisa de categoria única (CATEGORY_EXPENSE/INCOME)
+          final needsSingleCategory = selectedGoalType == GoalType.categoryExpense ||
               selectedGoalType == GoalType.categoryIncome;
+          
+          // Verifica se permite múltiplas categorias (SAVINGS/DEBT_REDUCTION)
+          final allowsMultipleCategories = selectedGoalType == GoalType.savings ||
+              selectedGoalType == GoalType.debtReduction;
           
           // Automaticamente define isReductionGoal para CATEGORY_EXPENSE
           if (selectedGoalType == GoalType.categoryExpense && !isReductionGoal) {
@@ -155,9 +162,12 @@ class _ProgressPageState extends State<ProgressPage> {
                         onChanged: isLoading ? null : (value) {
                           setState(() {
                             selectedGoalType = value!;
-                            // Limpar categoria se não for necessária
-                            if (!needsCategory) {
+                            // Limpar categorias quando mudar de tipo
+                            if (!needsSingleCategory) {
                               selectedCategoryId = null;
+                            }
+                            if (!allowsMultipleCategories) {
+                              selectedTrackedCategoryIds.clear();
                             }
                           });
                         },
@@ -187,8 +197,8 @@ class _ProgressPageState extends State<ProgressPage> {
                   ),
                   const SizedBox(height: 20),
                   
-                  // Seletor de Categoria (condicional)
-                  if (needsCategory) ...[
+                  // Seletor de Categoria Única (para CATEGORY_EXPENSE/INCOME)
+                  if (needsSingleCategory) ...[
                     Text(
                       'Categoria',
                       style: TextStyle(
@@ -239,6 +249,83 @@ class _ProgressPageState extends State<ProgressPage> {
                             );
                           }).toList(),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  
+                  // Seletor de Múltiplas Categorias (para SAVINGS/DEBT_REDUCTION com auto_update)
+                  if (allowsMultipleCategories && autoUpdate) ...[
+                    Text(
+                      'Categorias Monitoradas (Opcional)',
+                      style: TextStyle(
+                        color: Colors.grey[300],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Deixe vazio para monitorar todas as categorias padrão',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 10,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.grey[700]!,
+                          width: 1,
+                        ),
+                      ),
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: categories.map((cat) {
+                          final isSelected = selectedTrackedCategoryIds.contains(cat.id);
+                          return CheckboxListTile(
+                            value: isSelected,
+                            onChanged: isLoading ? null : (value) {
+                              setState(() {
+                                if (value == true) {
+                                  selectedTrackedCategoryIds.add(cat.id);
+                                } else {
+                                  selectedTrackedCategoryIds.remove(cat.id);
+                                }
+                              });
+                            },
+                            title: Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: cat.color != null 
+                                        ? Color(int.parse('0xFF${cat.color}'))
+                                        : Colors.grey,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    cat.name,
+                                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            activeColor: AppColors.primary,
+                            checkColor: Colors.white,
+                            tileColor: isSelected 
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Colors.transparent,
+                          );
+                        }).toList(),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -376,7 +463,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   ),
                   
                   // Período de Tracking (se auto_update ativado)
-                  if (autoUpdate && needsCategory) ...[
+                  if (autoUpdate && (needsSingleCategory || allowsMultipleCategories)) ...[
                     const SizedBox(height: 16),
                     Text(
                       'Período de Rastreamento',
@@ -504,7 +591,7 @@ class _ProgressPageState extends State<ProgressPage> {
                         }
                         
                         // Validar categoria obrigatória
-                        if (needsCategory && selectedCategoryId == null) {
+                        if (needsSingleCategory && selectedCategoryId == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Selecione uma categoria para este tipo de meta'),
@@ -557,6 +644,9 @@ class _ProgressPageState extends State<ProgressPage> {
           deadline: deadline,
           goalType: selectedGoalType.value,
           targetCategoryId: selectedCategoryId,
+          trackedCategoryIds: selectedTrackedCategoryIds.isNotEmpty 
+              ? selectedTrackedCategoryIds.toList()
+              : null,
           autoUpdate: autoUpdate,
           trackingPeriod: trackingPeriod.value,
           isReductionGoal: isReductionGoal,
@@ -570,6 +660,9 @@ class _ProgressPageState extends State<ProgressPage> {
           deadline: deadline,
           goalType: selectedGoalType.value,
           targetCategoryId: selectedCategoryId,
+          trackedCategoryIds: selectedTrackedCategoryIds.isNotEmpty 
+              ? selectedTrackedCategoryIds.toList()
+              : null,
           autoUpdate: autoUpdate,
           trackingPeriod: trackingPeriod.value,
           isReductionGoal: isReductionGoal,
