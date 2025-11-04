@@ -1195,26 +1195,37 @@ class _TransactionTile extends StatelessWidget {
       ),
       subtitle: Row(
         children: [
-          if (transaction.category != null) ...[
-            Text(
-              transaction.category!.name,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey[500],
-                fontSize: 12,
-              ),
-            ),
-            Text(
-              ' • ',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-          Text(
-            DateFormat('dd/MM/yyyy').format(transaction.date),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[500],
-              fontSize: 12,
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (transaction.category != null) ...[
+                  Flexible(
+                    child: Text(
+                      transaction.category!.name,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                  Text(
+                    ' • ',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+                Text(
+                  DateFormat('dd/MM/yyyy').format(transaction.date),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
           ),
           if (transaction.isRecurring) ...[

@@ -148,45 +148,103 @@ Transações que não se encaixam nas categorias anteriores.
 TPS = ((Receitas Totais - Despesas Totais - Pagamentos de Dívida) / Receitas Totais) × 100
 ```
 
-- **Receitas Totais**: INCOME de todos os grupos
-- **Despesas Totais**: EXPENSE de todos os grupos (incluindo SAVINGS e INVESTMENT)
-- **Pagamentos de Dívida**: DEBT_PAYMENT em categorias DEBT
+**Fórmula detalhada:**
+- **Receitas Totais**: Soma de todos os INCOME (todos os grupos)
+- **Despesas Totais**: Soma de todos os EXPENSE (exceto DEBT)
+- **Pagamentos de Dívida**: Soma de todos os DEBT_PAYMENT
+
+**O que o TPS mede:**
+Percentual da renda que sobra depois de pagar todas as despesas e dívidas.
+- TPS ≥ 20%: Excelente capacidade de poupança
+- TPS 10-19%: Boa poupança
+- TPS < 10%: Baixa capacidade de formar reserva
 
 **Para melhorar TPS**:
-1. Aumentar aportes em SAVINGS (registrar como INCOME em "Reserva de Emergência")
-2. Reduzir LIFESTYLE_EXPENSE
-3. Reduzir DEBT (menos pagamentos de dívida)
+1. Aumentar receitas (INCOME em qualquer categoria)
+2. Reduzir LIFESTYLE_EXPENSE (gastos não essenciais)
+3. Otimizar ESSENTIAL_EXPENSE (buscar economia sem perder qualidade)
+4. Acelerar quitação de dívidas para reduzir DEBT_PAYMENT futuro
+
+**Exemplo prático:**
+```
+Receitas: R$ 5.000 (salário)
+Despesas: R$ 2.000 (aluguel, mercado, contas)
+Dívidas: R$ 1.500 (financiamento + cartão)
+Poupança: R$ 1.500 (sobrou)
+TPS = 1.500 / 5.000 × 100 = 30% ✅ Excelente!
+```
 
 ### RDR (Razão Dívida/Renda)
 ```
-RDR = (Saldo de Dívidas / Receitas Totais) × 100
-Saldo de Dívidas = Novas Dívidas - Pagamentos - Ajustes
+RDR = (Pagamentos Mensais de Dívidas / Receitas Totais) × 100
 ```
 
-- **Saldo de Dívidas**: Calculado apenas em categorias do grupo DEBT
-- **Receitas Totais**: INCOME de todos os grupos
+**Fórmula detalhada:**
+- **Pagamentos Mensais de Dívidas**: Soma de todos os DEBT_PAYMENT
+- **Receitas Totais**: Soma de todos os INCOME
+
+**O que o RDR mede:**
+Percentual da renda comprometido com pagamento de dívidas mensalmente.
+- RDR ≤ 35%: Saudável (padrão bancário)
+- RDR 36-42%: Atenção (começando a ficar apertado)
+- RDR ≥ 43%: Crítico (risco de inadimplência)
 
 **Para melhorar RDR**:
-1. Fazer mais DEBT_PAYMENT em categorias DEBT
-2. Evitar novos EXPENSE em categorias DEBT
-3. Aumentar receitas
+1. Fazer mais DEBT_PAYMENT (amortizar/quitar dívidas)
+2. Evitar novos EXPENSE em categorias DEBT (não contrair novas dívidas)
+3. Aumentar receitas (mais INCOME)
+4. Renegociar dívidas para reduzir parcelas mensais
+
+**Exemplo prático:**
+```
+Receitas: R$ 5.000
+Financiamento: R$ 1.200/mês
+Cartão: R$ 800/mês
+Total dívidas: R$ 2.000
+RDR = 2.000 / 5.000 × 100 = 40% ⚠️ Atenção!
+```
+
+**Nota sobre Saldo Total de Dívidas:**
+O sistema também calcula o saldo total (quanto você deve):
+```
+Saldo = Novas Dívidas (EXPENSE em DEBT) - Pagamentos (DEBT_PAYMENT) - Ajustes (INCOME em DEBT)
+```
+Esse valor aparece como informação adicional no dashboard, mas o RDR oficial usa pagamentos mensais.
 
 ### ILI (Índice de Liquidez Imediata)
 ```
-ILI = Reserva Acumulada / Média Mensal de Despesas Essenciais (3 meses)
+ILI = Reserva de Emergência / Média Mensal de Despesas Essenciais (3 meses)
 ```
 
-- **Reserva Acumulada**: 
+**Fórmula detalhada:**
+- **Reserva de Emergência**: 
   - Saldo = INCOME em SAVINGS - EXPENSE em SAVINGS
-  - Quanto mais INCOME em "Reserva de Emergência", maior a reserva
-- **Despesas Essenciais**: 
+  - Aportes (INCOME) aumentam a reserva
+  - Resgates (EXPENSE) diminuem a reserva
+- **Despesas Essenciais Mensais**: 
   - Média dos últimos 3 meses de EXPENSE em ESSENTIAL_EXPENSE
-  - Inclui moradia, alimentação, transporte, saúde, educação
+  - Inclui: moradia, alimentação básica, transporte essencial, saúde, educação
+
+**O que o ILI mede:**
+Quantos meses a reserva de emergência consegue cobrir suas despesas essenciais.
+- ILI ≥ 6: Excelente segurança financeira
+- ILI 3-5: Razoável (precisa melhorar)
+- ILI < 3: Crítico (vulnerável a emergências)
 
 **Para melhorar ILI**:
-1. Aumentar aportes (INCOME) em "Reserva de Emergência"
-2. Reduzir despesas essenciais (otimização)
-3. Não resgatar (EXPENSE) da reserva
+1. Aumentar aportes regulares (INCOME) em "Reserva de Emergência"
+2. Otimizar despesas essenciais sem perder qualidade de vida
+3. Evitar resgates (EXPENSE) da reserva, usar apenas em emergências reais
+4. Configurar transferência automática mensal para a reserva
+
+**Exemplo prático:**
+```
+Reserva atual: R$ 12.000
+Média despesas essenciais: R$ 2.000/mês (últimos 3 meses)
+ILI = 12.000 / 2.000 = 6 meses ✅ Excelente!
+
+Se tiver emergência, consegue se manter 6 meses sem renda.
+```
 
 ## Como as Missões Usam as Categorias
 

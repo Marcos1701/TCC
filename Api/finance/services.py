@@ -51,9 +51,16 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     Utiliza cache quando disponível e não expirado.
     
     Indicadores calculados:
-    - TPS (Taxa de Poupança Pessoal): (Receitas - Despesas - Pagamentos de Dívida) / Receitas × 100
-    - RDR (Razão Dívida/Renda): Saldo de Dívidas / Receitas × 100
+    - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas - Pagamentos de Dívida) / Receitas) × 100
+      Mede quanto % da renda foi efetivamente poupado após pagar todas as despesas e dívidas.
+      
+    - RDR (Razão Dívida/Renda): (Pagamentos Mensais de Dívidas / Receitas) × 100
+      Mede quanto % da renda está comprometido com pagamento de dívidas.
+      Valores saudáveis: ≤35%. Atenção: 35-42%. Crítico: ≥42%.
+      
     - ILI (Índice de Liquidez Imediata): Reservas Líquidas / Média Despesas Essenciais (3 meses)
+      Mede quantos meses a reserva de emergência consegue cobrir despesas essenciais.
+      Recomendado: ≥6 meses.
     
     Args:
         user: Usuário para cálculo dos indicadores
@@ -83,6 +90,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     ):
         totals[entry["type"]] = _decimal(entry["total"])
 
+    # Totais gerais por tipo de transação
     income = totals.get(Transaction.TransactionType.INCOME, Decimal("0"))
     expense = totals.get(Transaction.TransactionType.EXPENSE, Decimal("0"))
     debt_info = _debt_components(user)
@@ -90,7 +98,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     debt_payments = debt_info["payments"]
 
     # Calcular reserva de emergência usando o grupo SAVINGS
-    # Lógica correta após mudança de tipo:
     # - INCOME em categoria SAVINGS = aporte na reserva (dinheiro guardado)
     # - EXPENSE em categoria SAVINGS = resgate da reserva (dinheiro retirado)
     # Saldo da reserva = Total de aportes (INCOME) - Total de resgates (EXPENSE)
@@ -106,10 +113,8 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         tx_type = item["type"]
         total = _decimal(item["total"])
         if tx_type == Transaction.TransactionType.INCOME:
-            # INCOME em SAVINGS = guardar dinheiro na reserva
             reserve_deposits += total
         elif tx_type == Transaction.TransactionType.EXPENSE:
-            # EXPENSE em SAVINGS = resgatar dinheiro da reserva
             reserve_withdrawals += total
 
     # Calcular média de despesas essenciais dos últimos 3 meses para ILI mais estável
@@ -127,31 +132,45 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     # Média mensal de despesas essenciais
     essential_expense = essential_expense_total / Decimal("3") if essential_expense_total > 0 else Decimal("0")
 
-    # Cálculo do TPS: considera pagamentos de dívida como saída de receita
-    # Importante: Aportes em SAVINGS estão em INCOME, mas não são receita real
-    # TPS = (Receita Real - Despesas - Pagamentos de Dívida) / Receita Real × 100
-    # TPS = (Aportes em Reserva) / Receita Real × 100
-    # Portanto: TPS = reserve_deposits / (income - reserve_deposits) × 100
-    # Ou simplificando: poupança = income - expense - debt_payments - reserve_withdrawals
+    # ============================================================================
+    # CÁLCULO DOS INDICADORES - Abordagem Prática Moderna
+    # ============================================================================
+    
     tps = Decimal("0")
     rdr = Decimal("0")
     ili = Decimal("0")
     
-    # Receita real = receita total - aportes em reserva (que estão contados em INCOME)
-    real_income = income - reserve_deposits
-    
-    if real_income > 0:
-        # TPS: quanto da receita real foi guardado na reserva
-        # Poupança efetiva = aportes na reserva - resgates
-        net_savings = reserve_deposits - reserve_withdrawals
-        tps = (net_savings / real_income) * Decimal("100")
+    if income > 0:
+        # TPS (Taxa de Poupança Pessoal)
+        # Fórmula: ((Receitas - Despesas - Pagamentos de Dívida) / Receitas) × 100
+        # Representa quanto % da renda foi efetivamente poupado
+        # 
+        # Exemplo: Ganhou R$ 5.000, gastou R$ 2.000, pagou R$ 1.500 de dívida
+        # TPS = (5.000 - 2.000 - 1.500) / 5.000 × 100 = 30%
+        savings = income - expense - debt_payments
+        tps = (savings / income) * Decimal("100")
         
-        # RDR: usa saldo atual de dívidas se positivo
-        if debt_balance > 0:
-            rdr = (debt_balance / real_income) * Decimal("100")
-
-    # ILI: quantos meses a reserva cobre de despesas essenciais
-    # Saldo da reserva = Aportes - Resgates
+        # RDR (Razão Dívida/Renda)
+        # Fórmula: (Pagamentos Mensais de Dívidas / Receitas) × 100
+        # Representa quanto % da renda está comprometido com dívidas
+        # 
+        # Exemplo: Ganhou R$ 5.000, paga R$ 1.500 de dívidas por mês
+        # RDR = 1.500 / 5.000 × 100 = 30%
+        # 
+        # Referências (CFPB, bancos brasileiros):
+        # - ≤35%: Saudável
+        # - 36-42%: Atenção
+        # - ≥43%: Crítico (risco de inadimplência)
+        rdr = (debt_payments / income) * Decimal("100")
+    
+    # ILI (Índice de Liquidez Imediata)
+    # Fórmula: Reserva de Emergência / Despesas Essenciais Mensais
+    # Representa quantos meses a reserva consegue cobrir despesas essenciais
+    # 
+    # Exemplo: Tem R$ 12.000 de reserva, gasta R$ 2.000/mês em essenciais
+    # ILI = 12.000 / 2.000 = 6 meses
+    # 
+    # Recomendação padrão: 3-6 meses (mínimo), idealmente 6-12 meses
     reserve_balance = reserve_deposits - reserve_withdrawals
     if essential_expense > 0:
         ili = reserve_balance / essential_expense
@@ -248,7 +267,7 @@ def _calculate_monthly_indicators(income: Decimal, expense: Decimal, debt_paymen
         income: Total de receitas do período
         expense: Total de despesas do período
         debt_payments: Total de pagamentos de dívida do período
-        debt_balance: Saldo de dívidas do período
+        debt_balance: Saldo de dívidas do período (não usado no cálculo, mantido para compatibilidade)
         
     Returns:
         Dicionário com 'tps' e 'rdr' calculados
@@ -258,12 +277,13 @@ def _calculate_monthly_indicators(income: Decimal, expense: Decimal, debt_paymen
     
     if income > 0:
         # TPS: poupança líquida após despesas e pagamentos de dívida
-        poupanca = income - expense - debt_payments
-        tps = (poupanca / income) * Decimal("100")
+        # TPS = ((Receitas - Despesas - Pagamentos de Dívida) / Receitas) × 100
+        savings = income - expense - debt_payments
+        tps = (savings / income) * Decimal("100")
         
-        # RDR: usa saldo de dívidas se positivo
-        if debt_balance > 0:
-            rdr = (debt_balance / income) * Decimal("100")
+        # RDR: comprometimento da renda com pagamentos de dívidas
+        # RDR = (Pagamentos Mensais de Dívidas / Receitas) × 100
+        rdr = (debt_payments / income) * Decimal("100")
     
     return {
         "tps": tps.quantize(Decimal("0.01")),

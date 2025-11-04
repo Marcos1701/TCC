@@ -425,31 +425,48 @@ class _IndicatorCard extends StatelessWidget {
 
     if (label.contains('TPS')) {
       title = 'Taxa de Poupança Pessoal (TPS)';
-      formula = 'TPS = (Receitas - Despesas) / Receitas × 100';
-      explanation = 'A TPS mede quanto da sua renda você consegue poupar. '
-          'É calculada dividindo o valor poupado (receitas menos despesas) '
-          'pelo total de receitas, multiplicado por 100 para obter a porcentagem.';
-      example = 'Se você ganhou R\$ 5.000 e gastou R\$ 4.000:\n'
-          'TPS = (5.000 - 4.000) / 5.000 × 100 = 20%\n\n'
-          'Meta ideal baseada no seu perfil: $idealTarget';
+      formula = 'TPS = (Receitas - Despesas - Pagamentos Dívidas) / Receitas × 100';
+      explanation = 'A TPS mede quanto % da sua renda você consegue poupar efetivamente. '
+          'É calculada dividindo o valor que sobrou (receitas menos despesas menos pagamentos de dívidas) '
+          'pelo total de receitas, multiplicado por 100.\n\n'
+          'Valores recomendados:\n'
+          '• ≥20%: Excelente capacidade de poupança\n'
+          '• 10-19%: Boa disciplina financeira\n'
+          '• <10%: Precisa melhorar';
+      example = 'Exemplo: Ganhou R\$ 5.000, gastou R\$ 2.000, pagou R\$ 1.500 de dívidas:\n'
+          'Sobrou: R\$ 1.500\n'
+          'TPS = 1.500 / 5.000 × 100 = 30% ✅\n\n'
+          'Seu valor atual: $currentValue\n'
+          'Meta ideal: $idealTarget';
     } else if (label.contains('RDR')) {
       title = 'Razão Dívida/Renda (RDR)';
-      formula = 'RDR = Dívidas / Receitas × 100';
-      explanation = 'A RDR indica quanto da sua renda está comprometida com dívidas. '
-          'É calculada dividindo o total de dívidas (ou pagamentos de dívida) '
-          'pelo total de receitas, multiplicado por 100.';
-      example = 'Se você ganhou R\$ 5.000 e tem R\$ 2.000 em dívidas:\n'
-          'RDR = 2.000 / 5.000 × 100 = 40%\n\n'
-          'Meta ideal baseada no seu perfil: $idealTarget';
+      formula = 'RDR = Pagamentos Mensais Dívidas / Receitas × 100';
+      explanation = 'A RDR indica quanto % da sua renda está comprometida com pagamentos de dívidas. '
+          'É calculada dividindo o total de pagamentos mensais de dívidas (financiamento, cartão, empréstimo) '
+          'pelo total de receitas, multiplicado por 100.\n\n'
+          'Faixas de segurança (padrão bancário):\n'
+          '• ≤35%: Saudável e seguro\n'
+          '• 36-42%: Atenção, começando a apertar\n'
+          '• ≥43%: Crítico, risco de inadimplência';
+      example = 'Exemplo: Ganhou R\$ 5.000, paga R\$ 2.000/mês de dívidas:\n'
+          'RDR = 2.000 / 5.000 × 100 = 40% ⚠️\n'
+          '(Na faixa de atenção)\n\n'
+          'Seu valor atual: $currentValue\n'
+          'Meta ideal: $idealTarget';
     } else if (label.contains('ILI')) {
       title = 'Índice de Liquidez Imediata (ILI)';
-      formula = 'ILI = Reservas Líquidas / Despesas Essenciais Mensais';
-      explanation = 'O ILI mostra por quantos meses você consegue manter seu padrão de vida '
-          'usando apenas suas reservas (poupança), sem nenhuma receita. É calculado dividindo '
-          'seu saldo de reservas pela média de despesas essenciais mensais.';
-      example = 'Se você tem R\$ 12.000 em reservas e gasta R\$ 3.000/mês em essenciais:\n'
-          'ILI = 12.000 / 3.000 = 4 meses\n\n'
-          'Meta ideal baseada no seu perfil: $idealTarget';
+      formula = 'ILI = Reserva Emergência / Despesas Essenciais Mensais';
+      explanation = 'O ILI mostra quantos meses sua reserva de emergência consegue cobrir suas despesas essenciais. '
+          'É calculado dividindo o saldo da reserva pela média mensal de despesas essenciais dos últimos 3 meses.\n\n'
+          'Níveis de segurança:\n'
+          '• ≥6 meses: Excelente segurança\n'
+          '• 3-5 meses: Razoável, mas precisa melhorar\n'
+          '• <3 meses: Crítico, vulnerável a emergências';
+      example = 'Exemplo: Tem R\$ 12.000 de reserva, gasta R\$ 2.000/mês em essenciais:\n'
+          'ILI = 12.000 / 2.000 = 6 meses ✅\n'
+          'Se perder a renda, consegue se manter 6 meses.\n\n'
+          'Seu valor atual: $currentValue\n'
+          'Meta ideal: $idealTarget meses';
     }
 
     showDialog(

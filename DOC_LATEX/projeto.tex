@@ -334,31 +334,33 @@ Para que essa análise seja mais precisa, serão utilizados índices financeiros
 Os principais indicadores e suas interpretações são:
 
 \subsection{Taxa de Poupança Pessoal (TPS)}
-A Taxa de Poupança Pessoal (TPS), do inglês *Personal Savings Rate*, mede a porcentagem da renda líquida mensal que é efetivamente poupada após o pagamento de todas as despesas. Trata-se de um indicador crucial para avaliar a capacidade de um indivíduo em acumular patrimônio, preparar-se para emergências e alcançar objetivos financeiros de longo prazo. Autores como Gitman (2012) \cite{gitman2012} enfatizam a importância da poupança regular como um dos pilares da administração financeira pessoal.
+A Taxa de Poupança Pessoal (TPS), do inglês *Personal Savings Rate*, mede a porcentagem da renda mensal total que é efetivamente poupada após o pagamento de todas as despesas e obrigações de dívida. Trata-se de um indicador crucial para avaliar a capacidade de um indivíduo em acumular patrimônio, preparar-se para emergências e alcançar objetivos financeiros de longo prazo. Autores como Gitman (2012) \cite{gitman2012} enfatizam a importância da poupança regular como um dos pilares da administração financeira pessoal.
 
 \textbf{Cálculo:}
 $$
-\text{TPS} = \left(\frac{\text{Renda Líquida Mensal} - \text{Despesas Totais Mensais}}{\text{Renda Líquida Mensal}}\right) \times 100
+\text{TPS} = \left(\frac{\text{Receitas Totais} - \text{Despesas Totais} - \text{Pagamentos de Dívidas}}{\text{Receitas Totais}}\right) \times 100
 $$
 Alternativamente, pode ser expressa como:
 $$
-\text{TPS} = \left(\frac{\text{Poupança Mensal}}{\text{Renda Líquida Mensal}}\right) \times 100
+\text{TPS} = \left(\frac{\text{Poupança Líquida Mensal}}{\text{Receitas Totais}}\right) \times 100
 $$
+
+Onde \textit{Receitas Totais} representa todos os rendimentos do período (salários, freelances, rendimentos de investimentos, etc.), \textit{Despesas Totais} são os gastos do dia a dia (alimentação, moradia, transporte, lazer, etc.), e \textit{Pagamentos de Dívidas} incluem parcelas de empréstimos, financiamentos e cartões de crédito.
 
 \textbf{Interpretação:}  
 
-Uma TPS mais elevada geralmente indica uma melhor saúde financeira e maior disciplina nos gastos, resultando em maior capacidade de investimento e realização de metas. Segundo Gitman e Zutter (2012)\cite{gitman2012}, a formação de poupança regular é considerada um dos pilares da administração financeira pessoal. Além disso, estudos de planejamento financeiro pessoal, como os de Lusardi (2019)\cite{lusardi2019}, destacam que valores inferiores a 10\% da renda líquida costumam estar associados a maior vulnerabilidade em situações de emergência.  
-De forma prática, diversos especialistas recomendam que a taxa de poupança pessoal seja mantida, no mínimo, entre 10\% e 15\% da renda líquida \cite{gitman2012, lusardi2019}. Valores consistentemente abaixo desse patamar podem sinalizar a necessidade de uma revisão orçamentária, seja para identificar despesas que possam ser reduzidas ou para buscar alternativas de incremento de renda.
+Uma TPS mais elevada geralmente indica uma melhor saúde financeira e maior disciplina nos gastos, resultando em maior capacidade de investimento e realização de metas. Segundo Gitman e Zutter (2012)\cite{gitman2012}, a formação de poupança regular é considerada um dos pilares da administração financeira pessoal. Além disso, estudos de planejamento financeiro pessoal, como os de Lusardi (2019)\cite{lusardi2019}, destacam que valores inferiores a 10\% das receitas costumam estar associados a maior vulnerabilidade em situações de emergência.  
+De forma prática, diversos especialistas recomendam que a taxa de poupança pessoal seja mantida, no mínimo, entre 10\% e 15\% das receitas totais \cite{gitman2012, lusardi2019}. Valores consistentemente abaixo desse patamar podem sinalizar a necessidade de uma revisão orçamentária, seja para identificar despesas que possam ser reduzidas ou para buscar alternativas de incremento de renda.
 
 
 \subsection{Razão Dívida-Renda (RDR)}
-A Razão Dívida-Renda (RDR), conhecida internacionalmente como *Debt-to-Income Ratio* (DTI), é uma métrica financeira pessoal que compara o montante total dos pagamentos mensais de dívidas de um indivíduo com sua renda bruta mensal. Este indicador é amplamente utilizado por instituições financeiras e credores para avaliar a capacidade de um indivíduo de gerenciar seus pagamentos mensais e, consequentemente, sua capacidade de assumir novas dívidas de forma sustentável \cite{gitman2012, cfpb_dti}.
+A Razão Dívida-Renda (RDR), conhecida internacionalmente como *Debt-to-Income Ratio* (DTI), é uma métrica financeira pessoal que compara o montante total dos pagamentos mensais de dívidas de um indivíduo com suas receitas totais mensais. Este indicador é amplamente utilizado por instituições financeiras e credores para avaliar a capacidade de um indivíduo de gerenciar seus pagamentos mensais e, consequentemente, sua capacidade de assumir novas dívidas de forma sustentável \cite{gitman2012, cfpb_dti}.
 
 \textbf{Cálculo:}
 $$
-\text{RDR} = \left(\frac{\text{Soma dos Pagamentos Mensais de Todas as Dívidas}}{\text{Renda Bruta Mensal}}\right) \times 100
+\text{RDR} = \left(\frac{\text{Soma dos Pagamentos Mensais de Todas as Dívidas}}{\text{Receitas Totais}}\right) \times 100
 $$
-Onde a "Soma dos Pagamentos Mensais de Todas as Dívidas" inclui parcelas de empréstimos, financiamentos (imobiliário, veículo), pagamentos mínimos de cartões de crédito, e outras obrigações financeiras regulares. A "Renda Bruta Mensal" refere-se ao total de rendimentos antes de impostos e outras deduções.
+Onde a ``Soma dos Pagamentos Mensais de Todas as Dívidas'' inclui parcelas de empréstimos, financiamentos (imobiliário, veículo), pagamentos mínimos de cartões de crédito, e outras obrigações financeiras regulares. As ``Receitas Totais'' referem-se ao total de rendimentos do período, incluindo salários, freelances, e outras fontes de renda.
 
 \textbf{Interpretação (baseada em diretrizes como as do Consumer Financial Protection Bureau \cite{cfpb_dti}):} 
 
@@ -434,11 +436,15 @@ Este algoritmo buscará um equilíbrio entre oferecer desafios que efetivamente 
 Considere um usuário fictício, João, com os seguintes dados financeiros declarados no aplicativo:
 
 \begin{itemize}
-    \item \textbf{Renda Bruta Mensal}: R\$ 5.000,00 \\
-    Valor total que João recebe antes de impostos e descontos obrigatórios.
+    \item \textbf{Receitas Totais Mensais}: R\$ 5.000,00 \\
+    Valor total que João recebe no mês, incluindo salário, freelances e outras fontes de renda.
     
-    \item \textbf{Renda Líquida Mensal}: R\$ 4.200,00 \\
-    Valor efetivamente disponível após deduções, ou seja, o dinheiro que entra na conta.
+    \item \textbf{Despesas Mensais}: R\$ 1.700,00, incluindo:
+    \begin{itemize}
+        \item Aluguel: R\$ 1.000,00
+        \item Alimentação: R\$ 500,00
+        \item Transporte e lazer: R\$ 200,00
+    \end{itemize}
     
     \item \textbf{Pagamentos Mensais de Dívidas}: R\$ 2.100,00, composto por: 
     \begin{itemize}
@@ -446,40 +452,43 @@ Considere um usuário fictício, João, com os seguintes dados financeiros decla
         \item Pagamento mínimo do cartão de crédito: R\$ 900,00
     \end{itemize}
     
-    \item \textbf{Demais Despesas Fixas e Variáveis}: R\$ 1.700,00, incluindo:
-    \begin{itemize}
-        \item Aluguel: R\$ 1.000,00
-        \item Alimentação: R\$ 500,00
-        \item Transporte e lazer: R\$ 200,00
-    \end{itemize}
+    \item \textbf{Reserva de Emergência Atual}: R\$ 6.000,00
     
-    \item \textbf{Despesas Totais Mensais}: \\
-    Pagamentos de dívidas (R\$ 2.100,00) + demais despesas (R\$ 1.700,00) = \textbf{R\$ 3.800,00}
+    \item \textbf{Despesas Essenciais Mensais}: R\$ 1.500,00 \\
+    (Aluguel, alimentação básica e transporte essencial)
 \end{itemize}
 
 \noindent
-\textbf{1. Cálculo da Razão Dívida-Renda (RDR):}
+\textbf{1. Cálculo da Taxa de Poupança Pessoal (TPS):}
+\[
+\text{TPS} = \frac{5.000 - 1.700 - 2.100}{5.000} \times 100
+\]
+\[
+\text{TPS} = \frac{1.200}{5.000} \times 100 = 24\%
+\]
+João consegue poupar 24\% de suas receitas mensais, valor acima do mínimo recomendado (10--15\%), indicando boa disciplina financeira.
+
+\noindent
+\textbf{2. Cálculo da Razão Dívida-Renda (RDR):}
 \[
 \text{RDR} = \frac{2.100}{5.000} \times 100 = 42\%
 \]
-Isso significa que 42\% da \textbf{renda bruta} de João está comprometida apenas com dívidas.
+Isso significa que 42\% das receitas de João estão comprometidas com pagamentos de dívidas. Este valor está na faixa de atenção (36--42\%), próximo ao limite crítico de 43\%.
 
 \noindent
-\textbf{2. Cálculo da Taxa de Poupança Pessoal (TPS):}
+\textbf{3. Cálculo do Índice de Liquidez Imediata (ILI):}
 \[
-\text{TPS} = \frac{4.200 - 3.800}{4.200} \times 100
+\text{ILI} = \frac{6.000}{1.500} = 4 \text{ meses}
 \]
-\[
-\text{TPS} = \frac{400}{4.200} \times 100 \approx 9,52\%
-\]
-Ou seja, João consegue poupar apenas 9,5\% de sua \textbf{renda líquida}, abaixo do mínimo recomendado (10--15\%).
+A reserva de João cobre 4 meses de despesas essenciais, valor intermediário que indica necessidade de ampliação para atingir o ideal de 6 meses.
 
 \noindent
-\textbf{3. Interpretação do Perfil:}
+\textbf{4. Interpretação do Perfil:}
 \begin{itemize}
-    \item \textbf{Endividamento}: A RDR de 42\% mostra que João dedica quase metade de sua renda bruta ao pagamento de dívidas.
-    \item \textbf{Poupança}: Sua TPS de 9,5\% indica baixa capacidade de formar reserva financeira.
-    \item \textbf{Síntese}: Perfil de atenção – alto comprometimento com dívidas e pouca poupança.
+    \item \textbf{Poupança}: TPS de 24\% é excelente, mostrando boa capacidade de formar patrimônio.
+    \item \textbf{Endividamento}: RDR de 42\% indica que João está na faixa de atenção. Quase metade de sua renda vai para dívidas, limitando sua flexibilidade financeira.
+    \item \textbf{Segurança}: ILI de 4 meses é razoável, mas ainda abaixo do ideal de 6 meses.
+    \item \textbf{Síntese}: Perfil misto – boa disciplina de poupança, mas alto comprometimento com dívidas que limita margem de manobra.
 \end{itemize}
 
 \noindent

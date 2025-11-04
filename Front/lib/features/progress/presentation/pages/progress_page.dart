@@ -873,34 +873,58 @@ class _TargetBadge extends StatelessWidget {
 
     if (label == 'TPS') {
       title = 'Taxa de Poupança Pessoal (TPS)';
-      formula = 'TPS = (Receitas - Despesas) / Receitas × 100';
-      explanation = 'A TPS mede quanto da sua renda você consegue poupar. '
-          'É calculada dividindo o valor poupado (receitas menos despesas) '
-          'pelo total de receitas, multiplicado por 100 para obter a porcentagem.';
-      example = 'Se você ganhou R\$ 5.000 e gastou R\$ 4.000:\n'
-          'TPS = (5.000 - 4.000) / 5.000 × 100 = 20%\n\n'
+      formula = 'TPS = (Receitas - Despesas - Pagamentos Dívidas) / Receitas × 100';
+      explanation = 'A TPS mede quanto % da sua renda você consegue poupar efetivamente. '
+          'É calculada dividindo o valor que sobrou (receitas menos todas as despesas e pagamentos de dívidas) '
+          'pelo total de receitas, multiplicado por 100.\n\n'
+          'Faixas de referência:\n'
+          '• ≥20%: Excelente! Alta capacidade de formar patrimônio\n'
+          '• 10-19%: Boa disciplina financeira\n'
+          '• <10%: Precisa ajustar o orçamento';
+      example = 'Exemplo prático:\n'
+          'Receitas: R\$ 5.000\n'
+          'Despesas: R\$ 2.000\n'
+          'Pagamento dívidas: R\$ 1.500\n'
+          'Sobrou: R\$ 1.500\n'
+          'TPS = 1.500 / 5.000 × 100 = 30% ✅\n\n'
           'Seu valor atual: $currentValue\n'
           'Faixa ideal: $idealRange';
       color = const Color(0xFF4CAF50);
     } else if (label == 'RDR') {
       title = 'Razão Dívida/Renda (RDR)';
-      formula = 'RDR = Dívidas / Receitas × 100';
-      explanation = 'A RDR indica quanto da sua renda está comprometida com dívidas. '
-          'É calculada dividindo o total de dívidas (ou pagamentos de dívida) '
-          'pelo total de receitas, multiplicado por 100.';
-      example = 'Se você ganhou R\$ 5.000 e tem R\$ 2.000 em dívidas:\n'
-          'RDR = 2.000 / 5.000 × 100 = 40%\n\n'
+      formula = 'RDR = Pagamentos Mensais Dívidas / Receitas × 100';
+      explanation = 'A RDR indica quanto % da sua renda está comprometida com pagamentos mensais de dívidas. '
+          'É calculada dividindo o total de pagamentos de dívidas (financiamentos, cartão, empréstimos) '
+          'pelo total de receitas, multiplicado por 100.\n\n'
+          'Faixas de segurança (padrão bancário):\n'
+          '• ≤35%: Saudável - boa margem de segurança\n'
+          '• 36-42%: Atenção - começando a apertar o orçamento\n'
+          '• ≥43%: Crítico - alto risco de inadimplência';
+      example = 'Exemplo prático:\n'
+          'Receitas: R\$ 5.000\n'
+          'Financiamento carro: R\$ 1.200\n'
+          'Cartão crédito: R\$ 800\n'
+          'Total dívidas: R\$ 2.000\n'
+          'RDR = 2.000 / 5.000 × 100 = 40% ⚠️\n'
+          '(Na faixa de atenção)\n\n'
           'Seu valor atual: $currentValue\n'
           'Faixa ideal: $idealRange';
       color = const Color(0xFFFF9800);
     } else if (label == 'ILI') {
       title = 'Índice de Liquidez Imediata (ILI)';
-      formula = 'ILI = Reservas Líquidas / Despesas Essenciais Mensais';
-      explanation = 'O ILI mostra por quantos meses você consegue manter seu padrão de vida '
-          'usando apenas suas reservas (poupança), sem nenhuma receita. É calculado dividindo '
-          'seu saldo de reservas pela média de despesas essenciais mensais.';
-      example = 'Se você tem R\$ 12.000 em reservas e gasta R\$ 3.000/mês em essenciais:\n'
-          'ILI = 12.000 / 3.000 = 4 meses\n\n'
+      formula = 'ILI = Reserva Emergência / Despesas Essenciais Mensais';
+      explanation = 'O ILI mostra quantos meses sua reserva de emergência consegue cobrir suas despesas essenciais. '
+          'É calculado dividindo o saldo da reserva pela média mensal de despesas essenciais dos últimos 3 meses. '
+          'Indica sua capacidade de sobreviver financeiramente sem renda.\n\n'
+          'Níveis de segurança:\n'
+          '• ≥6 meses: Excelente! Você está bem protegido\n'
+          '• 3-5 meses: Razoável, mas precisa fortalecer\n'
+          '• <3 meses: Crítico - vulnerável a emergências';
+      example = 'Exemplo prático:\n'
+          'Reserva: R\$ 12.000\n'
+          'Despesas essenciais: R\$ 2.000/mês\n'
+          'ILI = 12.000 / 2.000 = 6 meses ✅\n\n'
+          'Se perder a renda, consegue se manter por 6 meses.\n\n'
           'Seu valor atual: $currentValue\n'
           'Faixa ideal: $idealRange';
       color = const Color(0xFF2196F3);
