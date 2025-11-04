@@ -207,7 +207,7 @@ class GoalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("current_amount", "created_at", "updated_at")
+        read_only_fields = ("created_at", "updated_at")
     
     def get_tracked_categories_data(self, obj):
         """Retorna dados das categorias monitoradas."""
@@ -270,6 +270,19 @@ class GoalSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'tracked_category_ids': f'A categoria "{cat.name}" não pertence a você.'
                 })
+        
+        # Validar current_amount em updates
+        if self.instance:  # Só valida em updates
+            current_amount = attrs.get('current_amount')
+            if current_amount is not None:
+                # Apenas metas CUSTOM sem auto_update podem ter current_amount editado manualmente
+                goal_type = self.instance.goal_type
+                auto_update = self.instance.auto_update
+                
+                if goal_type != Goal.GoalType.CUSTOM and auto_update:
+                    raise serializers.ValidationError({
+                        'current_amount': 'Apenas metas personalizadas sem atualização automática podem ter o valor atual editado manualmente.'
+                    })
         
         return attrs
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/goal.dart';
 import '../../../../core/models/transaction.dart';
@@ -6,6 +7,7 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 
 /// Classe para armazenar estatísticas por categoria
 class CategoryStats {
@@ -43,6 +45,7 @@ class GoalDetailsPage extends StatefulWidget {
 
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   final _repository = FinanceRepository();
+  late GoalModel _currentGoal;
   List<TransactionModel>? _transactions;
   Map<int, CategoryStats>? _categoryStats;
   bool _isLoading = true;
@@ -51,6 +54,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   @override
   void initState() {
     super.initState();
+    _currentGoal = widget.goal;
     _loadData();
   }
 
@@ -61,6 +65,13 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     });
 
     try {
+      // Busca a meta atualizada
+      final goals = await _repository.fetchGoals();
+      final updatedGoal = goals.firstWhere(
+        (g) => g.id == widget.goal.id,
+        orElse: () => widget.goal,
+      );
+
       final transactions = await _repository.fetchGoalTransactions(widget.goal.id);
 
       // Calcular estatísticas por categoria
@@ -83,6 +94,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
       }
 
       setState(() {
+        _currentGoal = updatedGoal;
         _transactions = transactions;
         _categoryStats = stats;
         _isLoading = false;
@@ -141,7 +153,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           style: TextStyle(color: Colors.white),
         ),
         actions: [
-          if (widget.goal.autoUpdate)
+          if (_currentGoal.autoUpdate)
             IconButton(
               icon: const Icon(Icons.refresh, color: Colors.white),
               tooltip: 'Atualizar progresso',
@@ -203,7 +215,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Botão Editar Valor Atual (só para metas personalizadas)
-          if (widget.goal.goalType.value == 'CUSTOM') ...[
+          if (_currentGoal.goalType.value == 'CUSTOM') ...[
             FloatingActionButton(
               heroTag: 'edit_current',
               onPressed: _showEditCurrentAmountDialog,
@@ -231,104 +243,225 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   }
 
   Future<void> _showEditCurrentAmountDialog() async {
+    final currencyFormat = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
     final controller = TextEditingController(
-      text: widget.goal.currentAmount.toStringAsFixed(2),
+      text: CurrencyInputFormatter.format(_currentGoal.currentAmount),
     );
 
-    final confirmed = await showDialog<bool>(
+    // Seleciona todo o texto ao abrir
+    controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: controller.text.length,
+    );
+
+    final result = await showDialog<double>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: const Text(
-          'Editar Valor Atual',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: 'Valor atual',
-            labelStyle: TextStyle(color: Colors.grey[400]),
-            prefixText: 'R\$ ',
-            prefixStyle: const TextStyle(color: Colors.white),
-            filled: true,
-            fillColor: Colors.black.withValues(alpha: 0.3),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[700]!),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[700]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            title: const Text(
+              'Editar Valor Atual',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            child: const Text('Salvar'),
-          ),
-        ],
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Meta: ${_currentGoal.title}',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Objetivo: ${currencyFormat.format(_currentGoal.targetAmount)}',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(maxDigits: 12),
+                  ],
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Valor atual',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    prefixText: 'R\$ ',
+                    prefixStyle: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    helperText: 'Digite o valor atual da meta',
+                    helperStyle: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    filled: true,
+                    fillColor: Colors.black.withValues(alpha: 0.3),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[700]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[700]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancelar',
+                  style: TextStyle(color: Colors.grey[400]),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final value = CurrencyInputFormatter.parse(controller.text);
+                  if (value > 0) {
+                    Navigator.pop(context, value);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Por favor, insira um valor válido maior que zero'),
+                        backgroundColor: Colors.orange,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text(
+                  'Salvar',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
 
-    if (confirmed == true && mounted) {
-      final newAmount = double.tryParse(controller.text.replaceAll(',', '.'));
-      if (newAmount != null) {
-        try {
-          await _repository.updateGoal(
-            goalId: widget.goal.id,
-            currentAmount: newAmount,
-          );
+    if (result != null && mounted) {
+      try {
+        // Mostra loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+
+        await _repository.updateGoal(
+          goalId: widget.goal.id,
+          currentAmount: result,
+        );
+
+        // Invalida cache
+        CacheManager().invalidateAfterGoalUpdate();
+
+        if (mounted) {
+          // Remove loading
+          Navigator.pop(context);
           
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Valor atualizado com sucesso!'),
-                backgroundColor: Colors.green,
+          // Mostra sucesso
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Valor atualizado para ${currencyFormat.format(result)}!',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ),
-            );
-            // Recarrega os dados
-            _loadData();
-            // Invalida cache
-            CacheManager().invalidateAfterGoalUpdate();
-          }
-        } catch (e) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erro ao atualizar: $e'),
-                backgroundColor: Colors.red,
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
-            );
-          }
+            ),
+          );
+
+          // Recarrega os dados da meta atualizada
+          await _loadData();
+        }
+      } catch (e) {
+        if (mounted) {
+          // Remove loading se ainda estiver aberto
+          Navigator.pop(context);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Erro ao atualizar: $e'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
         }
       }
     }
   }
 
   Widget _buildProgressCard(ThemeData theme, AppDecorations tokens) {
-    final progressPercent = widget.goal.progressPercentage;
-    final isCompleted = widget.goal.isCompleted;
+    final progressPercent = _currentGoal.progressPercentage;
+    final isCompleted = _currentGoal.isCompleted;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -350,7 +483,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                   width: 180,
                   height: 180,
                   child: CircularProgressIndicator(
-                    value: widget.goal.progress,
+                    value: _currentGoal.progress,
                     strokeWidth: 16,
                     backgroundColor: const Color(0xFF2A2A2A),
                     valueColor: AlwaysStoppedAnimation(
@@ -362,7 +495,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      widget.goal.goalType.icon,
+                      _currentGoal.goalType.icon,
                       style: const TextStyle(fontSize: 48),
                     ),
                     const SizedBox(height: 8),
@@ -380,17 +513,17 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            widget.goal.title,
+            _currentGoal.title,
             textAlign: TextAlign.center,
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (widget.goal.description.isNotEmpty) ...[
+          if (_currentGoal.description.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              widget.goal.description,
+              _currentGoal.description,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[400],
@@ -402,24 +535,24 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                widget.currency.format(widget.goal.currentAmount),
+                widget.currency.format(_currentGoal.currentAmount),
                 style: theme.textTheme.headlineSmall?.copyWith(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               Text(
-                ' / ${widget.currency.format(widget.goal.targetAmount)}',
+                ' / ${widget.currency.format(_currentGoal.targetAmount)}',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.grey[400],
                 ),
               ),
             ],
           ),
-          if (widget.goal.amountRemaining > 0) ...[
+          if (_currentGoal.amountRemaining > 0) ...[
             const SizedBox(height: 8),
             Text(
-              'Faltam ${widget.currency.format(widget.goal.amountRemaining)}',
+              'Faltam ${widget.currency.format(_currentGoal.amountRemaining)}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.grey[500],
               ),
@@ -449,32 +582,32 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildInfoRow(Icons.category, 'Tipo', widget.goal.goalType.label, theme),
-          if (widget.goal.categoryName != null)
-            _buildInfoRow(Icons.label, 'Categoria', widget.goal.categoryName!, theme),
-          if (widget.goal.trackedCategories.isNotEmpty)
+          _buildInfoRow(Icons.category, 'Tipo', _currentGoal.goalType.label, theme),
+          if (_currentGoal.categoryName != null)
+            _buildInfoRow(Icons.label, 'Categoria', _currentGoal.categoryName!, theme),
+          if (_currentGoal.trackedCategories.isNotEmpty)
             _buildInfoRow(
               Icons.folder_special,
               'Categorias monitoradas',
-              '${widget.goal.trackedCategories.length} selecionada${widget.goal.trackedCategories.length > 1 ? "s" : ""}',
+              '${_currentGoal.trackedCategories.length} selecionada${_currentGoal.trackedCategories.length > 1 ? "s" : ""}',
               theme,
-              subtitle: widget.goal.trackedCategories.map((c) => c.name).join(', '),
+              subtitle: _currentGoal.trackedCategories.map((c) => c.name).join(', '),
               color: AppColors.primary,
             ),
           _buildInfoRow(
             Icons.sync,
             'Atualização',
-            widget.goal.autoUpdate ? 'Automática' : 'Manual',
+            _currentGoal.autoUpdate ? 'Automática' : 'Manual',
             theme,
-            color: widget.goal.autoUpdate ? AppColors.support : null,
+            color: _currentGoal.autoUpdate ? AppColors.support : null,
           ),
           if (widget.goal.trackingPeriod != TrackingPeriod.total)
             _buildInfoRow(Icons.calendar_today, 'Período', widget.goal.trackingPeriod.label, theme),
-          if (widget.goal.deadline != null)
+          if (_currentGoal.deadline != null)
             _buildInfoRow(
               Icons.event,
               'Prazo',
-              DateFormat('dd/MM/yyyy').format(widget.goal.deadline!),
+              DateFormat('dd/MM/yyyy').format(_currentGoal.deadline!),
               theme,
               subtitle: widget.goal.isExpired
                   ? 'Expirado'
@@ -486,7 +619,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           _buildInfoRow(
             Icons.calendar_month,
             'Criada em',
-            DateFormat('dd/MM/yyyy').format(widget.goal.createdAt),
+            DateFormat('dd/MM/yyyy').format(_currentGoal.createdAt),
             theme,
           ),
         ],
