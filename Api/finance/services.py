@@ -226,6 +226,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         "total_income": profile.cached_total_income,
         "total_expense": profile.cached_total_expense,
         "total_debt": profile.cached_total_debt,
+        "debt_payments": debt_payments_via_links.quantize(Decimal("0.01")),
     }
 
 

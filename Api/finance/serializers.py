@@ -416,6 +416,7 @@ class DashboardSummarySerializer(serializers.Serializer):
     total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_expense = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_debt = serializers.DecimalField(max_digits=12, decimal_places=2)
+    debt_payments = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class CategoryBreakdownSerializer(serializers.Serializer):

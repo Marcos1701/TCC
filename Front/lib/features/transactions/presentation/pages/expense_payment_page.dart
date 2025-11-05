@@ -238,17 +238,18 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                   ),
                 ),
               if (_currentStep > 0) const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _canProceed() ? _nextStep : null,
-                  icon: Icon(_currentStep == 2 ? Icons.check : Icons.arrow_forward),
-                  label: Text(_currentStep == 2 ? 'Confirmar' : 'Próximo'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: Colors.white12,
+              if (_currentStep < 2)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _canProceed() ? _nextStep : null,
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('Próximo'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      disabledBackgroundColor: Colors.white12,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -616,41 +617,44 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => amountController.text = CurrencyInputFormatter.format(availableIncome),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.success,
-                    side: const BorderSide(color: AppColors.success),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  ),
-                  child: Text(
-                    'Máximo\n${_currency.format(availableIncome)}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => amountController.text = CurrencyInputFormatter.format(remainingDebt),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.alert,
-                    side: const BorderSide(color: AppColors.alert),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  ),
-                  child: Text(
-                    'Quitar\n${_currency.format(remainingDebt)}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
+              // Mostra 'Máximo' apenas se a despesa for maior que a receita disponível
+              if (remainingDebt > availableIncome)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => amountController.text = CurrencyInputFormatter.format(availableIncome),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.success,
+                      side: const BorderSide(color: AppColors.success),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    ),
+                    child: Text(
+                      'Máximo\n${_currency.format(availableIncome)}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
                   ),
                 ),
-              ),
+              // Mostra 'Quitar' apenas se a despesa for menor ou igual à receita disponível
+              if (remainingDebt <= availableIncome)
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => amountController.text = CurrencyInputFormatter.format(remainingDebt),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.alert,
+                      side: const BorderSide(color: AppColors.alert),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    ),
+                    child: Text(
+                      'Quitar\n${_currency.format(remainingDebt)}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 24),

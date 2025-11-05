@@ -327,7 +327,7 @@ class _HomeSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final saldo = summary.totalIncome - summary.totalExpense;
+    final saldo = summary.totalIncome - summary.totalExpense - summary.debtPayments;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -495,6 +495,41 @@ class _HomeSummaryCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          // Card de Pagamentos
+          if (summary.debtPayments > 0)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A5E),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: AppColors.highlight,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Pagamentos:',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    currency.format(summary.debtPayments),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppColors.highlight,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 16),
           
           // Botões de ação

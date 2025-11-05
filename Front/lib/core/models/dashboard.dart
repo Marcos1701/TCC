@@ -10,6 +10,7 @@ class SummaryMetrics {
     required this.totalIncome,
     required this.totalExpense,
     required this.totalDebt,
+    required this.debtPayments,
   });
 
   final double tps;
@@ -18,6 +19,7 @@ class SummaryMetrics {
   final double totalIncome;
   final double totalExpense;
   final double totalDebt;
+  final double debtPayments;
 
   factory SummaryMetrics.fromMap(Map<String, dynamic> map) {
     return SummaryMetrics(
@@ -27,6 +29,7 @@ class SummaryMetrics {
       totalIncome: double.parse(map['total_income'].toString()),
       totalExpense: double.parse(map['total_expense'].toString()),
       totalDebt: double.parse(map['total_debt'].toString()),
+      debtPayments: double.parse(map['debt_payments']?.toString() ?? '0'),
     );
   }
 }
