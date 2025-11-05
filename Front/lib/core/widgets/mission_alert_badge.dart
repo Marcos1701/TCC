@@ -26,8 +26,8 @@ class MissionAlertBadge extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: summary.hasExpiredMissions
-              ? AppColors.alert.withValues(alpha: 0.15)
-              : AppColors.highlight.withValues(alpha: 0.15),
+              ? AppColors.alert.withOpacity(0.15)
+              : AppColors.highlight.withOpacity(0.15),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: summary.hasExpiredMissions
@@ -75,7 +75,7 @@ class MissionAlertBadge extends StatelessWidget {
                         ? '${summary.expiredCount} ${summary.expiredCount == 1 ? "missão expirou" : "missões expiraram"}'
                         : '${summary.expiringSoon} ${summary.expiringSoon == 1 ? "missão expira" : "missões expiram"} em menos de 24h',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withOpacity(0.7),
                       fontSize: 13,
                     ),
                   ),
@@ -113,15 +113,15 @@ class MissionStatusCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              AppColors.primary.withValues(alpha: 0.2),
-              AppColors.primary.withValues(alpha: 0.05),
+              AppColors.primary.withOpacity(0.2),
+              AppColors.primary.withOpacity(0.05),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.3),
+            color: AppColors.primary.withOpacity(0.3),
             width: 1,
           ),
         ),
@@ -187,7 +187,7 @@ class _StatItem extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: Colors.white.withOpacity(0.6),
             fontSize: 12,
           ),
         ),

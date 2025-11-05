@@ -144,7 +144,7 @@ class _MissionsPageState extends State<MissionsPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                          color: AppColors.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -276,7 +276,7 @@ class _ActiveMissionCard extends StatelessWidget {
         borderRadius: tokens.cardRadius,
         boxShadow: tokens.mediumShadow,
         border: isCompleted
-            ? Border.all(color: AppColors.support.withValues(alpha: 0.3), width: 1.5)
+            ? Border.all(color: AppColors.support.withOpacity(0.3), width: 1.5)
             : null,
       ),
       child: Column(
@@ -378,7 +378,7 @@ class _ActiveMissionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -409,10 +409,10 @@ class _ActiveMissionCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.support.withValues(alpha: 0.1),
+                color: AppColors.support.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.support.withValues(alpha: 0.3),
+                  color: AppColors.support.withOpacity(0.3),
                 ),
               ),
               child: Row(

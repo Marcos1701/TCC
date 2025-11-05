@@ -185,7 +185,7 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary.withValues(alpha: 0.4);
+            return AppColors.primary.withOpacity(0.4);
           }
           return AppColors.border;
         }),
@@ -287,11 +287,11 @@ class AppTheme {
             if (states.contains(WidgetState.selected)) {
               return const BorderSide(color: AppColors.primary, width: 1.2);
             }
-            return BorderSide(color: AppColors.border.withValues(alpha: 0.9));
+            return BorderSide(color: AppColors.border.withOpacity(0.9));
           }),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return AppColors.primary.withValues(alpha: 0.12);
+              return AppColors.primary.withOpacity(0.12);
             }
             return surfaceAlt;
           }),
@@ -302,7 +302,7 @@ class AppTheme {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         tileColor: colorScheme.surface,
-        selectedTileColor: AppColors.primary.withValues(alpha: 0.12),
+        selectedTileColor: AppColors.primary.withOpacity(0.12),
         iconColor: isDark ? Colors.white70 : AppColors.textSecondary,
         textColor: colorScheme.onSurface,
         shape: RoundedRectangleBorder(borderRadius: decorations.tileRadius),
@@ -339,7 +339,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: isDark ? const Color(0xFF161E31) : Colors.white,
-        indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+        indicatorColor: AppColors.primary.withOpacity(0.12),
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -399,7 +399,7 @@ class AppTheme {
             textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
         indicator: BoxDecoration(
           borderRadius: decorations.tileRadius,
-          color: AppColors.primary.withValues(alpha: 0.12),
+          color: AppColors.primary.withOpacity(0.12),
         ),
       ),
       scrollbarTheme: ScrollbarThemeData(
@@ -409,7 +409,7 @@ class AppTheme {
           if (states.contains(WidgetState.dragged)) {
             return AppColors.primary;
           }
-          return AppColors.primary.withValues(alpha: 0.6);
+          return AppColors.primary.withOpacity(0.6);
         }),
       ),
       tooltipTheme: TooltipThemeData(
@@ -421,7 +421,7 @@ class AppTheme {
       ),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: AppColors.primary,
-        selectionColor: AppColors.primary.withValues(alpha: 0.24),
+        selectionColor: AppColors.primary.withOpacity(0.24),
         selectionHandleColor: AppColors.primary,
       ),
     );

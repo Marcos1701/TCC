@@ -95,7 +95,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         end: Alignment.bottomRight,
                         colors: [
                           AppColors.primary,
-                          AppColors.primary.withValues(alpha: 0.7),
+                          AppColors.primary.withOpacity(0.7),
                         ],
                       ),
                       borderRadius: tokens.cardRadius,
@@ -108,7 +108,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           height: 80,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(20),
-                            color: Colors.white.withValues(alpha: 0.2),
+                            color: Colors.white.withOpacity(0.2),
                           ),
                           child: const Icon(
                             Icons.person,

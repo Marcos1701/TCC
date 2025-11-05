@@ -36,7 +36,7 @@ class MetricCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             baseColor,
-            baseColor.withValues(alpha: 0.82),
+            baseColor.withOpacity(0.82),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,

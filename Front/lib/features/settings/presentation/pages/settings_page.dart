@@ -133,15 +133,15 @@ class _SettingsPageState extends State<SettingsPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.primary.withValues(alpha: 0.2),
-                  AppColors.primary.withValues(alpha: 0.05),
+                  AppColors.primary.withOpacity(0.2),
+                  AppColors.primary.withOpacity(0.05),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: tokens.cardRadius,
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
+                color: AppColors.primary.withOpacity(0.3),
                 width: 1,
               ),
             ),
@@ -154,7 +154,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       height: 60,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
-                        color: AppColors.primary.withValues(alpha: 0.2),
+                        color: AppColors.primary.withOpacity(0.2),
                       ),
                       child: const Icon(
                         Icons.person,
@@ -458,7 +458,7 @@ class _SettingsTile extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
+                    color: Colors.white.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: Colors.white, size: 22),

@@ -213,7 +213,7 @@ class _FriendsTab extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                        backgroundColor: AppColors.primary.withOpacity(0.2),
                         child: Icon(
                           Icons.person,
                           color: AppColors.primary,
@@ -346,7 +346,7 @@ class _RequestsTab extends StatelessWidget {
                     color: const Color(0xFF1E1E1E),
                     borderRadius: tokens.cardRadius,
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: AppColors.primary.withOpacity(0.3),
                     ),
                     boxShadow: tokens.mediumShadow,
                   ),
@@ -358,7 +358,7 @@ class _RequestsTab extends StatelessWidget {
                           CircleAvatar(
                             radius: 24,
                             backgroundColor:
-                                AppColors.primary.withValues(alpha: 0.2),
+                                AppColors.primary.withOpacity(0.2),
                             child: Icon(
                               Icons.person,
                               color: AppColors.primary,
@@ -574,7 +574,7 @@ class _SearchTab extends StatelessWidget {
                           CircleAvatar(
                             radius: 24,
                             backgroundColor:
-                                AppColors.primary.withValues(alpha: 0.2),
+                                AppColors.primary.withOpacity(0.2),
                             child: Icon(
                               Icons.person,
                               color: AppColors.primary,
@@ -610,7 +610,7 @@ class _SearchTab extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.2),
+                                color: Colors.green.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: Colors.green),
                               ),
@@ -630,7 +630,7 @@ class _SearchTab extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.2),
+                                color: Colors.orange.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: Colors.orange),
                               ),
@@ -748,15 +748,15 @@ class _UsernameCardState extends State<_UsernameCard> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.15),
-            AppColors.primary.withValues(alpha: 0.05),
+            AppColors.primary.withOpacity(0.15),
+            AppColors.primary.withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: tokens.cardRadius,
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
+          color: AppColors.primary.withOpacity(0.3),
           width: 1,
         ),
       ),
@@ -765,7 +765,7 @@ class _UsernameCardState extends State<_UsernameCard> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.2),
+              color: AppColors.primary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(

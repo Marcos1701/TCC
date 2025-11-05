@@ -186,7 +186,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
-                  initialValue: _type,
+          value: _type,
                   decoration: const InputDecoration(
                     labelText: 'Tipo',
                     prefixIcon: Icon(Icons.category_outlined),
@@ -251,7 +251,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                   const Center(child: CircularProgressIndicator())
                 else
                   DropdownButtonFormField<int>(
-                    initialValue: _categoryId,
+          value: _categoryId,
                     decoration: const InputDecoration(
                       labelText: 'Categoria',
                       prefixIcon: Icon(Icons.label_outline),

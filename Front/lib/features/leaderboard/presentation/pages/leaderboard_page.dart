@@ -383,15 +383,15 @@ class _CurrentUserRankCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withValues(alpha: 0.2),
-            AppColors.primary.withValues(alpha: 0.05),
+            AppColors.primary.withOpacity(0.2),
+            AppColors.primary.withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: tokens.cardRadius,
         border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
+          color: AppColors.primary.withOpacity(0.3),
           width: 1.5,
         ),
       ),
@@ -401,7 +401,7 @@ class _CurrentUserRankCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                backgroundColor: Colors.white.withOpacity(0.2),
                 child: const Icon(
                   Icons.person,
                   color: Colors.white,
@@ -424,7 +424,7 @@ class _CurrentUserRankCard extends StatelessWidget {
                     Text(
                       'Nível ${entry.level} • ${entry.xp} XP',
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: Colors.white.withOpacity(0.9),
                       ),
                     ),
                   ],
@@ -436,7 +436,7 @@ class _CurrentUserRankCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -454,7 +454,7 @@ class _CurrentUserRankCard extends StatelessWidget {
                     Text(
                       'Sua Posição',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: Colors.white.withOpacity(0.7),
                         fontSize: 11,
                       ),
                     ),
@@ -535,7 +535,7 @@ class _PodiumWidget extends StatelessWidget {
                   // Avatar e nome
                   CircleAvatar(
                     radius: user.rank == 1 ? 40 : 32,
-                    backgroundColor: _getMedalColor(user.rank).withValues(alpha: 0.2),
+                    backgroundColor: _getMedalColor(user.rank).withOpacity(0.2),
                     child: Icon(
                       Icons.person,
                       color: _getMedalColor(user.rank),
@@ -569,8 +569,8 @@ class _PodiumWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          _getMedalColor(user.rank).withValues(alpha: 0.3),
-                          _getMedalColor(user.rank).withValues(alpha: 0.1),
+                          _getMedalColor(user.rank).withOpacity(0.3),
+                          _getMedalColor(user.rank).withOpacity(0.1),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -579,7 +579,7 @@ class _PodiumWidget extends StatelessWidget {
                         top: Radius.circular(12),
                       ),
                       border: Border.all(
-                        color: _getMedalColor(user.rank).withValues(alpha: 0.5),
+                        color: _getMedalColor(user.rank).withOpacity(0.5),
                         width: 2,
                       ),
                     ),
@@ -633,7 +633,7 @@ class _RankTile extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: entry.isCurrentUser
-            ? AppColors.primary.withValues(alpha: 0.15)
+            ? AppColors.primary.withOpacity(0.15)
             : const Color(0xFF1E1E1E),
         borderRadius: tokens.cardRadius,
         border: entry.isCurrentUser
@@ -642,7 +642,7 @@ class _RankTile extends StatelessWidget {
         boxShadow: entry.isCurrentUser
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withOpacity(0.2),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

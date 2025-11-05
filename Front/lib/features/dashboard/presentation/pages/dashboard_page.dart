@@ -148,7 +148,7 @@ class _IndicatorCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -230,7 +230,7 @@ class _SavingsEvolutionChart extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.support.withValues(alpha: 0.2),
+                  color: AppColors.support.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -342,8 +342,8 @@ class _SavingsEvolutionChart extends StatelessWidget {
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.support.withValues(alpha: 0.3),
-                          AppColors.support.withValues(alpha: 0.0),
+                          AppColors.support.withOpacity(0.3),
+                          AppColors.support.withOpacity(0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -650,10 +650,10 @@ class _MonthlyComparisonCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.support.withValues(alpha: 0.1),
+              color: AppColors.support.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.support.withValues(alpha: 0.3),
+                color: AppColors.support.withOpacity(0.3),
                 width: 1,
               ),
             ),

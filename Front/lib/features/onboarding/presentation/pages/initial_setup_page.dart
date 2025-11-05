@@ -460,10 +460,10 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
+              color: AppColors.primary.withOpacity(0.1),
               borderRadius: tokens.tileRadius,
               border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
+                color: AppColors.primary.withOpacity(0.3),
               ),
             ),
             child: Row(
@@ -502,7 +502,7 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.2),
+            color: AppColors.primary.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppColors.primary, size: 24),
@@ -603,7 +603,7 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
+            color: color.withOpacity(0.2),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(icon, color: color, size: 18),
@@ -642,8 +642,8 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: transaction.type == 'INCOME'
-                    ? AppColors.success.withValues(alpha: 0.2)
-                    : AppColors.alert.withValues(alpha: 0.2),
+                    ? AppColors.success.withOpacity(0.2)
+                    : AppColors.alert.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(

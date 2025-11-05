@@ -237,12 +237,12 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                     ),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: widget.color.withValues(alpha: 0.3),
+                      color: widget.color.withOpacity(0.3),
                       width: 2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: widget.color.withValues(alpha: 0.3),
+                        color: widget.color.withOpacity(0.3),
                         blurRadius: 40,
                         spreadRadius: 0,
                       ),
@@ -276,10 +276,10 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                                 width: 90,
                                 height: 90,
                                 decoration: BoxDecoration(
-                                  color: widget.color.withValues(alpha: 0.15),
+                                  color: widget.color.withOpacity(0.15),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: widget.color.withValues(alpha: 0.5),
+                                    color: widget.color.withOpacity(0.5),
                                     width: 2,
                                   ),
                                 ),
@@ -318,7 +318,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                           widget.subtitle,
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: Colors.white.withOpacity(0.8),
                             height: 1.6,
                           ),
                           textAlign: TextAlign.center,

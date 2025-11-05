@@ -356,7 +356,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     final bottomPadding = mediaQuery.viewInsets.bottom;
     const sheetColor = Color(0xFF05060A);
     const fieldColor = Color(0xFF111522);
-    final dividerColor = Colors.white.withValues(alpha: 0.12);
+    final dividerColor = Colors.white.withOpacity(0.12);
 
     final base = Theme.of(context);
     final sheetTheme = base.copyWith(
@@ -437,14 +437,14 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
         ),
         trackColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.primary.withValues(alpha: 0.3)
+              ? AppColors.primary.withOpacity(0.3)
               : Colors.white24,
         ),
       ),
     );
 
     final labelStyle = sheetTheme.textTheme.labelLarge?.copyWith(
-      color: Colors.white.withValues(alpha: 0.72),
+      color: Colors.white.withOpacity(0.72),
       fontWeight: FontWeight.w600,
       letterSpacing: 0.2,
     );
@@ -527,7 +527,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                               ],
                               DropdownButtonFormField<String>(
                                 key: ValueKey(_type),
-                                initialValue: _type,
+          value: _type,
                                 dropdownColor: fieldColor,
                                 style: inputTextStyle,
                                 iconEnabledColor: Colors.white70,
@@ -621,7 +621,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                                             ];
                                             return DropdownButtonFormField<int?>(
                                               key: ValueKey(_categoryId ?? -1),
-                                              initialValue: _categoryId,
+          value: _categoryId,
                                               dropdownColor: fieldColor,
                                               isExpanded: true,
                                               style: sheetTheme.textTheme.bodyMedium
@@ -1025,7 +1025,7 @@ class _CategoryComposerSheetState extends State<_CategoryComposerSheet> {
 
   String _colorToHex(Color color) {
     final value =
-        color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase();
+        color.value.toRadixString(16).padLeft(8, '0').toUpperCase();
     return '#${value.substring(2)}';
   }
 
@@ -1063,7 +1063,7 @@ class _CategoryComposerSheetState extends State<_CategoryComposerSheet> {
     final bottomPadding = mediaQuery.viewInsets.bottom;
     const sheetColor = Color(0xFF05060A);
     const fieldColor = Color(0xFF111522);
-    final outline = Colors.white.withValues(alpha: 0.12);
+    final outline = Colors.white.withOpacity(0.12);
     final theme = Theme.of(context);
 
     return AnimatedPadding(
@@ -1262,13 +1262,13 @@ class _CategoryComposerSheetState extends State<_CategoryComposerSheet> {
                                         border: Border.all(
                                           color: isSelected
                                               ? Colors.white
-                                              : color.withValues(alpha: 0.6),
+                                              : color.withOpacity(0.6),
                                           width: isSelected ? 3 : 2,
                                         ),
                                         boxShadow: isSelected
                                             ? [
                                                 BoxShadow(
-                                                  color: color.withValues(alpha: 0.5),
+                                                  color: color.withOpacity(0.5),
                                                   blurRadius: 12,
                                                 ),
                                               ]
@@ -1355,7 +1355,7 @@ class _CategoryChip extends StatelessWidget {
         side: BorderSide(
           color: selected
               ? AppColors.primary
-              : Colors.white.withValues(alpha: 0.18),
+              : Colors.white.withOpacity(0.18),
         ),
       ),
     );
@@ -1432,13 +1432,13 @@ class _RecurrenceOptionChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final baseColor = selected
-        ? AppColors.primary.withValues(alpha: 0.16)
+        ? AppColors.primary.withOpacity(0.16)
         : const Color(0xFF0B1020);
     final borderColor = selected
         ? AppColors.primary
         : (isOutlined
-            ? Colors.white.withValues(alpha: 0.24)
-            : Colors.white.withValues(alpha: 0.12));
+            ? Colors.white.withOpacity(0.24)
+            : Colors.white.withOpacity(0.12));
 
     return Material(
       color: Colors.transparent,
@@ -1455,7 +1455,7 @@ class _RecurrenceOptionChip extends StatelessWidget {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.22),
+                      color: AppColors.primary.withOpacity(0.22),
                       blurRadius: 14,
                       offset: const Offset(0, 10),
                     ),
@@ -1509,7 +1509,7 @@ class _RecurrenceSummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0F1220),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1518,7 +1518,7 @@ class _RecurrenceSummaryCard extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.2),
+              color: AppColors.primary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.repeat_rounded,
@@ -1584,7 +1584,7 @@ class _RecurrenceEndDatePicker extends StatelessWidget {
             label: Text(label),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.18)),
+              side: BorderSide(color: Colors.white.withOpacity(0.18)),
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               shape: RoundedRectangleBorder(
@@ -1662,7 +1662,7 @@ class _CustomRecurrenceSheetState extends State<_CustomRecurrenceSheet> {
     final bottom = mediaQuery.viewInsets.bottom;
     const sheetColor = Color(0xFF05060A);
     const fieldColor = Color(0xFF111522);
-    final outline = Colors.white.withValues(alpha: 0.16);
+    final outline = Colors.white.withOpacity(0.16);
 
     return AnimatedPadding(
       duration: const Duration(milliseconds: 220),
@@ -1750,7 +1750,7 @@ class _CustomRecurrenceSheetState extends State<_CustomRecurrenceSheet> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<_RecurrenceUnit>(
-                        initialValue: _unit,
+          value: _unit,
                         iconEnabledColor: Colors.white70,
                         dropdownColor: fieldColor,
                         style: const TextStyle(color: Colors.white),

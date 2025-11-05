@@ -23,7 +23,7 @@ class IndicatorInsightCard extends StatelessWidget {
         return AppColors.highlight;
       case 'warning':
         return Color.alphaBlend(
-          AppColors.alert.withValues(alpha: 0.35),
+          AppColors.alert.withOpacity(0.35),
           AppColors.highlight,
         );
       case 'critical':
@@ -57,7 +57,7 @@ class IndicatorInsightCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: tokens.cardRadius,
-        border: Border.all(color: _baseColor.withValues(alpha: 0.45), width: 2),
+        border: Border.all(color: _baseColor.withOpacity(0.45), width: 2),
         boxShadow: tokens.mediumShadow,
       ),
       child: Column(
@@ -69,7 +69,7 @@ class IndicatorInsightCard extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: _baseColor.withValues(alpha: 0.12),
+                  color: _baseColor.withOpacity(0.12),
                   borderRadius: tokens.tileRadius,
                 ),
                 child: Icon(icon, color: _baseColor, size: 22),

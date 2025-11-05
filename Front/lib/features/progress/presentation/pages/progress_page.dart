@@ -173,7 +173,7 @@ class _ProgressPageState extends State<ProgressPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
+                    color: AppColors.primary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -212,7 +212,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   const SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: Colors.black.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: Colors.grey[700]!,
@@ -279,7 +279,7 @@ class _ProgressPageState extends State<ProgressPage> {
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.3),
+                        color: Colors.black.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Colors.grey[700]!,
@@ -344,7 +344,7 @@ class _ProgressPageState extends State<ProgressPage> {
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.3),
+                        color: Colors.black.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Colors.grey[700]!,
@@ -388,7 +388,7 @@ class _ProgressPageState extends State<ProgressPage> {
                             activeColor: AppColors.primary,
                             checkColor: Colors.white,
                             tileColor: isSelected 
-                                ? AppColors.primary.withValues(alpha: 0.1)
+                                ? AppColors.primary.withOpacity(0.1)
                                 : Colors.transparent,
                           );
                         }).toList(),
@@ -405,7 +405,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       labelText: 'Título',
                       labelStyle: TextStyle(color: Colors.grey[400]),
                       filled: true,
-                      fillColor: Colors.black.withValues(alpha: 0.3),
+                      fillColor: Colors.black.withOpacity(0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -431,7 +431,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       labelText: 'Descrição (opcional)',
                       labelStyle: TextStyle(color: Colors.grey[400]),
                       filled: true,
-                      fillColor: Colors.black.withValues(alpha: 0.3),
+                      fillColor: Colors.black.withOpacity(0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -463,7 +463,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       prefixText: 'R\$ ',
                       prefixStyle: const TextStyle(color: Colors.white),
                       filled: true,
-                      fillColor: Colors.black.withValues(alpha: 0.3),
+                      fillColor: Colors.black.withOpacity(0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -507,8 +507,8 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                       filled: true,
                       fillColor: autoUpdate 
-                          ? Colors.grey[900]!.withValues(alpha: 0.5)
-                          : Colors.black.withValues(alpha: 0.3),
+                          ? Colors.grey[900]!.withOpacity(0.5)
+                          : Colors.black.withOpacity(0.3),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(color: Colors.grey[700]!),
@@ -532,7 +532,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   // Toggle de Atualização Automática
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: Colors.black.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[700]!),
                     ),
@@ -605,8 +605,8 @@ class _ProgressPageState extends State<ProgressPage> {
                               setState(() => trackingPeriod = period);
                             }
                           },
-                          selectedColor: AppColors.primary.withValues(alpha: 0.3),
-                          backgroundColor: Colors.black.withValues(alpha: 0.3),
+                          selectedColor: AppColors.primary.withOpacity(0.3),
+                          backgroundColor: Colors.black.withOpacity(0.3),
                           labelStyle: TextStyle(
                             color: isSelected ? AppColors.primary : Colors.white,
                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -624,7 +624,7 @@ class _ProgressPageState extends State<ProgressPage> {
                   // Prazo
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: Colors.black.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[700]!),
                     ),
@@ -972,7 +972,7 @@ class _ProgressPageState extends State<ProgressPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                          color: AppColors.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
@@ -1054,7 +1054,7 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
           end: Alignment.bottomRight,
           colors: [
             AppColors.primary,
-            AppColors.primary.withValues(alpha: 0.7),
+            AppColors.primary.withOpacity(0.7),
           ],
         ),
         borderRadius: tokens.cardRadius,
@@ -1068,7 +1068,7 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -1286,7 +1286,7 @@ class _TargetBadge extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
+                color: color.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -1313,10 +1313,10 @@ class _TargetBadge extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
+                  color: color.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: color.withValues(alpha: 0.3),
+                    color: color.withOpacity(0.3),
                     width: 1,
                   ),
                 ),
@@ -1376,7 +1376,7 @@ class _TargetBadge extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: Colors.black.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1420,7 +1420,7 @@ class _TargetBadge extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.3),
+                  color: Colors.black.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1461,7 +1461,7 @@ class _TargetBadge extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
@@ -1566,9 +1566,9 @@ class _GoalCard extends StatelessWidget {
           borderRadius: tokens.cardRadius,
           boxShadow: tokens.mediumShadow,
           border: isCompleted
-              ? Border.all(color: AppColors.support.withValues(alpha: 0.3), width: 1.5)
+              ? Border.all(color: AppColors.support.withOpacity(0.3), width: 1.5)
               : isExpired
-                  ? Border.all(color: AppColors.alert.withValues(alpha: 0.3), width: 1.5)
+                  ? Border.all(color: AppColors.alert.withOpacity(0.3), width: 1.5)
                   : null,
         ),
         child: Column(
@@ -1582,7 +1582,7 @@ class _GoalCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -1617,7 +1617,7 @@ class _GoalCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.2),
+                            color: AppColors.primary.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -1634,7 +1634,7 @@ class _GoalCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: AppColors.support.withValues(alpha: 0.2),
+                              color: AppColors.support.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
@@ -1675,7 +1675,7 @@ class _GoalCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFFF9800).withValues(alpha: 0.2),
+                              color: const Color(0xFFFF9800).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -1811,10 +1811,10 @@ class _GoalCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.support.withValues(alpha: 0.1),
+                color: AppColors.support.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.support.withValues(alpha: 0.3),
+                  color: AppColors.support.withOpacity(0.3),
                 ),
               ),
               child: Row(
@@ -1843,10 +1843,10 @@ class _GoalCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.alert.withValues(alpha: 0.1),
+                color: AppColors.alert.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: AppColors.alert.withValues(alpha: 0.3),
+                  color: AppColors.alert.withOpacity(0.3),
                 ),
               ),
               child: Row(

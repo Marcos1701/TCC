@@ -1049,8 +1049,8 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: trend >= 0 
-                      ? AppColors.support.withValues(alpha: 0.2)
-                      : AppColors.alert.withValues(alpha: 0.2),
+                      ? AppColors.support.withOpacity(0.2)
+                      : AppColors.alert.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1139,8 +1139,8 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary.withValues(alpha: 0.3),
-                          AppColors.primary.withValues(alpha: 0.0),
+                          AppColors.primary.withOpacity(0.3),
+                          AppColors.primary.withOpacity(0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -1193,7 +1193,7 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                   horizontalInterval: (maxY - minY) / 4,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.grey[800]!.withValues(alpha: 0.3),
+                      color: Colors.grey[800]!.withOpacity(0.3),
                       strokeWidth: 1,
                     );
                   },
@@ -1229,7 +1229,7 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                     return spotIndexes.map((index) {
                       return TouchedSpotIndicatorData(
                         FlLine(
-                          color: AppColors.primary.withValues(alpha: 0.5),
+                          color: AppColors.primary.withOpacity(0.5),
                           strokeWidth: 2,
                           dashArray: [5, 5],
                         ),
@@ -1277,7 +1277,7 @@ class _PeriodChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected 
-              ? AppColors.primary.withValues(alpha: 0.2)
+              ? AppColors.primary.withOpacity(0.2)
               : Colors.grey[800],
           borderRadius: BorderRadius.circular(8),
           border: isSelected 
@@ -1527,7 +1527,7 @@ class _TransactionTile extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
+          color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(

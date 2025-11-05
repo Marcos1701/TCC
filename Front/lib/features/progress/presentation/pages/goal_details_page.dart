@@ -316,7 +316,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                     helperText: 'Digite o valor atual da meta',
                     helperStyle: TextStyle(color: Colors.grey[500], fontSize: 12),
                     filled: true,
-                    fillColor: Colors.black.withValues(alpha: 0.3),
+                    fillColor: Colors.black.withOpacity(0.3),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: Colors.grey[700]!),
@@ -810,7 +810,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -847,7 +847,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: (isIncome ? AppColors.support : AppColors.alert).withValues(alpha: 0.2),
+              color: (isIncome ? AppColors.support : AppColors.alert).withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

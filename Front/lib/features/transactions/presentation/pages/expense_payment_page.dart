@@ -328,7 +328,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : const Color(0xFF1E1E1E),
+          color: isSelected ? AppColors.primary.withOpacity(0.2) : const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -347,7 +347,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.2),
+                      color: AppColors.success.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(Icons.account_balance_wallet, color: AppColors.success),
@@ -389,7 +389,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.2),
+                                  color: AppColors.success.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -431,7 +431,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.2) : const Color(0xFF1E1E1E),
+          color: isSelected ? AppColors.primary.withOpacity(0.2) : const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
@@ -453,7 +453,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: AppColors.alert.withValues(alpha: 0.2),
+                          color: AppColors.alert.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.credit_card, color: AppColors.alert),
@@ -503,7 +503,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppColors.alert.withValues(alpha: 0.2),
+                            color: AppColors.alert.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
@@ -700,7 +700,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
+                color: color.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color),

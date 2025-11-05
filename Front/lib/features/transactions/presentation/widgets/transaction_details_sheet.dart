@@ -184,7 +184,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: typeColor.withValues(alpha: 0.2),
+                      color: typeColor.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -295,7 +295,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: tokens.cardRadius,
-        border: Border.all(color: typeColor.withValues(alpha: 0.3), width: 2),
+        border: Border.all(color: typeColor.withOpacity(0.3), width: 2),
       ),
       child: Column(
         children: [
@@ -418,7 +418,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: tokens.cardRadius,
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,7 +509,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.15),
+            color: color.withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),

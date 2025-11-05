@@ -492,7 +492,7 @@ class _TransactionTile extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.2),
+                    color: accent.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color: accent, size: 24),
@@ -530,10 +530,10 @@ class _TransactionTile extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: accent.withValues(alpha: 0.15),
+                                color: accent.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: accent.withValues(alpha: 0.3),
+                                  color: accent.withOpacity(0.3),
                                   width: 0.5,
                                 ),
                               ),
@@ -743,9 +743,9 @@ class _SummaryMetricCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: metric.color.withValues(alpha: 0.15),
+          color: metric.color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: metric.color.withValues(alpha: 0.3)),
+          border: Border.all(color: metric.color.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -758,7 +758,7 @@ class _SummaryMetricCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: metric.color.withValues(alpha: 0.2),
+                    color: metric.color.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -822,16 +822,16 @@ class _RecurringBadge extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
+        color: AppColors.primary.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.2),
+              color: AppColors.primary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: const Icon(Icons.repeat_rounded, color: AppColors.primary, size: 16),
@@ -932,7 +932,7 @@ class _TransactionLinkTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
           borderRadius: tokens.cardRadius,
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -942,7 +942,7 @@ class _TransactionLinkTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
+                    color: AppColors.primary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.link, color: AppColors.primary, size: 20),
@@ -1085,7 +1085,7 @@ class _TransactionLinkDetailsSheet extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.2),
+                          color: AppColors.primary.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Icon(Icons.link, color: AppColors.primary, size: 24),
@@ -1118,9 +1118,9 @@ class _TransactionLinkDetailsSheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.3)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1162,7 +1162,7 @@ class _TransactionLinkDetailsSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.support.withValues(alpha: 0.2),
+                              color: AppColors.support.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -1225,7 +1225,7 @@ class _TransactionLinkDetailsSheet extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.alert.withValues(alpha: 0.2),
+                              color: AppColors.alert.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
