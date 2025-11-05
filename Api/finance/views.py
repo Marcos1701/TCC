@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
 from .serializers import (
     CategorySerializer,
     DashboardSerializer,
@@ -16,6 +16,7 @@ from .serializers import (
     TransactionSerializer,
     TransactionLinkSerializer,
     UserProfileSerializer,
+    FriendshipSerializer,
 )
 from .services import (
     apply_mission_reward,
@@ -1001,3 +1002,319 @@ class UserProfileViewSet(
         return Response({
             'message': f'Conta {user_id} excluída permanentemente.',
         }, status=status.HTTP_200_OK)
+
+
+class FriendshipViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gerenciar amizades entre usuários.
+    
+    Endpoints:
+    - GET /friendships/ - Listar amigos aceitos
+    - POST /friendships/send_request/ - Enviar solicitação
+    - POST /friendships/{id}/accept/ - Aceitar solicitação
+    - POST /friendships/{id}/reject/ - Rejeitar solicitação
+    - DELETE /friendships/{id}/ - Remover amizade
+    - GET /friendships/requests/ - Listar solicitações pendentes
+    - GET /friendships/search_users/ - Buscar usuários
+    """
+    from .serializers import FriendshipSerializer
+    serializer_class = FriendshipSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Retorna amizades aceitas do usuário."""
+        user = self.request.user
+        from .models import Friendship
+        
+        return Friendship.objects.filter(
+            Q(user=user) | Q(friend=user),
+            status=Friendship.FriendshipStatus.ACCEPTED
+        ).select_related('user', 'friend').order_by('-accepted_at')
+    
+    @action(detail=False, methods=['post'])
+    def send_request(self, request):
+        """Envia uma solicitação de amizade."""
+        from .serializers import FriendRequestSerializer
+        from .models import Friendship
+        
+        serializer = FriendRequestSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        
+        friend_id = serializer.validated_data['friend_id']
+        friend = User.objects.get(id=friend_id)
+        
+        # Verificar se já existe solicitação
+        existing = Friendship.objects.filter(
+            Q(user=request.user, friend=friend) | Q(user=friend, friend=request.user)
+        ).first()
+        
+        if existing:
+            if existing.status == Friendship.FriendshipStatus.ACCEPTED:
+                return Response(
+                    {'detail': 'Vocês já são amigos.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            elif existing.status == Friendship.FriendshipStatus.PENDING:
+                return Response(
+                    {'detail': 'Já existe uma solicitação pendente.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Criar nova solicitação
+        friendship = Friendship.objects.create(
+            user=request.user,
+            friend=friend,
+            status=Friendship.FriendshipStatus.PENDING
+        )
+        
+        return Response(
+            self.serializer_class(friendship).data,
+            status=status.HTTP_201_CREATED
+        )
+    
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        """Aceita uma solicitação de amizade."""
+        from .models import Friendship
+        
+        friendship = self.get_object()
+        
+        # Verificar se o usuário atual é o destinatário
+        if friendship.friend != request.user:
+            return Response(
+                {'detail': 'Você não pode aceitar esta solicitação.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if friendship.status != Friendship.FriendshipStatus.PENDING:
+            return Response(
+                {'detail': 'Esta solicitação não está pendente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        friendship.accept()
+        
+        return Response(
+            self.serializer_class(friendship).data,
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Rejeita uma solicitação de amizade."""
+        from .models import Friendship
+        
+        friendship = self.get_object()
+        
+        # Verificar se o usuário atual é o destinatário
+        if friendship.friend != request.user:
+            return Response(
+                {'detail': 'Você não pode rejeitar esta solicitação.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if friendship.status != Friendship.FriendshipStatus.PENDING:
+            return Response(
+                {'detail': 'Esta solicitação não está pendente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        friendship.reject()
+        friendship.delete()  # Remover solicitações rejeitadas
+        
+        return Response(
+            {'message': 'Solicitação rejeitada.'},
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=False, methods=['get'])
+    def requests(self, request):
+        """Lista solicitações pendentes recebidas pelo usuário."""
+        from .models import Friendship
+        
+        requests_received = Friendship.objects.filter(
+            friend=request.user,
+            status=Friendship.FriendshipStatus.PENDING
+        ).select_related('user', 'friend').order_by('-created_at')
+        
+        serializer = self.serializer_class(requests_received, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def search_users(self, request):
+        """Busca usuários por nome ou email."""
+        from .serializers import UserSearchSerializer
+        from .models import Friendship
+        
+        query = request.query_params.get('q', '').strip()
+        if not query or len(query) < 2:
+            return Response(
+                {'detail': 'Query de busca deve ter pelo menos 2 caracteres.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar usuários (exceto o próprio)
+        users = User.objects.filter(
+            Q(username__icontains=query) | Q(email__icontains=query)
+        ).exclude(id=request.user.id)[:20]  # Limitar a 20 resultados
+        
+        # Obter IDs de amigos e solicitações pendentes
+        friendships = Friendship.objects.filter(
+            Q(user=request.user) | Q(friend=request.user)
+        ).select_related('user', 'friend')
+        
+        friends_ids = set()
+        pending_ids = set()
+        
+        for friendship in friendships:
+            other_user = friendship.friend if friendship.user == request.user else friendship.user
+            if friendship.status == Friendship.FriendshipStatus.ACCEPTED:
+                friends_ids.add(other_user.id)
+            elif friendship.status == Friendship.FriendshipStatus.PENDING:
+                pending_ids.add(other_user.id)
+        
+        # Montar resultados
+        results = []
+        for user in users:
+            try:
+                profile = UserProfile.objects.get(user=user)
+            except UserProfile.DoesNotExist:
+                profile = UserProfile.objects.create(user=user)
+            
+            results.append({
+                'id': user.id,
+                'username': user.username,
+                'name': getattr(user, 'name', user.username),
+                'email': user.email,
+                'level': profile.level,
+                'xp': profile.experience_points,
+                'is_friend': user.id in friends_ids,
+                'has_pending_request': user.id in pending_ids,
+            })
+        
+        serializer = UserSearchSerializer(results, many=True)
+        return Response(serializer.data)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Remove uma amizade."""
+        friendship = self.get_object()
+        
+        # Verificar se o usuário é parte da amizade
+        if friendship.user != request.user and friendship.friend != request.user:
+            return Response(
+                {'detail': 'Você não pode remover esta amizade.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        friendship.delete()
+        return Response(
+            {'message': 'Amizade removida com sucesso.'},
+            status=status.HTTP_200_OK
+        )
+
+
+class LeaderboardViewSet(viewsets.ViewSet):
+    """
+    ViewSet para rankings de usuários.
+    
+    Endpoints:
+    - GET /leaderboard/ - Ranking geral (top usuários por XP)
+    - GET /leaderboard/friends/ - Ranking de amigos
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def list(self, request):
+        """Retorna o ranking geral de usuários por XP."""
+        from .serializers import LeaderboardEntrySerializer
+        
+        # Parâmetros de paginação
+        page_size = int(request.query_params.get('page_size', 50))
+        page = int(request.query_params.get('page', 1))
+        offset = (page - 1) * page_size
+        
+        # Buscar top usuários
+        profiles = UserProfile.objects.select_related('user').order_by(
+            '-level', '-experience_points'
+        )[offset:offset + page_size]
+        
+        # Montar resultados com ranking
+        results = []
+        for idx, profile in enumerate(profiles, start=offset + 1):
+            user = profile.user
+            results.append({
+                'rank': idx,
+                'user_id': user.id,
+                'username': user.username,
+                'name': getattr(user, 'name', user.username),
+                'level': profile.level,
+                'xp': profile.experience_points,
+                'is_current_user': user.id == request.user.id,
+            })
+        
+        # Buscar posição do usuário atual se não estiver na lista
+        current_user_in_results = any(r['is_current_user'] for r in results)
+        current_user_rank = None
+        
+        if not current_user_in_results:
+            # Calcular posição do usuário
+            current_profile = UserProfile.objects.get(user=request.user)
+            users_above = UserProfile.objects.filter(
+                Q(level__gt=current_profile.level) |
+                Q(level=current_profile.level, experience_points__gt=current_profile.experience_points)
+            ).count()
+            current_user_rank = users_above + 1
+        
+        serializer = LeaderboardEntrySerializer(results, many=True)
+        
+        return Response({
+            'count': len(results),
+            'page': page,
+            'page_size': page_size,
+            'leaderboard': serializer.data,
+            'current_user_rank': current_user_rank,
+        })
+    
+    @action(detail=False, methods=['get'])
+    def friends(self, request):
+        """Retorna o ranking apenas dos amigos do usuário."""
+        from .serializers import LeaderboardEntrySerializer
+        from .models import Friendship
+        
+        # Obter IDs dos amigos
+        friends_ids = Friendship.get_friends_ids(request.user)
+        
+        if not friends_ids:
+            return Response({
+                'count': 0,
+                'leaderboard': [],
+                'message': 'Você ainda não tem amigos.',
+            })
+        
+        # Adicionar o próprio usuário ao ranking
+        friends_ids.append(request.user.id)
+        
+        # Buscar perfis dos amigos ordenados por XP
+        profiles = UserProfile.objects.filter(
+            user_id__in=friends_ids
+        ).select_related('user').order_by('-level', '-experience_points')
+        
+        # Montar resultados com ranking
+        results = []
+        for idx, profile in enumerate(profiles, start=1):
+            user = profile.user
+            results.append({
+                'rank': idx,
+                'user_id': user.id,
+                'username': user.username,
+                'name': getattr(user, 'name', user.username),
+                'level': profile.level,
+                'xp': profile.experience_points,
+                'is_current_user': user.id == request.user.id,
+            })
+        
+        serializer = LeaderboardEntrySerializer(results, many=True)
+        
+        return Response({
+            'count': len(results),
+            'leaderboard': serializer.data,
+        })

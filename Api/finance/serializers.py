@@ -3,7 +3,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -275,13 +275,14 @@ class GoalSerializer(serializers.ModelSerializer):
         if self.instance:  # Só valida em updates
             current_amount = attrs.get('current_amount')
             if current_amount is not None:
-                # Apenas metas CUSTOM sem auto_update podem ter current_amount editado manualmente
+                # Apenas metas CUSTOM ou metas sem auto_update podem ter current_amount editado
                 goal_type = self.instance.goal_type
                 auto_update = self.instance.auto_update
                 
+                # Bloqueia se não for CUSTOM E tiver auto_update ativo
                 if goal_type != Goal.GoalType.CUSTOM and auto_update:
                     raise serializers.ValidationError({
-                        'current_amount': 'Apenas metas personalizadas sem atualização automática podem ter o valor atual editado manualmente.'
+                        'current_amount': 'Apenas metas personalizadas ou metas sem atualização automática podem ter o valor atual editado manualmente.'
                     })
         
         return attrs
@@ -588,3 +589,107 @@ class TransactionLinkSummarySerializer(serializers.Serializer):
     linked_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     available_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     link_percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+
+class FriendshipSerializer(serializers.ModelSerializer):
+    """Serializer para relacionamentos de amizade."""
+    user_info = serializers.SerializerMethodField()
+    friend_info = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Friendship
+        fields = (
+            'id',
+            'user',
+            'friend',
+            'user_info',
+            'friend_info',
+            'status',
+            'created_at',
+            'accepted_at',
+        )
+        read_only_fields = ('user', 'status', 'created_at', 'accepted_at')
+    
+    def get_user_info(self, obj):
+        """Retorna informações básicas do usuário que enviou."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        user = obj.user
+        try:
+            profile = UserProfile.objects.get(user=user)
+        except UserProfile.DoesNotExist:
+            profile = None
+        
+        return {
+            'id': user.id,
+            'username': user.username,
+            'name': getattr(user, 'name', user.username),
+            'email': user.email,
+            'level': profile.level if profile else 1,
+            'xp': profile.experience_points if profile else 0,
+        }
+    
+    def get_friend_info(self, obj):
+        """Retorna informações básicas do amigo."""
+        friend = obj.friend
+        try:
+            profile = UserProfile.objects.get(user=friend)
+        except UserProfile.DoesNotExist:
+            profile = None
+        
+        return {
+            'id': friend.id,
+            'username': friend.username,
+            'name': getattr(friend, 'name', friend.username),
+            'email': friend.email,
+            'level': profile.level if profile else 1,
+            'xp': profile.experience_points if profile else 0,
+        }
+
+
+class FriendRequestSerializer(serializers.Serializer):
+    """Serializer para enviar solicitação de amizade."""
+    friend_id = serializers.IntegerField()
+    
+    def validate_friend_id(self, value):
+        """Valida se o usuário existe e não é o próprio usuário."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Usuário não autenticado.")
+        
+        if value == request.user.id:
+            raise serializers.ValidationError("Você não pode enviar solicitação para si mesmo.")
+        
+        try:
+            User.objects.get(id=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Usuário não encontrado.")
+        
+        return value
+
+
+class UserSearchSerializer(serializers.Serializer):
+    """Serializer para busca de usuários."""
+    id = serializers.IntegerField()
+    username = serializers.CharField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    level = serializers.IntegerField()
+    xp = serializers.IntegerField()
+    is_friend = serializers.BooleanField()
+    has_pending_request = serializers.BooleanField()
+
+
+class LeaderboardEntrySerializer(serializers.Serializer):
+    """Serializer para entrada no ranking."""
+    rank = serializers.IntegerField()
+    user_id = serializers.IntegerField()
+    username = serializers.CharField()
+    name = serializers.CharField()
+    level = serializers.IntegerField()
+    xp = serializers.IntegerField()
+    is_current_user = serializers.BooleanField()

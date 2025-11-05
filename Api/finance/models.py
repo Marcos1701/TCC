@@ -616,3 +616,121 @@ class XPTransaction(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} - {self.points_awarded} XP - {self.mission_progress.mission.title}"
+
+
+class Friendship(models.Model):
+    """
+    Modelo para gerenciar relacionamentos de amizade entre usuários.
+    Permite sistema de ranking entre amigos e interações sociais.
+    """
+    
+    class FriendshipStatus(models.TextChoices):
+        PENDING = "PENDING", "Pendente"
+        ACCEPTED = "ACCEPTED", "Aceito"
+        REJECTED = "REJECTED", "Rejeitado"
+    
+    # Usuário que enviou a solicitação
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="friendship_requests_sent",
+        help_text="Usuário que enviou a solicitação de amizade"
+    )
+    
+    # Usuário que recebeu a solicitação
+    friend = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="friendship_requests_received",
+        help_text="Usuário que recebeu a solicitação de amizade"
+    )
+    
+    status = models.CharField(
+        max_length=10,
+        choices=FriendshipStatus.choices,
+        default=FriendshipStatus.PENDING,
+        help_text="Status da solicitação de amizade"
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Data de criação da solicitação"
+    )
+    
+    accepted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data em que a solicitação foi aceita"
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        unique_together = [('user', 'friend')]
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['friend', 'status']),
+            models.Index(fields=['status', '-created_at']),
+        ]
+
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user.username} -> {self.friend.username} ({self.get_status_display()})"
+    
+    def clean(self):
+        """Validações personalizadas."""
+        from django.core.exceptions import ValidationError
+        
+        # Não pode enviar solicitação para si mesmo
+        if self.user == self.friend:
+            raise ValidationError("Não é possível enviar solicitação de amizade para si mesmo.")
+        
+        # Verificar se já existe uma solicitação pendente ou aceita na direção oposta
+        existing = Friendship.objects.filter(
+            user=self.friend,
+            friend=self.user,
+            status__in=[self.FriendshipStatus.PENDING, self.FriendshipStatus.ACCEPTED]
+        ).exclude(pk=self.pk).exists()
+        
+        if existing:
+            raise ValidationError("Já existe uma solicitação de amizade entre esses usuários.")
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def accept(self):
+        """Aceita a solicitação de amizade."""
+        self.status = self.FriendshipStatus.ACCEPTED
+        self.accepted_at = timezone.now()
+        self.save(update_fields=['status', 'accepted_at'])
+    
+    def reject(self):
+        """Rejeita a solicitação de amizade."""
+        self.status = self.FriendshipStatus.REJECTED
+        self.save(update_fields=['status'])
+    
+    @classmethod
+    def are_friends(cls, user1, user2) -> bool:
+        """Verifica se dois usuários são amigos."""
+        return cls.objects.filter(
+            models.Q(user=user1, friend=user2) | models.Q(user=user2, friend=user1),
+            status=cls.FriendshipStatus.ACCEPTED
+        ).exists()
+    
+    @classmethod
+    def get_friends_ids(cls, user) -> list:
+        """Retorna lista de IDs dos amigos de um usuário."""
+        from django.db.models import Q
+        
+        friendships = cls.objects.filter(
+            Q(user=user) | Q(friend=user),
+            status=cls.FriendshipStatus.ACCEPTED
+        ).select_related('user', 'friend')
+        
+        friends_ids = []
+        for friendship in friendships:
+            if friendship.user == user:
+                friends_ids.append(friendship.friend.id)
+            else:
+                friends_ids.append(friendship.user.id)
+        
+        return friends_ids

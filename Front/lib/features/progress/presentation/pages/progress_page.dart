@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/category.dart';
@@ -9,6 +10,7 @@ import '../../../../core/services/cache_manager.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 import 'goal_details_page.dart';
 
 class ProgressPage extends StatefulWidget {
@@ -82,10 +84,12 @@ class _ProgressPageState extends State<ProgressPage> {
     final descriptionController =
         TextEditingController(text: goal?.description ?? '');
     final targetController = TextEditingController(
-      text: goal != null ? goal.targetAmount.toStringAsFixed(2) : '',
+      text: goal != null ? CurrencyInputFormatter.format(goal.targetAmount) : '',
     );
     final initialAmountController = TextEditingController(
-      text: goal != null && goal.initialAmount > 0 ? goal.initialAmount.toStringAsFixed(2) : '',
+      text: goal != null && goal.initialAmount > 0 
+          ? CurrencyInputFormatter.format(goal.initialAmount) 
+          : '',
     );
     
     // Novos controladores
@@ -449,6 +453,10 @@ class _ProgressPageState extends State<ProgressPage> {
                     controller: targetController,
                     style: const TextStyle(color: Colors.white),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      CurrencyInputFormatter(maxDigits: 12),
+                    ],
                     decoration: InputDecoration(
                       labelText: 'Valor alvo',
                       labelStyle: TextStyle(color: Colors.grey[400]),
@@ -480,6 +488,10 @@ class _ProgressPageState extends State<ProgressPage> {
                       color: autoUpdate ? Colors.grey[600] : Colors.white,
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      CurrencyInputFormatter(maxDigits: 12),
+                    ],
                     decoration: InputDecoration(
                       labelText: autoUpdate 
                           ? 'Valor inicial (preenchido automaticamente)' 
@@ -685,9 +697,9 @@ class _ProgressPageState extends State<ProgressPage> {
                           return;
                         }
                         
-                        final target = double.tryParse(targetController.text.replaceAll(',', '.'));
+                        final target = CurrencyInputFormatter.parse(targetController.text);
                         
-                        if (target == null || target <= 0) {
+                        if (target <= 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('Valor alvo deve ser maior que zero'),
@@ -737,10 +749,8 @@ class _ProgressPageState extends State<ProgressPage> {
 
     if (confirmed != true) return;
 
-    final target =
-        double.tryParse(targetController.text.replaceAll(',', '.')) ?? 0;
-    final initialAmount =
-        double.tryParse(initialAmountController.text.replaceAll(',', '.')) ?? 0;
+    final target = CurrencyInputFormatter.parse(targetController.text);
+    final initialAmount = CurrencyInputFormatter.parse(initialAmountController.text);
 
     setState(() => isLoading = true);
 

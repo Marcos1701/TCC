@@ -5,6 +5,9 @@ import '../models/mission_progress.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../models/transaction_link.dart';
+import '../models/friendship.dart';
+import '../models/leaderboard.dart';
+import '../models/user_search.dart';
 import '../network/api_client.dart';
 import '../network/endpoints.dart';
 
@@ -438,5 +441,101 @@ class FinanceRepository {
       },
     );
     return response.data ?? {};
+  }
+
+  // ======= Métodos de Leaderboard =======
+
+  /// Busca o ranking geral de usuários
+  Future<LeaderboardResponse> fetchLeaderboard({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final response = await _client.client.get<Map<String, dynamic>>(
+      ApiEndpoints.leaderboard,
+      queryParameters: {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      },
+    );
+    return LeaderboardResponse.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  /// Busca o ranking de amigos
+  Future<LeaderboardResponse> fetchFriendsLeaderboard() async {
+    final response = await _client.client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.leaderboard}friends/',
+    );
+    return LeaderboardResponse.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  // ======= Métodos de Amizade =======
+
+  /// Lista amigos aceitos
+  Future<List<FriendshipModel>> fetchFriends() async {
+    final response = await _client.client.get<List<dynamic>>(
+      ApiEndpoints.friendships,
+    );
+    final items = response.data ?? <dynamic>[];
+    return items
+        .map((e) => FriendshipModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Lista solicitações pendentes recebidas
+  Future<List<FriendshipModel>> fetchFriendRequests() async {
+    final response = await _client.client.get<List<dynamic>>(
+      '${ApiEndpoints.friendships}requests/',
+    );
+    final items = response.data ?? <dynamic>[];
+    return items
+        .map((e) => FriendshipModel.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Envia solicitação de amizade
+  Future<FriendshipModel> sendFriendRequest({required int friendId}) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.friendships}send_request/',
+      data: {'friend_id': friendId},
+    );
+    return FriendshipModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  /// Aceita solicitação de amizade
+  Future<FriendshipModel> acceptFriendRequest({required int requestId}) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.friendships}$requestId/accept/',
+    );
+    return FriendshipModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  /// Rejeita solicitação de amizade
+  Future<void> rejectFriendRequest({required int requestId}) async {
+    await _client.client.post(
+      '${ApiEndpoints.friendships}$requestId/reject/',
+    );
+  }
+
+  /// Remove amizade
+  Future<void> removeFriend({required int friendshipId}) async {
+    await _client.client.delete(
+      '${ApiEndpoints.friendships}$friendshipId/',
+    );
+  }
+
+  /// Busca usuários por nome ou email
+  Future<List<UserSearchModel>> searchUsers({required String query}) async {
+    if (query.trim().length < 2) {
+      return [];
+    }
+
+    final response = await _client.client.get<List<dynamic>>(
+      '${ApiEndpoints.friendships}search_users/',
+      queryParameters: {'q': query},
+    );
+    final items = response.data ?? <dynamic>[];
+    return items
+        .map((e) => UserSearchModel.fromMap(e as Map<String, dynamic>))
+        .toList();
   }
 }

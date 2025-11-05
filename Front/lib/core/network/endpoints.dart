@@ -14,4 +14,6 @@ class ApiEndpoints {
   static const String goals = '/api/goals/';
   static const String profile = '/api/profile/';
   static const String user = '/api/user/';
+  static const String friendships = '/api/friendships/';
+  static const String leaderboard = '/api/leaderboard/';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/transaction.dart';
@@ -6,6 +7,7 @@ import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 
 class ExpensePaymentPage extends StatefulWidget {
   const ExpensePaymentPage({super.key});
@@ -557,7 +559,9 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
     final remainingDebt = debt.availableAmount ?? debt.amount;
     final maxAmount = availableIncome < remainingDebt ? availableIncome : remainingDebt;
 
-    final amountController = TextEditingController(text: maxAmount.toStringAsFixed(2));
+    final amountController = TextEditingController(
+      text: CurrencyInputFormatter.format(maxAmount),
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -593,6 +597,10 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
           TextField(
             controller: amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              CurrencyInputFormatter(maxDigits: 12),
+            ],
             style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             decoration: InputDecoration(
               prefixText: 'R\$ ',
@@ -610,7 +618,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => amountController.text = availableIncome.toStringAsFixed(2),
+                  onPressed: () => amountController.text = CurrencyInputFormatter.format(availableIncome),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.success,
                     side: const BorderSide(color: AppColors.success),
@@ -628,7 +636,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => amountController.text = remainingDebt.toStringAsFixed(2),
+                  onPressed: () => amountController.text = CurrencyInputFormatter.format(remainingDebt),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.alert,
                     side: const BorderSide(color: AppColors.alert),
@@ -650,8 +658,8 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                final amount = double.tryParse(amountController.text);
-                if (amount != null && amount > 0 && amount <= maxAmount) {
+                final amount = CurrencyInputFormatter.parse(amountController.text);
+                if (amount > 0 && amount <= maxAmount) {
                   _createLink(amount);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

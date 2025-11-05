@@ -13,6 +13,8 @@ from .views import (
     TransactionViewSet,
     UserProfileViewSet,
     XPHistoryView,
+    FriendshipViewSet,
+    LeaderboardViewSet,
 )
 
 router = DefaultRouter()
@@ -24,6 +26,8 @@ router.register(r"missions", MissionViewSet, basename="mission")
 router.register(r"mission-progress", MissionProgressViewSet, basename="mission-progress")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"user", UserProfileViewSet, basename="user")
+router.register(r"friendships", FriendshipViewSet, basename="friendship")
+router.register(r"leaderboard", LeaderboardViewSet, basename="leaderboard")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),

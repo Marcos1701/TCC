@@ -7,6 +7,7 @@ import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
 
 /// Sheet simples para editar uma transação existente
 class EditTransactionSheet extends StatefulWidget {
@@ -42,7 +43,9 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
     _descriptionController =
         TextEditingController(text: widget.transaction.description);
     _amountController =
-        TextEditingController(text: widget.transaction.amount.toStringAsFixed(2));
+        TextEditingController(
+          text: CurrencyInputFormatter.format(widget.transaction.amount),
+        );
     _dateController = TextEditingController(
       text: DateFormat('dd/MM/yyyy').format(widget.transaction.date),
     );
@@ -80,11 +83,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
     setState(() => _submitting = true);
 
     try {
-      final rawAmount = _amountController.text
-          .replaceAll('.', '')
-          .replaceAll(',', '.')
-          .trim();
-      final amount = double.parse(rawAmount);
+      final amount = CurrencyInputFormatter.parse(_amountController.text);
 
       await widget.repository.updateTransaction(
         id: widget.transaction.id,
@@ -218,19 +217,20 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                   decoration: const InputDecoration(
                     labelText: 'Valor (R\$)',
                     prefixIcon: Icon(Icons.attach_money),
+                    prefixText: 'R\$ ',
                   ),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]')),
+                    FilteringTextInputFormatter.digitsOnly,
+                    CurrencyInputFormatter(maxDigits: 12),
                   ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Informe um valor';
                     }
-                    final parsed = double.tryParse(
-                        value.replaceAll('.', '').replaceAll(',', '.'));
-                    if (parsed == null || parsed <= 0) {
+                    final parsed = CurrencyInputFormatter.parse(value);
+                    if (parsed <= 0) {
                       return 'Valor inválido';
                     }
                     return null;
