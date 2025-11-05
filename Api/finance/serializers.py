@@ -39,6 +39,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = (
             "id",
+            "uuid",  # Novo campo UUID
             "type",
             "description",
             "amount",
@@ -62,6 +63,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = (
+            "uuid",  # UUID é read-only
             "recurrence_description",
             "days_since_created",
             "formatted_amount",
@@ -222,6 +224,7 @@ class GoalSerializer(serializers.ModelSerializer):
         model = Goal
         fields = (
             "id",
+            "uuid",  # Novo campo UUID
             "title",
             "description",
             "target_amount",
@@ -240,7 +243,7 @@ class GoalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("created_at", "updated_at")
+        read_only_fields = ("uuid", "created_at", "updated_at")
     
     def get_tracked_categories_data(self, obj):
         """Retorna dados das categorias monitoradas."""
@@ -522,6 +525,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
         model = TransactionLink
         fields = (
             'id',
+            'uuid',  # Novo campo UUID
             'source_transaction',
             'target_transaction',
             'source_id',
@@ -537,6 +541,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'formatted_amount',
         )
         read_only_fields = (
+            'uuid',  # UUID é read-only
             'created_at',
             'updated_at',
             'source_description',
@@ -635,6 +640,7 @@ class FriendshipSerializer(serializers.ModelSerializer):
         model = Friendship
         fields = (
             'id',
+            'uuid',  # Novo campo UUID
             'user',
             'friend',
             'user_info',
@@ -643,7 +649,7 @@ class FriendshipSerializer(serializers.ModelSerializer):
             'created_at',
             'accepted_at',
         )
-        read_only_fields = ('user', 'status', 'created_at', 'accepted_at')
+        read_only_fields = ('uuid', 'user', 'status', 'created_at', 'accepted_at')
     
     def get_user_info(self, obj):
         """Retorna informações básicas do usuário que enviou."""

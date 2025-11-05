@@ -143,6 +143,16 @@ class Transaction(models.Model):
         WEEKS = "WEEKS", "Semanas"
         MONTHS = "MONTHS", "Meses"
 
+    # UUID field - será a primary key futuramente
+    uuid = models.UUIDField(
+        unique=True,
+        default=None,
+        null=True,
+        editable=False,
+        db_index=True,
+        help_text="Identificador único universal (substituirá o ID numérico)"
+    )
+    
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="transactions")
     type = models.CharField(max_length=14, choices=TransactionType.choices, db_index=True)
@@ -237,6 +247,16 @@ class TransactionLink(models.Model):
         DEBT_PAYMENT = "DEBT_PAYMENT", "Pagamento de dívida"
         INTERNAL_TRANSFER = "INTERNAL_TRANSFER", "Transferência interna"
         SAVINGS_ALLOCATION = "SAVINGS_ALLOCATION", "Alocação para poupança"
+    
+    # UUID field - será a primary key futuramente
+    uuid = models.UUIDField(
+        unique=True,
+        default=None,
+        null=True,
+        editable=False,
+        db_index=True,
+        help_text="Identificador único universal (substituirá o ID numérico)"
+    )
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -361,6 +381,16 @@ class Goal(models.Model):
         MONTHLY = "MONTHLY", "Mensal"
         QUARTERLY = "QUARTERLY", "Trimestral"
         TOTAL = "TOTAL", "Total"
+    
+    # UUID field - será a primary key futuramente
+    uuid = models.UUIDField(
+        unique=True,
+        default=None,
+        null=True,
+        editable=False,
+        db_index=True,
+        help_text="Identificador único universal (substituirá o ID numérico)"
+    )
     
     # Campos básicos
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="goals")
@@ -634,6 +664,16 @@ class Friendship(models.Model):
         PENDING = "PENDING", "Pendente"
         ACCEPTED = "ACCEPTED", "Aceito"
         REJECTED = "REJECTED", "Rejeitado"
+    
+    # UUID field - será a primary key futuramente
+    uuid = models.UUIDField(
+        unique=True,
+        default=None,
+        null=True,
+        editable=False,
+        db_index=True,
+        help_text="Identificador único universal (substituirá o ID numérico)"
+    )
     
     # Usuário que enviou a solicitação
     user = models.ForeignKey(

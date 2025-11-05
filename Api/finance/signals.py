@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.db import transaction
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+import uuid
 
-from .models import Category, Transaction, UserProfile
+from .models import Category, Transaction, TransactionLink, Goal, Friendship, UserProfile
 
 
 def _ensure_default_categories(user):
@@ -80,3 +81,33 @@ def update_goals_on_transaction_delete(sender, instance, **kwargs):
     """
     from .services import update_all_active_goals
     update_all_active_goals(instance.user)
+
+
+# ======= Signals para garantir UUID em novos registros =======
+
+@receiver(pre_save, sender=Transaction)
+def ensure_transaction_uuid(sender, instance, **kwargs):
+    """Garante que toda transação tenha UUID antes de salvar."""
+    if not instance.uuid:
+        instance.uuid = uuid.uuid4()
+
+
+@receiver(pre_save, sender=Goal)
+def ensure_goal_uuid(sender, instance, **kwargs):
+    """Garante que toda meta tenha UUID antes de salvar."""
+    if not instance.uuid:
+        instance.uuid = uuid.uuid4()
+
+
+@receiver(pre_save, sender=TransactionLink)
+def ensure_transaction_link_uuid(sender, instance, **kwargs):
+    """Garante que todo link tenha UUID antes de salvar."""
+    if not instance.uuid:
+        instance.uuid = uuid.uuid4()
+
+
+@receiver(pre_save, sender=Friendship)
+def ensure_friendship_uuid(sender, instance, **kwargs):
+    """Garante que toda amizade tenha UUID antes de salvar."""
+    if not instance.uuid:
+        instance.uuid = uuid.uuid4()

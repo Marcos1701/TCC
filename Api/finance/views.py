@@ -8,6 +8,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
 from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
+from .mixins import UUIDLookupMixin, UUIDResponseMixin
 from .serializers import (
     CategorySerializer,
     DashboardSerializer,
@@ -54,7 +55,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-class TransactionViewSet(viewsets.ModelViewSet):
+class TransactionViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
+    """
+    ViewSet para gerenciar transações.
+    Suporta lookup por ID (retrocompatibilidade) ou UUID (recomendado).
+    """
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
 
@@ -205,9 +210,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
         }
 
 
-class TransactionLinkViewSet(viewsets.ModelViewSet):
+class TransactionLinkViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
     """
     ViewSet para gerenciar vinculações entre transações.
+    Suporta lookup por ID (retrocompatibilidade) ou UUID (recomendado).
     
     Endpoints:
     - GET /transaction-links/ - Listar vinculações
@@ -451,7 +457,11 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         })
 
 
-class GoalViewSet(viewsets.ModelViewSet):
+class GoalViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
+    """
+    ViewSet para gerenciamento de objetivos financeiros.
+    Suporta lookup por ID (legado) ou UUID para maior segurança.
+    """
     serializer_class = GoalSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
 
@@ -1036,9 +1046,10 @@ class UserProfileViewSet(
         }, status=status.HTTP_200_OK)
 
 
-class FriendshipViewSet(viewsets.ModelViewSet):
+class FriendshipViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
     """
     ViewSet para gerenciar amizades entre usuários.
+    Suporta lookup por ID (legado) ou UUID para maior segurança.
     
     Endpoints:
     - GET /friendships/ - Listar amigos aceitos
