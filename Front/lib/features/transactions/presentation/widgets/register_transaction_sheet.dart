@@ -527,7 +527,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                               ],
                               DropdownButtonFormField<String>(
                                 key: ValueKey(_type),
-          value: _type,
+          initialValue: _type,
                                 dropdownColor: fieldColor,
                                 style: inputTextStyle,
                                 iconEnabledColor: Colors.white70,
@@ -621,7 +621,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                                             ];
                                             return DropdownButtonFormField<int?>(
                                               key: ValueKey(_categoryId ?? -1),
-          value: _categoryId,
+          initialValue: _categoryId,
                                               dropdownColor: fieldColor,
                                               isExpanded: true,
                                               style: sheetTheme.textTheme.bodyMedium
@@ -1748,7 +1748,7 @@ class _CustomRecurrenceSheetState extends State<_CustomRecurrenceSheet> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<_RecurrenceUnit>(
-          value: _unit,
+          initialValue: _unit,
                         iconEnabledColor: Colors.white70,
                         dropdownColor: fieldColor,
                         style: const TextStyle(color: Colors.white),

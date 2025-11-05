@@ -167,7 +167,9 @@ class Transaction(models.Model):
             models.Index(fields=['user', 'date']),
             models.Index(fields=['user', 'type']),
             models.Index(fields=['user', 'category']),
+            models.Index(fields=['user', '-date', '-created_at']),  # Para listagens otimizadas
         ]
+        # Constraints serão adicionadas via migration 0024
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.description} ({self.amount})"

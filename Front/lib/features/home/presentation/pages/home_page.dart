@@ -446,7 +446,7 @@ class _HomeSummaryCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.arrow_upward_rounded,
                             color: AppColors.support,
                             size: 18,
@@ -486,7 +486,7 @@ class _HomeSummaryCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.arrow_downward_rounded,
                             color: AppColors.alert,
                             size: 18,
@@ -526,7 +526,7 @@ class _HomeSummaryCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.account_balance_wallet_outlined,
                     color: AppColors.highlight,
                     size: 18,
@@ -848,7 +848,7 @@ class _MissionSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (active.isEmpty) {
-      return _EmptySection(
+      return const _EmptySection(
         message: 'Sem missões ativas no momento.\nContinue registrando transações para receber novas missões!',
       );
     }
@@ -1035,7 +1035,7 @@ class _MissionTile extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.check_circle,
                   color: AppColors.support,
                   size: 16,
@@ -1411,13 +1411,13 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                   ),
                 ],
                 titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
+                  leftTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
-                  rightTitles: AxisTitles(
+                  rightTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
-                  topTitles: AxisTitles(
+                  topTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
                   bottomTitles: AxisTitles(

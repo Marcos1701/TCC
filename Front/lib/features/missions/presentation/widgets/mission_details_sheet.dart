@@ -495,7 +495,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                 ),
               ),
               if (met)
-                Icon(Icons.check_circle, color: AppColors.support, size: 20),
+                const Icon(Icons.check_circle, color: AppColors.support, size: 20),
             ],
           ),
           const SizedBox(height: 4),

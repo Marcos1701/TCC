@@ -362,4 +362,159 @@ class FeedbackService {
     // Remove automaticamente após o duration
     Future.delayed(duration, removeEntry);
   }
+
+  /// Exibe feedback de transação criada com sucesso
+  static void showTransactionCreated(
+    BuildContext context, {
+    required double amount,
+    required String type,
+    int? xpEarned,
+    String? missionProgress,
+  }) {
+    final emoji = type == 'INCOME' ? '💰' : type == 'EXPENSE' ? '💸' : '💳';
+    String message = '$emoji Transação registrada!';
+    
+    if (xpEarned != null && xpEarned > 0) {
+      message += ' +$xpEarned XP 🎉';
+    }
+    
+    if (missionProgress != null) {
+      message += '\n$missionProgress';
+    }
+
+    show(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  /// Exibe feedback de missão completada
+  static void showMissionCompleted(
+    BuildContext context, {
+    required String missionName,
+    required int xpReward,
+    int? coinsReward,
+  }) {
+    String message = '🎊 Missão completada!\n$missionName';
+    message += '\n+$xpReward XP';
+    
+    if (coinsReward != null && coinsReward > 0) {
+      message += ' • +$coinsReward moedas';
+    }
+
+    showBanner(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  /// Exibe feedback de meta alcançada
+  static void showGoalAchieved(
+    BuildContext context, {
+    required String goalName,
+    int? xpReward,
+  }) {
+    String message = '🎯 Meta alcançada!\n$goalName';
+    
+    if (xpReward != null && xpReward > 0) {
+      message += '\n+$xpReward XP';
+    }
+
+    showBanner(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  /// Exibe feedback de level up
+  static void showLevelUp(
+    BuildContext context, {
+    required int newLevel,
+    int? coinsEarned,
+  }) {
+    String message = '⭐ Subiu de nível!\nAgora você é nível $newLevel';
+    
+    if (coinsEarned != null && coinsEarned > 0) {
+      message += '\n+$coinsEarned moedas';
+    }
+
+    showBanner(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 6),
+    );
+  }
+
+  /// Exibe feedback com ação personalizada
+  static void showSuccessWithAction(
+    BuildContext context,
+    String message, {
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    show(
+      context,
+      message,
+      type: FeedbackType.success,
+      action: SnackBarAction(
+        label: actionLabel,
+        textColor: Colors.white,
+        onPressed: onAction,
+      ),
+    );
+  }
+
+  /// Exibe feedback de erro com opção de retry
+  static void showErrorWithRetry(
+    BuildContext context,
+    String message, {
+    required VoidCallback onRetry,
+  }) {
+    show(
+      context,
+      message,
+      type: FeedbackType.error,
+      action: SnackBarAction(
+        label: 'Tentar Novamente',
+        textColor: Colors.white,
+        onPressed: onRetry,
+      ),
+    );
+  }
+
+  /// Exibe notificação de progresso de missão
+  static void showMissionProgress(
+    BuildContext context, {
+    required String missionName,
+    required double progress,
+  }) {
+    final progressText = '${progress.toStringAsFixed(0)}%';
+    showBanner(
+      context,
+      '📈 $missionName: $progressText completo',
+      type: FeedbackType.info,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  /// Exibe aviso de missão próxima de expirar
+  static void showMissionExpiring(
+    BuildContext context, {
+    required String missionName,
+    required int daysRemaining,
+  }) {
+    showBanner(
+      context,
+      '⏰ $missionName expira em $daysRemaining ${daysRemaining == 1 ? 'dia' : 'dias'}!',
+      type: FeedbackType.warning,
+      duration: const Duration(seconds: 5),
+    );
+  }
 }

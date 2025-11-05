@@ -149,6 +149,15 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": (
         "rest_framework.parsers.JSONParser",
     ),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": f"{env_int('THROTTLE_ANON_RATE', 100)}/day",
+        "user": f"{env_int('THROTTLE_USER_RATE', 2000)}/day",
+        "burst": f"{env_int('THROTTLE_BURST_RATE', 60)}/minute",  # Para operações sensíveis
+    },
 }
 
 SIMPLE_JWT = {

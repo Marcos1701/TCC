@@ -235,7 +235,7 @@ class _SavingsEvolutionChart extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.trending_up,
                       color: AppColors.support,
                       size: 14,
@@ -659,7 +659,7 @@ class _MonthlyComparisonCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.emoji_events_outlined,
                   color: AppColors.support,
                   size: 24,

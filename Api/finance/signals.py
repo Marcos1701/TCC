@@ -18,13 +18,27 @@ def _ensure_default_categories(user):
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, **kwargs):
+    """
+    Cria perfil de usuário ao criar nova conta.
+    Marca is_first_access=True para novos usuários (onboarding).
+    """
     if created:
         with transaction.atomic():
+            # Criar perfil com is_first_access=True (default do modelo)
             UserProfile.objects.create(user=instance)
             _ensure_default_categories(instance)
+            
             # Atribuir missões iniciais
             from .services import assign_missions_automatically
             assign_missions_automatically(instance)
+            
+            # Log para auditoria
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"New user profile created: User {instance.id} ({instance.username}) - "
+                f"is_first_access=True (onboarding enabled)"
+            )
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

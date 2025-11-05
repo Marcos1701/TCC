@@ -5,9 +5,11 @@ import '../../../../core/models/goal.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
+import '../../data/goals_viewmodel.dart';
 
 /// Classe para armazenar estatísticas por categoria
 class CategoryStats {
@@ -45,6 +47,7 @@ class GoalDetailsPage extends StatefulWidget {
 
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
   final _repository = FinanceRepository();
+  late final GoalsViewModel _viewModel;
   late GoalModel _currentGoal;
   List<TransactionModel>? _transactions;
   Map<int, CategoryStats>? _categoryStats;
@@ -55,7 +58,14 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   void initState() {
     super.initState();
     _currentGoal = widget.goal;
+    _viewModel = GoalsViewModel(repository: _repository);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -110,27 +120,31 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   Future<void> _refreshProgress() async {
     try {
       await _repository.refreshGoalProgress(widget.goal.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Progresso atualizado!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        // Invalida cache e recarrega
-        CacheManager().invalidateAfterGoalUpdate();
-        Navigator.pop(context, true); // Retorna true para indicar atualização
-      }
+      
+      // Recarrega dados
+      await _loadData();
+      
+      if (!mounted) return;
+      
+      // Feedback contextual melhorado
+      FeedbackService.showSuccess(
+        context,
+        'Progresso da meta atualizado com sucesso!',
+      );
+      
+      // Invalida cache para outras telas
+      CacheManager().invalidateAfterGoalUpdate();
+      
+      // Atualiza o ViewModel global (se necessário)
+      _viewModel.refreshSilently();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao atualizar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (!mounted) return;
+      
+      FeedbackService.showErrorWithRetry(
+        context,
+        'Não foi possível atualizar o progresso.',
+        onRetry: _refreshProgress,
+      );
     }
   }
 
@@ -694,7 +708,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.pie_chart, color: AppColors.primary, size: 20),
+              const Icon(Icons.pie_chart, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Transações por Categoria',
@@ -815,7 +829,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                 ),
                 child: Text(
                   '${_transactions!.length}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,

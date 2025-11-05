@@ -191,7 +191,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
               emissionFrequency: 0.1,
               numberOfParticles: 15,
               gravity: 0.1,
-              colors: [
+              colors: const [
                 AppColors.primary,
                 AppColors.support,
               ],
@@ -207,7 +207,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
               emissionFrequency: 0.1,
               numberOfParticles: 15,
               gravity: 0.1,
-              colors: [
+              colors: const [
                 AppColors.primary,
                 AppColors.support,
               ],
@@ -227,12 +227,12 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                   margin: const EdgeInsets.symmetric(horizontal: 32),
                   constraints: const BoxConstraints(maxWidth: 400),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        const Color(0xFF10121D),
-                        const Color(0xFF1A1D2E),
+                        Color(0xFF10121D),
+                        Color(0xFF1A1D2E),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(24),

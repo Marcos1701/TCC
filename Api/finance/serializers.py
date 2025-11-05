@@ -141,8 +141,24 @@ class TransactionSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def validate(self, attrs):
+        from decimal import Decimal
+        
         attrs = super().validate(attrs)
         instance = getattr(self, "instance", None)
+
+        # Validar amount é positivo
+        amount = attrs.get('amount', getattr(instance, 'amount', None))
+        if amount is not None and amount <= 0:
+            raise serializers.ValidationError({
+                'amount': 'O valor deve ser maior que zero.'
+            })
+        
+        # Validar amount não é absurdamente grande (proteção contra erros)
+        max_amount = Decimal('999999999.99')  # ~1 bilhão
+        if amount is not None and amount > max_amount:
+            raise serializers.ValidationError({
+                'amount': f'Valor muito alto. Máximo permitido: R$ {max_amount:,.2f}'
+            })
 
         is_recurring = attrs.get("is_recurring")
         if is_recurring is None and instance is not None:
@@ -162,12 +178,29 @@ class TransactionSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Informe a frequência para transações recorrentes.",
                 )
+            # Validar recurrence_value não é absurdo
+            if recurrence_value > 365:
+                raise serializers.ValidationError({
+                    'recurrence_value': 'Valor de recorrência muito alto.'
+                })
         else:
             attrs["recurrence_value"] = None
             attrs["recurrence_unit"] = None
             attrs["recurrence_end_date"] = None
             if "is_recurring" in attrs:
                 attrs["is_recurring"] = False
+        
+        # Validar data não está muito no futuro (opcional, mas pode ajudar)
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        date = attrs.get('date', getattr(instance, 'date', None))
+        if date:
+            max_future_date = timezone.now().date() + timedelta(days=365)
+            if date > max_future_date:
+                raise serializers.ValidationError({
+                    'date': 'Data não pode estar mais de 1 ano no futuro.'
+                })
 
         return attrs
 

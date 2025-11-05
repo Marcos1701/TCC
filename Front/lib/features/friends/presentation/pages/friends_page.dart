@@ -106,7 +106,7 @@ class _FriendsPageState extends State<FriendsPage>
       body: Column(
         children: [
           // Card com username do usuário
-          _UsernameCard(),
+          const _UsernameCard(),
           // Tabs
           Expanded(
             child: TabBarView(
@@ -214,7 +214,7 @@ class _FriendsTab extends StatelessWidget {
                       CircleAvatar(
                         radius: 24,
                         backgroundColor: AppColors.primary.withOpacity(0.2),
-                        child: Icon(
+                        child: const Icon(
                           Icons.person,
                           color: AppColors.primary,
                           size: 28,
@@ -359,7 +359,7 @@ class _RequestsTab extends StatelessWidget {
                             radius: 24,
                             backgroundColor:
                                 AppColors.primary.withOpacity(0.2),
-                            child: Icon(
+                            child: const Icon(
                               Icons.person,
                               color: AppColors.primary,
                               size: 28,
@@ -575,7 +575,7 @@ class _SearchTab extends StatelessWidget {
                             radius: 24,
                             backgroundColor:
                                 AppColors.primary.withOpacity(0.2),
-                            child: Icon(
+                            child: const Icon(
                               Icons.person,
                               color: AppColors.primary,
                               size: 28,

@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
+from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
 from .serializers import (
     CategorySerializer,
     DashboardSerializer,
@@ -55,7 +56,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
 
     def get_queryset(self):
         qs = Transaction.objects.filter(user=self.request.user).select_related("category")
@@ -219,7 +220,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
     - GET /transaction-links/payment_report/ - Relatório de pagamentos
     """
     serializer_class = TransactionLinkSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
     
     def get_queryset(self):
         qs = TransactionLink.objects.filter(
@@ -452,7 +453,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
 
 class GoalViewSet(viewsets.ModelViewSet):
     serializer_class = GoalSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
 
     def get_queryset(self):
         return Goal.objects.filter(user=self.request.user).select_related(
@@ -802,6 +803,13 @@ class ProfileView(APIView):
         if request.data.get('complete_first_access'):
             profile.is_first_access = False
             profile.save(update_fields=['is_first_access'])
+            
+            # Log para auditoria
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(
+                f"User {request.user.id} ({request.user.username}) completed first access/onboarding"
+            )
         
         serializer = UserProfileSerializer(
             profile, data=request.data, partial=True
@@ -1043,7 +1051,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
     """
     from .serializers import FriendshipSerializer
     serializer_class = FriendshipSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
     
     def get_queryset(self):
         """Retorna amizades aceitas do usuário."""

@@ -416,7 +416,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
@@ -442,7 +442,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
@@ -474,7 +474,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
@@ -523,7 +523,7 @@ class _ProgressPageState extends State<ProgressPage> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 2),
                       ),
                     ),
                   ),
@@ -575,7 +575,7 @@ class _ProgressPageState extends State<ProgressPage> {
                               : (value) {
                                   setState(() => autoUpdate = value);
                                 },
-                          activeColor: AppColors.support,
+                          activeThumbColor: AppColors.support,
                         ),
                       ],
                     ),
@@ -631,7 +631,7 @@ class _ProgressPageState extends State<ProgressPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
+                        const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -653,9 +653,9 @@ class _ProgressPageState extends State<ProgressPage> {
                               builder: (context, child) {
                                 return Theme(
                                   data: ThemeData.dark().copyWith(
-                                    colorScheme: ColorScheme.dark(
+                                    colorScheme: const ColorScheme.dark(
                                       primary: AppColors.primary,
-                                      surface: const Color(0xFF1E1E1E),
+                                      surface: Color(0xFF1E1E1E),
                                     ),
                                   ),
                                   child: child!,
@@ -668,7 +668,7 @@ class _ProgressPageState extends State<ProgressPage> {
                           },
                           child: Text(
                             deadline == null ? 'Definir' : 'Alterar',
-                            style: TextStyle(color: AppColors.primary),
+                            style: const TextStyle(color: AppColors.primary),
                           ),
                         ),
                       ],
@@ -1622,7 +1622,7 @@ class _GoalCard extends StatelessWidget {
                           ),
                           child: Text(
                             goal.goalType.label,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: AppColors.primary,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -1637,11 +1637,11 @@ class _GoalCard extends StatelessWidget {
                               color: AppColors.support.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.sync, size: 10, color: AppColors.support),
-                                const SizedBox(width: 3),
+                                SizedBox(width: 3),
                                 Text(
                                   'Auto',
                                   style: TextStyle(
@@ -1719,13 +1719,13 @@ class _GoalCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
-                        const Icon(Icons.delete, size: 18, color: AppColors.alert),
-                        const SizedBox(width: 8),
-                        const Text('Remover', style: TextStyle(color: AppColors.alert)),
+                        Icon(Icons.delete, size: 18, color: AppColors.alert),
+                        SizedBox(width: 8),
+                        Text('Remover', style: TextStyle(color: AppColors.alert)),
                       ],
                     ),
                   ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
-import '../../../../core/services/gamification_service.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../data/missions_viewmodel.dart';
 import '../widgets/mission_details_sheet.dart';
 
 class MissionsPage extends StatefulWidget {
@@ -19,42 +19,54 @@ class MissionsPage extends StatefulWidget {
 class _MissionsPageState extends State<MissionsPage> {
   final _repository = FinanceRepository();
   final _cacheManager = CacheManager();
-  late Future<DashboardData> _future = _repository.fetchDashboard();
+  late final MissionsViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
+    _viewModel = MissionsViewModel(repository: _repository);
+    _viewModel.loadMissions();
     _cacheManager.addListener(_onCacheInvalidated);
+    
+    // Observa celebrações de missões
+    _viewModel.addListener(_checkForCelebrations);
   }
 
   @override
   void dispose() {
+    _viewModel.removeListener(_checkForCelebrations);
     _cacheManager.removeListener(_onCacheInvalidated);
+    _viewModel.dispose();
     super.dispose();
   }
 
   void _onCacheInvalidated() {
     if (_cacheManager.isInvalidated(CacheType.missions)) {
-      _refresh();
+      _viewModel.refreshSilently();
       _cacheManager.clearInvalidation(CacheType.missions);
     }
   }
 
-  Future<void> _refresh() async {
-    final data = await _repository.fetchDashboard();
-    if (!mounted) return;
-    
-    // Verificar celebrações de missões completadas
-    await GamificationService.checkMissionCompletions(
-      context: context,
-      missions: data.activeMissions,
-    );
-    
-    // Atualiza o estado DEPOIS de todo trabalho assíncrono
-    if (mounted) {
-      setState(() {
-        _future = Future.value(data);
-      });
+  void _checkForCelebrations() {
+    // Verifica se há missões recém completadas para celebrar
+    if (_viewModel.newlyCompleted.isNotEmpty && mounted) {
+      for (final missionId in _viewModel.newlyCompleted) {
+        final mission = _viewModel.completedMissions.firstWhere(
+          (m) => m.mission.id == missionId,
+          orElse: () => _viewModel.activeMissions.firstWhere(
+            (m) => m.mission.id == missionId,
+          ),
+        );
+        
+        FeedbackService.showMissionCompleted(
+          context,
+          missionName: mission.mission.title,
+          xpReward: mission.mission.rewardPoints,
+          coinsReward: null, // Pode ser adicionado futuramente
+        );
+        
+        _viewModel.markMissionAsViewed(missionId);
+      }
     }
   }
 
@@ -81,21 +93,22 @@ class _MissionsPageState extends State<MissionsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _refresh,
+            onPressed: () => _viewModel.loadMissions(),
           ),
         ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: _refresh,
-          child: FutureBuilder<DashboardData>(
-            future: _future,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+          onRefresh: () => _viewModel.loadMissions(),
+          child: ListenableBuilder(
+            listenable: _viewModel,
+            builder: (context, _) {
+              if (_viewModel.isLoading && _viewModel.activeMissions.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (snapshot.hasError) {
+              
+              if (_viewModel.hasError) {
                 return ListView(
                   padding: const EdgeInsets.all(24),
                   children: [
@@ -106,14 +119,12 @@ class _MissionsPageState extends State<MissionsPage> {
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton(
-                      onPressed: _refresh,
+                      onPressed: () => _viewModel.loadMissions(),
                       child: const Text('Tentar novamente'),
                     ),
                   ],
                 );
               }
-
-              final data = snapshot.data!;
 
               return ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -148,7 +159,7 @@ class _MissionsPageState extends State<MissionsPage> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${data.activeMissions.length} ativas',
+                          '${_viewModel.activeMissions.length} ativas',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -158,13 +169,13 @@ class _MissionsPageState extends State<MissionsPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (data.activeMissions.isEmpty)
+                  if (_viewModel.activeMissions.isEmpty)
                     const _EmptyState(
                       message:
                           'Sem missões ativas no momento.\nContinue realizando transações para receber novas missões!',
                     )
                   else
-                    ...data.activeMissions.map(
+                    ..._viewModel.activeMissions.map(
                       (mission) => GestureDetector(
                         onTap: () async {
                           final updated = await showModalBottomSheet(
@@ -174,11 +185,11 @@ class _MissionsPageState extends State<MissionsPage> {
                             builder: (context) => MissionDetailsSheet(
                               missionProgress: mission,
                               repository: _repository,
-                              onUpdate: _refresh,
+                              onUpdate: () => _viewModel.refreshSilently(),
                             ),
                           );
                           if (updated == true) {
-                            _refresh();
+                            _viewModel.refreshSilently();
                           }
                         },
                         child: _ActiveMissionCard(mission: mission),
@@ -383,7 +394,7 @@ class _ActiveMissionCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.star_rounded,
                       color: AppColors.primary,
                       size: 14,
@@ -417,7 +428,7 @@ class _ActiveMissionCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.celebration_outlined,
                     color: AppColors.support,
                     size: 18,

@@ -5,9 +5,11 @@ import '../../../../core/models/transaction.dart';
 import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/category_groups.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../data/transactions_viewmodel.dart';
 import '../../presentation/widgets/register_transaction_sheet.dart';
 import '../../presentation/widgets/transaction_details_sheet.dart';
 
@@ -22,46 +24,27 @@ class _TransactionsPageState extends State<TransactionsPage> {
   final _repository = FinanceRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _cacheManager = CacheManager();
-  String? _filter;
-  late Future<Map<String, dynamic>> _future = _fetchData();
+  late final TransactionsViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
+    _viewModel = TransactionsViewModel(repository: _repository);
+    _viewModel.loadTransactions();
     _cacheManager.addListener(_onCacheInvalidated);
   }
 
   @override
   void dispose() {
     _cacheManager.removeListener(_onCacheInvalidated);
+    _viewModel.dispose();
     super.dispose();
   }
 
   void _onCacheInvalidated() {
     if (_cacheManager.isInvalidated(CacheType.transactions)) {
-      _refresh();
+      _viewModel.refreshSilently();
       _cacheManager.clearInvalidation(CacheType.transactions);
-    }
-  }
-
-  Future<Map<String, dynamic>> _fetchData() async {
-    final transactions = await _repository.fetchTransactions(type: _filter);
-    final links = await _repository.fetchTransactionLinks();
-    return {
-      'transactions': transactions,
-      'links': links,
-    };
-  }
-
-  Future<void> _refresh() async {
-    final data = await _fetchData();
-    if (!mounted) return;
-    
-    // Atualiza o estado DEPOIS de todo trabalho assíncrono
-    if (mounted) {
-      setState(() {
-        _future = Future.value(data);
-      });
     }
   }
 
@@ -79,53 +62,46 @@ class _TransactionsPageState extends State<TransactionsPage> {
     _cacheManager.invalidateAfterTransaction(action: 'transaction created');
     
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transação adicionada com sucesso.')),
+    
+    // Feedback melhorado e contextual
+    FeedbackService.showTransactionCreated(
+      context,
+      amount: created.amount,
+      type: created.type,
+      xpEarned: 50, // Pode vir do backend futuramente
     );
   }
 
   Future<void> _deleteTransaction(TransactionModel transaction) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await FeedbackService.showConfirmationDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text('Excluir transação', style: TextStyle(color: Colors.white)),
-        content: Text(
-          'Tem certeza que deseja excluir "${transaction.description}"?',
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.alert),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
+      title: 'Excluir transação',
+      message: 'Tem certeza que deseja excluir "${transaction.description}"?',
+      confirmText: 'Excluir',
+      isDangerous: true,
     );
 
-    if (confirm != true) return;
-    await _repository.deleteTransaction(transaction.id);
-    if (!mounted) return;
-    
-    // Invalida cache após deletar transação
-    _cacheManager.invalidateAfterTransaction(action: 'transaction deleted');
-    
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Transação removida.')),
-    );
+    if (!confirm) return;
+
+    try {
+      await _viewModel.deleteTransaction(transaction);
+      
+      if (!mounted) return;
+      FeedbackService.showSuccess(
+        context,
+        'Transação removida com sucesso.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      FeedbackService.showError(
+        context,
+        'Não foi possível remover a transação. Tente novamente.',
+      );
+    }
   }
 
   void _applyFilter(String? type) {
-    setState(() {
-      _filter = type;
-      _future = _fetchData();
-    });
+    _viewModel.updateFilter(type);
   }
 
   Map<String, double> _buildTotals(List<TransactionModel> transactions) {
@@ -153,9 +129,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
           await _repository.deleteTransactionLink(link.id);
           if (!mounted) return;
           Navigator.pop(context);
-          _refresh();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Vínculo removido com sucesso.')),
+          _viewModel.refreshSilently();
+          FeedbackService.showSuccess(
+            context,
+            'Vínculo removido com sucesso.',
           );
         },
       ),
@@ -186,7 +163,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _refresh,
+            onPressed: () => _viewModel.loadTransactions(type: _viewModel.filter),
           ),
         ],
       ),
@@ -221,25 +198,25 @@ class _TransactionsPageState extends State<TransactionsPage> {
                         children: [
                           _FilterChip(
                             label: 'Todas',
-                            selected: _filter == null,
+                            selected: _viewModel.filter == null,
                             onTap: () => _applyFilter(null),
                             icon: Icons.all_inclusive_rounded,
                           ),
                           _FilterChip(
                             label: 'Receitas',
-                            selected: _filter == 'INCOME',
+                            selected: _viewModel.filter == 'INCOME',
                             onTap: () => _applyFilter('INCOME'),
                             icon: Icons.arrow_upward_rounded,
                           ),
                           _FilterChip(
                             label: 'Despesas',
-                            selected: _filter == 'EXPENSE',
+                            selected: _viewModel.filter == 'EXPENSE',
                             onTap: () => _applyFilter('EXPENSE'),
                             icon: Icons.arrow_downward_rounded,
                           ),
                           _FilterChip(
                             label: 'Pagamentos',
-                            selected: _filter == 'DEBT_PAYMENT',
+                            selected: _viewModel.filter == 'DEBT_PAYMENT',
                             onTap: () => _applyFilter('DEBT_PAYMENT'),
                             icon: Icons.account_balance_wallet_outlined,
                           ),
@@ -254,14 +231,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: _refresh,
-                child: FutureBuilder<Map<String, dynamic>>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                onRefresh: () => _viewModel.loadTransactions(type: _viewModel.filter),
+                child: ListenableBuilder(
+                  listenable: _viewModel,
+                  builder: (context, _) {
+                    if (_viewModel.isLoading && _viewModel.transactions.isEmpty) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    if (snapshot.hasError) {
+                    if (_viewModel.hasError) {
                       return ListView(
                         padding: const EdgeInsets.all(24),
                         children: [
@@ -272,16 +249,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton(
-                            onPressed: _refresh,
+                            onPressed: () => _viewModel.loadTransactions(type: _viewModel.filter),
                             child: const Text('Tentar novamente'),
                           ),
                         ],
                       );
                     }
 
-                    final data = snapshot.data ?? {};
-                    final transactions = (data['transactions'] as List<TransactionModel>?) ?? [];
-                    final links = (data['links'] as List<TransactionLinkModel>?) ?? [];
+                    final transactions = _viewModel.transactions;
+                    final links = _viewModel.links;
                     
                     if (transactions.isEmpty && links.isEmpty) {
                       return ListView(
@@ -321,63 +297,110 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     // Ordenar por data (mais recente primeiro)
                     allItems.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-                      itemCount: allItems.length + 1,
-                      separatorBuilder: (_, index) {
-                        // Espaçamento maior após o resumo
-                        if (index == 0) {
-                          return const SizedBox(height: 20);
-                        }
-                        return const SizedBox(height: 10);
-                      },
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return _TransactionsSummaryStrip(
-                            currency: _currency,
-                            totals: totals,
-                            activeFilter: _filter,
-                          );
-                        }
-                        
-                        final item = allItems[index - 1];
-                        final itemType = item['type'] as String;
-                        
-                        if (itemType == 'transaction') {
-                          final transaction = item['data'] as TransactionModel;
-                          return _TransactionTile(
-                            transaction: transaction,
-                            currency: _currency,
-                            onTap: () async {
-                              final updated = await showModalBottomSheet(
-                                context: context,
-                                backgroundColor: Colors.transparent,
-                                isScrollControlled: true,
-                                builder: (context) => TransactionDetailsSheet(
-                                  transaction: transaction,
-                                  repository: _repository,
-                                  onUpdate: _refresh,
-                                ),
+                    return Stack(
+                      children: [
+                        ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                          itemCount: allItems.length + 1,
+                          separatorBuilder: (_, index) {
+                            // Espaçamento maior após o resumo
+                            if (index == 0) {
+                              return const SizedBox(height: 20);
+                            }
+                            return const SizedBox(height: 10);
+                          },
+                          itemBuilder: (context, index) {
+                            if (index == 0) {
+                              return _TransactionsSummaryStrip(
+                                currency: _currency,
+                                totals: totals,
+                                activeFilter: _viewModel.filter,
                               );
-                              if (updated == true) {
-                                _refresh();
-                              }
-                            },
-                            onRemove: () => _deleteTransaction(transaction),
-                          );
-                        } else {
-                          // É um link de transação
-                          final link = item['data'] as TransactionLinkModel;
-                          return _TransactionLinkTile(
-                            link: link,
-                            currency: _currency,
-                            onTap: () {
-                              // Exibir detalhes do link
-                              _showLinkDetails(link);
-                            },
-                          );
-                        }
-                      },
+                            }
+                            
+                            final item = allItems[index - 1];
+                            final itemType = item['type'] as String;
+                            
+                            if (itemType == 'transaction') {
+                              final transaction = item['data'] as TransactionModel;
+                              return _TransactionTile(
+                                transaction: transaction,
+                                currency: _currency,
+                                onTap: () async {
+                                  final updated = await showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    isScrollControlled: true,
+                                    builder: (context) => TransactionDetailsSheet(
+                                      transaction: transaction,
+                                      repository: _repository,
+                                      onUpdate: () => _viewModel.refreshSilently(),
+                                    ),
+                                  );
+                                  if (updated == true) {
+                                    _viewModel.refreshSilently();
+                                  }
+                                },
+                                onRemove: () => _deleteTransaction(transaction),
+                              );
+                            } else {
+                              // É um link de transação
+                              final link = item['data'] as TransactionLinkModel;
+                              return _TransactionLinkTile(
+                                link: link,
+                                currency: _currency,
+                                onTap: () {
+                                  // Exibir detalhes do link
+                                  _showLinkDetails(link);
+                                },
+                              );
+                            }
+                          },
+                        ),
+                        if (_viewModel.isLoading && _viewModel.transactions.isNotEmpty)
+                          Positioned(
+                            top: 8,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.9),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'Atualizando...',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     );
                   },
                 ),
@@ -1058,9 +1081,9 @@ class _TransactionLinkDetailsSheet extends StatelessWidget {
     final tokens = theme.extension<AppDecorations>()!;
     
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF121212),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: const BoxDecoration(
+        color: Color(0xFF121212),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         child: Column(

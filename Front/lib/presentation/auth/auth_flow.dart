@@ -32,32 +32,29 @@ class _AuthFlowState extends State<AuthFlow> {
     try {
       final session = SessionScope.of(context);
       
-      // Verifica se é o primeiro acesso usando a informação vinda da API
-      // Esta informação está no perfil do usuário
-      final isFirstAccess = session.profile?.isFirstAccess ?? false;
+      // Atualiza a sessão primeiro
+      await session.refreshSession();
       
-      debugPrint('🔍 Verificando primeiro acesso: isFirstAccess=$isFirstAccess');
+      // Verifica se é o primeiro acesso.
+      final isFirstAccess = session.profile?.isFirstAccess ?? false;
       
       if (mounted && isFirstAccess) {
         debugPrint('🎯 É primeiro acesso! Exibindo onboarding...');
-        
-        // Marca imediatamente como não sendo mais primeiro acesso
-        // Isso garante que mesmo se o usuário pular, não verá novamente
-        try {
-          await _repository.completeFirstAccess();
-          debugPrint('✅ Primeiro acesso marcado como concluído na API');
-          // Atualiza o perfil local para refletir a mudança
-          await session.refreshSession();
-        } catch (e) {
-          debugPrint('❌ Erro ao marcar primeiro acesso: $e');
-        }
         
         // Primeira vez que o usuário acessa - mostra setup inicial
         final result = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (context) => InitialSetupPage(
               onComplete: () async {
-                debugPrint('✅ Onboarding completo, transações criadas');
+                
+                
+                // Marca como primeiro acesso concluído na API
+                try {
+                  await _repository.completeFirstAccess();
+                  debugPrint('✅ Primeiro acesso marcado como concluído na API');
+                } catch (e) {
+                  debugPrint('❌ Erro ao marcar primeiro acesso: $e');
+                }
                 
                 // Força rebuild da home após conclusão
                 if (mounted) {
