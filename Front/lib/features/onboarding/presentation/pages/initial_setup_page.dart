@@ -427,7 +427,7 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Vamos configurar suas finanças em minutos!',
+            'Realize a configuração inicial!',
             style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white70,
             ),
@@ -437,23 +437,16 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
             icon: Icons.speed_rounded,
             title: 'Configuração Rápida',
             description:
-                'Adicione suas transações essenciais em poucos passos.',
+                'Adicione suas transações essenciais.',
             theme: theme,
           ),
           const SizedBox(height: 20),
-          _buildFeatureItem(
-            icon: Icons.lightbulb_outline_rounded,
-            title: 'Sugestões Inteligentes',
-            description:
-                'Sugerimos 8 transações comuns para facilitar seu início.',
-            theme: theme,
-          ),
-          const SizedBox(height: 20),
+          
           _buildFeatureItem(
             icon: Icons.check_circle_outline_rounded,
             title: 'Mínimo de 5',
             description:
-                'Adicione pelo menos 5 transações para começar com o pé direito.',
+                'Adicione pelo menos 5 transações.',
             theme: theme,
           ),
           const SizedBox(height: 32),
