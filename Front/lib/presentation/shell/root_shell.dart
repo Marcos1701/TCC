@@ -120,7 +120,7 @@ class _RootShellState extends State<RootShell> {
             border: Border.all(color: theme.dividerColor),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.2),
+                color: Colors.black.withOpacity(isDark ? 0.34 : 0.2),
                 blurRadius: 24,
                 offset: const Offset(0, -6),
               ),

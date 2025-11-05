@@ -52,7 +52,7 @@ class MetricCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 
+                color: Colors.white.withOpacity(
                   contrast == Brightness.dark ? 0.18 : 0.28,
                 ),
                 borderRadius: tokens.tileRadius,

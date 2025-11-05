@@ -264,8 +264,8 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                               shape: BoxShape.circle,
                               gradient: RadialGradient(
                                 colors: [
-                                  widget.color.withValues(
-                                    alpha: widget.showConfetti ? 0.2 : _glowAnimation.value,
+                                  widget.color.withOpacity(
+                                    widget.showConfetti ? 0.2 : _glowAnimation.value,
                                   ),
                                   Colors.transparent,
                                 ],

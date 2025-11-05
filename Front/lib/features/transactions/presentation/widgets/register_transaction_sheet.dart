@@ -712,9 +712,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
                                           horizontal: 18,
                                         ),
                                         backgroundColor:
-                                            AppColors.primary.withValues(
-                                          alpha: 0.12,
-                                        ),
+                                            AppColors.primary.withOpacity(0.12),
                                         foregroundColor: AppColors.primary,
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
