@@ -131,11 +131,10 @@ class AppTheme {
         thickness: 1,
         space: 32,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
+        color: colorScheme.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
-      ).copyWith(
-        color: colorScheme.surface,
         shape: RoundedRectangleBorder(
           borderRadius: decorations.cardRadius,
           side: BorderSide(
@@ -369,10 +368,9 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: decorations.sheetRadius),
         showDragHandle: true,
       ),
-      dialogTheme: const DialogThemeData(
-        surfaceTintColor: Colors.transparent,
-      ).copyWith(
+      dialogTheme: DialogThemeData(
         backgroundColor: colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: decorations.sheetRadius),
         titleTextStyle: textTheme.titleLarge?.copyWith(
           color: colorScheme.onSurface,
