@@ -1,55 +1,24 @@
 # ==========================================
-# Stage 1: Build Stage
+# Simplified Dockerfile for Flutter Web
 # ==========================================
-FROM debian:bullseye-slim AS build
 
-# Install dependencies for Flutter
-RUN apt-get update && \
-    apt-get install -y \
-        curl \
-        git \
-        unzip \
-        xz-utils \
-        zip \
-        libglu1-mesa \
-        ca-certificates && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create a non-root user for building (to avoid Flutter warning)
-RUN useradd -m -s /bin/bash builder && \
-    mkdir -p /opt/flutter && \
-    chown -R builder:builder /opt/flutter
-
-# Set Flutter version and installation directory
-ARG FLUTTER_VERSION=3.24.3
-ENV FLUTTER_HOME=/opt/flutter
-ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
-ENV PUB_CACHE=/home/builder/.pub-cache
-
-# Switch to builder user
-USER builder
-
-# Download and install Flutter SDK
-RUN git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git ${FLUTTER_HOME} && \
-    flutter precache --web && \
-    flutter doctor -v
+# Use official Flutter image for building
+FROM ghcr.io/cirruslabs/flutter:3.24.3 AS build
 
 # Set working directory
-WORKDIR /home/builder/app
+WORKDIR /app
 
-# Copy pubspec files to leverage Docker cache
-COPY --chown=builder:builder pubspec.yaml pubspec.lock ./
+# Copy pubspec files first for better caching
+COPY pubspec.yaml pubspec.lock ./
 
 # Get dependencies
 RUN flutter pub get
 
 # Copy the rest of the application
-COPY --chown=builder:builder . .
+COPY . .
 
 # Build argument for API URL
 ARG API_BASE_URL=https://tcc-production-d286.up.railway.app
-ENV API_BASE_URL=${API_BASE_URL}
 
 # Build the Flutter web application
 RUN flutter build web \
@@ -58,7 +27,7 @@ RUN flutter build web \
     --dart-define=API_BASE_URL=${API_BASE_URL}
 
 # ==========================================
-# Stage 2: Production Stage (Nginx)
+# Production Stage
 # ==========================================
 FROM nginx:1.25-alpine AS production
 
@@ -113,7 +82,7 @@ server {
 EOF
 
 # Copy built Flutter web app from build stage
-COPY --from=build --chown=appuser:appgroup /home/builder/app/build/web /usr/share/nginx/html
+COPY --from=build --chown=appuser:appgroup /app/build/web /usr/share/nginx/html
 
 # Set proper permissions
 RUN chown -R appuser:appgroup /usr/share/nginx/html && \
