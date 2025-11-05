@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, XPTransaction
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, XPTransaction, Friendship
 
 
 @admin.register(UserProfile)
@@ -99,3 +99,18 @@ class XPTransactionAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Não permite edição de registros de XP."""
         return False
+
+
+@admin.register(Friendship)
+class FriendshipAdmin(admin.ModelAdmin):
+    list_display = ("user", "friend", "status", "created_at", "accepted_at")
+    list_filter = ("status", "created_at", "accepted_at")
+    search_fields = ("user__username", "user__email", "friend__username", "friend__email")
+    readonly_fields = ("created_at", "accepted_at")
+    autocomplete_fields = ("user", "friend")
+    date_hierarchy = "created_at"
+    
+    def get_queryset(self, request):
+        """Otimiza queries com select_related."""
+        qs = super().get_queryset(request)
+        return qs.select_related('user', 'friend')
