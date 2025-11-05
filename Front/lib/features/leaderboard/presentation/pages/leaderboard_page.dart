@@ -4,6 +4,7 @@ import '../../../../core/models/leaderboard.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../../friends/presentation/pages/friends_page.dart';
 import '../../data/leaderboard_viewmodel.dart';
 
 /// Página de ranking com suporte para ranking geral e de amigos.
@@ -63,6 +64,23 @@ class _LeaderboardPageState extends State<LeaderboardPage>
         centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FriendsPage(),
+                ),
+              ).then((_) {
+                // Recarregar após voltar da página de amigos
+                _viewModel.refresh();
+              });
+            },
+            tooltip: 'Gerenciar Amigos',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.primary,
@@ -84,6 +102,31 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           _GeneralLeaderboardTab(viewModel: _viewModel),
           _FriendsLeaderboardTab(viewModel: _viewModel),
         ],
+      ),
+      floatingActionButton: ListenableBuilder(
+        listenable: _tabController,
+        builder: (context, child) {
+          // Mostrar FAB apenas na tab de amigos
+          if (_tabController.index == 1) {
+            return FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const FriendsPage(),
+                  ),
+                ).then((_) {
+                  // Recarregar após voltar da página de amigos
+                  _viewModel.refresh();
+                });
+              },
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.person_add),
+              label: const Text('Adicionar Amigos'),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
@@ -189,21 +232,44 @@ class _FriendsLeaderboardTab extends StatelessWidget {
         final leaderboard = viewModel.friendsLeaderboard;
         if (leaderboard == null || leaderboard.leaderboard.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.people_outline, color: Colors.grey, size: 64),
-                const SizedBox(height: 16),
-                Text(
-                  'Você ainda não tem amigos.',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Adicione amigos para ver o ranking!',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.people_outline, color: Colors.grey, size: 64),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Você ainda não tem amigos.',
+                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Adicione amigos para ver o ranking!',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FriendsPage(),
+                        ),
+                      );
+                      viewModel.refresh();
+                    },
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Adicionar Amigos'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }

@@ -940,19 +940,19 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
     final startDate = endDate.subtract(Duration(days: _selectedPeriod - 1));
     final date = startDate.add(Duration(days: index));
 
-    if (_selectedPeriod <= 7) {
-      // Para 7 dias ou menos, mostra inicial do dia da semana
+    if (_selectedPeriod == 7) {
+      // Para 7 dias, mostra inicial do dia da semana
       const days = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
       return days[date.weekday % 7];
-    } else if (_selectedPeriod <= 15) {
-      // Para 15 dias, mostra dia do mês a cada 2 dias
-      if (index % 2 == 0) {
+    } else if (_selectedPeriod == 15) {
+      // Para 15 dias, mostra dia do mês a cada 3 dias (0, 3, 6, 9, 12, 14)
+      if (index == 0 || index % 3 == 0 || index == _selectedPeriod - 1) {
         return '${date.day}';
       }
       return '';
     } else {
-      // Para 30 dias, mostra dia do mês a cada 5 dias
-      if (index % 5 == 0) {
+      // Para 30 dias, mostra dia do mês em intervalos estratégicos (0, 6, 12, 18, 24, 29)
+      if (index == 0 || index % 6 == 0 || index == _selectedPeriod - 1) {
         return '${date.day}';
       }
       return '';
@@ -980,26 +980,36 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
 
     final spots = _calculateBalanceEvolution();
     
+    // Calcula valores para o eixo Y com margem adequada
     var maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
     var minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
     
-    // Garante que maxY e minY não sejam iguais
+    // Garante que maxY e minY não sejam iguais e adiciona margem
     if (maxY == minY) {
       if (maxY == 0) {
         maxY = 100;
-        minY = 0;
+        minY = -100;
       } else if (maxY > 0) {
-        minY = maxY * 0.9;
-        maxY = maxY * 1.1;
+        minY = 0;
+        maxY = maxY * 1.2;
       } else {
-        minY = minY * 1.1;
-        maxY = minY * 0.9;
+        minY = minY * 1.2;
+        maxY = 0;
       }
+    } else {
+      // Adiciona margem de 10% em cada extremo
+      final range = maxY - minY;
+      maxY = maxY + (range * 0.1);
+      minY = minY - (range * 0.1);
     }
     
-    // Calcula a tendência
-    final trend = spots.last.y - spots.first.y;
-    final trendPercent = spots.first.y != 0 ? (trend / spots.first.y.abs()) * 100 : 0;
+    // Calcula a tendência (evolução percentual do início ao fim)
+    final initialBalance = spots.first.y;
+    final finalBalance = spots.last.y;
+    final trend = finalBalance - initialBalance;
+    final trendPercent = initialBalance != 0 
+        ? (trend / initialBalance.abs()) * 100 
+        : (finalBalance != 0 ? (finalBalance > 0 ? 100.0 : -100.0) : 0.0);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1095,24 +1105,32 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
           ),
           const SizedBox(height: 20),
           SizedBox(
-            height: 120,
+            height: 140,
             child: LineChart(
               LineChartData(
-                minY: minY * 0.9,
-                maxY: maxY * 1.1,
+                minY: minY,
+                maxY: maxY,
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
+                    curveSmoothness: 0.3,
                     color: AppColors.primary,
                     barWidth: 3,
                     dotData: FlDotData(
                       show: true,
                       getDotPainter: (spot, percent, barData, index) {
+                        // Mostra pontos maiores apenas em intervalos para não poluir
+                        final showLargeDot = _selectedPeriod == 7 || 
+                                           (_selectedPeriod == 15 && index % 3 == 0) ||
+                                           (_selectedPeriod == 30 && index % 6 == 0) ||
+                                           index == 0 ||
+                                           index == spots.length - 1;
+                        
                         return FlDotCirclePainter(
-                          radius: 4,
+                          radius: showLargeDot ? 4 : 2,
                           color: AppColors.primary,
-                          strokeWidth: 2,
+                          strokeWidth: showLargeDot ? 2 : 1,
                           strokeColor: const Color(0xFF1E1E1E),
                         );
                       },
@@ -1143,7 +1161,14 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      reservedSize: 22,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
+                        // Só mostra labels nos índices que têm texto
+                        if (value < 0 || value >= _selectedPeriod) {
+                          return const SizedBox();
+                        }
+                        
                         final title = _getBottomTitle(value.toInt());
                         if (title.isEmpty) return const SizedBox();
                         
@@ -1152,8 +1177,9 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                           child: Text(
                             title,
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                              fontSize: 10,
+                              color: Colors.grey[500],
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         );
@@ -1164,17 +1190,21 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: (maxY - minY) / 3,
+                  horizontalInterval: (maxY - minY) / 4,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.grey[800]!,
+                      color: Colors.grey[800]!.withValues(alpha: 0.3),
                       strokeWidth: 1,
                     );
                   },
                 ),
                 borderData: FlBorderData(show: false),
                 lineTouchData: LineTouchData(
+                  enabled: true,
                   touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (touchedSpot) => Colors.black87,
+                    tooltipRoundedRadius: 8,
+                    tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
                         // Calcula a data do ponto
@@ -1188,12 +1218,35 @@ class _BalanceEvolutionCardState extends State<_BalanceEvolutionCard> {
                           theme.textTheme.bodySmall!.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         );
                       }).toList();
                     },
                   ),
+                  handleBuiltInTouches: true,
+                  getTouchedSpotIndicator: (barData, spotIndexes) {
+                    return spotIndexes.map((index) {
+                      return TouchedSpotIndicatorData(
+                        FlLine(
+                          color: AppColors.primary.withValues(alpha: 0.5),
+                          strokeWidth: 2,
+                          dashArray: [5, 5],
+                        ),
+                        FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, barData, index) {
+                            return FlDotCirclePainter(
+                              radius: 6,
+                              color: AppColors.primary,
+                              strokeWidth: 3,
+                              strokeColor: Colors.white,
+                            );
+                          },
+                        ),
+                      );
+                    }).toList();
+                  },
                 ),
               ),
             ),
