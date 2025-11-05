@@ -214,7 +214,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
     - GET /transaction-links/{id}/ - Detalhe de vinculação
     - DELETE /transaction-links/{id}/ - Remover vinculação
     - GET /transaction-links/available_sources/ - Listar receitas disponíveis
-    - GET /transaction-links/available_targets/ - Listar dívidas pendentes
+    - GET /transaction-links/available_targets/ - Listar despesas e dívidas pendentes
     - POST /transaction-links/quick_link/ - Vincular rapidamente
     - GET /transaction-links/payment_report/ - Relatório de pagamentos
     """
@@ -284,17 +284,20 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def available_targets(self, request):
         """
-        Lista dívidas que ainda têm saldo devedor.
+        Lista despesas e dívidas que ainda têm saldo devedor.
         
         Query params:
-        - max_amount: Filtrar dívidas com saldo <= max_amount
+        - max_amount: Filtrar despesas com saldo <= max_amount
         - category: Filtrar por categoria
         """
         from decimal import Decimal
         
+        # Buscar tanto transações do tipo EXPENSE quanto categorias do tipo DEBT
         transactions = Transaction.objects.filter(
-            user=request.user,
-            category__type=Category.CategoryType.DEBT
+            user=request.user
+        ).filter(
+            Q(type=Transaction.TransactionType.EXPENSE) | 
+            Q(category__type=Category.CategoryType.DEBT)
         ).select_related('category')
         
         # Filtrar por categoria se fornecido

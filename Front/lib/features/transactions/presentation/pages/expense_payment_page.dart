@@ -115,7 +115,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pagar Dívida'),
+        title: const Text('Pagar Despesa'),
         backgroundColor: const Color(0xFF1E1E1E),
       ),
       backgroundColor: const Color(0xFF121212),
@@ -170,7 +170,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
             Text(
               _availableIncomes.isEmpty
                   ? 'Nenhuma receita disponível'
-                  : 'Nenhuma dívida pendente',
+                  : 'Nenhuma despesa pendente',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 18,
@@ -200,7 +200,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
             children: [
               _buildStepIndicator(0, 'Receita'),
               Expanded(child: _buildStepLine(0 < _currentStep)),
-              _buildStepIndicator(1, 'Dívida'),
+              _buildStepIndicator(1, 'Despesa'),
               Expanded(child: _buildStepLine(1 < _currentStep)),
               _buildStepIndicator(2, 'Valor'),
             ],
@@ -475,7 +475,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              debt.category?.name ?? 'Dívida',
+                              debt.category?.name ?? 'Despesa',
                               style: const TextStyle(color: Colors.white54, fontSize: 14),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
@@ -551,7 +551,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
 
     if (income == null || debt == null) {
       return const Center(
-        child: Text('Selecione uma receita e uma dívida', style: TextStyle(color: Colors.white70)),
+        child: Text('Selecione uma receita e uma despesa', style: TextStyle(color: Colors.white70)),
       );
     }
 
