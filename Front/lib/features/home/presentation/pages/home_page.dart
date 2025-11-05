@@ -910,12 +910,33 @@ class _MissionTile extends StatelessWidget {
     
     // Calcular dias restantes
     String deadlineText = '-';
+    Color deadlineColor = Colors.grey[400]!;
+    IconData deadlineIcon = Icons.timer_outlined;
+    
     if (mission.startedAt != null && mission.mission.durationDays > 0) {
       final endDate = mission.startedAt!.add(
         Duration(days: mission.mission.durationDays),
       );
       final daysRemaining = endDate.difference(DateTime.now()).inDays;
-      deadlineText = '$daysRemaining/${mission.mission.durationDays}';
+      
+      // Formatar texto baseado nos dias restantes
+      if (daysRemaining < 0) {
+        deadlineText = 'Expirada';
+        deadlineColor = AppColors.alert;
+        deadlineIcon = Icons.error_outline;
+      } else if (daysRemaining == 0) {
+        deadlineText = 'Último dia';
+        deadlineColor = AppColors.highlight;
+        deadlineIcon = Icons.warning_amber_outlined;
+      } else if (daysRemaining <= 3) {
+        deadlineText = '$daysRemaining dias restantes';
+        deadlineColor = AppColors.highlight;
+        deadlineIcon = Icons.warning_amber_outlined;
+      } else {
+        deadlineText = '$daysRemaining dias restantes';
+        deadlineColor = Colors.grey[400]!;
+        deadlineIcon = Icons.timer_outlined;
+      }
     }
 
     return Container(
@@ -951,15 +972,15 @@ class _MissionTile extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    Icons.timer_outlined,
-                    color: Colors.grey[400],
+                    deadlineIcon,
+                    color: deadlineColor,
                     size: 14,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '$deadlineText dias',
+                    deadlineText,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[400],
+                      color: deadlineColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 11,
                     ),

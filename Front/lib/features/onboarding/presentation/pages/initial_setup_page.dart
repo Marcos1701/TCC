@@ -6,7 +6,6 @@ import '../../../../core/models/category.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/state/session_controller.dart';
-import '../../../../core/storage/onboarding_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
@@ -225,7 +224,8 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
   }
 
   void _skipSetup() async {
-    await OnboardingStorage.markOnboardingComplete();
+    // Não marca mais como completo no storage local
+    // A API já controla o estado de primeiro acesso
     if (mounted) {
       Navigator.of(context).pop();
     }
@@ -280,8 +280,8 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
         }
       }
 
-      // Marca onboarding como completo
-      await OnboardingStorage.markOnboardingComplete();
+      // Não marca mais como completo no storage local
+      // O callback onComplete irá marcar na API através do auth_flow
 
       // Atualiza sessão para refletir as novas transações
       if (mounted) {

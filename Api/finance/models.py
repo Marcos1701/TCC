@@ -17,6 +17,10 @@ class UserProfile(models.Model):
         default=Decimal("6.0"),
         help_text="meta de liquidez imediata em meses",
     )
+    is_first_access = models.BooleanField(
+        default=True,
+        help_text="Indica se é o primeiro acesso do usuário (para onboarding)",
+    )
     
     # Cache de indicadores para otimização
     cached_tps = models.DecimalField(

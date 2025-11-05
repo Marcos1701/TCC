@@ -6,6 +6,7 @@ class ProfileModel {
     required this.targetTps,
     required this.targetRdr,
     required this.targetIli,
+    required this.isFirstAccess,
   });
 
   final int level;
@@ -14,6 +15,7 @@ class ProfileModel {
   final int targetTps;
   final int targetRdr;
   final double targetIli;
+  final bool isFirstAccess;
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
     return ProfileModel(
@@ -23,6 +25,7 @@ class ProfileModel {
       targetTps: map['target_tps'] as int,
       targetRdr: map['target_rdr'] as int,
       targetIli: double.parse(map['target_ili'].toString()),
+      isFirstAccess: map['is_first_access'] as bool? ?? true,
     );
   }
 }

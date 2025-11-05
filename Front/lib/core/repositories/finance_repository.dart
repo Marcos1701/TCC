@@ -443,6 +443,16 @@ class FinanceRepository {
     return response.data ?? {};
   }
 
+  /// Marca o primeiro acesso como concluído no backend
+  Future<void> completeFirstAccess() async {
+    await _client.client.patch<Map<String, dynamic>>(
+      ApiEndpoints.profile,
+      data: {
+        'complete_first_access': true,
+      },
+    );
+  }
+
   // ======= Métodos de Leaderboard =======
 
   /// Busca o ranking geral de usuários

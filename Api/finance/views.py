@@ -793,6 +793,27 @@ class ProfileView(APIView):
             "snapshot": profile_snapshot(request.user),
         }
         return Response(data)
+    
+    def patch(self, request):
+        """Atualiza parcialmente o perfil, incluindo marcar primeiro acesso como concluído."""
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        
+        # Se veio a flag de completar onboarding, marca como não sendo mais primeiro acesso
+        if request.data.get('complete_first_access'):
+            profile.is_first_access = False
+            profile.save(update_fields=['is_first_access'])
+        
+        serializer = UserProfileSerializer(
+            profile, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        data = {
+            "profile": serializer.data,
+            "snapshot": profile_snapshot(request.user),
+        }
+        return Response(data)
 
 
 class XPHistoryView(APIView):

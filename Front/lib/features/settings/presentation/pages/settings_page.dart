@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
-import '../../../../core/storage/onboarding_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
-import '../../../onboarding/presentation/pages/initial_setup_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -258,26 +256,6 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const LeaderboardPage()),
             ),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.replay_rounded,
-            title: 'Refazer Configuração Inicial',
-            subtitle: 'Adicionar mais transações essenciais',
-            onTap: () async {
-              // Reseta o onboarding e abre a tela
-              await OnboardingStorage.resetOnboarding();
-              if (!context.mounted) return;
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const InitialSetupPage(),
-                  fullscreenDialog: true,
-                ),
-              );
-            },
             tokens: tokens,
             theme: theme,
           ),

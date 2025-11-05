@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
-import '../../core/storage/onboarding_storage.dart';
+import '../../core/repositories/finance_repository.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/onboarding/presentation/pages/initial_setup_page.dart';
@@ -18,6 +18,7 @@ class _AuthFlowState extends State<AuthFlow> {
   bool _showLogin = true;
   bool _onboardingAlreadyChecked = false; // Flag para verificar apenas uma vez
   final _rootShellKey = GlobalKey(); // Key para forçar rebuild da home
+  final _repository = FinanceRepository();
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
 
@@ -31,16 +32,19 @@ class _AuthFlowState extends State<AuthFlow> {
     try {
       final session = SessionScope.of(context);
       
-      // Verifica se o usuário já completou o onboarding alguma vez
-      // O estado persiste entre logins (não é resetado no logout)
-      // Apenas novo cadastro terá onboarding pendente
-      final isComplete = await OnboardingStorage.isOnboardingComplete();
-      if (mounted && !isComplete) {
+      // Verifica se é o primeiro acesso usando a informação vinda da API
+      // Esta informação está no perfil do usuário
+      final isFirstAccess = session.profile?.isFirstAccess ?? false;
+      
+      if (mounted && isFirstAccess) {
         // Primeira vez que o usuário acessa - mostra setup inicial
         final result = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (context) => InitialSetupPage(
               onComplete: () async {
+                // Marca o primeiro acesso como concluído na API
+                await _repository.completeFirstAccess();
+                
                 // Força rebuild da home após conclusão
                 if (mounted) {
                   await session.refreshSession();
