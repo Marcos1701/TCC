@@ -202,48 +202,55 @@ class _TransactionsPageState extends State<TransactionsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Text(
-                'Acompanhe todas as suas movimentações financeiras em um só lugar.',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[400],
-                  height: 1.4,
-                ),
-              ),
-            ),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Row(
                 children: [
-                  _FilterChip(
-                    label: 'Todas',
-                    selected: _filter == null,
-                    onTap: () => _applyFilter(null),
-                    icon: Icons.all_inclusive_rounded,
+                  const Text(
+                    'Filtros:',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
-                  _FilterChip(
-                    label: 'Receitas',
-                    selected: _filter == 'INCOME',
-                    onTap: () => _applyFilter('INCOME'),
-                    icon: Icons.arrow_upward_rounded,
-                  ),
-                  _FilterChip(
-                    label: 'Despesas',
-                    selected: _filter == 'EXPENSE',
-                    onTap: () => _applyFilter('EXPENSE'),
-                    icon: Icons.arrow_downward_rounded,
-                  ),
-                  _FilterChip(
-                    label: 'Pagamentos',
-                    selected: _filter == 'DEBT_PAYMENT',
-                    onTap: () => _applyFilter('DEBT_PAYMENT'),
-                    icon: Icons.account_balance_wallet_outlined,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _FilterChip(
+                            label: 'Todas',
+                            selected: _filter == null,
+                            onTap: () => _applyFilter(null),
+                            icon: Icons.all_inclusive_rounded,
+                          ),
+                          _FilterChip(
+                            label: 'Receitas',
+                            selected: _filter == 'INCOME',
+                            onTap: () => _applyFilter('INCOME'),
+                            icon: Icons.arrow_upward_rounded,
+                          ),
+                          _FilterChip(
+                            label: 'Despesas',
+                            selected: _filter == 'EXPENSE',
+                            onTap: () => _applyFilter('EXPENSE'),
+                            icon: Icons.arrow_downward_rounded,
+                          ),
+                          _FilterChip(
+                            label: 'Pagamentos',
+                            selected: _filter == 'DEBT_PAYMENT',
+                            onTap: () => _applyFilter('DEBT_PAYMENT'),
+                            icon: Icons.account_balance_wallet_outlined,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -317,7 +324,13 @@ class _TransactionsPageState extends State<TransactionsPage> {
                     return ListView.separated(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
                       itemCount: allItems.length + 1,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      separatorBuilder: (_, index) {
+                        // Espaçamento maior após o resumo
+                        if (index == 0) {
+                          return const SizedBox(height: 20);
+                        }
+                        return const SizedBox(height: 10);
+                      },
                       itemBuilder: (context, index) {
                         if (index == 0) {
                           return _TransactionsSummaryStrip(
@@ -393,38 +406,43 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.primary : const Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: selected ? AppColors.primary : Colors.grey[800]!,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: 16,
-                  color: selected ? Colors.white : Colors.grey[400],
-                ),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  color: selected ? Colors.white : Colors.grey[400],
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+      padding: const EdgeInsets.only(right: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primary : const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? AppColors.primary : Colors.grey[800]!,
+                width: 1.5,
               ),
-            ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(
+                    icon,
+                    size: 16,
+                    color: selected ? Colors.white : Colors.grey[400],
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: selected ? Colors.white : Colors.grey[400],
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -466,86 +484,122 @@ class _TransactionTile extends StatelessWidget {
           borderRadius: tokens.cardRadius,
           boxShadow: tokens.mediumShadow,
         ),
-        child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: accent, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          children: [
+            Row(
               children: [
-                Text(
-                  transaction.description,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: accent, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.description,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              transaction.category?.name ?? 'Sem categoria',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[400],
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (groupLabel != null) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: accent.withValues(alpha: 0.3),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                groupLabel,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: accent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  transaction.category?.name ?? 'Sem categoria',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[400],
-                    fontSize: 12,
-                  ),
-                ),
-                if (groupLabel != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    groupLabel,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[500],
-                      fontSize: 11,
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      currency.format(transaction.amount),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('dd/MM/yy').format(transaction.date),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 4),
+                SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: IconButton(
+                    tooltip: 'Excluir',
+                    onPressed: onRemove,
+                    icon: Icon(Icons.delete_outline, color: Colors.grey[500]),
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                ],
-                if (transaction.isRecurring && recurrenceLabel != null) ...[
-                  const SizedBox(height: 6),
-                  _RecurringBadge(
-                    primary: recurrenceLabel,
-                    endDate: transaction.recurrenceEndDate,
-                  ),
-                ],
+                ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                currency.format(transaction.amount),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                DateFormat('dd/MM/yy').format(transaction.date),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                  fontSize: 11,
-                ),
+            if (transaction.isRecurring && recurrenceLabel != null) ...[
+              const SizedBox(height: 12),
+              _RecurringBadge(
+                primary: recurrenceLabel,
+                endDate: transaction.recurrenceEndDate,
               ),
             ],
-          ),
-          IconButton(
-            tooltip: 'Excluir',
-            onPressed: onRemove,
-            icon: Icon(Icons.delete_outline, color: Colors.grey[500]),
-            iconSize: 20,
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -695,23 +749,51 @@ class _SummaryMetricCard extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(metric.icon, color: metric.color, size: 20),
-            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(metric.icon, color: metric.color, size: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: metric.color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    metric.title.substring(0, 1).toUpperCase(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: metric.color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(
               metric.title,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: Colors.grey[400],
                 fontSize: 11,
+                fontWeight: FontWeight.w500,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 4),
-            Text(
-              currency.format(metric.value),
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: metric.color,
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
+            const SizedBox(height: 6),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                currency.format(metric.value),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: metric.color,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
               ),
             ),
           ],
@@ -734,40 +816,54 @@ class _RecurringBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final secondary = endDate != null
-        ? 'Até ${DateFormat('dd/MM/yyyy', 'pt_BR').format(endDate!)}'
+        ? 'Até ${DateFormat('dd/MM/yy', 'pt_BR').format(endDate!)}'
         : 'Sem data final';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.repeat_rounded, color: AppColors.primary, size: 14),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                primary,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(Icons.repeat_rounded, color: AppColors.primary, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  primary,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                secondary,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                  fontSize: 10,
+                const SizedBox(height: 2),
+                Text(
+                  secondary,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
