@@ -22,7 +22,7 @@ RUN useradd -m -s /bin/bash builder && \
     chown -R builder:builder /opt/flutter
 
 # Set Flutter version and installation directory
-ARG FLUTTER_VERSION=3.24.3
+ARG FLUTTER_VERSION=3.35.5
 ENV FLUTTER_HOME=/opt/flutter
 ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
 ENV PUB_CACHE=/home/builder/.pub-cache
