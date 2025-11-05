@@ -393,12 +393,32 @@ class _HomeSummaryCard extends StatelessWidget {
           const SizedBox(height: 20),
           
           // Saldo principal
-          Text(
-            'Saldo',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[400],
-              fontSize: 13,
-            ),
+          Row(
+            children: [
+              Text(
+                'Saldo',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[400],
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () => _showBalanceExplanation(context, summary, currency),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: Colors.white54,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -578,6 +598,192 @@ class _HomeSummaryCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+  
+  static void _showBalanceExplanation(
+    BuildContext context,
+    SummaryMetrics summary,
+    NumberFormat currency,
+  ) {
+    final saldo = summary.totalIncome - summary.totalExpense - summary.debtPayments;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.calculate_outlined,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Como o Saldo é Calculado?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  _BalanceCalculationRow(
+                    label: 'Receitas',
+                    value: currency.format(summary.totalIncome),
+                    color: AppColors.support,
+                    icon: Icons.add,
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(color: Colors.white12, height: 1),
+                  ),
+                  _BalanceCalculationRow(
+                    label: 'Despesas',
+                    value: currency.format(summary.totalExpense),
+                    color: AppColors.alert,
+                    icon: Icons.remove,
+                  ),
+                  if (summary.debtPayments > 0) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(color: Colors.white12, height: 1),
+                    ),
+                    _BalanceCalculationRow(
+                      label: 'Pagamentos',
+                      value: currency.format(summary.debtPayments),
+                      color: AppColors.highlight,
+                      icon: Icons.remove,
+                    ),
+                  ],
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(color: Colors.white24, height: 2, thickness: 2),
+                  ),
+                  _BalanceCalculationRow(
+                    label: 'Saldo Final',
+                    value: currency.format(saldo),
+                    color: saldo >= 0 ? AppColors.support : AppColors.alert,
+                    icon: Icons.account_balance_wallet,
+                    isBold: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.lightbulb_outline,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      summary.debtPayments > 0
+                          ? 'Os pagamentos são valores vinculados de receitas para quitar despesas, reduzindo seu saldo disponível.'
+                          : 'Saldo = Receitas - Despesas. Use "Pagar Despesa" para vincular receitas a despesas pendentes.',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BalanceCalculationRow extends StatelessWidget {
+  const _BalanceCalculationRow({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+    this.isBold = false,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
+  final bool isBold;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isBold ? 16 : 14,
+              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: isBold ? 18 : 15,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
