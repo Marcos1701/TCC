@@ -76,6 +76,15 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     # Verificar cache
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if not profile.should_recalculate_indicators():
+        # Calcular debt_payments mesmo quando usa cache (é rápido)
+        from django.db.models import Sum
+        debt_payments_via_links = _decimal(
+            TransactionLink.objects.filter(
+                user=user,
+                link_type=TransactionLink.LinkType.DEBT_PAYMENT
+            ).aggregate(total=Sum('linked_amount'))['total']
+        )
+        
         # Usar valores em cache
         return {
             "tps": profile.cached_tps or Decimal("0.00"),
@@ -84,6 +93,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             "total_income": profile.cached_total_income or Decimal("0.00"),
             "total_expense": profile.cached_total_expense or Decimal("0.00"),
             "total_debt": profile.cached_total_debt or Decimal("0.00"),
+            "debt_payments": debt_payments_via_links.quantize(Decimal("0.01")),
         }
     
     # ============================================================================
