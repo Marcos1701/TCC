@@ -131,7 +131,7 @@ class AppTheme {
         thickness: 1,
         space: 32,
       ),
-      cardTheme: CardThemeData(
+      cardTheme: base.cardTheme.copyWith(
         color: colorScheme.surface,
         elevation: 0,
         margin: EdgeInsets.zero,
@@ -368,7 +368,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: decorations.sheetRadius),
         showDragHandle: true,
       ),
-      dialogTheme: DialogThemeData(
+      dialogTheme: base.dialogTheme.copyWith(
         backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: decorations.sheetRadius),
