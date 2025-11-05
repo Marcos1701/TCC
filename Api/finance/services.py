@@ -77,7 +77,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if not profile.should_recalculate_indicators():
         # Calcular debt_payments mesmo quando usa cache (é rápido)
-        from django.db.models import Sum
         debt_payments_via_links = _decimal(
             TransactionLink.objects.filter(
                 user=user,
