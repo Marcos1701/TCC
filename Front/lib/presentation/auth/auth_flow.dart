@@ -36,18 +36,33 @@ class _AuthFlowState extends State<AuthFlow> {
       // Esta informação está no perfil do usuário
       final isFirstAccess = session.profile?.isFirstAccess ?? false;
       
+      debugPrint('🔍 Verificando primeiro acesso: isFirstAccess=$isFirstAccess');
+      
       if (mounted && isFirstAccess) {
+        debugPrint('🎯 É primeiro acesso! Exibindo onboarding...');
+        
+        // Marca imediatamente como não sendo mais primeiro acesso
+        // Isso garante que mesmo se o usuário pular, não verá novamente
+        try {
+          await _repository.completeFirstAccess();
+          debugPrint('✅ Primeiro acesso marcado como concluído na API');
+          // Atualiza o perfil local para refletir a mudança
+          await session.refreshSession();
+        } catch (e) {
+          debugPrint('❌ Erro ao marcar primeiro acesso: $e');
+        }
+        
         // Primeira vez que o usuário acessa - mostra setup inicial
         final result = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (context) => InitialSetupPage(
               onComplete: () async {
-                // Marca o primeiro acesso como concluído na API
-                await _repository.completeFirstAccess();
+                debugPrint('✅ Onboarding completo, transações criadas');
                 
                 // Força rebuild da home após conclusão
                 if (mounted) {
                   await session.refreshSession();
+                  debugPrint('✅ Sessão atualizada após conclusão');
                   setState(() {
                     // Força recriação do RootShell com nova key
                     _rootShellKey.currentState?.setState(() {});
@@ -65,6 +80,8 @@ class _AuthFlowState extends State<AuthFlow> {
             // Força rebuild do widget tree
           });
         }
+      } else {
+        debugPrint('ℹ️ Não é primeiro acesso, continuando normalmente');
       }
       
       // Reseta a flag de novo registro após verificar onboarding
@@ -73,7 +90,7 @@ class _AuthFlowState extends State<AuthFlow> {
       }
     } catch (e) {
       // Se houver erro, apenas continua sem mostrar onboarding
-      debugPrint('Erro ao verificar onboarding: $e');
+      debugPrint('❌ Erro ao verificar onboarding: $e');
     }
   }
 

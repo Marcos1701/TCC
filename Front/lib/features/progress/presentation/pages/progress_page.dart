@@ -1217,9 +1217,9 @@ class _TargetBadge extends StatelessWidget {
 
     if (label == 'TPS') {
       title = 'Taxa de Poupança Pessoal (TPS)';
-      formula = 'TPS = (Receitas - Despesas - Pagamentos Dívidas) / Receitas × 100';
+      formula = 'TPS = (Receitas - Despesas - Pagamentos Despesas) / Receitas × 100';
       explanation = 'A TPS mede quanto % da sua renda você consegue poupar efetivamente. '
-          'É calculada dividindo o valor que sobrou (receitas menos todas as despesas e pagamentos de dívidas) '
+          'É calculada dividindo o valor que sobrou (receitas menos todas as despesas e pagamentos de despesas) '
           'pelo total de receitas, multiplicado por 100.\n\n'
           'Faixas de referência:\n'
           '• ≥20%: Excelente! Alta capacidade de formar patrimônio\n'
@@ -1228,7 +1228,7 @@ class _TargetBadge extends StatelessWidget {
       example = 'Exemplo prático:\n'
           'Receitas: R\$ 5.000\n'
           'Despesas: R\$ 2.000\n'
-          'Pagamento dívidas: R\$ 1.500\n'
+          'Pagamento despesas: R\$ 1.500\n'
           'Sobrou: R\$ 1.500\n'
           'TPS = 1.500 / 5.000 × 100 = 30% ✅\n\n'
           'Seu valor atual: $currentValue\n'
@@ -1236,9 +1236,9 @@ class _TargetBadge extends StatelessWidget {
       color = const Color(0xFF4CAF50);
     } else if (label == 'RDR') {
       title = 'Razão Dívida/Renda (RDR)';
-      formula = 'RDR = Pagamentos Mensais Dívidas / Receitas × 100';
-      explanation = 'A RDR indica quanto % da sua renda está comprometida com pagamentos mensais de dívidas. '
-          'É calculada dividindo o total de pagamentos de dívidas (financiamentos, cartão, empréstimos) '
+      formula = 'RDR = Pagamentos Mensais Despesas / Receitas × 100';
+      explanation = 'A RDR indica quanto % da sua renda está comprometida com pagamentos mensais de despesas. '
+          'É calculada dividindo o total de pagamentos de despesas (financiamentos, cartão, empréstimos) '
           'pelo total de receitas, multiplicado por 100.\n\n'
           'Faixas de segurança (padrão bancário):\n'
           '• ≤35%: Saudável - boa margem de segurança\n'
@@ -1248,7 +1248,7 @@ class _TargetBadge extends StatelessWidget {
           'Receitas: R\$ 5.000\n'
           'Financiamento carro: R\$ 1.200\n'
           'Cartão crédito: R\$ 800\n'
-          'Total dívidas: R\$ 2.000\n'
+          'Total despesas: R\$ 2.000\n'
           'RDR = 2.000 / 5.000 × 100 = 40% ⚠️\n'
           '(Na faixa de atenção)\n\n'
           'Seu valor atual: $currentValue\n'

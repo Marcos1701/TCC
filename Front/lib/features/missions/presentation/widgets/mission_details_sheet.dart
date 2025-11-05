@@ -730,7 +730,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         case 'TPS':
           return isPositive ? 'Poupando mais' : 'Poupando menos';
         case 'RDR':
-          return isPositive ? 'Dívida aumentou' : 'Dívida reduziu';
+          return isPositive ? 'Despesa aumentou' : 'Despesa reduziu';
         case 'ILI':
           return isPositive ? 'Reserva cresceu' : 'Reserva diminuiu';
         default:

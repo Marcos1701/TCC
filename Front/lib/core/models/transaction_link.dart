@@ -54,7 +54,7 @@ class TransactionLinkModel {
   String get linkTypeLabel {
     switch (linkType) {
       case 'DEBT_PAYMENT':
-        return 'Pagamento de dívida';
+        return 'Pagamento de despesa';
       case 'INTERNAL_TRANSFER':
         return 'Transferência interna';
       case 'SAVINGS_ALLOCATION':

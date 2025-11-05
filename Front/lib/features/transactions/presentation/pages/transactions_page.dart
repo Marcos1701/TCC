@@ -1207,7 +1207,7 @@ class _TransactionLinkDetailsSheet extends StatelessWidget {
                   if (link.targetTransaction != null) ...[
                     const SizedBox(height: 24),
                     Text(
-                      'Dívida paga',
+                      'Despesa paga',
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: Colors.grey[400],
                         fontWeight: FontWeight.w600,
