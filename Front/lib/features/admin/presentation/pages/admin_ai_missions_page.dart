@@ -41,11 +41,6 @@ class _AdminAiMissionsPageState extends State<AdminAiMissionsPage> {
         data: body,
       );
 
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/missions/generate_ai_missions/',
-        data: body,
-      );
-
       if (response.data == null) {
         throw Exception('Resposta vazia do servidor');
       }

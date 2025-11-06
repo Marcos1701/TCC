@@ -134,16 +134,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return super().get_throttles()
 
     def get_queryset(self):
-        from django.db.models import Count
-        
-        # Otimizado: Adicionar annotations para evitar N+1 queries nos serializers
+        # Otimizado: select_related para evitar N+1 queries
         qs = Transaction.objects.filter(
             user=self.request.user
         ).select_related(
             "category"
-        ).annotate(
-            outgoing_links_count_annotated=Count('outgoing_links', distinct=True),
-            incoming_links_count_annotated=Count('incoming_links', distinct=True)
         )
         
         tx_type = self.request.query_params.get("type")
