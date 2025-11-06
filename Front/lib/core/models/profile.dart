@@ -31,11 +31,22 @@ class ProfileModel {
 }
 
 class UserHeader {
-  const UserHeader({required this.id, required this.name, required this.email});
+  const UserHeader({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.isStaff = false,
+    this.isSuperuser = false,
+  });
 
   final int id;
   final String name;
   final String email;
+  final bool isStaff;
+  final bool isSuperuser;
+
+  /// Verifica se o usuário tem privilégios de admin
+  bool get isAdmin => isStaff || isSuperuser;
 
   factory UserHeader.fromMap(Map<String, dynamic> map) {
     return UserHeader(
@@ -44,6 +55,8 @@ class UserHeader {
           ? map['name'] as String
           : map['email'] as String,
       email: map['email'] as String,
+      isStaff: map['is_staff'] as bool? ?? false,
+      isSuperuser: map['is_superuser'] as bool? ?? false,
     );
   }
 }

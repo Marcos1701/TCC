@@ -121,11 +121,21 @@ class TransactionSerializer(serializers.ModelSerializer):
         return float(obj.link_percentage)
     
     def get_outgoing_links_count(self, obj):
-        """Retorna número de links de saída."""
+        """
+        Retorna número de links de saída.
+        Otimizado: Usa annotation do queryset se disponível, senão faz query.
+        """
+        if hasattr(obj, 'outgoing_links_count_annotated'):
+            return obj.outgoing_links_count_annotated
         return obj.outgoing_links.count()
     
     def get_incoming_links_count(self, obj):
-        """Retorna número de links de entrada."""
+        """
+        Retorna número de links de entrada.
+        Otimizado: Usa annotation do queryset se disponível, senão faz query.
+        """
+        if hasattr(obj, 'incoming_links_count_annotated'):
+            return obj.incoming_links_count_annotated
         return obj.incoming_links.count()
 
     def __init__(self, *args, **kwargs):
