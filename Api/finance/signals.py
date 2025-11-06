@@ -9,12 +9,59 @@ from .models import Category, Transaction, TransactionLink, Goal, Friendship, Us
 
 def _ensure_default_categories(user):
     """
-    Não cria mais categorias para novos usuários.
-    As categorias padrão do sistema (user=None) são compartilhadas por todos.
-    Usuários podem criar suas próprias categorias personalizadas quando necessário.
+    Cria categorias padrão do sistema para novos usuários.
+    ATUALIZADO: Categorias agora são isoladas por usuário para conformidade LGPD.
     """
-    # Removida criação automática - usuários usam categorias do sistema
-    pass
+    default_categories = [
+        # Receitas
+        {'name': 'Salário', 'type': 'INCOME', 'group': 'REGULAR_INCOME', 'color': '#4CAF50'},
+        {'name': 'Freelance', 'type': 'INCOME', 'group': 'EXTRA_INCOME', 'color': '#8BC34A'},
+        {'name': 'Investimentos', 'type': 'INCOME', 'group': 'INVESTMENT', 'color': '#009688'},
+        
+        # Despesas Essenciais
+        {'name': 'Alimentação', 'type': 'EXPENSE', 'group': 'ESSENTIAL_EXPENSE', 'color': '#FF9800'},
+        {'name': 'Moradia', 'type': 'EXPENSE', 'group': 'ESSENTIAL_EXPENSE', 'color': '#FF5722'},
+        {'name': 'Transporte', 'type': 'EXPENSE', 'group': 'ESSENTIAL_EXPENSE', 'color': '#2196F3'},
+        {'name': 'Saúde', 'type': 'EXPENSE', 'group': 'ESSENTIAL_EXPENSE', 'color': '#F44336'},
+        
+        # Estilo de Vida
+        {'name': 'Lazer', 'type': 'EXPENSE', 'group': 'LIFESTYLE_EXPENSE', 'color': '#9C27B0'},
+        {'name': 'Educação', 'type': 'EXPENSE', 'group': 'LIFESTYLE_EXPENSE', 'color': '#3F51B5'},
+        {'name': 'Vestuário', 'type': 'EXPENSE', 'group': 'LIFESTYLE_EXPENSE', 'color': '#E91E63'},
+        
+        # Poupança
+        {'name': 'Reserva de Emergência', 'type': 'EXPENSE', 'group': 'SAVINGS', 'color': '#00BCD4'},
+        {'name': 'Investimentos', 'type': 'EXPENSE', 'group': 'INVESTMENT', 'color': '#009688'},
+        
+        # Dívidas
+        {'name': 'Cartão de Crédito', 'type': 'DEBT', 'group': 'DEBT', 'color': '#F44336'},
+        {'name': 'Empréstimo', 'type': 'DEBT', 'group': 'DEBT', 'color': '#D32F2F'},
+        
+        # Outros
+        {'name': 'Outros', 'type': 'EXPENSE', 'group': 'OTHER', 'color': '#9E9E9E'},
+    ]
+    
+    created_count = 0
+    for cat_data in default_categories:
+        # Verificar se já existe (evitar duplicatas)
+        exists = Category.objects.filter(
+            user=user,
+            name=cat_data['name'],
+            type=cat_data['type']
+        ).exists()
+        
+        if not exists:
+            Category.objects.create(
+                user=user,
+                is_system_default=True,
+                **cat_data
+            )
+            created_count += 1
+    
+    if created_count > 0:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Created {created_count} default categories for user {user.id}")
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)

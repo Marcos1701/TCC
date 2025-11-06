@@ -118,14 +118,21 @@ class Category(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="categories",
-        null=True,
-        blank=True,
+        help_text="Usuário proprietário desta categoria",
+    )
+    is_system_default = models.BooleanField(
+        default=False,
+        help_text="Categoria padrão do sistema (criada automaticamente para novos usuários)",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("user", "name", "type")
         ordering = ("name",)
+        indexes = [
+            models.Index(fields=['user', 'type']),
+            models.Index(fields=['user', 'is_system_default']),
+        ]
 
     def __str__(self) -> str:
         owner = self.user or "padrão"
@@ -374,29 +381,79 @@ class TransactionLink(models.Model):
         return f"{self.source_transaction.description} → {self.target_transaction.description} (R$ {self.linked_amount})"
     
     def clean(self):
-        """Validações personalizadas."""
+        """
+        Validações personalizadas robustas.
+        ATUALIZADO: Inclui proteção contra race conditions e validações adicionais.
+        """
         from django.core.exceptions import ValidationError
+        from django.db import transaction as db_transaction
         
-        # Validar que source e target pertencem ao mesmo usuário
-        if self.source_transaction.user != self.target_transaction.user:
-            raise ValidationError("As transações devem pertencer ao mesmo usuário.")
-        
-        # Validar que user da vinculação é o mesmo das transações
-        if self.user != self.source_transaction.user:
-            raise ValidationError("Usuário da vinculação deve ser o mesmo das transações.")
-        
-        # Validar que linked_amount não excede o disponível na source
-        if self.linked_amount > self.source_transaction.available_amount:
+        # 1. Validar que não está vinculando transação consigo mesma
+        if self.source_transaction_uuid == self.target_transaction_uuid:
             raise ValidationError(
-                f"Valor vinculado (R$ {self.linked_amount}) excede o disponível na transação de origem (R$ {self.source_transaction.available_amount})"
+                "Não é possível vincular uma transação consigo mesma."
             )
         
-        # Validar que linked_amount não excede o devido na target (se for dívida)
-        if self.target_transaction.category and self.target_transaction.category.type == Category.CategoryType.DEBT:
-            if self.linked_amount > self.target_transaction.available_amount:
+        # 2. Validar que source e target pertencem ao mesmo usuário
+        if self.source_transaction.user != self.target_transaction.user:
+            raise ValidationError(
+                "As transações devem pertencer ao mesmo usuário."
+            )
+        
+        # 3. Validar que user da vinculação é o mesmo das transações
+        if self.user != self.source_transaction.user:
+            raise ValidationError(
+                "Usuário da vinculação deve ser o mesmo das transações."
+            )
+        
+        # 4. Validar tipo de transação para DEBT_PAYMENT
+        if self.link_type == self.LinkType.DEBT_PAYMENT:
+            # Source deve ser receita
+            if self.source_transaction.type != Transaction.TransactionType.INCOME:
                 raise ValidationError(
-                    f"Valor vinculado (R$ {self.linked_amount}) excede o devido na dívida (R$ {self.target_transaction.available_amount})"
+                    "Para pagamento de dívida, a transação de origem deve ser uma receita (INCOME)."
                 )
+            
+            # Target deve ter categoria de dívida
+            if not self.target_transaction.category or \
+               self.target_transaction.category.type != Category.CategoryType.DEBT:
+                raise ValidationError(
+                    "Para pagamento de dívida, a transação de destino deve ser uma dívida."
+                )
+        
+        # 5. Validar valor disponível com lock (previne race conditions)
+        try:
+            with db_transaction.atomic():
+                # Recarregar transações com SELECT FOR UPDATE
+                source = Transaction.objects.select_for_update().get(
+                    id=self.source_transaction_uuid
+                )
+                target = Transaction.objects.select_for_update().get(
+                    id=self.target_transaction_uuid
+                )
+                
+                # Validar amount disponível na source
+                if self.linked_amount > source.available_amount:
+                    raise ValidationError(
+                        f"Valor vinculado (R$ {self.linked_amount}) excede o disponível "
+                        f"na transação de origem (R$ {source.available_amount})"
+                    )
+                
+                # Validar amount disponível na target (se for dívida)
+                if target.category and target.category.type == Category.CategoryType.DEBT:
+                    if self.linked_amount > target.available_amount:
+                        raise ValidationError(
+                            f"Valor vinculado (R$ {self.linked_amount}) excede o devido "
+                            f"na dívida (R$ {target.available_amount})"
+                        )
+        except Transaction.DoesNotExist as e:
+            raise ValidationError(f"Transação não encontrada: {e}")
+        
+        # 6. Validar que linked_amount é positivo
+        if self.linked_amount <= 0:
+            raise ValidationError(
+                "O valor vinculado deve ser maior que zero."
+            )
     
     def save(self, *args, **kwargs):
         self.full_clean()

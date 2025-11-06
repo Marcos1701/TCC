@@ -9,6 +9,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
 from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
 from .mixins import UUIDLookupMixin, UUIDResponseMixin
+from .throttling import (
+    BurstRateThrottle,
+    CategoryCreateThrottle,
+    DashboardRefreshThrottle,
+    GoalCreateThrottle,
+    LinkCreateThrottle,
+    TransactionCreateThrottle,
+)
 from .serializers import (
     CategorySerializer,
     DashboardSerializer,
@@ -39,20 +47,41 @@ User = get_user_model()
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_throttles(self):
+        """
+        Aplica rate limiting apenas em operações de criação.
+        Leitura não é limitada para não impactar UX.
+        """
+        if self.action == 'create':
+            return [CategoryCreateThrottle(), BurstRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
+        """
+        Retorna apenas categorias do usuário autenticado.
+        SEGURANÇA: Isolamento total de dados entre usuários.
+        """
         user = self.request.user
-        qs = Category.objects.filter(Q(user=user) | Q(user__isnull=True))
+        qs = Category.objects.filter(user=user)
+        
+        # Filtros opcionais
         category_type = self.request.query_params.get("type")
         if category_type:
             qs = qs.filter(type=category_type)
+        
         group = self.request.query_params.get("group")
         if group:
             qs = qs.filter(group=group)
+        
         return qs.order_by("name")
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        """
+        Sempre associa categoria ao usuário atual.
+        Categorias personalizadas não são marcadas como system_default.
+        """
+        serializer.save(user=self.request.user, is_system_default=False)
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -62,6 +91,17 @@ class TransactionViewSet(viewsets.ModelViewSet):
     """
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
+    
+    def get_throttles(self):
+        """
+        Aplica rate limiting em criações e atualizações.
+        DELETE tem burst protection.
+        """
+        if self.action in ['create', 'update', 'partial_update']:
+            return [TransactionCreateThrottle(), BurstRateThrottle()]
+        elif self.action == 'destroy':
+            return [BurstRateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         qs = Transaction.objects.filter(user=self.request.user).select_related("category")

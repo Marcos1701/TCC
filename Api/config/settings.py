@@ -154,10 +154,22 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
+        # Taxas gerais
         "anon": f"{env_int('THROTTLE_ANON_RATE', 100)}/day",
         "user": f"{env_int('THROTTLE_USER_RATE', 2000)}/day",
-        "burst": f"{env_int('THROTTLE_BURST_RATE', 60)}/minute",  # Para operações sensíveis
+        
+        # Taxas específicas por operação (implementadas em throttling.py)
+        "burst": "30/minute",  # Prevenir burst attacks
+        "transaction_create": "100/hour",  # Criação de transações
+        "category_create": "20/hour",  # Criação de categorias
+        "link_create": "50/hour",  # Vinculação de transações
+        "goal_create": "10/hour",  # Criação de metas
+        "dashboard_refresh": "60/hour",  # Refresh de indicadores
+        "sensitive": "10/hour",  # Operações sensíveis
     },
+    # Paginação padrão para melhor performance
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "PAGE_SIZE": 50,
 }
 
 SIMPLE_JWT = {
