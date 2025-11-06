@@ -3,6 +3,7 @@ import 'category.dart';
 class TransactionModel {
   const TransactionModel({
     required this.id,
+    this.uuid,
     required this.type,
     required this.description,
     required this.amount,
@@ -20,6 +21,7 @@ class TransactionModel {
   });
 
   final int id;
+  final String? uuid;  // UUID para identificação segura
   final String type;
   final String description;
   final double amount;
@@ -40,6 +42,7 @@ class TransactionModel {
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
       id: map['id'] as int,
+      uuid: map['uuid'] as String?,  // Aceita UUID do backend
       type: map['type'] as String,
       description: map['description'] as String,
       amount: double.parse(map['amount'].toString()),
@@ -73,6 +76,12 @@ class TransactionModel {
   bool get hasLinks => (outgoingLinksCount ?? 0) > 0 || (incomingLinksCount ?? 0) > 0;
   bool get hasAvailableAmount => availableAmount != null && availableAmount! > 0;
   bool get isFullyLinked => linkPercentage != null && linkPercentage! >= 100.0;
+
+  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
+  dynamic get identifier => uuid ?? id;
+  
+  /// Verifica se possui UUID
+  bool get hasUuid => uuid != null;
 
   String? get recurrenceLabel {
     if (!isRecurring || recurrenceValue == null || recurrenceUnit == null) {

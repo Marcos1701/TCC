@@ -773,7 +773,7 @@ class _ProgressPageState extends State<ProgressPage> {
         );
       } else {
         await _repository.updateGoal(
-          goalId: goal.id,
+          goalId: goal.identifier,  // Usar identifier
           title: titleController.text.trim(),
           description: descriptionController.text.trim(),
           targetAmount: target,
@@ -866,7 +866,7 @@ class _ProgressPageState extends State<ProgressPage> {
       ),
     );
     if (confirm == true) {
-      await _repository.deleteGoal(goal.id);
+      await _repository.deleteGoal(goal.identifier);  // Usar identifier
       if (!mounted) return;
       
       // Invalida cache após deletar meta

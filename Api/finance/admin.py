@@ -28,10 +28,10 @@ class TransactionAdmin(admin.ModelAdmin):
 class TransactionLinkAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'source_description', 'target_description', 'linked_amount', 'link_type', 'created_at')
     list_filter = ('link_type', 'is_recurring', 'created_at')
-    search_fields = ('user__username', 'description', 'source_transaction__description', 'target_transaction__description')
-    readonly_fields = ('created_at', 'updated_at')
+    search_fields = ('user__username', 'description')
+    readonly_fields = ('created_at', 'updated_at', 'source_transaction_uuid', 'target_transaction_uuid')
     date_hierarchy = 'created_at'
-    autocomplete_fields = ('user', 'source_transaction', 'target_transaction')
+    autocomplete_fields = ('user',)
     
     def source_description(self, obj):
         return obj.source_transaction.description

@@ -73,6 +73,7 @@ class GoalsViewModel extends ChangeNotifier {
 
     final updated = GoalModel(
       id: goal.id,
+      uuid: goal.uuid,  // Preservar UUID
       title: goal.title,
       description: goal.description,
       targetAmount: goal.targetAmount,

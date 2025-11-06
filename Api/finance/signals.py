@@ -88,26 +88,26 @@ def update_goals_on_transaction_delete(sender, instance, **kwargs):
 @receiver(pre_save, sender=Transaction)
 def ensure_transaction_uuid(sender, instance, **kwargs):
     """Garante que toda transação tenha UUID antes de salvar."""
-    if not instance.uuid:
-        instance.uuid = uuid.uuid4()
+    if not instance.id:
+        instance.id = uuid.uuid4()
 
 
 @receiver(pre_save, sender=Goal)
 def ensure_goal_uuid(sender, instance, **kwargs):
     """Garante que toda meta tenha UUID antes de salvar."""
-    if not instance.uuid:
-        instance.uuid = uuid.uuid4()
+    if not instance.id:
+        instance.id = uuid.uuid4()
 
 
 @receiver(pre_save, sender=TransactionLink)
 def ensure_transaction_link_uuid(sender, instance, **kwargs):
     """Garante que todo link tenha UUID antes de salvar."""
-    if not instance.uuid:
-        instance.uuid = uuid.uuid4()
+    if not instance.id:
+        instance.id = uuid.uuid4()
 
 
 @receiver(pre_save, sender=Friendship)
 def ensure_friendship_uuid(sender, instance, **kwargs):
     """Garante que toda amizade tenha UUID antes de salvar."""
-    if not instance.uuid:
-        instance.uuid = uuid.uuid4()
+    if not instance.id:
+        instance.id = uuid.uuid4()

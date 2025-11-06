@@ -151,8 +151,8 @@ class TransactionsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 2. Deleta no servidor
-      await _repository.deleteTransaction(transaction.id);
+      // 2. Deleta no servidor usando UUID se disponível
+      await _repository.deleteTransaction(transaction.identifier);
       
       // 3. Invalida cache
       CacheManager().invalidateAfterTransaction(action: 'transaction deleted');

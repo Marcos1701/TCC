@@ -38,8 +38,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         fields = (
-            "id",
-            "uuid",  # Novo campo UUID
+            "id",  # Agora é UUID (primary key)
             "type",
             "description",
             "amount",
@@ -63,7 +62,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = (
-            "uuid",  # UUID é read-only
+            "id",  # UUID é read-only (primary key)
             "recurrence_description",
             "days_since_created",
             "formatted_amount",
@@ -223,8 +222,7 @@ class GoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goal
         fields = (
-            "id",
-            "uuid",  # Novo campo UUID
+            "id",  # Agora é UUID (primary key)
             "title",
             "description",
             "target_amount",
@@ -243,7 +241,7 @@ class GoalSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("uuid", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")  # UUID é read-only (primary key)
     
     def get_tracked_categories_data(self, obj):
         """Retorna dados das categorias monitoradas."""
@@ -512,9 +510,9 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
     source_transaction = TransactionSerializer(read_only=True)
     target_transaction = TransactionSerializer(read_only=True)
     
-    # Campos write-only para criação
-    source_id = serializers.IntegerField(write_only=True)
-    target_id = serializers.IntegerField(write_only=True)
+    # Campos write-only para criação (agora apenas UUID)
+    source_uuid = serializers.UUIDField(write_only=True, required=True)
+    target_uuid = serializers.UUIDField(write_only=True, required=True)
     
     # Campos calculados
     source_description = serializers.SerializerMethodField()
@@ -524,12 +522,11 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionLink
         fields = (
-            'id',
-            'uuid',  # Novo campo UUID
+            'id',  # Agora é UUID (primary key)
             'source_transaction',
             'target_transaction',
-            'source_id',
-            'target_id',
+            'source_uuid',  # Aceita UUID (write-only)
+            'target_uuid',  # Aceita UUID (write-only)
             'linked_amount',
             'link_type',
             'description',
@@ -541,7 +538,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'formatted_amount',
         )
         read_only_fields = (
-            'uuid',  # UUID é read-only
+            'id',  # UUID é read-only (primary key)
             'created_at',
             'updated_at',
             'source_description',
@@ -559,27 +556,28 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
         return f"R$ {obj.linked_amount:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
     
     def validate(self, attrs):
-        """Validações customizadas."""
+        """Validações customizadas usando UUIDs."""
         request = self.context.get('request')
         if not request:
             raise serializers.ValidationError("Request context is required.")
         
         user = request.user
-        source_id = attrs.get('source_id')
-        target_id = attrs.get('target_id')
+        
+        source_uuid = attrs.get('source_uuid')
+        target_uuid = attrs.get('target_uuid')
         linked_amount = attrs.get('linked_amount')
         
         # Validar que source existe e pertence ao usuário
         try:
-            source = Transaction.objects.get(id=source_id, user=user)
+            source = Transaction.objects.get(id=source_uuid, user=user)
         except Transaction.DoesNotExist:
-            raise serializers.ValidationError({"source_id": "Transação de origem não encontrada."})
+            raise serializers.ValidationError({"source_uuid": "Transação de origem não encontrada."})
         
         # Validar que target existe e pertence ao usuário
         try:
-            target = Transaction.objects.get(id=target_id, user=user)
+            target = Transaction.objects.get(id=target_uuid, user=user)
         except Transaction.DoesNotExist:
-            raise serializers.ValidationError({"target_id": "Transação de destino não encontrada."})
+            raise serializers.ValidationError({"target_uuid": "Transação de destino não encontrada."})
         
         # Validar que linked_amount não excede disponível na source
         if linked_amount > source.available_amount:
@@ -594,25 +592,28 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
                     "linked_amount": f"Valor excede o devido na dívida (R$ {target.available_amount})"
                 })
         
-        # Adicionar transações ao attrs para uso no create()
-        attrs['source_transaction'] = source
-        attrs['target_transaction'] = target
+        # Adicionar UUIDs ao attrs para uso no create()
+        attrs['source_transaction_uuid'] = source.id
+        attrs['target_transaction_uuid'] = target.id
         
         return attrs
     
     def create(self, validated_data):
-        """Criar vinculação."""
+        """Criar vinculação usando UUIDs."""
         from .services import invalidate_indicators_cache
         
-        # Remover campos write-only
-        validated_data.pop('source_id', None)
-        validated_data.pop('target_id', None)
+        # Remover campos write-only temporários (não são campos do modelo)
+        validated_data.pop('source_uuid', None)
+        validated_data.pop('target_uuid', None)
+        
+        # source_transaction_uuid e target_transaction_uuid já estão em validated_data
+        # (foram adicionados pelo validate())
         
         # Adicionar usuário
         request = self.context.get('request')
         validated_data['user'] = request.user
         
-        # Criar link
+        # Criar link com UUIDs
         link = TransactionLink.objects.create(**validated_data)
         
         # Invalidar cache de indicadores
@@ -639,8 +640,7 @@ class FriendshipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Friendship
         fields = (
-            'id',
-            'uuid',  # Novo campo UUID
+            'id',  # Agora é UUID (primary key)
             'user',
             'friend',
             'user_info',
@@ -649,7 +649,7 @@ class FriendshipSerializer(serializers.ModelSerializer):
             'created_at',
             'accepted_at',
         )
-        read_only_fields = ('uuid', 'user', 'status', 'created_at', 'accepted_at')
+        read_only_fields = ('id', 'user', 'status', 'created_at', 'accepted_at')  # UUID é read-only (primary key)
     
     def get_user_info(self, obj):
         """Retorna informações básicas do usuário que enviou."""

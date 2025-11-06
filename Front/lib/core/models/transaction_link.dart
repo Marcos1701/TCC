@@ -3,6 +3,7 @@ import 'transaction.dart';
 class TransactionLinkModel {
   const TransactionLinkModel({
     required this.id,
+    this.uuid,
     this.sourceTransaction,
     this.targetTransaction,
     required this.linkedAmount,
@@ -14,6 +15,7 @@ class TransactionLinkModel {
   });
 
   final int id;
+  final String? uuid;  // UUID para identificação segura
   final TransactionModel? sourceTransaction;
   final TransactionModel? targetTransaction;
   final double linkedAmount;
@@ -26,6 +28,7 @@ class TransactionLinkModel {
   factory TransactionLinkModel.fromMap(Map<String, dynamic> map) {
     return TransactionLinkModel(
       id: map['id'] as int,
+      uuid: map['uuid'] as String?,  // Aceita UUID do backend
       sourceTransaction: map['source_transaction'] != null
           ? TransactionModel.fromMap(map['source_transaction'] as Map<String, dynamic>)
           : null,
@@ -63,6 +66,12 @@ class TransactionLinkModel {
         return 'Vinculação';
     }
   }
+
+  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
+  dynamic get identifier => uuid ?? id;
+  
+  /// Verifica se possui UUID
+  bool get hasUuid => uuid != null;
 }
 
 class CreateTransactionLinkRequest {
@@ -75,8 +84,8 @@ class CreateTransactionLinkRequest {
     this.isRecurring,
   });
 
-  final int sourceId;
-  final int targetId;
+  final dynamic sourceId;  // Aceita int ou String (UUID)
+  final dynamic targetId;  // Aceita int ou String (UUID)
   final double amount;
   final String? linkType;
   final String? description;
@@ -84,8 +93,10 @@ class CreateTransactionLinkRequest {
 
   Map<String, dynamic> toMap() {
     return {
-      'source_id': sourceId,
-      'target_id': targetId,
+      // Envia source_uuid se for String, senão source_id
+      if (sourceId is String) 'source_uuid': sourceId else 'source_id': sourceId,
+      // Envia target_uuid se for String, senão target_id
+      if (targetId is String) 'target_uuid': targetId else 'target_id': targetId,
       'linked_amount': amount.toString(),
       if (linkType != null) 'link_type': linkType,
       if (description != null) 'description': description,

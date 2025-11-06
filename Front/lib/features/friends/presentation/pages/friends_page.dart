@@ -267,7 +267,7 @@ class _FriendsTab extends StatelessWidget {
 
                           if (confirmed == true && context.mounted) {
                             final success = await viewModel.removeFriend(
-                              friendship.id,
+                              friendship.identifier,  // Usar identifier
                             );
                             if (success && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

@@ -86,7 +86,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
       final amount = CurrencyInputFormatter.parse(_amountController.text);
 
       await widget.repository.updateTransaction(
-        id: widget.transaction.id,
+        id: widget.transaction.identifier,  // Usar identifier
         type: _type,
         description: _descriptionController.text.trim(),
         amount: amount,

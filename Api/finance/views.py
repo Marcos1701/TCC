@@ -55,10 +55,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-class TransactionViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
+class TransactionViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gerenciar transações.
-    Suporta lookup por ID (retrocompatibilidade) ou UUID (recomendado).
+    Usa UUID como identificador primário.
     """
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
@@ -210,10 +210,10 @@ class TransactionViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewS
         }
 
 
-class TransactionLinkViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
+class TransactionLinkViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gerenciar vinculações entre transações.
-    Suporta lookup por ID (retrocompatibilidade) ou UUID (recomendado).
+    Usa UUID como identificador primário.
     
     Endpoints:
     - GET /transaction-links/ - Listar vinculações
@@ -227,16 +227,13 @@ class TransactionLinkViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelV
     """
     serializer_class = TransactionLinkSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
-    
     def get_queryset(self):
         qs = TransactionLink.objects.filter(
             user=self.request.user
-        ).select_related(
-            'source_transaction',
-            'target_transaction',
-            'source_transaction__category',
-            'target_transaction__category'
         )
+        # NOTA: source_transaction e target_transaction não são mais FKs,
+        # então não podemos usar select_related. Os objetos são carregados
+        # via properties quando acessados.
         
         # Filtros
         link_type = self.request.query_params.get('link_type')
@@ -457,10 +454,10 @@ class TransactionLinkViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelV
         })
 
 
-class GoalViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
+class GoalViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gerenciamento de objetivos financeiros.
-    Suporta lookup por ID (legado) ou UUID para maior segurança.
+    Usa UUID como identificador primário.
     """
     serializer_class = GoalSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
@@ -1046,10 +1043,10 @@ class UserProfileViewSet(
         }, status=status.HTTP_200_OK)
 
 
-class FriendshipViewSet(UUIDLookupMixin, UUIDResponseMixin, viewsets.ModelViewSet):
+class FriendshipViewSet(viewsets.ModelViewSet):
     """
     ViewSet para gerenciar amizades entre usuários.
-    Suporta lookup por ID (legado) ou UUID para maior segurança.
+    Usa UUID como identificador primário.
     
     Endpoints:
     - GET /friendships/ - Listar amigos aceitos

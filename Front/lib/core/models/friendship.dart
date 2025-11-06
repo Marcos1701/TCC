@@ -2,6 +2,7 @@
 class FriendshipModel {
   const FriendshipModel({
     required this.id,
+    this.uuid,
     required this.userId,
     required this.friendId,
     required this.userInfo,
@@ -12,6 +13,7 @@ class FriendshipModel {
   });
 
   final int id;
+  final String? uuid;  // UUID para identificação segura
   final int userId;
   final int friendId;
   final UserInfoModel userInfo;
@@ -23,6 +25,7 @@ class FriendshipModel {
   factory FriendshipModel.fromMap(Map<String, dynamic> map) {
     return FriendshipModel(
       id: map['id'] as int,
+      uuid: map['uuid'] as String?,  // Aceita UUID do backend
       userId: map['user'] as int,
       friendId: map['friend'] as int,
       userInfo: UserInfoModel.fromMap(map['user_info'] as Map<String, dynamic>),
@@ -49,6 +52,7 @@ class FriendshipModel {
 
   FriendshipModel copyWith({
     int? id,
+    String? uuid,
     int? userId,
     int? friendId,
     UserInfoModel? userInfo,
@@ -59,6 +63,7 @@ class FriendshipModel {
   }) {
     return FriendshipModel(
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       userId: userId ?? this.userId,
       friendId: friendId ?? this.friendId,
       userInfo: userInfo ?? this.userInfo,
@@ -68,6 +73,12 @@ class FriendshipModel {
       acceptedAt: acceptedAt ?? this.acceptedAt,
     );
   }
+
+  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
+  dynamic get identifier => uuid ?? id;
+  
+  /// Verifica se possui UUID
+  bool get hasUuid => uuid != null;
 }
 
 /// Informações básicas de um usuário na amizade.

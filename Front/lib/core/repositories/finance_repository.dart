@@ -98,18 +98,21 @@ class FinanceRepository {
     return TransactionModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  Future<void> deleteTransaction(int id) async {
+  /// Deletar transação por ID ou UUID
+  Future<void> deleteTransaction(dynamic id) async {
     await _client.client.delete('${ApiEndpoints.transactions}$id/');
   }
 
-  Future<Map<String, dynamic>> fetchTransactionDetails(int id) async {
+  /// Buscar detalhes da transação por ID ou UUID
+  Future<Map<String, dynamic>> fetchTransactionDetails(dynamic id) async {
     final response = await _client.client
         .get<Map<String, dynamic>>('${ApiEndpoints.transactions}$id/details/');
     return response.data ?? <String, dynamic>{};
   }
 
+  /// Atualizar transação por ID ou UUID
   Future<TransactionModel> updateTransaction({
-    required int id,
+    required dynamic id,  // Aceita int ou String (UUID)
     String? type,
     String? description,
     double? amount,
@@ -223,8 +226,9 @@ class FinanceRepository {
     return GoalModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
+  /// Atualizar meta por ID ou UUID
   Future<GoalModel> updateGoal({
-    required int goalId,
+    required dynamic goalId,  // Aceita int ou String (UUID)
     String? title,
     String? description,
     double? targetAmount,
@@ -263,12 +267,13 @@ class FinanceRepository {
     return GoalModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  Future<void> deleteGoal(int id) async {
+  /// Deletar meta por ID ou UUID
+  Future<void> deleteGoal(dynamic id) async {
     await _client.client.delete('${ApiEndpoints.goals}$id/');
   }
 
-  /// Buscar transações relacionadas a uma meta
-  Future<List<TransactionModel>> fetchGoalTransactions(int goalId) async {
+  /// Buscar transações relacionadas a uma meta por ID ou UUID
+  Future<List<TransactionModel>> fetchGoalTransactions(dynamic goalId) async {
     final response = await _client.client
         .get<List<dynamic>>('${ApiEndpoints.goals}$goalId/transactions/');
     final data = response.data ?? <dynamic>[];
@@ -348,8 +353,8 @@ class FinanceRepository {
     return TransactionLinkModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Deletar vinculação
-  Future<void> deleteTransactionLink(int linkId) async {
+  /// Deletar vinculação por ID ou UUID
+  Future<void> deleteTransactionLink(dynamic linkId) async {
     await _client.client.delete('${ApiEndpoints.transactionLinks}$linkId/');
   }
 
@@ -526,8 +531,8 @@ class FinanceRepository {
     );
   }
 
-  /// Remove amizade
-  Future<void> removeFriend({required int friendshipId}) async {
+  /// Remove amizade por ID ou UUID
+  Future<void> removeFriend({required dynamic friendshipId}) async {
     await _client.client.delete(
       '${ApiEndpoints.friendships}$friendshipId/',
     );

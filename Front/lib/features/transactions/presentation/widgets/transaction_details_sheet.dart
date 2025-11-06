@@ -49,7 +49,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       });
 
       final details =
-          await widget.repository.fetchTransactionDetails(widget.transaction.id);
+          await widget.repository.fetchTransactionDetails(widget.transaction.identifier);  // Usar identifier
 
       if (!mounted) return;
       setState(() {
@@ -99,7 +99,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     if (!confirm) return;
 
     try {
-      await widget.repository.deleteTransaction(widget.transaction.id);
+      await widget.repository.deleteTransaction(widget.transaction.identifier);  // Usar identifier
       if (!mounted) return;
 
       // Invalida cache após deletar transação

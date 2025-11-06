@@ -143,14 +143,12 @@ class Transaction(models.Model):
         WEEKS = "WEEKS", "Semanas"
         MONTHS = "MONTHS", "Meses"
 
-    # UUID field - será a primary key futuramente
-    uuid = models.UUIDField(
-        unique=True,
+    # UUID como Primary Key
+    id = models.UUIDField(
+        primary_key=True,
         default=None,
-        null=True,
         editable=False,
-        db_index=True,
-        help_text="Identificador único universal (substituirá o ID numérico)"
+        help_text="Identificador único universal (UUID v4)"
     )
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transactions")
@@ -194,14 +192,14 @@ class Transaction(models.Model):
         from django.db.models import Sum
         
         # Soma links de saída (quando esta é a source)
-        outgoing = self.outgoing_links.aggregate(
-            total=Sum('linked_amount')
-        )['total'] or Decimal('0')
+        outgoing = TransactionLink.objects.filter(
+            source_transaction_uuid=self.id
+        ).aggregate(total=Sum('linked_amount'))['total'] or Decimal('0')
         
         # Soma links de entrada (quando esta é a target)
-        incoming = self.incoming_links.aggregate(
-            total=Sum('linked_amount')
-        )['total'] or Decimal('0')
+        incoming = TransactionLink.objects.filter(
+            target_transaction_uuid=self.id
+        ).aggregate(total=Sum('linked_amount'))['total'] or Decimal('0')
         
         # Para receitas, usar outgoing; para dívidas, usar incoming
         if self.type == self.TransactionType.INCOME:
@@ -210,6 +208,16 @@ class Transaction(models.Model):
             return incoming
         
         return Decimal('0')
+    
+    @property
+    def outgoing_links(self):
+        """Helper para compatibilidade: retorna links de saída (source)."""
+        return TransactionLink.objects.filter(source_transaction_uuid=self.id)
+    
+    @property
+    def incoming_links(self):
+        """Helper para compatibilidade: retorna links de entrada (target)."""
+        return TransactionLink.objects.filter(target_transaction_uuid=self.id)
     
     @property
     def available_amount(self) -> Decimal:
@@ -248,14 +256,12 @@ class TransactionLink(models.Model):
         INTERNAL_TRANSFER = "INTERNAL_TRANSFER", "Transferência interna"
         SAVINGS_ALLOCATION = "SAVINGS_ALLOCATION", "Alocação para poupança"
     
-    # UUID field - será a primary key futuramente
-    uuid = models.UUIDField(
-        unique=True,
+    # UUID como Primary Key
+    id = models.UUIDField(
+        primary_key=True,
         default=None,
-        null=True,
         editable=False,
-        db_index=True,
-        help_text="Identificador único universal (substituirá o ID numérico)"
+        help_text="Identificador único universal (UUID v4)"
     )
     
     user = models.ForeignKey(
@@ -265,21 +271,58 @@ class TransactionLink(models.Model):
         help_text="Usuário proprietário da vinculação"
     )
     
-    # Transação de origem (de onde vem o dinheiro)
-    source_transaction = models.ForeignKey(
-        Transaction,
-        on_delete=models.CASCADE,
-        related_name='outgoing_links',
-        help_text="Transação de origem (normalmente uma receita)"
+    # UUID da transação de origem (de onde vem o dinheiro)
+    # NOTA: Agora usa UUID em vez de FK tradicional
+    source_transaction_uuid = models.UUIDField(
+        db_index=True,
+        help_text="UUID da transação de origem (normalmente uma receita)"
     )
     
-    # Transação de destino (para onde vai o dinheiro)
-    target_transaction = models.ForeignKey(
-        Transaction,
-        on_delete=models.CASCADE,
-        related_name='incoming_links',
-        help_text="Transação de destino (normalmente uma dívida)"
+    # UUID da transação de destino (para onde vai o dinheiro)
+    # NOTA: Agora usa UUID em vez de FK tradicional
+    target_transaction_uuid = models.UUIDField(
+        db_index=True,
+        help_text="UUID da transação de destino (normalmente uma dívida)"
     )
+    
+    # Propriedades para acessar as transações via UUID (com cache)
+    @property
+    def source_transaction(self):
+        """Retorna a transação de origem via lookup de UUID."""
+        if not hasattr(self, '_source_transaction_cache'):
+            self._source_transaction_cache = Transaction.objects.get(
+                id=self.source_transaction_uuid
+            )
+        return self._source_transaction_cache
+    
+    @source_transaction.setter
+    def source_transaction(self, value):
+        """Define a transação de origem (aceita objeto Transaction)."""
+        if value is None:
+            self.source_transaction_uuid = None
+            self._source_transaction_cache = None
+        else:
+            self.source_transaction_uuid = value.id
+            self._source_transaction_cache = value
+    
+    @property
+    def target_transaction(self):
+        """Retorna a transação de destino via lookup de UUID."""
+        if not hasattr(self, '_target_transaction_cache'):
+            self._target_transaction_cache = Transaction.objects.get(
+                id=self.target_transaction_uuid
+            )
+        return self._target_transaction_cache
+    
+    @target_transaction.setter
+    def target_transaction(self, value):
+        """Define a transação de destino (aceita objeto Transaction)."""
+        if value is None:
+            self.target_transaction_uuid = None
+            self._target_transaction_cache = None
+        else:
+            self.target_transaction_uuid = value.id
+            self._target_transaction_cache = value
     
     # Valor vinculado (pode ser parcial)
     linked_amount = models.DecimalField(
@@ -314,8 +357,10 @@ class TransactionLink(models.Model):
         ordering = ('-created_at',)
         indexes = [
             models.Index(fields=['user', 'created_at']),
-            models.Index(fields=['source_transaction']),
-            models.Index(fields=['target_transaction']),
+            models.Index(fields=['source_transaction_uuid']),
+            models.Index(fields=['target_transaction_uuid']),
+            models.Index(fields=['user', 'source_transaction_uuid'], name='trl_user_src_uuid_idx'),
+            models.Index(fields=['user', 'target_transaction_uuid'], name='trl_user_tgt_uuid_idx'),
         ]
         # Prevenir vinculações duplicadas
         constraints = [
@@ -382,14 +427,12 @@ class Goal(models.Model):
         QUARTERLY = "QUARTERLY", "Trimestral"
         TOTAL = "TOTAL", "Total"
     
-    # UUID field - será a primary key futuramente
-    uuid = models.UUIDField(
-        unique=True,
+    # UUID como Primary Key
+    id = models.UUIDField(
+        primary_key=True,
         default=None,
-        null=True,
         editable=False,
-        db_index=True,
-        help_text="Identificador único universal (substituirá o ID numérico)"
+        help_text="Identificador único universal (UUID v4)"
     )
     
     # Campos básicos
@@ -665,14 +708,12 @@ class Friendship(models.Model):
         ACCEPTED = "ACCEPTED", "Aceito"
         REJECTED = "REJECTED", "Rejeitado"
     
-    # UUID field - será a primary key futuramente
-    uuid = models.UUIDField(
-        unique=True,
+    # UUID como Primary Key
+    id = models.UUIDField(
+        primary_key=True,
         default=None,
-        null=True,
         editable=False,
-        db_index=True,
-        help_text="Identificador único universal (substituirá o ID numérico)"
+        help_text="Identificador único universal (UUID v4)"
     )
     
     # Usuário que enviou a solicitação

@@ -126,7 +126,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         link: link,
         currency: _currency,
         onDelete: () async {
-          await _repository.deleteTransactionLink(link.id);
+          await _repository.deleteTransactionLink(link.identifier);  // Usar identifier
           if (!mounted) return;
           Navigator.pop(context);
           _viewModel.refreshSilently();

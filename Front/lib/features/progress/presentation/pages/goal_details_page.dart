@@ -78,11 +78,11 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
       // Busca a meta atualizada
       final goals = await _repository.fetchGoals();
       final updatedGoal = goals.firstWhere(
-        (g) => g.id == widget.goal.id,
+        (g) => g.id == widget.goal.id,  // Comparação por ID ainda é segura
         orElse: () => widget.goal,
       );
 
-      final transactions = await _repository.fetchGoalTransactions(widget.goal.id);
+      final transactions = await _repository.fetchGoalTransactions(widget.goal.identifier);  // Usar identifier para API
 
       // Calcular estatísticas por categoria
       final stats = <int, CategoryStats>{};
@@ -119,7 +119,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
 
   Future<void> _refreshProgress() async {
     try {
-      await _repository.refreshGoalProgress(widget.goal.id);
+      await _repository.refreshGoalProgress(widget.goal.identifier);  // Usar identifier
       
       // Recarrega dados
       await _loadData();
@@ -406,7 +406,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         );
 
         await _repository.updateGoal(
-          goalId: widget.goal.id,
+          goalId: widget.goal.identifier,  // Usar identifier
           currentAmount: result,
         );
 
