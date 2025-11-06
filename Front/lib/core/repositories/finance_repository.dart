@@ -16,6 +16,23 @@ class FinanceRepository {
 
   final ApiClient _client;
 
+  /// Helper para extrair lista de resposta (paginada ou direta)
+  List<dynamic> _extractListFromResponse(dynamic data) {
+    if (data == null) return [];
+    
+    // Se for paginada (Map com 'results'), pega o campo 'results'
+    if (data is Map<String, dynamic> && data.containsKey('results')) {
+      return (data['results'] as List<dynamic>?) ?? [];
+    }
+    
+    // Se for uma lista direta, usa diretamente
+    if (data is List<dynamic>) {
+      return data;
+    }
+    
+    return [];
+  }
+
   Future<DashboardData> fetchDashboard() async {
     final response =
         await _client.client.get<Map<String, dynamic>>(ApiEndpoints.dashboard);
@@ -24,11 +41,11 @@ class FinanceRepository {
 
   Future<List<CategoryModel>> fetchCategories({String? type}) async {
     final queryType = type == 'DEBT_PAYMENT' ? 'DEBT' : type;
-    final response = await _client.client.get<List<dynamic>>(
+    final response = await _client.client.get<dynamic>(
       ApiEndpoints.categories,
       queryParameters: queryType != null ? {'type': queryType} : null,
     );
-    final items = response.data ?? <dynamic>[];
+    final items = _extractListFromResponse(response.data);
     return items
         .map((e) => CategoryModel.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -55,11 +72,12 @@ class FinanceRepository {
   }
 
   Future<List<TransactionModel>> fetchTransactions({String? type}) async {
-    final response = await _client.client.get<List<dynamic>>(
+    final response = await _client.client.get<dynamic>(
       ApiEndpoints.transactions,
       queryParameters: type != null ? {'type': type} : null,
     );
-    final items = response.data ?? <dynamic>[];
+    
+    final items = _extractListFromResponse(response.data);
     return items
         .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -173,18 +191,18 @@ class FinanceRepository {
 
   Future<List<MissionModel>> fetchMissions() async {
     final response =
-        await _client.client.get<List<dynamic>>(ApiEndpoints.missions);
-    final data = response.data ?? <dynamic>[];
-    return data
+        await _client.client.get<dynamic>(ApiEndpoints.missions);
+    final items = _extractListFromResponse(response.data);
+    return items
         .map((e) => MissionModel.fromMap(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<List<GoalModel>> fetchGoals() async {
     final response =
-        await _client.client.get<List<dynamic>>(ApiEndpoints.goals);
-    final data = response.data ?? <dynamic>[];
-    return data
+        await _client.client.get<dynamic>(ApiEndpoints.goals);
+    final items = _extractListFromResponse(response.data);
+    return items
         .map((e) => GoalModel.fromMap(e as Map<String, dynamic>))
         .toList();
   }
