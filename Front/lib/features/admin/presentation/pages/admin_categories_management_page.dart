@@ -54,15 +54,25 @@ class _AdminCategoriesManagementPageState
         
         final allCategories = dataList.cast<Map<String, dynamic>>();
         
+        // Log para debug: ver todas as categorias retornadas
+        print('📊 Total de categorias retornadas: ${allCategories.length}');
+        if (allCategories.isNotEmpty) {
+          print('📝 Primeira categoria: ${allCategories.first}');
+          print('🔍 Campo is_user_created existe? ${allCategories.first.containsKey('is_user_created')}');
+        }
+        
         // Filtrar apenas categorias globais (is_user_created = false)
+        // Nota: Se o campo não existir, considera como global (false)
         setState(() {
           _categories = allCategories
-              .where((cat) => cat['is_user_created'] == false)
+              .where((cat) => (cat['is_user_created'] ?? false) == false)
               .toList();
+          print('✅ Categorias globais filtradas: ${_categories.length}');
           _isLoading = false;
         });
       }
     } catch (e) {
+      print('❌ Erro ao carregar categorias: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -80,10 +90,15 @@ class _AdminCategoriesManagementPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Gerenciar Categorias'),
-        backgroundColor: Colors.teal,
+        title: const Text(
+          'Gerenciar Categorias',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -97,7 +112,11 @@ class _AdminCategoriesManagementPageState
           _buildFilters(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
                 : _error != null
                     ? _buildError()
                     : _buildCategoriesList(),
@@ -108,84 +127,127 @@ class _AdminCategoriesManagementPageState
   }
 
   Widget _buildFilters() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Tipo:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                'Tipo:',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[400],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: SegmentedButton<String>(
-                    selected: {_filterType},
-                    onSelectionChanged: (Set<String> selected) {
-                      setState(() {
-                        _filterType = selected.first;
-                      });
-                    },
-                    segments: const [
-                      ButtonSegment(
-                        value: 'ALL',
-                        label: Text('Todas', style: TextStyle(fontSize: 12)),
-                      ),
-                      ButtonSegment(
-                        value: 'INCOME',
-                        label: Text('Receita', style: TextStyle(fontSize: 12)),
-                      ),
-                      ButtonSegment(
-                        value: 'EXPENSE',
-                        label: Text('Despesa', style: TextStyle(fontSize: 12)),
-                      ),
-                      ButtonSegment(
-                        value: 'DEBT',
-                        label: Text('Dívida', style: TextStyle(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '${_filteredCategories.length} categorias globais',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SegmentedButton<String>(
+                  selected: {_filterType},
+                  onSelectionChanged: (Set<String> selected) {
+                    setState(() {
+                      _filterType = selected.first;
+                    });
+                  },
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) {
+                        if (states.contains(MaterialState.selected)) {
+                          return AppColors.primary;
+                        }
+                        return const Color(0xFF2A2A2A);
+                      },
+                    ),
+                    foregroundColor: MaterialStateProperty.resolveWith<Color>(
+                      (Set<MaterialState> states) {
+                        if (states.contains(MaterialState.selected)) {
+                          return Colors.white;
+                        }
+                        return Colors.grey[400]!;
+                      },
+                    ),
+                  ),
+                  segments: const [
+                    ButtonSegment(
+                      value: 'ALL',
+                      label: Text('Todas', style: TextStyle(fontSize: 11)),
+                    ),
+                    ButtonSegment(
+                      value: 'INCOME',
+                      label: Text('Receita', style: TextStyle(fontSize: 11)),
+                    ),
+                    ButtonSegment(
+                      value: 'EXPENSE',
+                      label: Text('Despesa', style: TextStyle(fontSize: 11)),
+                    ),
+                    ButtonSegment(
+                      value: 'DEBT',
+                      label: Text('Dívida', style: TextStyle(fontSize: 11)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${_filteredCategories.length} categorias globais',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[500],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildError() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 16),
-          Text(
-            'Erro ao carregar categorias',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _loadCategories,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Tentar Novamente'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.alert.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Erro ao carregar categorias',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_error != null)
+              Text(
+                _error!,
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadCategories,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tentar Novamente'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -196,14 +258,27 @@ class _AdminCategoriesManagementPageState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.category_outlined, size: 64, color: Colors.grey[400]),
+            Icon(
+              Icons.inbox_outlined,
+              size: 64,
+              color: Colors.grey[600],
+            ),
             const SizedBox(height: 16),
             Text(
               'Nenhuma categoria encontrada',
               style: TextStyle(
                 fontSize: 16,
+                color: Colors.grey[400],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Todas as categorias são criadas pelo sistema',
+              style: TextStyle(
+                fontSize: 12,
                 color: Colors.grey[600],
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -219,8 +294,10 @@ class _AdminCategoriesManagementPageState
 
     return RefreshIndicator(
       onRefresh: _loadCategories,
+      color: AppColors.primary,
+      backgroundColor: const Color(0xFF1E1E1E),
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
           if (_filterType == 'ALL' || _filterType == 'INCOME')
             _buildCategorySection('INCOME', 'Receitas', byType['INCOME'] ?? []),
@@ -244,23 +321,46 @@ class _AdminCategoriesManagementPageState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.only(top: 16, bottom: 12),
           child: Row(
             children: [
-              Icon(
-                _getTypeIcon(type),
-                size: 20,
-                color: _getTypeColor(type),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _getTypeColor(type).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _getTypeIcon(type),
+                  size: 20,
+                  color: _getTypeColor(type),
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getTypeColor(type).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${categories.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _getTypeColor(type),
+                  ),
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
@@ -279,12 +379,16 @@ class _AdminCategoriesManagementPageState
             ],
           ),
         ),
-        Card(
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             children: [
               for (var i = 0; i < categories.length; i++) ...[
                 _CategoryTile(category: categories[i]),
-                if (i < categories.length - 1) const Divider(height: 1),
+                if (i < categories.length - 1) Divider(height: 1, color: Colors.grey[800]),
               ],
             ],
           ),
@@ -334,34 +438,39 @@ class _CategoryTile extends StatelessWidget {
     final color = category['color'] as String?;
 
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
-          color: _parseColor(color).withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
+          color: _parseColor(color).withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(
           _getCategoryIcon(name, type),
           color: _parseColor(color),
-          size: 20,
+          size: 22,
         ),
       ),
       title: Text(
         name,
-        style: const TextStyle(fontWeight: FontWeight.w600),
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          fontSize: 14,
+        ),
       ),
       subtitle: group != null
           ? Text(
               _getGroupLabel(group),
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
             )
           : null,
       trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: _getTypeColor(type).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          color: _getTypeColor(type).withOpacity(0.15),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           _getTypeLabel(type),

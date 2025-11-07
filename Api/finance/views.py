@@ -89,11 +89,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Retorna apenas categorias do usuário autenticado.
+        Retorna categorias do usuário autenticado e, se for admin, 
+        também retorna categorias globais (user=None).
         SEGURANÇA: Isolamento total de dados entre usuários.
         """
         user = self.request.user
-        qs = Category.objects.filter(user=user)
+        
+        # Todos os usuários veem suas categorias + categorias globais (user=None)
+        # Categorias globais são as criadas pelo sistema, disponíveis para todos
+        qs = Category.objects.filter(
+            Q(user=user) | Q(user=None)
+        )
         
         # Filtros opcionais
         category_type = self.request.query_params.get("type")

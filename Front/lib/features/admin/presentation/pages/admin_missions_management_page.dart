@@ -102,10 +102,15 @@ class _AdminMissionsManagementPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Gerenciar Missões'),
-        backgroundColor: Colors.blue,
+        title: const Text(
+          'Gerenciar Missões',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -119,7 +124,11 @@ class _AdminMissionsManagementPageState
           _buildFilters(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
                 : _error != null
                     ? _buildError()
                     : _buildMissionsList(),
@@ -130,139 +139,183 @@ class _AdminMissionsManagementPageState
   }
 
   Widget _buildFilters() {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Tipo',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tipo',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[400],
                       ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _filterType,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          border: OutlineInputBorder(),
-                          isDense: true,
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _filterType,
+                      dropdownColor: const Color(0xFF2A2A2A),
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'ALL', child: Text('Todos')),
-                          DropdownMenuItem(
-                            value: 'SAVINGS',
-                            child: Text('Economia'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'EXPENSE_CONTROL',
-                            child: Text('Controle'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'DEBT_REDUCTION',
-                            child: Text('Dívidas'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'ONBOARDING',
-                            child: Text('Onboarding'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _filterType = value!;
-                          });
-                        },
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[700]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[700]!),
+                        ),
+                        isDense: true,
                       ),
-                    ],
-                  ),
+                      style: TextStyle(color: Colors.white),
+                      items: const [
+                        DropdownMenuItem(value: 'ALL', child: Text('Todos')),
+                        DropdownMenuItem(
+                          value: 'SAVINGS',
+                          child: Text('Economia'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'EXPENSE_CONTROL',
+                          child: Text('Controle'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'DEBT_REDUCTION',
+                          child: Text('Dívidas'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'ONBOARDING',
+                          child: Text('Onboarding'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _filterType = value!;
+                        });
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Dificuldade',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _filterDifficulty,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'ALL', child: Text('Todas')),
-                          DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                          DropdownMenuItem(
-                            value: 'MEDIUM',
-                            child: Text('Média'),
-                          ),
-                          DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _filterDifficulty = value!;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '${_filteredMissions.length} missões encontradas',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
               ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dificuldade',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: _filterDifficulty,
+                      dropdownColor: const Color(0xFF2A2A2A),
+                      decoration: InputDecoration(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[700]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey[700]!),
+                        ),
+                        isDense: true,
+                      ),
+                      style: TextStyle(color: Colors.white),
+                      items: const [
+                        DropdownMenuItem(value: 'ALL', child: Text('Todas')),
+                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        DropdownMenuItem(
+                          value: 'MEDIUM',
+                          child: Text('Média'),
+                        ),
+                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _filterDifficulty = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${_filteredMissions.length} missões encontradas',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[500],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildError() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 16),
-          Text(
-            'Erro ao carregar missões',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _loadMissions,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Tentar Novamente'),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.alert.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Erro ao carregar missões',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_error != null)
+              Text(
+                _error!,
+                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadMissions,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Tentar Novamente'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -273,13 +326,17 @@ class _AdminMissionsManagementPageState
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+            Icon(
+              Icons.inbox_outlined,
+              size: 64,
+              color: Colors.grey[600],
+            ),
             const SizedBox(height: 16),
             Text(
               'Nenhuma missão encontrada',
               style: TextStyle(
+                color: Colors.grey[400],
                 fontSize: 16,
-                color: Colors.grey[600],
               ),
             ),
           ],
@@ -287,22 +344,18 @@ class _AdminMissionsManagementPageState
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadMissions,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _filteredMissions.length,
-        itemBuilder: (context, index) {
-          final mission = _filteredMissions[index];
-          return _MissionCard(
-            mission: mission,
-            onToggleStatus: () => _toggleMissionStatus(
-              mission['id'] as String,
-              mission['is_active'] as bool,
-            ),
-          );
-        },
-      ),
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      itemCount: _filteredMissions.length,
+      itemBuilder: (context, index) {
+        final mission = _filteredMissions[index];
+        final missionId = mission['id']?.toString() ?? '';
+        final isActive = mission['is_active'] as bool? ?? true;
+        return _MissionCard(
+          mission: mission,
+          onToggleStatus: () => _toggleMissionStatus(missionId, !isActive),
+        );
+      },
     );
   }
 }
@@ -320,12 +373,16 @@ class _MissionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = mission['is_active'] as bool? ?? true;
     final type = mission['mission_type'] as String? ?? '';
-    final difficulty = mission['priority'] as String? ?? '';
-    final xp = mission['xp_reward'] ?? 0;
+    final difficulty = mission['difficulty'] as String? ?? mission['priority'] as String? ?? '';
+    final xp = mission['reward_points'] ?? mission['xp_reward'] ?? 0;
     final duration = mission['duration_days'] ?? 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Opacity(
         opacity: isActive ? 1.0 : 0.5,
         child: Padding(
@@ -338,16 +395,17 @@ class _MissionCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       mission['title'] as String? ?? '',
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                   Switch(
                     value: isActive,
                     onChanged: (_) => onToggleStatus(),
-                    activeThumbColor: AppColors.primary,
+                    activeColor: AppColors.primary,
                   ),
                 ],
               ),
@@ -355,8 +413,8 @@ class _MissionCard extends StatelessWidget {
               Text(
                 mission['description'] as String? ?? '',
                 style: TextStyle(
+                  color: Colors.grey[400],
                   fontSize: 14,
-                  color: Colors.grey[700],
                 ),
               ),
               const SizedBox(height: 12),
@@ -379,11 +437,12 @@ class _MissionCard extends StatelessWidget {
                     label: '$xp XP',
                     color: Colors.amber,
                   ),
-                  _InfoChip(
-                    icon: Icons.calendar_today,
-                    label: '$duration dias',
-                    color: Colors.blue,
-                  ),
+                  if (duration != null && duration > 0)
+                    _InfoChip(
+                      icon: Icons.calendar_today,
+                      label: '$duration dias',
+                      color: Colors.blue,
+                    ),
                 ],
               ),
               if (mission['target_tps'] != null ||

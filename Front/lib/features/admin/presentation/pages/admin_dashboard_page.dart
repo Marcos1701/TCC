@@ -106,12 +106,16 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Painel Administrativo'),
-        backgroundColor: Colors.deepPurple,
+        title: const Text(
+          'Painel Administrativo',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.black,
         elevation: 0,
-        automaticallyImplyLeading: false, // Remove o botão de voltar
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -125,8 +129,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 final shouldLogout = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('Sair'),
-                    content: const Text('Deseja realmente sair do sistema?'),
+                    backgroundColor: const Color(0xFF1E1E1E),
+                    title: const Text(
+                      'Sair',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    content: const Text(
+                      'Deseja realmente sair do sistema?',
+                      style: TextStyle(color: Colors.white70),
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context, false),
@@ -162,7 +173,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            )
           : _error != null
               ? _buildError()
               : _buildDashboard(),
@@ -174,11 +189,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: AppColors.alert.withOpacity(0.5),
+          ),
           const SizedBox(height: 16),
           Text(
             'Erro ao carregar estatísticas',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           Padding(
@@ -186,7 +209,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
           ),
           const SizedBox(height: 24),
@@ -194,6 +217,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             onPressed: _loadStats,
             icon: const Icon(Icons.refresh),
             label: const Text('Tentar Novamente'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
@@ -203,9 +230,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Widget _buildDashboard() {
     return RefreshIndicator(
       onRefresh: _loadStats,
+      color: AppColors.primary,
+      backgroundColor: const Color(0xFF1E1E1E),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -239,9 +268,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.5,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.15,
       children: [
         _MetricCard(
           title: 'Usuários',
@@ -251,14 +280,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           subtitle: 'Total cadastrados',
         ),
         _MetricCard(
-          title: 'Missões Completas',
+          title: 'Completas',
           value: completedMissions.toString(),
           icon: Icons.check_circle,
           color: Colors.green,
           subtitle: 'Todas as faixas',
         ),
         _MetricCard(
-          title: 'Missões Ativas',
+          title: 'Ativas',
           value: activeMissions.toString(),
           icon: Icons.assignment,
           color: Colors.orange,
@@ -281,19 +310,25 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         Text(
           'Ações Rápidas',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
         const SizedBox(height: 12),
-        Card(
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             children: [
               _ActionTile(
                 icon: Icons.auto_awesome,
                 title: 'Gerar Missões com IA',
                 subtitle: 'Criar missões personalizadas usando Gemini',
-                color: Colors.deepPurple,
+                color: AppColors.primary,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -301,7 +336,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                 ),
               ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Colors.grey[800]),
               _ActionTile(
                 icon: Icons.edit,
                 title: 'Gerenciar Missões',
@@ -314,7 +349,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                 ),
               ),
-              const Divider(height: 1),
+              Divider(height: 1, color: Colors.grey[800]),
               _ActionTile(
                 icon: Icons.category,
                 title: 'Gerenciar Categorias',
@@ -347,21 +382,27 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         Text(
           'Estatísticas de Missões',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
         const SizedBox(height: 12),
-        Card(
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 if (missionsByDifficulty != null) ...[
                   _buildStatRow('Fáceis', missionsByDifficulty['EASY'] ?? 0),
                   _buildStatRow('Médias', missionsByDifficulty['MEDIUM'] ?? 0),
                   _buildStatRow('Difíceis', missionsByDifficulty['HARD'] ?? 0),
-                  const Divider(height: 24),
+                  Divider(height: 24, color: Colors.grey[800]),
                 ],
                 if (missionsByType != null) ...[
                   _buildStatRow('Onboarding', missionsByType['ONBOARDING'] ?? 0),
@@ -384,11 +425,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+          ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -396,6 +443,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
+                fontSize: 14,
               ),
             ),
           ),
@@ -416,45 +464,79 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       children: [
         Text(
           'Atividade Recente',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
         const SizedBox(height: 12),
-        Card(
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: recentActivity.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[800]),
             itemBuilder: (context, index) {
               final activity = recentActivity[index] as Map<String, dynamic>;
+              final user = activity['user'] as String? ?? '';
+              final mission = activity['mission'] as String? ?? '';
+              final xpEarned = activity['xp_earned'] as int? ?? 0;
+              
               return ListTile(
-                leading: Icon(
-                  _getActivityIcon(activity['type'] as String?),
-                  color: AppColors.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: AppColors.success,
+                    size: 24,
+                  ),
                 ),
-                title: Text(activity['description'] as String? ?? ''),
-                subtitle: Text(activity['time'] as String? ?? ''),
+                title: Text(
+                  mission,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                subtitle: Text(
+                  'por $user',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                ),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '+$xpEarned XP',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               );
             },
           ),
         ),
       ],
     );
-  }
-
-  IconData _getActivityIcon(String? type) {
-    switch (type) {
-      case 'mission_completed':
-        return Icons.check_circle;
-      case 'user_registered':
-        return Icons.person_add;
-      case 'level_up':
-        return Icons.trending_up;
-      default:
-        return Icons.info;
-    }
   }
 }
 
@@ -475,52 +557,76 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, color: color, size: 32),
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                ),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[500],
-                        fontSize: 10,
-                      ),
-                ),
-              ],
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 24,
+                height: 1.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 9,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -547,23 +653,35 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color, size: 24),
       ),
       title: Text(
         title,
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          fontSize: 14,
+        ),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[500],
+        ),
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.grey[600],
+      ),
       onTap: onTap,
     );
   }
