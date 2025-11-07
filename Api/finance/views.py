@@ -704,40 +704,84 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
         
         POST /api/missions/generate_ai_missions/
         {
-            "tier": "BEGINNER|INTERMEDIATE|ADVANCED" (opcional, gera todas se omitido)
+            "tier": "BEGINNER|INTERMEDIATE|ADVANCED" (opcional),
+            "scenario": "TPS_LOW|RDR_HIGH|MIXED_BALANCED|..." (opcional)
         }
+        
+        Cenários disponíveis:
+        - BEGINNER_ONBOARDING: Primeiros passos (< 20 transações)
+        - TPS_LOW, TPS_MEDIUM, TPS_HIGH: Melhorar taxa de poupança
+        - RDR_HIGH, RDR_MEDIUM, RDR_LOW: Reduzir/controlar dívidas
+        - ILI_LOW, ILI_MEDIUM, ILI_HIGH: Construir/manter reserva
+        - MIXED_BALANCED: Equilíbrio financeiro geral
+        - MIXED_RECOVERY: Recuperação (baixo TPS + alto RDR)
+        - MIXED_OPTIMIZATION: Otimização avançada
+        
+        Se tier e scenario não forem fornecidos: gera automaticamente
+        baseado nas estatísticas dos usuários.
         
         Exemplo de resposta:
         {
             "success": true,
             "total_created": 60,
             "results": {
-                "BEGINNER": {"generated": 20, "created": 20, ...},
-                "INTERMEDIATE": {"generated": 20, "created": 20, ...},
-                "ADVANCED": {"generated": 20, "created": 20, ...}
+                "BEGINNER": {
+                    "scenario": "BEGINNER_ONBOARDING",
+                    "scenario_name": "Primeiros Passos",
+                    "generated": 20,
+                    "created": 20,
+                    "missions": [...]
+                },
+                ...
             }
         }
         """
-        from .ai_services import generate_batch_missions_for_tier, create_missions_from_batch
+        from .ai_services import (
+            generate_batch_missions_for_tier,
+            create_missions_from_batch,
+            generate_all_monthly_missions,
+            generate_missions_by_scenario,
+            MISSION_SCENARIOS
+        )
         
         tier = request.data.get('tier')
+        scenario = request.data.get('scenario')
         
+        # Validar tier se fornecido
         if tier and tier not in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
             return Response(
                 {'error': 'tier deve ser BEGINNER, INTERMEDIATE ou ADVANCED'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Validar scenario se fornecido
+        if scenario and scenario not in MISSION_SCENARIOS:
+            return Response(
+                {
+                    'error': f'scenario inválido: {scenario}',
+                    'available_scenarios': list(MISSION_SCENARIOS.keys()),
+                    'scenario_descriptions': {
+                        key: val['name'] for key, val in MISSION_SCENARIOS.items()
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         results = {}
         
-        # Gerar para tier específica ou todas
-        tiers = [tier] if tier else ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+        # Caso 1: Cenário específico
+        if scenario:
+            tiers = [tier] if tier else ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+            result = generate_missions_by_scenario(scenario, tiers)
+            results = result.get('results', {})
+            total_created = result.get('total_created', 0)
         
-        for t in tiers:
-            batch = generate_batch_missions_for_tier(t)
+        # Caso 2: Tier específica, auto-detectar cenário
+        elif tier:
+            batch = generate_batch_missions_for_tier(tier)
             if batch:
-                created = create_missions_from_batch(t, batch)
-                results[t] = {
+                created = create_missions_from_batch(tier, batch)
+                results[tier] = {
                     'generated': len(batch),
                     'created': len(created),
                     'missions': [
@@ -751,14 +795,20 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
                         for m in created[:5]  # Primeiras 5 como exemplo
                     ]
                 }
+                total_created = len(created)
             else:
-                results[t] = {
+                results[tier] = {
                     'generated': 0,
                     'created': 0,
                     'error': 'Falha ao gerar batch'
                 }
+                total_created = 0
         
-        total_created = sum(r.get('created', 0) for r in results.values())
+        # Caso 3: Auto-detectar tudo
+        else:
+            result = generate_all_monthly_missions()
+            results = result.get('results', {})
+            total_created = result.get('total_created', 0)
         
         return Response({
             'success': True,
@@ -1651,4 +1701,112 @@ class LeaderboardViewSet(viewsets.ViewSet):
         return Response({
             'count': len(results),
             'leaderboard': serializer.data,
+        })
+
+
+# ============================================================================
+# ADMIN STATISTICS
+# ============================================================================
+class AdminStatsViewSet(viewsets.ViewSet):
+    """
+    ViewSet for admin statistics and dashboard data.
+    Only accessible by staff users.
+    """
+    permission_classes = [permissions.IsAdminUser]
+    
+    @action(detail=False, methods=['get'])
+    def overview(self, request):
+        """
+        Get overview statistics for admin dashboard.
+        
+        Returns:
+        - total_users: Total number of users in the system
+        - completed_missions: Total completed missions across all users
+        - active_missions: Total active (non-completed) missions
+        - avg_user_level: Average level of all users
+        - missions_by_tier: Mission distribution by tier
+        - missions_by_type: Mission distribution by type
+        - recent_activity: Recent mission completions
+        """
+        from django.db.models import Avg, Count, Q
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        # Total users
+        total_users = User.objects.count()
+        
+        # Mission statistics
+        completed_missions = MissionProgress.objects.filter(
+            status='COMPLETED'
+        ).count()
+        
+        active_missions = Mission.objects.filter(
+            is_active=True
+        ).count()
+        
+        # Average user level
+        avg_level_data = UserProfile.objects.aggregate(
+            avg_level=Avg('level')
+        )
+        avg_user_level = round(avg_level_data['avg_level'] or 0, 1)
+        
+        # Missions by tier
+        missions_by_tier = {}
+        for tier in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
+            missions_by_tier[tier] = Mission.objects.filter(
+                tier=tier,
+                is_active=True
+            ).count()
+        
+        # Missions by type
+        missions_by_type = {}
+        for mission_type in ['SAVINGS', 'EXPENSE_CONTROL', 'DEBT_REDUCTION', 'ONBOARDING']:
+            missions_by_type[mission_type] = Mission.objects.filter(
+                type=mission_type,
+                is_active=True
+            ).count()
+        
+        # Recent activity (last 10 completed missions)
+        recent_completions = MissionProgress.objects.filter(
+            status='COMPLETED'
+        ).select_related(
+            'mission', 'user__profile'
+        ).order_by('-updated_at')[:10]
+        
+        recent_activity = []
+        for progress in recent_completions:
+            recent_activity.append({
+                'user': progress.user.username,
+                'mission': progress.mission.title,
+                'completed_at': progress.updated_at.isoformat(),
+                'xp_earned': progress.mission.xp_reward,
+            })
+        
+        # User level distribution
+        level_distribution = {
+            '1-5': UserProfile.objects.filter(level__gte=1, level__lte=5).count(),
+            '6-10': UserProfile.objects.filter(level__gte=6, level__lte=10).count(),
+            '11-20': UserProfile.objects.filter(level__gte=11, level__lte=20).count(),
+            '21+': UserProfile.objects.filter(level__gte=21).count(),
+        }
+        
+        # Mission completion rate
+        total_mission_assignments = MissionProgress.objects.count()
+        completion_rate = 0
+        if total_mission_assignments > 0:
+            completion_rate = round(
+                (completed_missions / total_mission_assignments) * 100,
+                1
+            )
+        
+        return Response({
+            'total_users': total_users,
+            'completed_missions': completed_missions,
+            'active_missions': active_missions,
+            'avg_user_level': avg_user_level,
+            'missions_by_tier': missions_by_tier,
+            'missions_by_type': missions_by_type,
+            'recent_activity': recent_activity,
+            'level_distribution': level_distribution,
+            'mission_completion_rate': completion_rate,
         })
