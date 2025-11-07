@@ -29,7 +29,7 @@ router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 router.register(r"user", UserProfileViewSet, basename="user")
 router.register(r"friendships", FriendshipViewSet, basename="friendship")
 router.register(r"leaderboard", LeaderboardViewSet, basename="leaderboard")
-router.register(r"admin/stats", AdminStatsViewSet, basename="admin-stats")
+router.register(r"admin-stats", AdminStatsViewSet, basename="admin-stats")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),

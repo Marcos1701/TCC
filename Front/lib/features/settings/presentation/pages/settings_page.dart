@@ -4,7 +4,7 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../admin/presentation/pages/admin_ai_missions_page.dart';
+import '../../../admin/presentation/pages/admin_dashboard_page.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 
@@ -267,10 +267,10 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingsTile(
               icon: Icons.admin_panel_settings,
               title: 'Administração',
-              subtitle: 'Gerar missões com IA',
+              subtitle: 'Dashboard e gerenciamento do sistema',
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const AdminAiMissionsPage(),
+                  builder: (_) => const AdminDashboardPage(),
                 ),
               ),
               tokens: tokens,

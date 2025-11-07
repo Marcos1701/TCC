@@ -10,9 +10,9 @@ Este documento descreve o sistema completo de administração implementado no ap
 
 #### Endpoints de Administração
 
-1. **AdminStatsViewSet** (`/admin/stats/`)
+1. **AdminStatsViewSet** (`/admin-stats/`)
    - **Permissão**: `IsAdminUser` (apenas staff)
-   - **Método**: `GET /admin/stats/overview/`
+   - **Método**: `GET /admin-stats/overview/`
    - **Retorna**:
      ```json
      {

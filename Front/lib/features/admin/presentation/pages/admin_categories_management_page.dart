@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -34,12 +35,24 @@ class _AdminCategoriesManagementPageState
 
     try {
       // Buscar apenas categorias globais (sem user)
-      final response = await _apiClient.client.get<List<dynamic>>(
+      final response = await _apiClient.client.get(
         '/categories/',
       );
 
       if (response.data != null) {
-        final allCategories = response.data!.cast<Map<String, dynamic>>();
+        List<dynamic> dataList;
+        
+        if (response.data is List) {
+          dataList = response.data as List;
+        } else if (response.data is String) {
+          dataList = json.decode(response.data.toString()) as List;
+        } else if (response.data is Map && response.data['results'] != null) {
+          dataList = response.data['results'] as List;
+        } else {
+          dataList = [];
+        }
+        
+        final allCategories = dataList.cast<Map<String, dynamic>>();
         
         // Filtrar apenas categorias globais (is_user_created = false)
         setState(() {

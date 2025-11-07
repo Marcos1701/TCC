@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'admin_missions_management_page.dart';
 import 'admin_categories_management_page.dart';
@@ -39,17 +41,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     });
 
     try {
-      final response = await _apiClient.client.get<Map<String, dynamic>>(
-        '/admin/stats/overview/',
+      final response = await _apiClient.client.get(
+        '/admin-stats/overview/',
       );
 
       if (response.data != null) {
+        // Debug: verificar tipo da resposta
+        print('Response type: ${response.data.runtimeType}');
+        print('Response data: ${response.data}');
+        
+        Map<String, dynamic> data;
+        
+        if (response.data is Map<String, dynamic>) {
+          data = response.data as Map<String, dynamic>;
+        } else if (response.data is String) {
+          data = json.decode(response.data.toString()) as Map<String, dynamic>;
+        } else {
+          throw Exception('Formato de resposta inesperado: ${response.data.runtimeType}');
+        }
+        
         setState(() {
-          _stats = response.data!;
+          _stats = data;
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Error loading stats: $e');
+      print('Stack trace: $stackTrace');
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -65,11 +83,53 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         title: const Text('Painel Administrativo'),
         backgroundColor: Colors.deepPurple,
         elevation: 0,
+        automaticallyImplyLeading: false, // Remove o botão de voltar
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadStats,
             tooltip: 'Atualizar',
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'logout') {
+                final shouldLogout = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Sair'),
+                    content: const Text('Deseja realmente sair do sistema?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Sair'),
+                      ),
+                    ],
+                  ),
+                );
+                
+                if (shouldLogout == true && context.mounted) {
+                  final session = SessionScope.of(context);
+                  await session.logout();
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 20),
+                    SizedBox(width: 12),
+                    Text('Sair'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

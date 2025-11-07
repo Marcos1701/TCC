@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -34,12 +35,16 @@ class _AdminMissionsManagementPageState
     });
 
     try {
-      final response = await _apiClient.client.get<Map<String, dynamic>>(
+      final response = await _apiClient.client.get(
         '/missions/',
       );
 
       if (response.data != null) {
-        final results = response.data!['results'] as List?;
+        final data = response.data is Map<String, dynamic> 
+            ? response.data as Map<String, dynamic>
+            : json.decode(response.data.toString()) as Map<String, dynamic>;
+        
+        final results = data['results'] as List?;
         setState(() {
           _missions = results?.cast<Map<String, dynamic>>() ?? [];
           _isLoading = false;
