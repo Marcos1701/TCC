@@ -36,7 +36,7 @@ class _AdminCategoriesManagementPageState
     try {
       // Buscar apenas categorias globais (sem user)
       final response = await _apiClient.client.get(
-        '/categories/',
+        '/api/categories/',
       );
 
       if (response.data != null) {

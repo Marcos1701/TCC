@@ -42,7 +42,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
     try {
       final response = await _apiClient.client.get(
-        '/admin-stats/overview/',
+        '/api/admin-stats/overview/',
       );
 
       if (response.data != null) {
@@ -307,10 +307,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildMissionStats() {
-    final missionsByTier = _stats?['missions_by_tier'] as Map<String, dynamic>?;
+    final missionsByDifficulty = _stats?['missions_by_difficulty'] as Map<String, dynamic>?;
     final missionsByType = _stats?['missions_by_type'] as Map<String, dynamic>?;
 
-    if (missionsByTier == null && missionsByType == null) {
+    if (missionsByDifficulty == null && missionsByType == null) {
       return const SizedBox.shrink();
     }
 
@@ -329,19 +329,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                if (missionsByTier != null) ...[
-                  _buildStatRow('Iniciantes', missionsByTier['BEGINNER'] ?? 0),
-                  _buildStatRow(
-                      'Intermediários', missionsByTier['INTERMEDIATE'] ?? 0),
-                  _buildStatRow('Avançados', missionsByTier['ADVANCED'] ?? 0),
+                if (missionsByDifficulty != null) ...[
+                  _buildStatRow('Fáceis', missionsByDifficulty['EASY'] ?? 0),
+                  _buildStatRow('Médias', missionsByDifficulty['MEDIUM'] ?? 0),
+                  _buildStatRow('Difíceis', missionsByDifficulty['HARD'] ?? 0),
                   const Divider(height: 24),
                 ],
                 if (missionsByType != null) ...[
-                  _buildStatRow('Economia (TPS)', missionsByType['SAVINGS'] ?? 0),
-                  _buildStatRow('Controle de Gastos',
-                      missionsByType['EXPENSE_CONTROL'] ?? 0),
-                  _buildStatRow(
-                      'Redução de Dívidas', missionsByType['DEBT_REDUCTION'] ?? 0),
+                  _buildStatRow('Onboarding', missionsByType['ONBOARDING'] ?? 0),
+                  _buildStatRow('Melhoria TPS', missionsByType['TPS_IMPROVEMENT'] ?? 0),
+                  _buildStatRow('Redução RDR', missionsByType['RDR_REDUCTION'] ?? 0),
+                  _buildStatRow('Construção ILI', missionsByType['ILI_BUILDING'] ?? 0),
+                  _buildStatRow('Avançadas', missionsByType['ADVANCED'] ?? 0),
                 ],
               ],
             ),

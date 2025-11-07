@@ -36,7 +36,7 @@ class _AdminMissionsManagementPageState
 
     try {
       final response = await _apiClient.client.get(
-        '/missions/',
+        '/api/missions/',
       );
 
       if (response.data != null) {
@@ -61,7 +61,7 @@ class _AdminMissionsManagementPageState
   Future<void> _toggleMissionStatus(String missionId, bool isActive) async {
     try {
       await _apiClient.client.patch(
-        '/missions/$missionId/',
+        '/api/missions/$missionId/',
         data: {'is_active': !isActive},
       );
 

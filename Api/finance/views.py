@@ -1750,19 +1750,20 @@ class AdminStatsViewSet(viewsets.ViewSet):
         )
         avg_user_level = round(avg_level_data['avg_level'] or 0, 1)
         
-        # Missions by tier
-        missions_by_tier = {}
-        for tier in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
-            missions_by_tier[tier] = Mission.objects.filter(
-                tier=tier,
+        # Missions by difficulty (ao invés de tier)
+        missions_by_difficulty = {}
+        for difficulty in ['EASY', 'MEDIUM', 'HARD']:
+            missions_by_difficulty[difficulty] = Mission.objects.filter(
+                difficulty=difficulty,
                 is_active=True
             ).count()
         
         # Missions by type
         missions_by_type = {}
-        for mission_type in ['SAVINGS', 'EXPENSE_CONTROL', 'DEBT_REDUCTION', 'ONBOARDING']:
+        mission_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
+        for mission_type in mission_types:
             missions_by_type[mission_type] = Mission.objects.filter(
-                type=mission_type,
+                mission_type=mission_type,
                 is_active=True
             ).count()
         
@@ -1779,7 +1780,7 @@ class AdminStatsViewSet(viewsets.ViewSet):
                 'user': progress.user.username,
                 'mission': progress.mission.title,
                 'completed_at': progress.updated_at.isoformat(),
-                'xp_earned': progress.mission.xp_reward,
+                'xp_earned': progress.mission.reward_points,
             })
         
         # User level distribution
@@ -1804,7 +1805,7 @@ class AdminStatsViewSet(viewsets.ViewSet):
             'completed_missions': completed_missions,
             'active_missions': active_missions,
             'avg_user_level': avg_user_level,
-            'missions_by_tier': missions_by_tier,
+            'missions_by_difficulty': missions_by_difficulty,
             'missions_by_type': missions_by_type,
             'recent_activity': recent_activity,
             'level_distribution': level_distribution,
