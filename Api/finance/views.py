@@ -1069,6 +1069,8 @@ class ProfileView(APIView):
                 "id": request.user.id,
                 "email": request.user.email,
                 "name": request.user.get_full_name() or request.user.username,
+                "is_staff": request.user.is_staff,
+                "is_superuser": request.user.is_superuser,
             },
             "profile": UserProfileSerializer(profile).data,
             "snapshot": profile_snapshot(request.user),
@@ -1189,6 +1191,8 @@ class RegisterView(APIView):
             "id": user.id,
             "email": user.email,
             "name": user.get_full_name() or user.username,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser,
         }
 
         return Response(
@@ -1232,6 +1236,8 @@ class UserProfileViewSet(
             'first_name': user.first_name,
             'last_name': user.last_name,
             'username': user.username,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
         })
 
     @action(detail=False, methods=['patch'])
@@ -1263,6 +1269,8 @@ class UserProfileViewSet(
             'id': user.id,
             'email': user.email,
             'name': user.get_full_name() or user.username,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
             'message': 'Perfil atualizado com sucesso.',
         })
 

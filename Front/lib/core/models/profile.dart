@@ -42,10 +42,15 @@ class UserHeader {
   final int id;
   final String name;
   final String email;
+  
+  /// Indica se o usuário é staff (acesso administrativo)
   final bool isStaff;
+  
+  /// Indica se o usuário é superuser (acesso total ao sistema)
   final bool isSuperuser;
 
-  /// Verifica se o usuário tem privilégios de admin
+  /// Verifica se o usuário tem privilégios de administrador
+  /// Retorna true se for staff OU superuser
   bool get isAdmin => isStaff || isSuperuser;
 
   factory UserHeader.fromMap(Map<String, dynamic> map) {

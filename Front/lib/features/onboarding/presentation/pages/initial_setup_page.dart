@@ -95,6 +95,8 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
       final income = await _repository.fetchCategories(type: 'INCOME');
       final expense = await _repository.fetchCategories(type: 'EXPENSE');
       
+      if (!mounted) return;
+      
       setState(() {
         _incomeCategories = income;
         _expenseCategories = expense;
@@ -104,13 +106,14 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
       // Atualiza categorias padrão nas transações
       _updateDefaultCategories();
     } catch (e) {
+      if (!mounted) return;
+      
       setState(() => _loadingCategories = false);
-      if (mounted) {
-        FeedbackService.showError(
-          context,
-          'Erro ao carregar categorias. Tente novamente.',
-        );
-      }
+      
+      FeedbackService.showError(
+        context,
+        'Erro ao carregar categorias. Tente novamente.',
+      );
     }
   }
 

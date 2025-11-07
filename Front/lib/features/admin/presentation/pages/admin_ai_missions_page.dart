@@ -140,7 +140,7 @@ class _AdminAiMissionsPageState extends State<AdminAiMissionsPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedTier,
+                initialValue: _selectedTier,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.category),

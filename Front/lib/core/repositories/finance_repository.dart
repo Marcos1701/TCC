@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/dashboard.dart';
 import '../models/goal.dart';
 import '../models/mission.dart';
@@ -18,18 +20,44 @@ class FinanceRepository {
 
   /// Helper para extrair lista de resposta (paginada ou direta)
   List<dynamic> _extractListFromResponse(dynamic data) {
-    if (data == null) return [];
+    if (data == null) {
+      debugPrint('⚠️ _extractListFromResponse: data é null');
+      return [];
+    }
+    
+    debugPrint('📦 _extractListFromResponse: tipo de data = ${data.runtimeType}');
     
     // Se for paginada (Map com 'results'), pega o campo 'results'
-    if (data is Map<String, dynamic> && data.containsKey('results')) {
-      return (data['results'] as List<dynamic>?) ?? [];
+    if (data is Map<String, dynamic>) {
+      debugPrint('📦 Chaves do Map: ${data.keys.join(", ")}');
+      
+      if (data.containsKey('results')) {
+        final results = data['results'];
+        debugPrint('📦 Campo results encontrado, tipo: ${results.runtimeType}');
+        
+        if (results is List<dynamic>) {
+          return results;
+        } else {
+          debugPrint('⚠️ Campo results não é uma lista!');
+          return [];
+        }
+      }
+      
+      // Se o Map não tem 'results', pode ser um erro ou resposta vazia
+      debugPrint('⚠️ Map sem campo results - possível erro da API');
+      if (data.containsKey('detail') || data.containsKey('error')) {
+        debugPrint('🚨 Resposta de erro detectada: $data');
+      }
+      return [];
     }
     
     // Se for uma lista direta, usa diretamente
     if (data is List<dynamic>) {
+      debugPrint('📦 Lista direta com ${data.length} itens');
       return data;
     }
     
+    debugPrint('⚠️ Tipo de resposta desconhecido: ${data.runtimeType}');
     return [];
   }
 
@@ -72,15 +100,34 @@ class FinanceRepository {
   }
 
   Future<List<TransactionModel>> fetchTransactions({String? type}) async {
-    final response = await _client.client.get<dynamic>(
-      ApiEndpoints.transactions,
-      queryParameters: type != null ? {'type': type} : null,
-    );
-    
-    final items = _extractListFromResponse(response.data);
-    return items
-        .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
-        .toList();
+    try {
+      debugPrint('🔍 Buscando transações${type != null ? " (tipo: $type)" : ""}...');
+      
+      final response = await _client.client.get<dynamic>(
+        ApiEndpoints.transactions,
+        queryParameters: type != null ? {'type': type} : null,
+      );
+      
+      debugPrint('✅ Resposta recebida - Status: ${response.statusCode}');
+      debugPrint('📦 Tipo de response.data: ${response.data.runtimeType}');
+      
+      final items = _extractListFromResponse(response.data);
+      debugPrint('📋 ${items.length} transações encontradas');
+      
+      return items
+          .map((e) {
+            if (e is! Map<String, dynamic>) {
+              debugPrint('⚠️ Item não é Map<String, dynamic>: ${e.runtimeType}');
+              throw Exception('Formato de transação inválido');
+            }
+            return TransactionModel.fromMap(e);
+          })
+          .toList();
+    } catch (e, stackTrace) {
+      debugPrint('🚨 Erro ao buscar transações: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<TransactionModel> createTransaction({
@@ -293,9 +340,10 @@ class FinanceRepository {
   /// Buscar transações relacionadas a uma meta por ID ou UUID
   Future<List<TransactionModel>> fetchGoalTransactions(dynamic goalId) async {
     final response = await _client.client
-        .get<List<dynamic>>('${ApiEndpoints.goals}$goalId/transactions/');
-    final data = response.data ?? <dynamic>[];
-    return data
+        .get<dynamic>('${ApiEndpoints.goals}$goalId/transactions/');
+    
+    final items = _extractListFromResponse(response.data);
+    return items
         .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
         .toList();
   }
@@ -331,12 +379,12 @@ class FinanceRepository {
       queryParams['min_amount'] = minAmount.toString();
     }
     
-    final response = await _client.client.get<List<dynamic>>(
+    final response = await _client.client.get<dynamic>(
       '${ApiEndpoints.transactionLinks}available_sources/',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     
-    final items = response.data ?? <dynamic>[];
+    final items = _extractListFromResponse(response.data);
     return items
         .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -349,12 +397,12 @@ class FinanceRepository {
       queryParams['max_amount'] = maxAmount.toString();
     }
     
-    final response = await _client.client.get<List<dynamic>>(
+    final response = await _client.client.get<dynamic>(
       '${ApiEndpoints.transactionLinks}available_targets/',
       queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     
-    final items = response.data ?? <dynamic>[];
+    final items = _extractListFromResponse(response.data);
     return items
         .map((e) => TransactionModel.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -382,20 +430,39 @@ class FinanceRepository {
     String? dateFrom,
     String? dateTo,
   }) async {
-    final queryParams = <String, dynamic>{};
-    if (linkType != null) queryParams['link_type'] = linkType;
-    if (dateFrom != null) queryParams['date_from'] = dateFrom;
-    if (dateTo != null) queryParams['date_to'] = dateTo;
-    
-    final response = await _client.client.get<List<dynamic>>(
-      ApiEndpoints.transactionLinks,
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-    
-    final items = response.data ?? <dynamic>[];
-    return items
-        .map((e) => TransactionLinkModel.fromMap(e as Map<String, dynamic>))
-        .toList();
+    try {
+      debugPrint('🔗 Buscando transaction links...');
+      
+      final queryParams = <String, dynamic>{};
+      if (linkType != null) queryParams['link_type'] = linkType;
+      if (dateFrom != null) queryParams['date_from'] = dateFrom;
+      if (dateTo != null) queryParams['date_to'] = dateTo;
+      
+      final response = await _client.client.get<dynamic>(
+        ApiEndpoints.transactionLinks,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+      
+      debugPrint('✅ Resposta de links recebida - Status: ${response.statusCode}');
+      debugPrint('📦 Tipo de response.data: ${response.data.runtimeType}');
+      
+      final items = _extractListFromResponse(response.data);
+      debugPrint('🔗 ${items.length} links encontrados');
+      
+      return items
+          .map((e) {
+            if (e is! Map<String, dynamic>) {
+              debugPrint('⚠️ Item de link não é Map<String, dynamic>: ${e.runtimeType}');
+              throw Exception('Formato de link inválido');
+            }
+            return TransactionLinkModel.fromMap(e);
+          })
+          .toList();
+    } catch (e, stackTrace) {
+      debugPrint('🚨 Erro ao buscar transaction links: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Buscar relatório de pagamentos
