@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/state/session_controller.dart';
@@ -65,6 +66,33 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           _isLoading = false;
         });
       }
+    } on DioException catch (e) {
+      String errorMsg = 'Erro desconhecido';
+      
+      if (e.response != null) {
+        print('Error status: ${e.response?.statusCode}');
+        print('Error data: ${e.response?.data}');
+        
+        if (e.response?.statusCode == 403) {
+          errorMsg = 'Acesso negado. Você precisa ser administrador.';
+        } else if (e.response?.statusCode == 500) {
+          final errorData = e.response?.data;
+          if (errorData is Map) {
+            errorMsg = 'Erro no servidor: ${errorData['detail'] ?? errorData['error'] ?? 'Erro interno'}';
+          } else {
+            errorMsg = 'Erro interno do servidor. Verifique os logs.';
+          }
+        } else {
+          errorMsg = 'Erro ${e.response?.statusCode}: ${e.message}';
+        }
+      } else {
+        errorMsg = 'Erro de conexão: ${e.message}';
+      }
+      
+      setState(() {
+        _error = errorMsg;
+        _isLoading = false;
+      });
     } catch (e, stackTrace) {
       print('Error loading stats: $e');
       print('Stack trace: $stackTrace');

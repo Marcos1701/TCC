@@ -1771,7 +1771,7 @@ class AdminStatsViewSet(viewsets.ViewSet):
         recent_completions = MissionProgress.objects.filter(
             status='COMPLETED'
         ).select_related(
-            'mission', 'user__profile'
+            'mission', 'user__userprofile'
         ).order_by('-updated_at')[:10]
         
         recent_activity = []

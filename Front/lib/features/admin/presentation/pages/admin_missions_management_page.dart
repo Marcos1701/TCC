@@ -151,7 +151,7 @@ class _AdminMissionsManagementPageState
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _filterType,
+                        initialValue: _filterType,
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 12,
@@ -202,7 +202,7 @@ class _AdminMissionsManagementPageState
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _filterDifficulty,
+                        initialValue: _filterDifficulty,
                         decoration: const InputDecoration(
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 12,
@@ -347,7 +347,7 @@ class _MissionCard extends StatelessWidget {
                   Switch(
                     value: isActive,
                     onChanged: (_) => onToggleStatus(),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                   ),
                 ],
               ),
