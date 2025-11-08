@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
-import '../../core/repositories/finance_repository.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/onboarding/presentation/pages/initial_setup_page.dart';
@@ -18,13 +17,20 @@ class AuthFlow extends StatefulWidget {
 class _AuthFlowState extends State<AuthFlow> {
   bool _showLogin = true;
   final _rootShellKey = GlobalKey(); // Key para forçar rebuild da home
-  final _repository = FinanceRepository();
   
   // Controle de onboarding - persiste entre rebuilds
   static bool _onboardingCheckedThisSession = false;
   static String? _lastUserIdChecked;
+  static String? _lastAuthenticatedUserId; // Rastreia último usuário autenticado
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
+  
+  /// Reseta as flags de onboarding quando necessário (ex: logout)
+  static void resetOnboardingFlags() {
+    debugPrint('🔄 Resetando flags de onboarding');
+    _onboardingCheckedThisSession = false;
+    _lastUserIdChecked = null;
+  }
 
   Future<void> _checkAndShowOnboardingIfNeeded() async {
     final session = SessionScope.of(context);
@@ -61,35 +67,34 @@ class _AuthFlowState extends State<AuthFlow> {
           MaterialPageRoute(
             builder: (context) => InitialSetupPage(
               onComplete: () async {
-                
-                
-                // Marca como primeiro acesso concluído na API
-                try {
-                  await _repository.completeFirstAccess();
-                  debugPrint('✅ Primeiro acesso marcado como concluído na API');
-                } catch (e) {
-                  debugPrint('❌ Erro ao marcar primeiro acesso: $e');
-                }
-                
-                // Força rebuild da home após conclusão
-                if (mounted) {
-                  await session.refreshSession();
-                  debugPrint('✅ Sessão atualizada após conclusão');
-                  setState(() {
-                    // Força recriação do RootShell com nova key
-                    _rootShellKey.currentState?.setState(() {});
-                  });
-                }
+                // onComplete é chamado ANTES do Navigator.pop
+                // então não fazemos nada aqui, deixamos para depois
+                debugPrint('🎯 onComplete chamado - aguardando pop da tela');
               },
             ),
             fullscreenDialog: true,
           ),
         );
         
-        // Se completou com sucesso, força rebuild
+        // APÓS o Navigator.pop, atualiza a sessão e força rebuild
         if (result == true && mounted) {
+          debugPrint('✅ Onboarding concluído/pulado - atualizando sessão');
+          
+          // Atualiza a sessão para pegar o novo valor de isFirstAccess
+          await session.refreshSession();
+          
+          // Verifica se a sessão foi atualizada corretamente
+          final updatedFirstAccess = session.profile?.isFirstAccess ?? true;
+          debugPrint('✅ Sessão atualizada - novo isFirstAccess: $updatedFirstAccess');
+          
+          if (updatedFirstAccess) {
+            debugPrint('⚠️ ATENÇÃO: isFirstAccess ainda está true após refresh!');
+          }
+          
+          // Força rebuild completo
           setState(() {
-            // Força rebuild do widget tree
+            // Força recriação do RootShell com nova key
+            _rootShellKey.currentState?.setState(() {});
           });
         }
       } else {
@@ -113,10 +118,9 @@ class _AuthFlowState extends State<AuthFlow> {
 
   @override
   void dispose() {
-    // Limpa as flags static ao destruir o widget
-    // Isso permite que um novo usuário tenha seu onboarding verificado
-    _onboardingCheckedThisSession = false;
-    _lastUserIdChecked = null;
+    // NÃO limpa as flags static no dispose
+    // As flags devem persistir durante toda a vida da aplicação
+    // para evitar que o onboarding apareça múltiplas vezes
     super.dispose();
   }
 
@@ -134,6 +138,16 @@ class _AuthFlowState extends State<AuthFlow> {
           );
         }
 
+        // Detecta mudança de usuário autenticado (logout/login)
+        final currentUserId = session.session?.user.id.toString();
+        if (_lastAuthenticatedUserId != null && 
+            _lastAuthenticatedUserId != currentUserId) {
+          // Usuário mudou (fez logout e/ou login com outra conta)
+          debugPrint('🔄 Usuário mudou de $_lastAuthenticatedUserId para $currentUserId - resetando flags');
+          resetOnboardingFlags();
+        }
+        _lastAuthenticatedUserId = currentUserId;
+
         // Se autenticado, vai para a home
         if (session.isAuthenticated) {
           // Verifica se é admin
@@ -146,7 +160,6 @@ class _AuthFlowState extends State<AuthFlow> {
           
           // Se for novo cadastro, permite nova verificação de onboarding
           if (session.isNewRegistration) {
-            final currentUserId = session.session?.user.id.toString();
             if (currentUserId != null && currentUserId != _lastUserIdChecked) {
               _onboardingCheckedThisSession = false;
               _lastUserIdChecked = null;

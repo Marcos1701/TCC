@@ -497,6 +497,9 @@ class _TransactionTile extends StatelessWidget {
             transaction.category!.group!
         : null;
     final recurrenceLabel = transaction.recurrenceLabel;
+    
+    // Obter cor da categoria (se disponível)
+    final categoryColor = _parseCategoryColor(transaction.category?.color);
 
     return GestureDetector(
       onTap: onTap,
@@ -506,6 +509,13 @@ class _TransactionTile extends StatelessWidget {
           color: const Color(0xFF1E1E1E),
           borderRadius: tokens.cardRadius,
           boxShadow: tokens.mediumShadow,
+          // Borda sutil com a cor da categoria
+          border: categoryColor != null
+              ? Border.all(
+                  color: categoryColor.withOpacity(0.3),
+                  width: 1.5,
+                )
+              : null,
         ),
         child: Column(
           children: [
@@ -537,6 +547,18 @@ class _TransactionTile extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
+                          // Indicador colorido da categoria
+                          if (categoryColor != null) ...[
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: categoryColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
                           Flexible(
                             child: Text(
                               transaction.category?.name ?? 'Sem categoria',
@@ -549,23 +571,27 @@ class _TransactionTile extends StatelessWidget {
                             ),
                           ),
                           if (groupLabel != null) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: accent.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: accent.withOpacity(0.3),
-                                  width: 0.5,
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (categoryColor ?? accent).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: (categoryColor ?? accent).withOpacity(0.3),
+                                    width: 0.5,
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                groupLabel,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: accent,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
+                                child: Text(
+                                  groupLabel,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: categoryColor ?? accent,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
@@ -650,6 +676,20 @@ class _TransactionTile extends StatelessWidget {
       default:
         return Icons.swap_horiz_rounded;
     }
+  }
+  
+  /// Parse a cor da categoria do formato HEX (#RRGGBB)
+  static Color? _parseCategoryColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) return null;
+    try {
+      final hexColor = colorString.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        return Color(int.parse('FF$hexColor', radix: 16));
+      }
+    } catch (e) {
+      // Retorna null se falhar ao parsear
+    }
+    return null;
   }
 }
 

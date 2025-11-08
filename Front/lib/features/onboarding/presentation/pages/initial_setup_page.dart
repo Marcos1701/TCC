@@ -227,10 +227,30 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
   }
 
   void _skipSetup() async {
-    // Não marca mais como completo no storage local
-    // A API já controla o estado de primeiro acesso
-    if (mounted) {
-      Navigator.of(context).pop();
+    setState(() => _isSubmitting = true);
+    
+    try {
+      // Marca como primeiro acesso concluído na API
+      await _repository.completeFirstAccess();
+      debugPrint('✅ Primeiro acesso marcado como concluído (pulado)');
+      
+      if (mounted) {
+        // Chama o callback de conclusão se fornecido
+        widget.onComplete?.call();
+        
+        // Fecha a página
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      debugPrint('❌ Erro ao marcar primeiro acesso como concluído: $e');
+      
+      if (mounted) {
+        FeedbackService.showError(
+          context,
+          'Erro ao salvar configuração. Tente novamente.',
+        );
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 

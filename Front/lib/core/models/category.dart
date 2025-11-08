@@ -17,7 +17,7 @@ class CategoryModel {
 
   factory CategoryModel.fromMap(Map<String, dynamic> map) {
     return CategoryModel(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       name: map['name'] as String,
       type: map['type'] as String,
       color: map['color'] as String?,

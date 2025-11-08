@@ -79,10 +79,12 @@ class DashboardRefreshThrottle(UserRateThrottle):
     """
     Rate limiting para refresh de dashboard/indicadores.
     
-    Limita a 60 requests por hora (1 por minuto).
+    Limita a 300 requests por hora (~5 por minuto).
+    Permite uso normal do app incluindo hot reloads durante desenvolvimento,
+    mas ainda previne abuso excessivo.
     Cálculo de indicadores é computacionalmente caro.
     """
-    rate = '60/hour'
+    rate = '300/hour'
     scope = 'dashboard_refresh'
 
 

@@ -40,9 +40,13 @@ class TransactionModel {
   final int? incomingLinksCount;
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
+    // Suporta tanto UUID quanto int como ID
+    final idValue = map['id'].toString();
+    final isUuid = idValue.contains('-') && idValue.length > 20;
+    
     return TransactionModel(
-      id: map['id'] as int,
-      uuid: map['uuid'] as String?,  // Aceita UUID do backend
+      id: isUuid ? idValue.hashCode : int.parse(idValue),
+      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
       type: map['type'] as String,
       description: map['description'] as String,
       amount: double.parse(map['amount'].toString()),
@@ -67,8 +71,12 @@ class TransactionModel {
       linkPercentage: map['link_percentage'] != null
           ? double.tryParse(map['link_percentage'].toString())
           : null,
-      outgoingLinksCount: map['outgoing_links_count'] as int?,
-      incomingLinksCount: map['incoming_links_count'] as int?,
+      outgoingLinksCount: map['outgoing_links_count'] != null
+          ? int.tryParse(map['outgoing_links_count'].toString())
+          : null,
+      incomingLinksCount: map['incoming_links_count'] != null
+          ? int.tryParse(map['incoming_links_count'].toString())
+          : null,
     );
   }
   

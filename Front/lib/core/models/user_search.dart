@@ -22,12 +22,12 @@ class UserSearchModel {
 
   factory UserSearchModel.fromMap(Map<String, dynamic> map) {
     return UserSearchModel(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       username: map['username'] as String,
       name: map['name'] as String,
       email: map['email'] as String,
-      level: map['level'] as int,
-      xp: map['xp'] as int,
+      level: int.parse(map['level'].toString()),
+      xp: int.parse(map['xp'].toString()),
       isFriend: map['is_friend'] as bool,
       hasPendingRequest: map['has_pending_request'] as bool,
     );

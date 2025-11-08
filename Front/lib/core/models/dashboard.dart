@@ -22,13 +22,26 @@ class SummaryMetrics {
   final double debtPayments;
 
   factory SummaryMetrics.fromMap(Map<String, dynamic> map) {
+    // Se o mapa estiver vazio, retorna valores padrão (zeros)
+    if (map.isEmpty) {
+      return const SummaryMetrics(
+        tps: 0.0,
+        rdr: 0.0,
+        ili: 0.0,
+        totalIncome: 0.0,
+        totalExpense: 0.0,
+        totalDebt: 0.0,
+        debtPayments: 0.0,
+      );
+    }
+    
     return SummaryMetrics(
-      tps: double.parse(map['tps'].toString()),
-      rdr: double.parse(map['rdr'].toString()),
-      ili: double.parse(map['ili'].toString()),
-      totalIncome: double.parse(map['total_income'].toString()),
-      totalExpense: double.parse(map['total_expense'].toString()),
-      totalDebt: double.parse(map['total_debt'].toString()),
+      tps: double.parse(map['tps']?.toString() ?? '0'),
+      rdr: double.parse(map['rdr']?.toString() ?? '0'),
+      ili: double.parse(map['ili']?.toString() ?? '0'),
+      totalIncome: double.parse(map['total_income']?.toString() ?? '0'),
+      totalExpense: double.parse(map['total_expense']?.toString() ?? '0'),
+      totalDebt: double.parse(map['total_debt']?.toString() ?? '0'),
       debtPayments: double.parse(map['debt_payments']?.toString() ?? '0'),
     );
   }
@@ -47,8 +60,8 @@ class CategorySlice {
 
   factory CategorySlice.fromMap(Map<String, dynamic> map) {
     return CategorySlice(
-      name: map['name'] as String,
-      total: double.parse(map['total'].toString()),
+      name: map['name']?.toString() ?? 'Desconhecido',
+      total: double.parse(map['total']?.toString() ?? '0'),
       group: map['group'] as String?,
     );
   }
@@ -73,12 +86,12 @@ class CashflowPoint {
 
   factory CashflowPoint.fromMap(Map<String, dynamic> map) {
     return CashflowPoint(
-      month: map['month'] as String,
-      income: double.parse(map['income'].toString()),
-      expense: double.parse(map['expense'].toString()),
-      debt: double.parse(map['debt'].toString()),
-      tps: double.parse(map['tps'].toString()),
-      rdr: double.parse(map['rdr'].toString()),
+      month: map['month']?.toString() ?? '',
+      income: double.parse(map['income']?.toString() ?? '0'),
+      expense: double.parse(map['expense']?.toString() ?? '0'),
+      debt: double.parse(map['debt']?.toString() ?? '0'),
+      tps: double.parse(map['tps']?.toString() ?? '0'),
+      rdr: double.parse(map['rdr']?.toString() ?? '0'),
     );
   }
 }
@@ -103,11 +116,11 @@ class IndicatorInsight {
   factory IndicatorInsight.fromMap(String indicator, Map<String, dynamic> map) {
     return IndicatorInsight(
       indicator: indicator,
-      severity: map['severity'] as String,
-      title: map['title'] as String,
-      message: map['message'] as String,
-      value: double.parse(map['value'].toString()),
-      target: double.parse(map['target'].toString()),
+      severity: map['severity']?.toString() ?? 'info',
+      title: map['title']?.toString() ?? '',
+      message: map['message']?.toString() ?? '',
+      value: double.parse(map['value']?.toString() ?? '0'),
+      target: double.parse(map['target']?.toString() ?? '0'),
     );
   }
 }
@@ -144,7 +157,7 @@ class DashboardData {
     final rawInsights = map['insights'] as Map<String, dynamic>? ?? {};
 
     return DashboardData(
-      summary: SummaryMetrics.fromMap(map['summary'] as Map<String, dynamic>),
+      summary: SummaryMetrics.fromMap(map['summary'] as Map<String, dynamic>? ?? {}),
       categories: parsedCategories,
       cashflow: (map['cashflow'] as List<dynamic>? ?? <dynamic>[])
           .map((e) => CashflowPoint.fromMap(e as Map<String, dynamic>))
@@ -162,7 +175,7 @@ class DashboardData {
           (map['recommended_missions'] as List<dynamic>? ?? <dynamic>[])
               .map((e) => MissionModel.fromMap(e as Map<String, dynamic>))
               .toList(),
-      profile: ProfileModel.fromMap(map['profile'] as Map<String, dynamic>),
+      profile: ProfileModel.fromMap(map['profile'] as Map<String, dynamic>? ?? {}),
     );
   }
 }

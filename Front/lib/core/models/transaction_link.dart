@@ -26,9 +26,13 @@ class TransactionLinkModel {
   final DateTime updatedAt;
 
   factory TransactionLinkModel.fromMap(Map<String, dynamic> map) {
+    // Suporta tanto UUID quanto int como ID
+    final idValue = map['id'].toString();
+    final isUuid = idValue.contains('-') && idValue.length > 20;
+    
     return TransactionLinkModel(
-      id: map['id'] as int,
-      uuid: map['uuid'] as String?,  // Aceita UUID do backend
+      id: isUuid ? idValue.hashCode : int.parse(idValue),
+      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
       sourceTransaction: map['source_transaction'] != null
           ? TransactionModel.fromMap(map['source_transaction'] as Map<String, dynamic>)
           : null,

@@ -29,7 +29,7 @@ class MissionProgressModel {
 
   factory MissionProgressModel.fromMap(Map<String, dynamic> map) {
     return MissionProgressModel(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       status: map['status'] as String,
       progress: double.parse(map['progress'].toString()),
       initialTps: map['initial_tps'] != null

@@ -41,7 +41,7 @@ class TrackedCategory {
 
   factory TrackedCategory.fromMap(Map<String, dynamic> map) {
     return TrackedCategory(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       name: map['name'] as String,
       color: (map['color'] as String?) ?? '#808080',
       type: map['type'] as String,
@@ -102,9 +102,13 @@ class GoalModel {
           .toList();
     }
 
+    // Suporta tanto UUID quanto int como ID
+    final idValue = map['id'].toString();
+    final isUuid = idValue.contains('-') && idValue.length > 20;
+
     return GoalModel(
-      id: map['id'] as int,
-      uuid: map['uuid'] as String?,  // Aceita UUID do backend
+      id: isUuid ? idValue.hashCode : int.parse(idValue),
+      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
       title: map['title'] as String,
       description: (map['description'] as String?) ?? '',
       targetAmount: double.parse(map['target_amount'].toString()),

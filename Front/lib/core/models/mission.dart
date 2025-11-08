@@ -31,7 +31,7 @@ class MissionModel {
 
   factory MissionModel.fromMap(Map<String, dynamic> map) {
     return MissionModel(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       title: map['title'] as String,
       description: map['description'] as String,
       rewardPoints: map['reward_points'] as int,

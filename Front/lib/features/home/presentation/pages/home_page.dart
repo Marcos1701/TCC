@@ -1783,6 +1783,9 @@ class _TransactionTile extends StatelessWidget {
     }
     
     final icon = _getCategoryIcon(transaction.category?.name, transaction.type);
+    
+    // Obter cor da categoria (se disponível)
+    final categoryColor = _parseCategoryColor(transaction.category?.color);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -1791,6 +1794,13 @@ class _TransactionTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
+          // Borda com a cor da categoria
+          border: categoryColor != null
+              ? Border.all(
+                  color: categoryColor.withOpacity(0.5),
+                  width: 2,
+                )
+              : null,
         ),
         child: Icon(
           icon,
@@ -1814,6 +1824,18 @@ class _TransactionTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (transaction.category != null) ...[
+                  // Indicador colorido da categoria
+                  if (categoryColor != null) ...[
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: categoryColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
                   Flexible(
                     child: Text(
                       transaction.category!.name,
@@ -1906,5 +1928,19 @@ class _TransactionTile extends StatelessWidget {
       default:
         return Icons.arrow_downward;
     }
+  }
+  
+  /// Parse a cor da categoria do formato HEX (#RRGGBB)
+  Color? _parseCategoryColor(String? colorString) {
+    if (colorString == null || colorString.isEmpty) return null;
+    try {
+      final hexColor = colorString.replaceAll('#', '');
+      if (hexColor.length == 6) {
+        return Color(int.parse('FF$hexColor', radix: 16));
+      }
+    } catch (e) {
+      // Retorna null se falhar ao parsear
+    }
+    return null;
   }
 }

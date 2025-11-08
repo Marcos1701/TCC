@@ -18,13 +18,26 @@ class ProfileModel {
   final bool isFirstAccess;
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
+    // Retorna valores padrão se o mapa estiver vazio (usuário sem dados ainda)
+    if (map.isEmpty) {
+      return const ProfileModel(
+        level: 1,
+        experiencePoints: 0,
+        nextLevelThreshold: 100,
+        targetTps: 0,
+        targetRdr: 0,
+        targetIli: 0.0,
+        isFirstAccess: true,
+      );
+    }
+
     return ProfileModel(
-      level: map['level'] as int,
-      experiencePoints: map['experience_points'] as int,
-      nextLevelThreshold: map['next_level_threshold'] as int,
-      targetTps: map['target_tps'] as int,
-      targetRdr: map['target_rdr'] as int,
-      targetIli: double.parse(map['target_ili'].toString()),
+      level: int.parse(map['level']?.toString() ?? '1'),
+      experiencePoints: int.parse(map['experience_points']?.toString() ?? '0'),
+      nextLevelThreshold: int.parse(map['next_level_threshold']?.toString() ?? '100'),
+      targetTps: int.parse(map['target_tps']?.toString() ?? '0'),
+      targetRdr: int.parse(map['target_rdr']?.toString() ?? '0'),
+      targetIli: double.parse(map['target_ili']?.toString() ?? '0'),
       isFirstAccess: map['is_first_access'] as bool? ?? true,
     );
   }
@@ -55,7 +68,7 @@ class UserHeader {
 
   factory UserHeader.fromMap(Map<String, dynamic> map) {
     return UserHeader(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       name: (map['name'] as String?)?.isNotEmpty == true
           ? map['name'] as String
           : map['email'] as String,

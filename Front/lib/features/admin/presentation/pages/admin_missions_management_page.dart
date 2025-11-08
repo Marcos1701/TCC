@@ -202,12 +202,11 @@ class _AdminMissionsManagementPageState
     final difficultyValue = mission['difficulty'] ?? mission['priority'];
     String selectedDifficulty = difficultyValue?.toString().toUpperCase() ?? 'EASY';
 
-    try {
-      return showDialog(
-        context: context,
-        builder: (context) => StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
               backgroundColor: const Color(0xFF1E1E1E),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -392,12 +391,13 @@ class _AdminMissionsManagementPageState
         },
       ),
     );
-    } finally {
-      // Libera os controllers para evitar memory leak
+    
+    // Libera os controllers após o frame ser completamente renderizado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       titleController.dispose();
       descriptionController.dispose();
       xpController.dispose();
-    }
+    });
   }
 
   /// Deleta uma missão com confirmação
@@ -726,7 +726,8 @@ class _AdminMissionsManagementPageState
                       child: DropdownButtonFormField<String>(
                         value: _selectedTier,
                         dropdownColor: const Color(0xFF2A2A2A),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        isExpanded: true,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -734,12 +735,13 @@ class _AdminMissionsManagementPageState
                           prefixIcon: Icon(
                             Icons.category,
                             color: AppColors.primary,
+                            size: 20,
                           ),
                           filled: true,
                           fillColor: const Color(0xFF0D0D0D),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
+                            horizontal: 12,
+                            vertical: 14,
                           ),
                         ),
                         items: _tierOptions.entries.map((entry) {
@@ -766,10 +768,18 @@ class _AdminMissionsManagementPageState
                           return DropdownMenuItem(
                             value: entry.key,
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(icon, color: color, size: 20),
-                                const SizedBox(width: 12),
-                                Text(entry.value),
+                                Icon(icon, color: color, size: 18),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  fit: FlexFit.loose,
+                                  child: Text(
+                                    entry.value,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
                               ],
                             ),
                           );
@@ -915,7 +925,7 @@ class _AdminMissionsManagementPageState
       final body = _selectedTier == 'ALL' ? {} : {'tier': _selectedTier};
 
       final response = await _apiClient.client.post<Map<String, dynamic>>(
-        '/missions/generate_ai_missions/',
+        '/api/missions/generate_ai_missions/',
         data: body,
       );
 
@@ -986,6 +996,8 @@ class _AdminMissionsManagementPageState
 
   @override
   Widget build(BuildContext context) {
+    final isLargeScreen = MediaQuery.of(context).size.width > 600;
+    
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -997,30 +1009,31 @@ class _AdminMissionsManagementPageState
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
-          // Botão de Carga IA
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: ElevatedButton.icon(
-              onPressed: _showAIGenerationDialog,
-              icon: const Icon(Icons.auto_awesome, size: 18),
-              label: const Text(
-                'Carga IA',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+          // Botão de Carga IA (apenas em telas maiores)
+          if (isLargeScreen)
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              child: ElevatedButton.icon(
+                onPressed: _showAIGenerationDialog,
+                icon: const Icon(Icons.auto_awesome, size: 18),
+                label: const Text(
+                  'Carga IA',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
                 ),
-                elevation: 0,
               ),
             ),
-          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadMissions,
@@ -1044,10 +1057,9 @@ class _AdminMissionsManagementPageState
           ),
         ],
       ),
-      // FAB para acesso rápido à carga IA (apenas em telas maiores)
-      floatingActionButton: MediaQuery.of(context).size.width > 600
-          ? null
-          : FloatingActionButton.extended(
+      // FAB para acesso rápido à carga IA (apenas em telas menores)
+      floatingActionButton: !isLargeScreen
+          ? FloatingActionButton.extended(
               onPressed: _showAIGenerationDialog,
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -1057,7 +1069,8 @@ class _AdminMissionsManagementPageState
                 'Carga IA',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
-            ),
+            )
+          : null,
     );
   }
 
@@ -1998,31 +2011,37 @@ class _StatBadge extends StatelessWidget {
             ),
             child: Icon(icon, size: 18, color: color),
           ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                  height: 1,
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    height: 1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[500],
-                  letterSpacing: 0.5,
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[500],
+                    letterSpacing: 0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

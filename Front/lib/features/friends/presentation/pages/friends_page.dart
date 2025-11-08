@@ -780,7 +780,7 @@ class _UsernameCardState extends State<_UsernameCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Seu Username',
+                  'Seu Nome de Usuário',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.grey[400],
                     fontSize: 12,

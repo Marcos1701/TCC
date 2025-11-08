@@ -572,10 +572,10 @@ class FinanceRepository {
 
   /// Lista amigos aceitos
   Future<List<FriendshipModel>> fetchFriends() async {
-    final response = await _client.client.get<List<dynamic>>(
+    final response = await _client.client.get<dynamic>(
       ApiEndpoints.friendships,
     );
-    final items = response.data ?? <dynamic>[];
+    final items = _extractListFromResponse(response.data);
     return items
         .map((e) => FriendshipModel.fromMap(e as Map<String, dynamic>))
         .toList();
@@ -583,10 +583,10 @@ class FinanceRepository {
 
   /// Lista solicitações pendentes recebidas
   Future<List<FriendshipModel>> fetchFriendRequests() async {
-    final response = await _client.client.get<List<dynamic>>(
+    final response = await _client.client.get<dynamic>(
       '${ApiEndpoints.friendships}requests/',
     );
-    final items = response.data ?? <dynamic>[];
+    final items = _extractListFromResponse(response.data);
     return items
         .map((e) => FriendshipModel.fromMap(e as Map<String, dynamic>))
         .toList();

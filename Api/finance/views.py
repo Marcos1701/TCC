@@ -1161,6 +1161,9 @@ class ProfileView(APIView):
             logger.info(
                 f"User {request.user.id} ({request.user.username}) completed first access/onboarding"
             )
+            
+            # Atualiza o profile do banco para garantir que tem o valor mais recente
+            profile.refresh_from_db()
         
         serializer = UserProfileSerializer(
             profile, data=request.data, partial=True
@@ -1168,8 +1171,14 @@ class ProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         
+        # Refresh do profile após o serializer.save() para garantir dados atualizados
+        profile.refresh_from_db()
+        
+        # Cria um novo serializer com os dados atualizados
+        response_serializer = UserProfileSerializer(profile)
+        
         data = {
-            "profile": serializer.data,
+            "profile": response_serializer.data,
             "snapshot": profile_snapshot(request.user),
         }
         return Response(data)

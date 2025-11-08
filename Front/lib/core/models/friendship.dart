@@ -23,9 +23,13 @@ class FriendshipModel {
   final DateTime? acceptedAt;
 
   factory FriendshipModel.fromMap(Map<String, dynamic> map) {
+    // Suporta tanto UUID quanto int como ID
+    final idValue = map['id'].toString();
+    final isUuid = idValue.contains('-') && idValue.length > 20;
+    
     return FriendshipModel(
-      id: map['id'] as int,
-      uuid: map['uuid'] as String?,  // Aceita UUID do backend
+      id: isUuid ? idValue.hashCode : int.parse(idValue),
+      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
       userId: map['user'] as int,
       friendId: map['friend'] as int,
       userInfo: UserInfoModel.fromMap(map['user_info'] as Map<String, dynamic>),
@@ -101,12 +105,12 @@ class UserInfoModel {
 
   factory UserInfoModel.fromMap(Map<String, dynamic> map) {
     return UserInfoModel(
-      id: map['id'] as int,
+      id: int.parse(map['id'].toString()),
       username: map['username'] as String,
       name: map['name'] as String,
       email: map['email'] as String,
-      level: map['level'] as int,
-      xp: map['xp'] as int,
+      level: int.parse(map['level'].toString()),
+      xp: int.parse(map['xp'].toString()),
     );
   }
 
