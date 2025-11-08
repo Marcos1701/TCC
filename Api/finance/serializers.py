@@ -15,7 +15,10 @@ class CategorySerializer(serializers.ModelSerializer):
     
     def get_is_user_created(self, obj):
         """Retorna True se a categoria foi criada pelo usuário (não é padrão)."""
-        return obj.user is not None
+        try:
+            return obj.user is not None
+        except Category.user.RelatedObjectDoesNotExist:
+            return False
 
 
 class TransactionSerializer(serializers.ModelSerializer):
