@@ -1571,10 +1571,13 @@ class FriendshipViewSet(viewsets.ModelViewSet):
             except UserProfile.DoesNotExist:
                 profile = UserProfile.objects.create(user=user)
             
+            # Construir nome completo ou usar first_name, fallback para username
+            full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
+            
             results.append({
                 'id': user.id,
                 'username': user.username,
-                'name': getattr(user, 'name', user.username),
+                'name': full_name,
                 'email': user.email,
                 'level': profile.level,
                 'xp': profile.experience_points,
@@ -1631,11 +1634,14 @@ class LeaderboardViewSet(viewsets.ViewSet):
         results = []
         for idx, profile in enumerate(profiles, start=offset + 1):
             user = profile.user
+            # Construir nome completo ou usar first_name, fallback para username
+            full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
+            
             results.append({
                 'rank': idx,
                 'user_id': user.id,
                 'username': user.username,
-                'name': getattr(user, 'name', user.username),
+                'name': full_name,
                 'level': profile.level,
                 'xp': profile.experience_points,
                 'is_current_user': user.id == request.user.id,
@@ -1692,11 +1698,14 @@ class LeaderboardViewSet(viewsets.ViewSet):
         results = []
         for idx, profile in enumerate(profiles, start=1):
             user = profile.user
+            # Construir nome completo ou usar first_name, fallback para username
+            full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
+            
             results.append({
                 'rank': idx,
                 'user_id': user.id,
                 'username': user.username,
-                'name': getattr(user, 'name', user.username),
+                'name': full_name,
                 'level': profile.level,
                 'xp': profile.experience_points,
                 'is_current_user': user.id == request.user.id,

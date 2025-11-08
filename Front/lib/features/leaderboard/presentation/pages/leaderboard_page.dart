@@ -7,6 +7,11 @@ import '../../../../core/theme/app_theme_extension.dart';
 import '../../../friends/presentation/pages/friends_page.dart';
 import '../../data/leaderboard_viewmodel.dart';
 
+/// Extrai o primeiro nome de um nome completo.
+String _getFirstName(String fullName) {
+  return fullName.trim().split(' ').first;
+}
+
 /// Página de ranking com suporte para ranking geral e de amigos.
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -414,7 +419,7 @@ class _CurrentUserRankCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      entry.name,
+                      _getFirstName(entry.name),
                       style: theme.textTheme.titleLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
@@ -544,7 +549,7 @@ class _PodiumWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    user.name,
+                    _getFirstName(user.name),
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -691,7 +696,7 @@ class _RankTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  entry.name,
+                  _getFirstName(entry.name),
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,

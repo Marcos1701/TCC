@@ -69,7 +69,11 @@ class GoalsViewModel extends ChangeNotifier {
     if (index == -1) return;
 
     final goal = _goals[index];
-    final percentage = (newAmount / goal.targetAmount * 100).clamp(0.0, 100.0);
+    
+    // Prevenir divisão por zero
+    final percentage = goal.targetAmount > 0 
+        ? (newAmount / goal.targetAmount * 100).clamp(0.0, 100.0)
+        : 0.0;
 
     final updated = GoalModel(
       id: goal.id,
@@ -103,5 +107,11 @@ class GoalsViewModel extends ChangeNotifier {
       _state = GoalsViewState.initial;
     }
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _goals.clear();
+    super.dispose();
   }
 }

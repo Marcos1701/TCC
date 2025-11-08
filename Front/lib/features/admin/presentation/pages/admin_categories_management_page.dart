@@ -112,7 +112,7 @@ class _AdminCategoriesManagementPageState
           _buildFilters(),
           Expanded(
             child: _isLoading
-                ? Center(
+                ? const Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primary,
                     ),
@@ -156,17 +156,17 @@ class _AdminCategoriesManagementPageState
                     });
                   },
                   style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                      (Set<MaterialState> states) {
-                        if (states.contains(MaterialState.selected)) {
+                    backgroundColor: WidgetStateProperty.resolveWith<Color>(
+                      (Set<WidgetState> states) {
+                        if (states.contains(WidgetState.selected)) {
                           return AppColors.primary;
                         }
                         return const Color(0xFF2A2A2A);
                       },
                     ),
-                    foregroundColor: MaterialStateProperty.resolveWith<Color>(
-                      (Set<MaterialState> states) {
-                        if (states.contains(MaterialState.selected)) {
+                    foregroundColor: WidgetStateProperty.resolveWith<Color>(
+                      (Set<WidgetState> states) {
+                        if (states.contains(WidgetState.selected)) {
                           return Colors.white;
                         }
                         return Colors.grey[400]!;
@@ -339,7 +339,7 @@ class _AdminCategoriesManagementPageState
               const SizedBox(width: 12),
               Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -454,7 +454,7 @@ class _CategoryTile extends StatelessWidget {
       ),
       title: Text(
         name,
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.w600,
           color: Colors.white,
           fontSize: 14,

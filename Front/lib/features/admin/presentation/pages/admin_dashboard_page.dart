@@ -7,7 +7,6 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'admin_missions_management_page.dart';
 import 'admin_categories_management_page.dart';
-import 'admin_ai_missions_page.dart';
 
 /// Dashboard principal de administração
 /// 
@@ -173,7 +172,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         ],
       ),
       body: _isLoading
-          ? Center(
+          ? const Center(
               child: CircularProgressIndicator(
                 color: AppColors.primary,
               ),
@@ -308,7 +307,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Ações Rápidas',
           style: TextStyle(
             color: Colors.white,
@@ -325,23 +324,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           child: Column(
             children: [
               _ActionTile(
-                icon: Icons.auto_awesome,
-                title: 'Gerar Missões com IA',
-                subtitle: 'Criar missões personalizadas usando Gemini',
-                color: AppColors.primary,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AdminAiMissionsPage(),
-                  ),
-                ),
-              ),
-              Divider(height: 1, color: Colors.grey[800]),
-              _ActionTile(
-                icon: Icons.edit,
+                icon: Icons.rocket_launch,
                 title: 'Gerenciar Missões',
-                subtitle: 'Criar, editar e remover missões',
-                color: Colors.blue,
+                subtitle: 'CRUD manual + Carga automática com IA',
+                color: AppColors.primary,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -380,7 +366,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Estatísticas de Missões',
           style: TextStyle(
             color: Colors.white,
@@ -462,7 +448,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Atividade Recente',
           style: TextStyle(
             color: Colors.white,
@@ -495,7 +481,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     color: AppColors.success.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.check_circle,
                     color: AppColors.success,
                     size: 24,
@@ -503,7 +489,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
                 title: Text(
                   mission,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -524,7 +510,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                   child: Text(
                     '+$xpEarned XP',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
@@ -599,7 +585,7 @@ class _MetricCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 fontSize: 24,
@@ -664,7 +650,7 @@ class _ActionTile extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.w600,
           color: Colors.white,
           fontSize: 14,

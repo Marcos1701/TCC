@@ -17,30 +17,44 @@ class AuthFlow extends StatefulWidget {
 
 class _AuthFlowState extends State<AuthFlow> {
   bool _showLogin = true;
-  bool _onboardingAlreadyChecked = false; // Flag para verificar apenas uma vez
   final _rootShellKey = GlobalKey(); // Key para forçar rebuild da home
   final _repository = FinanceRepository();
+  
+  // Controle de onboarding - persiste entre rebuilds
+  static bool _onboardingCheckedThisSession = false;
+  static String? _lastUserIdChecked;
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
 
   Future<void> _checkAndShowOnboardingIfNeeded() async {
-    // Se já verificou nesta sessão do app, não verifica novamente
-    // Isso evita que o onboarding apareça múltiplas vezes durante a mesma sessão
-    if (_onboardingAlreadyChecked) return;
+    final session = SessionScope.of(context);
+    final currentUserId = session.session?.user.id.toString();
     
-    _onboardingAlreadyChecked = true;
+    // Se não há usuário autenticado, retorna
+    if (currentUserId == null) return;
+    
+    // Se já verificou para este usuário nesta sessão do app, não verifica novamente
+    if (_onboardingCheckedThisSession && _lastUserIdChecked == currentUserId) {
+      debugPrint('ℹ️ Onboarding já verificado para este usuário nesta sessão');
+      return;
+    }
     
     try {
-      final session = SessionScope.of(context);
-      
-      // Atualiza a sessão primeiro
+      // Atualiza a sessão para garantir dados mais recentes
       await session.refreshSession();
       
-      // Verifica se é o primeiro acesso.
+      // Verifica se é o primeiro acesso
       final isFirstAccess = session.profile?.isFirstAccess ?? false;
+      
+      debugPrint('🔍 Verificando primeiro acesso: isFirstAccess=$isFirstAccess, userId=$currentUserId');
       
       if (mounted && isFirstAccess) {
         debugPrint('🎯 É primeiro acesso! Exibindo onboarding...');
+        
+        // Marca como verificado ANTES de mostrar o onboarding
+        // para evitar que apareça múltiplas vezes se houver rebuilds
+        _onboardingCheckedThisSession = true;
+        _lastUserIdChecked = currentUserId;
         
         // Primeira vez que o usuário acessa - mostra setup inicial
         final result = await Navigator.of(context).push<bool>(
@@ -80,6 +94,9 @@ class _AuthFlowState extends State<AuthFlow> {
         }
       } else {
         debugPrint('ℹ️ Não é primeiro acesso, continuando normalmente');
+        // Marca como verificado para este usuário
+        _onboardingCheckedThisSession = true;
+        _lastUserIdChecked = currentUserId;
       }
       
       // Reseta a flag de novo registro após verificar onboarding
@@ -87,9 +104,20 @@ class _AuthFlowState extends State<AuthFlow> {
         session.clearNewRegistrationFlag();
       }
     } catch (e) {
-      // Se houver erro, apenas continua sem mostrar onboarding
+      // Se houver erro, marca como verificado para evitar loops
       debugPrint('❌ Erro ao verificar onboarding: $e');
+      _onboardingCheckedThisSession = true;
+      _lastUserIdChecked = currentUserId;
     }
+  }
+
+  @override
+  void dispose() {
+    // Limpa as flags static ao destruir o widget
+    // Isso permite que um novo usuário tenha seu onboarding verificado
+    _onboardingCheckedThisSession = false;
+    _lastUserIdChecked = null;
+    super.dispose();
   }
 
   @override
@@ -116,9 +144,13 @@ class _AuthFlowState extends State<AuthFlow> {
             return const AdminDashboardPage();
           }
           
-          // Se for novo cadastro, reseta a flag para permitir verificação
-          if (session.isNewRegistration && _onboardingAlreadyChecked) {
-            _onboardingAlreadyChecked = false;
+          // Se for novo cadastro, permite nova verificação de onboarding
+          if (session.isNewRegistration) {
+            final currentUserId = session.session?.user.id.toString();
+            if (currentUserId != null && currentUserId != _lastUserIdChecked) {
+              _onboardingCheckedThisSession = false;
+              _lastUserIdChecked = null;
+            }
           }
           
           // Verifica onboarding apenas uma vez por sessão do app

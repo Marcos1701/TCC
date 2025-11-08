@@ -672,10 +672,13 @@ class FriendshipSerializer(serializers.ModelSerializer):
         except UserProfile.DoesNotExist:
             profile = None
         
+        # Construir nome completo ou usar first_name, fallback para username
+        full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
+        
         return {
             'id': user.id,
             'username': user.username,
-            'name': getattr(user, 'name', user.username),
+            'name': full_name,
             'email': user.email,
             'level': profile.level if profile else 1,
             'xp': profile.experience_points if profile else 0,
@@ -689,10 +692,13 @@ class FriendshipSerializer(serializers.ModelSerializer):
         except UserProfile.DoesNotExist:
             profile = None
         
+        # Construir nome completo ou usar first_name, fallback para username
+        full_name = f"{friend.first_name} {friend.last_name}".strip() if friend.first_name or friend.last_name else friend.username
+        
         return {
             'id': friend.id,
             'username': friend.username,
-            'name': getattr(friend, 'name', friend.username),
+            'name': full_name,
             'email': friend.email,
             'level': profile.level if profile else 1,
             'xp': profile.experience_points if profile else 0,

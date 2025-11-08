@@ -92,8 +92,9 @@ class _ProgressPageState extends State<ProgressPage> {
           : '',
     );
     
-    // Novos controladores
-    GoalType selectedGoalType = goal?.goalType ?? GoalType.custom;
+    try {
+      // Novos controladores
+      GoalType selectedGoalType = goal?.goalType ?? GoalType.custom;
     int? selectedCategoryId = goal?.targetCategory;
     Set<int> selectedTrackedCategoryIds = goal?.trackedCategories
             .map((cat) => cat.id)
@@ -837,6 +838,13 @@ class _ProgressPageState extends State<ProgressPage> {
       if (mounted) {
         setState(() => isLoading = false);
       }
+    }
+    } finally {
+      // Libera controllers
+      titleController.dispose();
+      descriptionController.dispose();
+      targetController.dispose();
+      initialAmountController.dispose();
     }
   }
 

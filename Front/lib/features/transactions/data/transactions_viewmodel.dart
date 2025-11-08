@@ -30,6 +30,9 @@ class TransactionsViewModel extends ChangeNotifier {
   // Transações pendentes (otimistas)
   final Map<String, TransactionModel> _pendingTransactions = {};
   
+  // Contador para IDs únicos (evita race condition)
+  static int _tempIdCounter = 0;
+  
   // Getters
   TransactionsViewState get state => _state;
   List<TransactionModel> get transactions {
@@ -88,8 +91,8 @@ class TransactionsViewModel extends ChangeNotifier {
     String? recurrenceUnit,
     DateTime? recurrenceEndDate,
   }) async {
-    // 1. Cria transação temporária (otimista)
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    // 1. Cria transação temporária (otimista) com ID único
+    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}_${++_tempIdCounter}';
     final tempTransaction = TransactionModel(
       id: -1, // ID temporário
       type: type,

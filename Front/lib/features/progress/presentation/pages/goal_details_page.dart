@@ -268,7 +268,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
       extentOffset: controller.text.length,
     );
 
-    final result = await showDialog<double>(
+    double? result;
+    try {
+      result = await showDialog<double>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
@@ -470,6 +472,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           );
         }
       }
+    }
+    } finally {
+      controller.dispose();
     }
   }
 
@@ -790,7 +795,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               Icon(Icons.trending_up, size: 14, color: Colors.grey[500]),
               const SizedBox(width: 6),
               Text(
-                'Média: ${widget.currency.format(stat.totalAmount / stat.count)}',
+                'Média: ${stat.count > 0 ? widget.currency.format(stat.totalAmount / stat.count) : "R\$ 0,00"}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: Colors.grey[500],
                   fontSize: 12,

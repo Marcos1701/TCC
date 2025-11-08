@@ -20,6 +20,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
   final _repository = FinanceRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _cacheManager = CacheManager();
+  final _amountController = TextEditingController();
   
   List<TransactionModel> _availableIncomes = [];
   List<TransactionModel> _pendingExpenses = [];
@@ -34,6 +35,12 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -560,9 +567,15 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
     final remainingDebt = debt.availableAmount ?? debt.amount;
     final maxAmount = availableIncome < remainingDebt ? availableIncome : remainingDebt;
 
-    final amountController = TextEditingController(
-      text: CurrencyInputFormatter.format(maxAmount),
-    );
+    // Atualizar texto do controller apenas se diferente
+    final formattedMax = CurrencyInputFormatter.format(maxAmount);
+    if (_amountController.text.isEmpty || _amountController.text != formattedMax) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _amountController.text = formattedMax;
+        }
+      });
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -596,7 +609,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
           ),
           const SizedBox(height: 12),
           TextField(
-            controller: amountController,
+            controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
@@ -621,7 +634,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
               if (remainingDebt > availableIncome)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => amountController.text = CurrencyInputFormatter.format(availableIncome),
+                    onPressed: () => _amountController.text = CurrencyInputFormatter.format(availableIncome),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.success,
                       side: const BorderSide(color: AppColors.success),
@@ -640,7 +653,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
               if (remainingDebt <= availableIncome)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => amountController.text = CurrencyInputFormatter.format(remainingDebt),
+                    onPressed: () => _amountController.text = CurrencyInputFormatter.format(remainingDebt),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.alert,
                       side: const BorderSide(color: AppColors.alert),
@@ -662,7 +675,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                final amount = CurrencyInputFormatter.parse(amountController.text);
+                final amount = CurrencyInputFormatter.parse(_amountController.text);
                 if (amount > 0 && amount <= maxAmount) {
                   _createLink(amount);
                 } else {
