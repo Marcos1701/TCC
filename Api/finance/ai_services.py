@@ -6,7 +6,7 @@ Este módulo usa Google Gemini 2.5 Flash para:
 2. Sugerir categorias para transações baseado em descrição
 3. Personalizar experiência do usuário
 
-Estratégia de geração avançada:
+Estratégia de geração:
 - Cenários contextuais: Iniciante, TPS, RDR, ILI, Misto
 - Verificação de duplicação antes de gerar
 - Adaptação a diferentes faixas (BEGINNER, INTERMEDIATE, ADVANCED)

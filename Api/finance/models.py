@@ -649,6 +649,15 @@ class Mission(models.Model):
         RDR_REDUCTION = "RDR_REDUCTION", "Redução de dívidas"
         ILI_BUILDING = "ILI_BUILDING", "Construção de reserva"
         ADVANCED = "ADVANCED", "Avançado"
+    
+    class ValidationType(models.TextChoices):
+        SNAPSHOT = "SNAPSHOT", "Comparação pontual (inicial vs atual)"
+        TEMPORAL = "TEMPORAL", "Manter critério por período"
+        CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir gasto em categoria"
+        CATEGORY_LIMIT = "CATEGORY_LIMIT", "Não exceder limite em categoria"
+        GOAL_PROGRESS = "GOAL_PROGRESS", "Progredir em meta específica"
+        SAVINGS_INCREASE = "SAVINGS_INCREASE", "Aumentar poupança"
+        CONSISTENCY = "CONSISTENCY", "Manter consistência/streak"
 
     title = models.CharField(max_length=150)
     description = models.TextField()
@@ -677,6 +686,88 @@ class Mission(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # === NOVOS CAMPOS PARA VALIDAÇÃO AVANÇADA ===
+    
+    # Tipo refinado de validação
+    validation_type = models.CharField(
+        max_length=30,
+        choices=ValidationType.choices,
+        default=ValidationType.SNAPSHOT,
+        help_text="Tipo de validação que determina como o progresso é calculado",
+    )
+    
+    # Para validação temporal
+    requires_consecutive_days = models.BooleanField(
+        default=False,
+        help_text="Se requer X dias CONSECUTIVOS atendendo critério",
+    )
+    min_consecutive_days = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Número mínimo de dias consecutivos",
+    )
+    
+    # Para missões de categoria
+    target_category = models.ForeignKey(
+        'Category',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='missions',
+        help_text="Categoria alvo para missões de redução/limite",
+    )
+    target_reduction_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="% de redução alvo (ex: 15 = reduzir 15%)",
+    )
+    category_spending_limit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Limite de gasto em reais para a categoria",
+    )
+    
+    # Para missões de meta
+    target_goal = models.ForeignKey(
+        'Goal',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='missions',
+        help_text="Meta alvo (se missão for sobre meta específica)",
+    )
+    goal_progress_target = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="% de progresso alvo na meta (ex: 80 = completar 80%)",
+    )
+    
+    # Para missões de poupança
+    savings_increase_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Valor em R$ para aumentar poupança",
+    )
+    
+    # Para missões de consistência
+    requires_daily_action = models.BooleanField(
+        default=False,
+        help_text="Se requer ação diária (registrar transação, etc)",
+    )
+    min_daily_actions = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Número mínimo de ações diárias necessárias",
+    )
 
     class Meta:
         ordering = ("priority", "title")
@@ -703,6 +794,68 @@ class MissionProgress(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # === NOVOS CAMPOS PARA RASTREAMENTO AVANÇADO ===
+    
+    # Baseline de categoria (salvo ao iniciar)
+    baseline_category_spending = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Gasto médio na categoria antes da missão começar",
+    )
+    baseline_period_days = models.PositiveIntegerField(
+        default=30,
+        help_text="Número de dias usados para calcular baseline",
+    )
+    
+    # Para missões de meta
+    initial_goal_progress = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="% de progresso da meta quando missão começou",
+    )
+    
+    # Para missões de poupança
+    initial_savings_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total em poupança quando missão começou",
+    )
+    
+    # Rastreamento de streak/consistência
+    current_streak = models.PositiveIntegerField(
+        default=0,
+        help_text="Dias consecutivos atuais atendendo critério",
+    )
+    max_streak = models.PositiveIntegerField(
+        default=0,
+        help_text="Maior streak alcançado nesta missão",
+    )
+    days_met_criteria = models.PositiveIntegerField(
+        default=0,
+        help_text="Total de dias que atendeu critério (não necessariamente consecutivos)",
+    )
+    days_violated_criteria = models.PositiveIntegerField(
+        default=0,
+        help_text="Total de dias que violou critério",
+    )
+    last_violation_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Data da última violação de critério",
+    )
+    
+    # Metadados de validação
+    validation_details = models.JSONField(
+        default=dict,
+        help_text="Detalhes de como validação está sendo feita",
+    )
 
     class Meta:
         unique_together = ("user", "mission")
@@ -752,6 +905,310 @@ class XPTransaction(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} - {self.points_awarded} XP - {self.mission_progress.mission.title}"
+
+
+class UserDailySnapshot(models.Model):
+    """
+    Snapshot diário dos indicadores financeiros do usuário.
+    
+    Criado automaticamente todo dia às 23:59 via Celery Beat.
+    Serve como fonte de verdade para análise histórica e validação de missões.
+    """
+    
+    # Identificação
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='daily_snapshots',
+    )
+    snapshot_date = models.DateField(
+        help_text="Data do snapshot (YYYY-MM-DD)",
+    )
+    
+    # Indicadores principais
+    tps = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        help_text="Taxa de Poupança Pessoal do dia (%)",
+    )
+    rdr = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        help_text="Razão Dívida-Receita do dia (%)",
+    )
+    ili = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        help_text="Índice de Liquidez Imediata (meses)",
+    )
+    
+    # Totais financeiros
+    total_income = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Total de receitas (acumulado do mês)",
+    )
+    total_expense = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Total de despesas (acumulado do mês)",
+    )
+    total_debt = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Total de dívidas",
+    )
+    available_balance = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo disponível (receitas - despesas - dívidas)",
+    )
+    
+    # Gastos por categoria (JSON)
+    category_spending = models.JSONField(
+        default=dict,
+        help_text="Gastos por categoria no mês atual até esta data",
+    )
+    # Exemplo: {
+    #   "alimentacao": {"total": 500.00, "count": 15},
+    #   "transporte": {"total": 300.00, "count": 8}
+    # }
+    
+    # Poupança e investimentos
+    savings_added_today = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Valor adicionado a poupança/investimentos hoje",
+    )
+    savings_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Total acumulado em poupança/investimentos",
+    )
+    
+    # Progresso de metas
+    goals_progress = models.JSONField(
+        default=dict,
+        help_text="Progresso de cada meta ativa",
+    )
+    # Exemplo: {
+    #   "goal_uuid_1": {"name": "Emergência", "progress": 45.5, "current": 2275, "target": 5000},
+    #   "goal_uuid_2": {"name": "Férias", "progress": 78.0, "current": 3900, "target": 5000}
+    # }
+    
+    # Métricas de comportamento
+    transactions_registered_today = models.BooleanField(
+        default=False,
+        help_text="Se registrou pelo menos 1 transação hoje",
+    )
+    transaction_count_today = models.PositiveIntegerField(
+        default=0,
+        help_text="Número de transações registradas hoje",
+    )
+    total_transactions_lifetime = models.PositiveIntegerField(
+        default=0,
+        help_text="Total de transações desde sempre",
+    )
+    
+    # Violações de orçamento
+    budget_exceeded = models.BooleanField(
+        default=False,
+        help_text="Se excedeu orçamento em alguma categoria hoje",
+    )
+    budget_violations = models.JSONField(
+        default=list,
+        help_text="Categorias que excederam orçamento",
+    )
+    # Exemplo: ["alimentacao", "lazer"]
+    
+    # Metadados
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('user', 'snapshot_date')
+        ordering = ['-snapshot_date']
+        indexes = [
+            models.Index(fields=['user', '-snapshot_date']),
+            models.Index(fields=['snapshot_date']),
+        ]
+    
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user.username} - {self.snapshot_date}"
+
+
+class UserMonthlySnapshot(models.Model):
+    """
+    Snapshot mensal consolidado.
+    
+    Criado automaticamente no último dia do mês.
+    Útil para análises de longo prazo sem precisar agregar diários.
+    """
+    
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='monthly_snapshots',
+    )
+    year = models.PositiveIntegerField()
+    month = models.PositiveIntegerField()  # 1-12
+    
+    # Médias mensais
+    avg_tps = models.DecimalField(max_digits=6, decimal_places=2)
+    avg_rdr = models.DecimalField(max_digits=6, decimal_places=2)
+    avg_ili = models.DecimalField(max_digits=6, decimal_places=2)
+    
+    # Totais do mês
+    total_income = models.DecimalField(max_digits=12, decimal_places=2)
+    total_expense = models.DecimalField(max_digits=12, decimal_places=2)
+    total_savings = models.DecimalField(max_digits=12, decimal_places=2)
+    
+    # Categoria mais gasta
+    top_category = models.CharField(max_length=100, blank=True)
+    top_category_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+    
+    # Gastos por categoria (consolidado)
+    category_spending = models.JSONField(default=dict)
+    
+    # Consistência
+    days_with_transactions = models.PositiveIntegerField(
+        default=0,
+        help_text="Quantos dias do mês registrou transações",
+    )
+    days_in_month = models.PositiveIntegerField(default=30)
+    consistency_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="% de dias com registro (days_with_transactions / days_in_month)",
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('user', 'year', 'month')
+        ordering = ['-year', '-month']
+    
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.user.username} - {self.year}/{self.month:02d}"
+
+
+class MissionProgressSnapshot(models.Model):
+    """
+    Snapshot diário do progresso de uma missão específica.
+    
+    Criado automaticamente para cada missão ativa.
+    Permite validação temporal e detecção de violações.
+    """
+    
+    mission_progress = models.ForeignKey(
+        'MissionProgress',
+        on_delete=models.CASCADE,
+        related_name='snapshots',
+    )
+    snapshot_date = models.DateField()
+    
+    # Valores dos indicadores neste dia
+    tps_value = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    rdr_value = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    ili_value = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    
+    # Para missões de categoria
+    category_spending = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Gasto na categoria alvo neste dia/período",
+    )
+    
+    # Para missões de meta
+    goal_progress = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="% de progresso da meta neste dia",
+    )
+    goal_current_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    
+    # Para missões de poupança
+    savings_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Total em poupança neste dia",
+    )
+    
+    # Validação de critério
+    met_criteria = models.BooleanField(
+        default=False,
+        help_text="Se atendeu os critérios da missão neste dia",
+    )
+    criteria_details = models.JSONField(
+        default=dict,
+        help_text="Detalhes de quais critérios foram atendidos",
+    )
+    # Exemplo: {
+    #   "tps_target": {"required": 20, "actual": 22, "met": true},
+    #   "consecutive_days": 5
+    # }
+    
+    # Dias consecutivos até este ponto
+    consecutive_days_met = models.PositiveIntegerField(
+        default=0,
+        help_text="Quantos dias consecutivos atendeu critério até hoje",
+    )
+    
+    # Progresso calculado (0-100%)
+    progress_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('mission_progress', 'snapshot_date')
+        ordering = ['snapshot_date']
+        indexes = [
+            models.Index(fields=['mission_progress', 'snapshot_date']),
+            models.Index(fields=['snapshot_date']),
+        ]
+    
+    def __str__(self) -> str:  # pragma: no cover
+        return f"{self.mission_progress} - {self.snapshot_date}"
 
 
 class Friendship(models.Model):

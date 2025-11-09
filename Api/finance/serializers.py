@@ -3,7 +3,19 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
+from .models import (
+    Category,
+    Friendship,
+    Goal,
+    Mission,
+    MissionProgress,
+    MissionProgressSnapshot,
+    Transaction,
+    TransactionLink,
+    UserDailySnapshot,
+    UserMonthlySnapshot,
+    UserProfile,
+)
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -353,6 +365,18 @@ class MissionSerializer(serializers.ModelSerializer):
             "min_transactions",
             "duration_days",
             "is_active",
+            # Novos campos de validação avançada
+            "validation_type",
+            "requires_consecutive_days",
+            "min_consecutive_days",
+            "target_category",
+            "target_reduction_percent",
+            "category_spending_limit",
+            "target_goal",
+            "goal_progress_target",
+            "savings_increase_amount",
+            "requires_daily_action",
+            "min_daily_actions",
         )
 
 
@@ -384,6 +408,17 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "days_remaining",
             "progress_percentage",
             "current_vs_initial",
+            # Novos campos de rastreamento avançado
+            "baseline_category_spending",
+            "baseline_period_days",
+            "initial_goal_progress",
+            "initial_savings_amount",
+            "current_streak",
+            "max_streak",
+            "days_met_criteria",
+            "days_violated_criteria",
+            "last_violation_date",
+            "validation_details",
         )
         read_only_fields = (
             "initial_tps",
@@ -393,6 +428,16 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "days_remaining",
             "progress_percentage",
             "current_vs_initial",
+            "baseline_category_spending",
+            "baseline_period_days",
+            "initial_goal_progress",
+            "initial_savings_amount",
+            "current_streak",
+            "max_streak",
+            "days_met_criteria",
+            "days_violated_criteria",
+            "last_violation_date",
+            "validation_details",
         )
 
     def get_days_remaining(self, obj):
@@ -454,6 +499,86 @@ class MissionProgressSerializer(serializers.ModelSerializer):
         if status == MissionProgress.Status.COMPLETED:
             validated_data.setdefault("completed_at", timezone.now())
         return super().update(instance, validated_data)
+
+
+class UserDailySnapshotSerializer(serializers.ModelSerializer):
+    """Serializer para snapshots diários do usuário."""
+    
+    class Meta:
+        model = UserDailySnapshot
+        fields = (
+            "id",
+            "snapshot_date",
+            "tps",
+            "rdr",
+            "ili",
+            "total_income",
+            "total_expense",
+            "total_debt",
+            "available_balance",
+            "category_spending",
+            "savings_added_today",
+            "savings_total",
+            "goals_progress",
+            "transactions_registered_today",
+            "transaction_count_today",
+            "total_transactions_lifetime",
+            "budget_exceeded",
+            "budget_violations",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+
+class UserMonthlySnapshotSerializer(serializers.ModelSerializer):
+    """Serializer para snapshots mensais consolidados."""
+    
+    class Meta:
+        model = UserMonthlySnapshot
+        fields = (
+            "id",
+            "year",
+            "month",
+            "avg_tps",
+            "avg_rdr",
+            "avg_ili",
+            "total_income",
+            "total_expense",
+            "total_savings",
+            "top_category",
+            "top_category_amount",
+            "category_spending",
+            "days_with_transactions",
+            "days_in_month",
+            "consistency_rate",
+            "created_at",
+        )
+        read_only_fields = ("id", "created_at")
+
+
+class MissionProgressSnapshotSerializer(serializers.ModelSerializer):
+    """Serializer para snapshots de progresso de missões."""
+    
+    class Meta:
+        model = MissionProgressSnapshot
+        fields = (
+            "id",
+            "snapshot_date",
+            "tps_value",
+            "rdr_value",
+            "ili_value",
+            "category_spending",
+            "goal_progress",
+            "goal_current_amount",
+            "savings_amount",
+            "met_criteria",
+            "criteria_details",
+            "consecutive_days_met",
+            "progress_percentage",
+            "created_at",
+        )
+        read_only_fields = ("id", "created_at")
 
 
 class DashboardSummarySerializer(serializers.Serializer):

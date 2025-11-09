@@ -184,16 +184,16 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     final categoryColor = _parseCategoryColor(widget.transaction.category?.color);
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
             Colors.black,
-            const Color(0xFF0A0A0A),
+            Color(0xFF0A0A0A),
           ],
         ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Column(

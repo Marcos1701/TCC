@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
+    "django_celery_beat",
+    "django_celery_results",
     "finance",
 ]
 
@@ -262,3 +264,47 @@ LOGGING = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ============================================================================
+# CELERY CONFIGURATION
+# ============================================================================
+
+# Broker e Backend - Railway usa variáveis de ambiente do Redis
+# Railway automaticamente injeta REDIS_URL quando você adiciona o serviço Redis
+CELERY_BROKER_URL = os.getenv('REDIS_URL', os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'))
+
+# Para Railway: usar mesma URL do Redis para results (mais simples)
+# Em desenvolvimento local: usar django-db
+if os.getenv('RAILWAY_ENVIRONMENT'):
+    # Produção no Railway - usar Redis para tudo
+    CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+else:
+    # Desenvolvimento local - usar Django DB
+    CELERY_RESULT_BACKEND = 'django-db'
+
+# Celery Beat Scheduler (usar Django DB em ambos os ambientes)
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Timezone
+CELERY_TIMEZONE = 'America/Sao_Paulo'
+CELERY_ENABLE_UTC = True
+
+# Serialização
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Configurações de Task
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutos
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutos
+CELERY_TASK_ACKS_LATE = True  # Reconhecer task apenas após conclusão
+CELERY_WORKER_PREFETCH_MULTIPLIER = 4
+
+# Resultados
+CELERY_RESULT_EXTENDED = True
+CELERY_RESULT_EXPIRES = 60 * 60 * 24  # Resultados expiram em 24 horas
+
+# Worker
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000  # Reiniciar worker após 1000 tasks

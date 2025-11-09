@@ -215,11 +215,11 @@ class _AdminMissionsManagementPageState
                   width: 1,
               ),
             ),
-            title: Row(
+            title: const Row(
               children: [
                 Icon(Icons.edit, color: AppColors.primary),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'Editar Missão',
                   style: TextStyle(
                     color: Colors.white,
@@ -249,7 +249,7 @@ class _AdminMissionsManagementPageState
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedType,
+                    initialValue: selectedType,
                     dropdownColor: const Color(0xFF2A2A2A),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -287,7 +287,7 @@ class _AdminMissionsManagementPageState
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: selectedDifficulty,
+                    initialValue: selectedDifficulty,
                     dropdownColor: const Color(0xFF2A2A2A),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -329,8 +329,8 @@ class _AdminMissionsManagementPageState
                   // Validações
                   if (titleController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('O título é obrigatório'),
+                      const SnackBar(
+                        content: Text('O título é obrigatório'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -340,8 +340,8 @@ class _AdminMissionsManagementPageState
                   final xpValue = int.tryParse(xpController.text);
                   if (xpValue == null || xpValue <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('XP deve ser um número válido maior que zero'),
+                      const SnackBar(
+                        content: Text('XP deve ser um número válido maior que zero'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -363,8 +363,8 @@ class _AdminMissionsManagementPageState
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: const Text('Missão atualizada com sucesso!'),
+                        const SnackBar(
+                          content: Text('Missão atualizada com sucesso!'),
                           backgroundColor: AppColors.success,
                         ),
                       );
@@ -413,11 +413,11 @@ class _AdminMissionsManagementPageState
             width: 1,
           ),
         ),
-        title: Row(
+        title: const Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: AppColors.alert),
-            const SizedBox(width: 12),
-            const Text(
+            SizedBox(width: 12),
+            Text(
               'Confirmar Exclusão',
               style: TextStyle(
                 color: Colors.white,
@@ -453,7 +453,7 @@ class _AdminMissionsManagementPageState
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Esta ação não pode ser desfeita.',
               style: TextStyle(
                 color: AppColors.alert,
@@ -488,8 +488,8 @@ class _AdminMissionsManagementPageState
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Missão excluída com sucesso!'),
+            const SnackBar(
+              content: Text('Missão excluída com sucesso!'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -545,7 +545,7 @@ class _AdminMissionsManagementPageState
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
           ),
         ),
@@ -563,7 +563,7 @@ class _AdminMissionsManagementPageState
         builder: (context, setDialogState) {
           return ScaleTransition(
             scale: CurvedAnimation(
-              parent: AlwaysStoppedAnimation(1.0),
+              parent: const AlwaysStoppedAnimation(1.0),
               curve: Curves.easeOutBack,
             ),
             child: AlertDialog(
@@ -600,7 +600,7 @@ class _AdminMissionsManagementPageState
                         color: AppColors.primary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.auto_awesome,
                         color: AppColors.primary,
                         size: 24,
@@ -654,14 +654,14 @@ class _AdminMissionsManagementPageState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          const Row(
                             children: [
                               Icon(
                                 Icons.lightbulb_outline,
                                 color: AppColors.primary,
                                 size: 20,
                               ),
-                              const SizedBox(width: 10),
+                              SizedBox(width: 10),
                               Text(
                                 'Como Funciona',
                                 style: TextStyle(
@@ -704,7 +704,7 @@ class _AdminMissionsManagementPageState
                           size: 18,
                         ),
                         const SizedBox(width: 8),
-                        Text(
+                        const Text(
                           'Selecione a Faixa de Usuários',
                           style: TextStyle(
                             color: Colors.white,
@@ -724,11 +724,11 @@ class _AdminMissionsManagementPageState
                         ),
                       ),
                       child: DropdownButtonFormField<String>(
-                        value: _selectedTier,
+                        initialValue: _selectedTier,
                         dropdownColor: const Color(0xFF2A2A2A),
                         style: const TextStyle(color: Colors.white, fontSize: 13),
                         isExpanded: true,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
@@ -738,8 +738,8 @@ class _AdminMissionsManagementPageState
                             size: 20,
                           ),
                           filled: true,
-                          fillColor: const Color(0xFF0D0D0D),
-                          contentPadding: const EdgeInsets.symmetric(
+                          fillColor: Color(0xFF0D0D0D),
+                          contentPadding: EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 14,
                           ),
@@ -802,7 +802,7 @@ class _AdminMissionsManagementPageState
                         ),
                         child: Column(
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               width: 48,
                               height: 48,
                               child: CircularProgressIndicator(
@@ -813,7 +813,7 @@ class _AdminMissionsManagementPageState
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Text(
+                            const Text(
                               'Gerando missões com IA...',
                               style: TextStyle(
                                 color: Colors.white,
@@ -1090,9 +1090,9 @@ class _AdminMissionsManagementPageState
           // Header com contador
           Row(
             children: [
-              Icon(Icons.filter_list, color: AppColors.primary, size: 20),
+              const Icon(Icons.filter_list, color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 'Busca e Filtros',
                 style: TextStyle(
                   fontSize: 16,
@@ -1112,7 +1112,7 @@ class _AdminMissionsManagementPageState
                 ),
                 child: Text(
                   '$filteredCount de $totalCount missões',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.primary,
@@ -1130,7 +1130,7 @@ class _AdminMissionsManagementPageState
             decoration: InputDecoration(
               hintText: 'Buscar por título ou descrição...',
               hintStyle: TextStyle(color: Colors.grey[600]),
-              prefixIcon: Icon(Icons.search, color: AppColors.primary),
+              prefixIcon: const Icon(Icons.search, color: AppColors.primary),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
                       icon: Icon(Icons.clear, color: Colors.grey[600]),
@@ -1155,7 +1155,7 @@ class _AdminMissionsManagementPageState
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.primary, width: 2),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
           ),
@@ -1178,7 +1178,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _filterType,
+                      initialValue: _filterType,
                       dropdownColor: const Color(0xFF2A2A2A),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(
@@ -1239,7 +1239,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _filterDifficulty,
+                      initialValue: _filterDifficulty,
                       dropdownColor: const Color(0xFF2A2A2A),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(
@@ -1296,7 +1296,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _filterStatus,
+                      initialValue: _filterStatus,
                       dropdownColor: const Color(0xFF2A2A2A),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(
@@ -1343,7 +1343,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _sortBy,
+                      initialValue: _sortBy,
                       dropdownColor: const Color(0xFF2A2A2A),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(
@@ -1437,8 +1437,8 @@ class _AdminMissionsManagementPageState
           children: [
             Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1E1E1E),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -1448,7 +1448,7 @@ class _AdminMissionsManagementPageState
               ),
             ),
             const SizedBox(height: 24),
-            Text(
+            const Text(
               'Nenhuma missão encontrada',
               style: TextStyle(
                 color: Colors.white,
@@ -1545,7 +1545,7 @@ class _AdminMissionsManagementPageState
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.inventory_2,
                         size: 16,
                         color: AppColors.primary,
@@ -1553,7 +1553,7 @@ class _AdminMissionsManagementPageState
                       const SizedBox(width: 6),
                       Text(
                         '${_filteredAndSortedMissions.length} total',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
@@ -1708,20 +1708,20 @@ class _MissionCard extends StatelessWidget {
                     // Botão de editar
                     IconButton(
                       onPressed: onEdit,
-                      icon: Icon(
+                      icon: const Icon(
                         Icons.edit,
                         color: AppColors.primary,
                         size: 20,
                       ),
                       tooltip: 'Editar missão',
-                      padding: EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(),
                     ),
                     const SizedBox(width: 8),
                     Switch(
                       value: isActive,
                       onChanged: (_) => onToggleStatus(),
-                      activeColor: AppColors.primary,
+                      activeThumbColor: AppColors.primary,
                       activeTrackColor: AppColors.primary.withOpacity(0.3),
                       inactiveThumbColor: Colors.grey[600],
                       inactiveTrackColor: Colors.grey[800],
@@ -1798,7 +1798,7 @@ class _MissionCard extends StatelessWidget {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: onDelete,
-                    icon: Icon(Icons.delete_outline, size: 18),
+                    icon: const Icon(Icons.delete_outline, size: 18),
                     label: const Text('Excluir Missão'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.alert,
