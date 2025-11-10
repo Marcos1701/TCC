@@ -111,21 +111,12 @@ class _TransactionsPageState extends State<TransactionsPage> {
     final totals = <String, double>{
       'INCOME': 0,
       'EXPENSE': 0,
-      'DEBT_PAYMENT': 0,
     };
     
     // Somar transações normais
     for (final tx in transactions) {
       totals.update(tx.type, (value) => value + tx.amount,
           ifAbsent: () => tx.amount);
-    }
-    
-    // Somar valores dos links de pagamento
-    for (final link in _viewModel.links) {
-      if (link.linkType == 'DEBT_PAYMENT') {
-        totals.update('DEBT_PAYMENT', (value) => value + link.linkedAmount,
-            ifAbsent: () => link.linkedAmount);
-      }
     }
     
     return totals;
@@ -233,12 +224,6 @@ class _TransactionsPageState extends State<TransactionsPage> {
                             selected: _viewModel.filter == 'EXPENSE',
                             onTap: () => _applyFilter('EXPENSE'),
                             icon: Icons.arrow_downward_rounded,
-                          ),
-                          _FilterChip(
-                            label: 'Pagamentos',
-                            selected: _viewModel.filter == 'DEBT_PAYMENT',
-                            onTap: () => _applyFilter('DEBT_PAYMENT'),
-                            icon: Icons.account_balance_wallet_outlined,
                           ),
                         ],
                       ),
@@ -691,8 +676,6 @@ class _TransactionTile extends StatelessWidget {
         return Icons.arrow_upward_rounded;
       case 'EXPENSE':
         return Icons.arrow_downward_rounded;
-      case 'DEBT_PAYMENT':
-        return Icons.account_balance_wallet_outlined;
       default:
         return Icons.swap_horiz_rounded;
     }
@@ -742,13 +725,6 @@ class _TransactionsSummaryStrip extends StatelessWidget {
         value: totals['EXPENSE'] ?? 0,
         icon: Icons.arrow_downward_rounded,
         color: AppColors.alert,
-      ),
-      _SummaryMetric(
-        key: 'DEBT_PAYMENT',
-        title: 'Pagamentos',
-        value: totals['DEBT_PAYMENT'] ?? 0,
-        icon: Icons.account_balance_wallet_outlined,
-        color: AppColors.highlight,
       ),
     ];
 

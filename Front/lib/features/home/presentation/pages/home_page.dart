@@ -8,7 +8,6 @@ import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
-import '../../../../core/services/debt_notification_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/services/gamification_service.dart';
 import '../../../../core/services/mission_notification_service.dart';
@@ -123,22 +122,6 @@ class _HomePageState extends State<HomePage> {
       context: context,
       missions: data.activeMissions,
     );
-    
-    // Verificar despesas pendentes (final do mês)
-    if (!mounted) return;
-    final debtService = DebtNotificationService();
-    final shouldNotify = await debtService.shouldShowNotification();
-    
-    if (shouldNotify && mounted) {
-      final pendingData = await debtService.checkPendingDebts();
-      
-      if (pendingData != null && mounted) {
-        await DebtNotificationService.showNotificationDialog(
-          context,
-          pendingData,
-        );
-      }
-    }
     
     // Atualiza o estado DEPOIS de todo trabalho assíncrono
     if (mounted) {
@@ -344,7 +327,7 @@ class _HomeSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final saldo = summary.totalIncome - summary.totalExpense - summary.debtPayments;
+    final saldo = summary.totalIncome - summary.totalExpense;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -532,41 +515,6 @@ class _HomeSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          // Card de Pagamentos
-          if (summary.debtPayments > 0)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2A2A5E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: AppColors.highlight,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Pagamentos:',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    currency.format(summary.debtPayments),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: AppColors.highlight,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           const SizedBox(height: 16),
           
           // Botões de ação
@@ -623,7 +571,7 @@ class _HomeSummaryCard extends StatelessWidget {
     SummaryMetrics summary,
     NumberFormat currency,
   ) {
-    final saldo = summary.totalIncome - summary.totalExpense - summary.debtPayments;
+    final saldo = summary.totalIncome - summary.totalExpense;
     
     showModalBottomSheet(
       context: context,
@@ -694,18 +642,6 @@ class _HomeSummaryCard extends StatelessWidget {
                     color: AppColors.alert,
                     icon: Icons.remove,
                   ),
-                  if (summary.debtPayments > 0) ...[
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Divider(color: Colors.white12, height: 1),
-                    ),
-                    _BalanceCalculationRow(
-                      label: 'Pagamentos',
-                      value: currency.format(summary.debtPayments),
-                      color: AppColors.highlight,
-                      icon: Icons.remove,
-                    ),
-                  ],
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Divider(color: Colors.white24, height: 2, thickness: 2),
@@ -741,9 +677,7 @@ class _HomeSummaryCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      summary.debtPayments > 0
-                          ? 'Os pagamentos são valores vinculados de receitas para quitar despesas, reduzindo seu saldo disponível.'
-                          : 'Saldo = Receitas - Despesas. Use "Pagar Despesa" para vincular receitas a despesas pendentes.',
+                      'Saldo = Receitas - Despesas. Use "Pagar Despesa" para vincular receitas a despesas pendentes.',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
@@ -1783,7 +1717,6 @@ class _TransactionTile extends StatelessWidget {
     
     // Determina o tipo de transação e cores correspondentes
     final isIncome = transaction.type.toUpperCase() == 'INCOME';
-    final isPayment = transaction.type.toUpperCase() == 'DEBT_PAYMENT';
     
     // Define cores baseadas no tipo
     Color color;
@@ -1791,9 +1724,6 @@ class _TransactionTile extends StatelessWidget {
     if (isIncome) {
       color = AppColors.support; // Verde para receitas
       prefix = '+';
-    } else if (isPayment) {
-      color = AppColors.highlight; // Laranja para pagamentos
-      prefix = '-';
     } else {
       color = AppColors.alert; // Vermelho para despesas
       prefix = '-';
@@ -1907,8 +1837,6 @@ class _TransactionTile extends StatelessWidget {
       switch (transactionType.toUpperCase()) {
         case 'INCOME':
           return Icons.arrow_upward;
-        case 'DEBT_PAYMENT':
-          return Icons.payment;
         case 'EXPENSE':
         default:
           return Icons.arrow_downward;
@@ -1939,8 +1867,6 @@ class _TransactionTile extends StatelessWidget {
     switch (transactionType.toUpperCase()) {
       case 'INCOME':
         return Icons.arrow_upward;
-      case 'DEBT_PAYMENT':
-        return Icons.payment;
       case 'EXPENSE':
       default:
         return Icons.arrow_downward;

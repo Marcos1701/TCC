@@ -16,79 +16,21 @@ logger = logging.getLogger(__name__)
 
 
 def _decimal(value) -> Decimal:
+    """Converte um valor para Decimal, retornando 0 se None."""
     if isinstance(value, Decimal):
         return value
     return Decimal(value or 0)
 
 
-def _debt_components(user) -> Dict[str, Decimal]:
-    """
-    Calcula componentes da dívida de forma otimizada.
-    
-    Otimização: 3 queries → 1 query usando CASE WHEN
-    Performance: ~60% mais rápido
-    """
-    from django.db.models import Case, When, Value, DecimalField, F
-    
-    # Single query com agregações condicionais
-    result = Transaction.objects.filter(
-        user=user, 
-        category__type=Category.CategoryType.DEBT
-    ).aggregate(
-        increases=Coalesce(
-            Sum(Case(
-                When(type=Transaction.TransactionType.EXPENSE, then=F('amount')),
-                default=Value(0),
-                output_field=DecimalField()
-            )),
-            Decimal("0")
-        ),
-        payments=Coalesce(
-            Sum(Case(
-                When(type=Transaction.TransactionType.DEBT_PAYMENT, then=F('amount')),
-                default=Value(0),
-                output_field=DecimalField()
-            )),
-            Decimal("0")
-        ),
-        adjustments=Coalesce(
-            Sum(Case(
-                When(type=Transaction.TransactionType.INCOME, then=F('amount')),
-                default=Value(0),
-                output_field=DecimalField()
-            )),
-            Decimal("0")
-        )
-    )
-    
-    increases = _decimal(result['increases'])
-    payments = _decimal(result['payments'])
-    adjustments = _decimal(result['adjustments'])
-    balance = increases - payments - adjustments
-    
-    return {
-        "increases": increases,
-        "payments": payments,
-        "adjustments": adjustments,
-        "balance": balance,
-    }
-
 
 def calculate_summary(user) -> Dict[str, Decimal]:
     """
-    Calcula os indicadores financeiros principais do usuário.
+    Calcula indicadores financeiros de um usuário.
     Utiliza cache quando disponível e não expirado.
-    ATUALIZADO: Considera vinculações de transações para evitar dupla contagem.
     
     Indicadores calculados:
-    - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas - Pagamentos via Links) / Receitas) × 100
-      Mede quanto % da renda foi efetivamente poupado após pagar todas as despesas e dívidas.
-      IMPORTANTE: Usa pagamentos REAIS via vinculação, não duplica com DEBT_PAYMENT.
-      
-    - RDR (Razão Dívida/Renda): (Pagamentos via Links / Receitas) × 100
-      Mede quanto % da renda está comprometido com pagamento de dívidas.
-      Valores saudáveis: ≤35%. Atenção: 35-42%. Crítico: ≥42%.
-      IMPORTANTE: Usa apenas valores VINCULADOS, não conta DEBT_PAYMENT separado.
+    - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas) / Receitas) × 100
+      Mede quanto % da renda foi efetivamente poupado após pagar todas as despesas.
       
     - ILI (Índice de Liquidez Imediata): Reservas Líquidas / Média Despesas Essenciais (3 meses)
       Mede quantos meses a reserva de emergência consegue cobrir despesas essenciais.
@@ -100,19 +42,9 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     Returns:
         Dicionário com indicadores e totais financeiros
     """
-    from .models import TransactionLink
-    
     # Verificar cache
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if not profile.should_recalculate_indicators():
-        # Calcular debt_payments mesmo quando usa cache (é rápido)
-        debt_payments_via_links = _decimal(
-            TransactionLink.objects.filter(
-                user=user,
-                link_type=TransactionLink.LinkType.DEBT_PAYMENT
-            ).aggregate(total=Sum('linked_amount'))['total']
-        )
-        
         # Usar valores em cache
         return {
             "tps": profile.cached_tps or Decimal("0.00"),
@@ -120,13 +52,10 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             "ili": profile.cached_ili or Decimal("0.00"),
             "total_income": profile.cached_total_income or Decimal("0.00"),
             "total_expense": profile.cached_total_expense or Decimal("0.00"),
-            "total_debt": profile.cached_total_debt or Decimal("0.00"),
-            "debt_payments": debt_payments_via_links.quantize(Decimal("0.01")),
         }
     
     # ============================================================================
-    # CÁLCULO ATUALIZADO: Considerar vinculações
-    # OTIMIZADO: Reduzir queries de 5-8 para 2-3 queries
+    # CÁLCULO: Queries otimizadas
     # ============================================================================
     
     # Query 1: Buscar total de income
@@ -137,24 +66,21 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
     
-    # Query 2: Buscar total de expense (excluir categorias DEBT)
+    # Query 2: Buscar total de expense
     total_expense = _decimal(
         Transaction.objects.filter(
             user=user,
             type=Transaction.TransactionType.EXPENSE
-        ).exclude(
-            category__type=Category.CategoryType.DEBT
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
     
-    # Query 3: Total vinculado para pagamento de dívidas
-    # Soma de todos os links onde target é uma dívida
-    # NOVO: Usar vinculações em vez de DEBT_PAYMENT
-    debt_payments_via_links = _decimal(
-        TransactionLink.objects.filter(
+    # Query 3: Buscar despesas recorrentes (para cálculo do RDR)
+    recurring_expenses = _decimal(
+        Transaction.objects.filter(
             user=user,
-            link_type=TransactionLink.LinkType.DEBT_PAYMENT
-        ).aggregate(total=Sum('linked_amount'))['total']
+            type=Transaction.TransactionType.EXPENSE,
+            is_recurring=True
+        ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
 
     # Calcular reserva de emergência usando o grupo SAVINGS
@@ -193,7 +119,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     essential_expense = essential_expense_total / Decimal("3") if essential_expense_total > 0 else Decimal("0")
 
     # ============================================================================
-    # CÁLCULO DOS INDICADORES - NOVA ABORDAGEM COM VINCULAÇÕES
+    # CÁLCULO DOS INDICADORES
     # ============================================================================
     
     tps = Decimal("0")
@@ -201,29 +127,28 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     ili = Decimal("0")
     
     if total_income > 0:
-        # TPS (Taxa de Poupança Pessoal) - CORRIGIDO
-        # Fórmula: ((Receitas - Despesas - Pagamentos Dívida Vinculados) / Receitas) × 100
-        # Agora usa pagamentos REAIS via vinculação, não duplica
+        # TPS (Taxa de Poupança Pessoal)
+        # Fórmula: ((Receitas - Despesas) / Receitas) × 100
         # 
-        # Exemplo: Ganhou R$ 5.000, gastou R$ 2.000, pagou R$ 1.500 de dívida via link
-        # TPS = (5.000 - 2.000 - 1.500) / 5.000 × 100 = 30%
-        savings = total_income - total_expense - debt_payments_via_links
+        # Exemplo: Ganhou R$ 5.000, gastou R$ 2.000
+        # TPS = (5.000 - 2.000) / 5.000 × 100 = 60%
+        savings = total_income - total_expense
         tps = (savings / total_income) * Decimal("100")
         
-        # RDR (Razão Dívida/Renda) - CORRIGIDO
-        # Fórmula: (Pagamentos Dívida Vinculados / Receitas) × 100
-        # Agora usa valor REAL pago via vinculação
+        # RDR (Razão Despesas Recorrentes/Renda)
+        # Fórmula: (Despesas Recorrentes / Receitas) × 100
+        # Mede quanto % da renda está comprometido com despesas fixas recorrentes
         # 
-        # Exemplo: Ganhou R$ 5.000, pagou R$ 1.500 de dívidas via link
+        # Exemplo: Ganhou R$ 5.000, tem R$ 1.500 de despesas recorrentes
         # RDR = 1.500 / 5.000 × 100 = 30%
         # 
-        # Referências (CFPB, bancos brasileiros):
+        # Referências:
         # - ≤35%: Saudável
-        # - 36-42%: Atenção
-        # - ≥43%: Crítico (risco de inadimplência)
-        rdr = (debt_payments_via_links / total_income) * Decimal("100")
+        # - 36-50%: Atenção
+        # - ≥51%: Crítico (pouca flexibilidade financeira)
+        rdr = (recurring_expenses / total_income) * Decimal("100")
     
-    # ILI (Índice de Liquidez Imediata) - MANTÉM LÓGICA ATUAL
+    # ILI (Índice de Liquidez Imediata)
     # Fórmula: Reserva de Emergência / Despesas Essenciais Mensais
     # Representa quantos meses a reserva consegue cobrir despesas essenciais
     # 
@@ -235,25 +160,19 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     if essential_expense > 0:
         ili = reserve_balance / essential_expense
 
-    # Total de dívidas (saldo devedor atual)
-    debt_info = _debt_components(user)
-    debt_total = debt_info["balance"] if debt_info["balance"] > 0 else Decimal("0")
-
     # Atualizar cache
     profile.cached_tps = tps.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00")
     profile.cached_rdr = rdr.quantize(Decimal("0.01")) if total_income > 0 else Decimal("0.00")
     profile.cached_ili = ili.quantize(Decimal("0.01")) if essential_expense > 0 else Decimal("0.00")
     profile.cached_total_income = total_income.quantize(Decimal("0.01"))
     profile.cached_total_expense = total_expense.quantize(Decimal("0.01"))
-    profile.cached_total_debt = debt_total.quantize(Decimal("0.01"))
     profile.indicators_updated_at = timezone.now()
     profile.save(update_fields=[
-        'cached_tps', 
+        'cached_tps',
         'cached_rdr', 
         'cached_ili', 
         'cached_total_income',
         'cached_total_expense',
-        'cached_total_debt',
         'indicators_updated_at'
     ])
 
@@ -263,8 +182,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         "ili": profile.cached_ili,
         "total_income": profile.cached_total_income,
         "total_expense": profile.cached_total_expense,
-        "total_debt": profile.cached_total_debt,
-        "debt_payments": debt_payments_via_links.quantize(Decimal("0.01")),
     }
 
 
@@ -392,32 +309,22 @@ def auto_link_recurring_transactions(user) -> int:
 
 
 def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
+    """
+    Quebra transações por categoria, agrupando por tipo.
+    
+    Returns:
+        Dicionário com listas de categorias por tipo (INCOME, EXPENSE)
+    """
     buckets: Dict[str, List[Dict[str, str]]] = defaultdict(list)
     queryset = (
         Transaction.objects.filter(user=user, category__isnull=False)
-        .annotate(
-            signed_amount=Case(
-                When(
-                    category__type=Category.CategoryType.DEBT,
-                    type__in=[
-                        Transaction.TransactionType.DEBT_PAYMENT,
-                        Transaction.TransactionType.INCOME,
-                    ],
-                    then=-F("amount"),
-                ),
-                default=F("amount"),
-                output_field=DecimalField(max_digits=12, decimal_places=2),
-            )
-        )
         .values("category__name", "category__type", "category__group")
-        .annotate(total=Coalesce(Sum("signed_amount"), Decimal("0")))
+        .annotate(total=Coalesce(Sum("amount"), Decimal("0")))
         .order_by("category__name")
     )
 
     for item in queryset:
         total_value = _decimal(item["total"])
-        if item["category__type"] == Category.CategoryType.DEBT:
-            total_value = max(total_value, Decimal("0"))
         buckets[item["category__type"]].append(
             {
                 "name": item["category__name"],
@@ -426,39 +333,6 @@ def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
             }
         )
     return buckets
-
-
-def _calculate_monthly_indicators(income: Decimal, expense: Decimal, debt_payments: Decimal, debt_balance: Decimal) -> Dict[str, Decimal]:
-    """
-    Calcula TPS e RDR para um período específico.
-    Extrai lógica comum usada em calculate_summary e cashflow_series.
-    
-    Args:
-        income: Total de receitas do período
-        expense: Total de despesas do período
-        debt_payments: Total de pagamentos de dívida do período
-        debt_balance: Saldo de dívidas do período (não usado no cálculo, mantido para compatibilidade)
-        
-    Returns:
-        Dicionário com 'tps' e 'rdr' calculados
-    """
-    tps = Decimal("0")
-    rdr = Decimal("0")
-    
-    if income > 0:
-        # TPS: poupança líquida após despesas e pagamentos de dívida
-        # TPS = ((Receitas - Despesas - Pagamentos de Dívida) / Receitas) × 100
-        savings = income - expense - debt_payments
-        tps = (savings / income) * Decimal("100")
-        
-        # RDR: comprometimento da renda com pagamentos de dívidas
-        # RDR = (Pagamentos Mensais de Dívidas / Receitas) × 100
-        rdr = (debt_payments / income) * Decimal("100")
-    
-    return {
-        "tps": tps.quantize(Decimal("0.01")),
-        "rdr": rdr.quantize(Decimal("0.01")),
-    }
 
 
 def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
@@ -494,6 +368,27 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         else:
             month = month_value
         buckets[month][item["type"]] += _decimal(item["total"])
+
+    # Buscar transações de dívida
+    debt_data = (
+        Transaction.objects.filter(
+            user=user,
+            category__type=Category.CategoryType.DEBT,
+            date__gte=first_day,
+        )
+        .annotate(month=TruncMonth("date"))
+        .values("month", "type")
+        .annotate(total=Sum("amount"))
+    )
+
+    debt_buckets: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
+    for item in debt_data:
+        month_value = item["month"]
+        if isinstance(month_value, datetime):
+            month = month_value.date()
+        else:
+            month = month_value
+        debt_buckets[month][item["type"]] += _decimal(item["total"])
 
     # Buscar transações de dívida
     debt_data = (
@@ -561,30 +456,25 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             # Usar projeções para meses futuros
             income = recurrence_projections[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
             expense = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
-            debt = Decimal("0")
         else:
             # Usar dados reais para meses passados
             income = buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
             expense = buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
-            debt_increase = debt_buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
-            debt_payment = debt_buckets[current].get(Transaction.TransactionType.DEBT_PAYMENT, Decimal("0"))
-            debt_adjustment = debt_buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
-            debt = debt_increase - debt_payment - debt_adjustment
-            if debt < 0:
-                debt = Decimal("0")
+        
+        # Calcular TPS inline
+        tps = Decimal("0")
+        if income > 0:
+            savings = income - expense
+            tps = (savings / income) * Decimal("100")
         
         # Filtrar meses sem dados
-        if income > 0 or expense > 0 or debt > 0:
-            indicators = _calculate_monthly_indicators(income, expense, Decimal("0"), debt)
-            
+        if income > 0 or expense > 0:
             series.append(
                 {
                     "month": current.strftime("%Y-%m"),
                     "income": income.quantize(Decimal("0.01")),
                     "expense": expense.quantize(Decimal("0.01")),
-                    "debt": debt.quantize(Decimal("0.01")),
-                    "tps": indicators["tps"],
-                    "rdr": indicators["rdr"],
+                    "tps": tps.quantize(Decimal("0.01")),
                     "is_projection": is_future,
                 }
             )

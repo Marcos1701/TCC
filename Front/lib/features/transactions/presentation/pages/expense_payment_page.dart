@@ -88,7 +88,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
         sourceId: _selectedIncome!.id,
         targetId: _selectedExpense!.id,
         amount: amount,
-        linkType: 'DEBT_PAYMENT',
+        linkType: 'EXPENSE_PAYMENT',
       );
 
       await _repository.createTransactionLink(request);

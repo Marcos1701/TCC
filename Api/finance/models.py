@@ -10,7 +10,7 @@ class UserProfile(models.Model):
     level = models.PositiveIntegerField(default=1)
     experience_points = models.PositiveIntegerField(default=0)
     target_tps = models.PositiveIntegerField(default=15, help_text="meta básica de poupança em %")
-    target_rdr = models.PositiveIntegerField(default=35, help_text="meta de dívida/renda em %")
+    target_rdr = models.PositiveIntegerField(default=35, help_text="meta de despesas recorrentes/renda em %")
     target_ili = models.DecimalField(
         max_digits=4,
         decimal_places=1,
@@ -57,13 +57,6 @@ class UserProfile(models.Model):
         null=True,
         blank=True,
         help_text="Total de despesas em cache",
-    )
-    cached_total_debt = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="Total de dívidas em cache",
     )
     indicators_updated_at = models.DateTimeField(
         null=True, 
@@ -147,11 +140,6 @@ class UserProfile(models.Model):
                 'cached_total_expense': 'Total de despesas em cache não pode ser negativo.'
             })
         
-        if self.cached_total_debt is not None and self.cached_total_debt < Decimal('0'):
-            raise ValidationError({
-                'cached_total_debt': 'Total de dívidas em cache não pode ser negativo.'
-            })
-        
         # 9. Validar que indicators_updated_at não é no futuro
         if self.indicators_updated_at:
             from django.utils import timezone
@@ -190,7 +178,6 @@ class Category(models.Model):
     class CategoryType(models.TextChoices):
         INCOME = "INCOME", "Receita"
         EXPENSE = "EXPENSE", "Despesa"
-        DEBT = "DEBT", "Dívida"
 
     class CategoryGroup(models.TextChoices):
         REGULAR_INCOME = "REGULAR_INCOME", "Renda principal"
@@ -199,7 +186,6 @@ class Category(models.Model):
         INVESTMENT = "INVESTMENT", "Investimentos"
         ESSENTIAL_EXPENSE = "ESSENTIAL_EXPENSE", "Despesas essenciais"
         LIFESTYLE_EXPENSE = "LIFESTYLE_EXPENSE", "Estilo de vida"
-        DEBT = "DEBT", "Dívidas"
         GOAL = "GOAL", "Metas e sonhos"
         OTHER = "OTHER", "Outros"
 
@@ -274,10 +260,6 @@ class Category(models.Model):
                 self.CategoryGroup.GOAL,
                 self.CategoryGroup.OTHER,
             ],
-            self.CategoryType.DEBT: [
-                self.CategoryGroup.DEBT,
-                self.CategoryGroup.OTHER,
-            ],
         }
         
         if self.type in type_group_map:
@@ -319,7 +301,6 @@ class Transaction(models.Model):
     class TransactionType(models.TextChoices):
         INCOME = "INCOME", "Receita"
         EXPENSE = "EXPENSE", "Despesa"
-        DEBT_PAYMENT = "DEBT_PAYMENT", "Pagamento de dívida"
 
     class RecurrenceUnit(models.TextChoices):
         DAYS = "DAYS", "Dias"
@@ -464,11 +445,9 @@ class Transaction(models.Model):
             target_transaction_uuid=self.id
         ).aggregate(total=Sum('linked_amount'))['total'] or Decimal('0')
         
-        # Para receitas, usar outgoing; para dívidas, usar incoming
+        # Para receitas, usar outgoing
         if self.type == self.TransactionType.INCOME:
             return outgoing
-        elif self.category and self.category.type == Category.CategoryType.DEBT:
-            return incoming
         
         return Decimal('0')
     
@@ -505,17 +484,17 @@ class Transaction(models.Model):
 class TransactionLink(models.Model):
     """
     Representa uma vinculação entre transações que se anulam parcial ou totalmente.
-    Usado principalmente para pagamento de dívidas: vincular receita → dívida.
+    Usado principalmente para pagamento de despesas: vincular receita → despesa.
     
     Exemplo:
-    - Receita (Salário) R$ 5.000 → Dívida (Cartão) R$ 2.000
+    - Receita (Salário) R$ 5.000 → Despesa (Conta de Luz) R$ 200
     - Após vinculação:
-      - Salário tem R$ 3.000 disponíveis
-      - Cartão tem R$ 0 devendo
+      - Salário tem R$ 4.800 disponíveis
+      - Conta de Luz está paga
     """
     
     class LinkType(models.TextChoices):
-        DEBT_PAYMENT = "DEBT_PAYMENT", "Pagamento de dívida"
+        EXPENSE_PAYMENT = "EXPENSE_PAYMENT", "Pagamento de despesa"
         INTERNAL_TRANSFER = "INTERNAL_TRANSFER", "Transferência interna"
         SAVINGS_ALLOCATION = "SAVINGS_ALLOCATION", "Alocação para poupança"
     
@@ -597,7 +576,7 @@ class TransactionLink(models.Model):
     link_type = models.CharField(
         max_length=20,
         choices=LinkType.choices,
-        default=LinkType.DEBT_PAYMENT
+        default=LinkType.EXPENSE_PAYMENT
     )
     
     # Metadados
@@ -663,18 +642,17 @@ class TransactionLink(models.Model):
             )
         
         # 4. Validar tipo de transação para diferentes link_types
-        if self.link_type == self.LinkType.DEBT_PAYMENT:
+        if self.link_type == self.LinkType.EXPENSE_PAYMENT:
             # Source deve ser receita
             if self.source_transaction.type != Transaction.TransactionType.INCOME:
                 raise ValidationError(
-                    "Para pagamento de dívida, a transação de origem deve ser uma receita (INCOME)."
+                    "Para pagamento de despesa, a transação de origem deve ser uma receita (INCOME)."
                 )
             
-            # Target deve ter categoria de dívida
-            if not self.target_transaction.category or \
-               self.target_transaction.category.type != Category.CategoryType.DEBT:
+            # Target deve ser uma despesa
+            if self.target_transaction.type != Transaction.TransactionType.EXPENSE:
                 raise ValidationError(
-                    "Para pagamento de dívida, a transação de destino deve ser uma dívida."
+                    "Para pagamento de despesa, a transação de destino deve ser uma despesa (EXPENSE)."
                 )
         
         elif self.link_type == self.LinkType.EXPENSE_PAYMENT:
@@ -714,9 +692,8 @@ class TransactionLink(models.Model):
                         f"na transação de origem (R$ {source.available_amount})"
                     )
                 
-                # Validar amount disponível na target (para despesas e dívidas)
-                if target.type == Transaction.TransactionType.EXPENSE or \
-                   (target.category and target.category.type == Category.CategoryType.DEBT):
+                # Validar amount disponível na target (para despesas)
+                if target.type == Transaction.TransactionType.EXPENSE:
                     if self.linked_amount > target.available_amount:
                         raise ValidationError(
                             f"Valor vinculado (R$ {self.linked_amount}) excede o pendente "

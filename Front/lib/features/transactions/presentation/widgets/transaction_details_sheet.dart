@@ -127,8 +127,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
         return AppColors.support;
       case 'EXPENSE':
         return AppColors.alert;
-      case 'DEBT_PAYMENT':
-        return AppColors.highlight;
       default:
         return AppColors.primary;
     }
@@ -140,8 +138,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
         return Icons.arrow_upward_rounded;
       case 'EXPENSE':
         return Icons.arrow_downward_rounded;
-      case 'DEBT_PAYMENT':
-        return Icons.account_balance_wallet_outlined;
       default:
         return Icons.swap_horiz_rounded;
     }
@@ -153,8 +149,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
         return 'Receita';
       case 'EXPENSE':
         return 'Despesa';
-      case 'DEBT_PAYMENT':
-        return 'Pagamento de Despesa';
       default:
         return type;
     }

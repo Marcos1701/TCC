@@ -120,7 +120,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     _loadCategories();
   }
 
-  String get _categoryType => _type == 'DEBT_PAYMENT' ? 'DEBT' : _type;
+  String get _categoryType => _type;
 
   void _syncDateLabel() {
     _dateController.text =

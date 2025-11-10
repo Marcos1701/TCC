@@ -5,44 +5,32 @@ import 'profile.dart';
 class SummaryMetrics {
   const SummaryMetrics({
     required this.tps,
-    required this.rdr,
     required this.ili,
     required this.totalIncome,
     required this.totalExpense,
-    required this.totalDebt,
-    required this.debtPayments,
   });
 
   final double tps;
-  final double rdr;
   final double ili;
   final double totalIncome;
   final double totalExpense;
-  final double totalDebt;
-  final double debtPayments;
 
   factory SummaryMetrics.fromMap(Map<String, dynamic> map) {
     // Se o mapa estiver vazio, retorna valores padrão (zeros)
     if (map.isEmpty) {
       return const SummaryMetrics(
         tps: 0.0,
-        rdr: 0.0,
         ili: 0.0,
         totalIncome: 0.0,
         totalExpense: 0.0,
-        totalDebt: 0.0,
-        debtPayments: 0.0,
       );
     }
     
     return SummaryMetrics(
       tps: double.parse(map['tps']?.toString() ?? '0'),
-      rdr: double.parse(map['rdr']?.toString() ?? '0'),
       ili: double.parse(map['ili']?.toString() ?? '0'),
       totalIncome: double.parse(map['total_income']?.toString() ?? '0'),
       totalExpense: double.parse(map['total_expense']?.toString() ?? '0'),
-      totalDebt: double.parse(map['total_debt']?.toString() ?? '0'),
-      debtPayments: double.parse(map['debt_payments']?.toString() ?? '0'),
     );
   }
 }

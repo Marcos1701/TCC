@@ -587,8 +587,6 @@ class DashboardSummarySerializer(serializers.Serializer):
     ili = serializers.DecimalField(max_digits=6, decimal_places=2)
     total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_expense = serializers.DecimalField(max_digits=12, decimal_places=2)
-    total_debt = serializers.DecimalField(max_digits=12, decimal_places=2)
-    debt_payments = serializers.DecimalField(max_digits=12, decimal_places=2)
 
 
 class CategoryBreakdownSerializer(serializers.Serializer):
@@ -601,9 +599,7 @@ class CashflowPointSerializer(serializers.Serializer):
     month = serializers.CharField()
     income = serializers.DecimalField(max_digits=12, decimal_places=2)
     expense = serializers.DecimalField(max_digits=12, decimal_places=2)
-    debt = serializers.DecimalField(max_digits=12, decimal_places=2)
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
-    rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
     is_projection = serializers.BooleanField(default=False)
 
 

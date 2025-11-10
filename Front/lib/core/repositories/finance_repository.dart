@@ -68,10 +68,9 @@ class FinanceRepository {
   }
 
   Future<List<CategoryModel>> fetchCategories({String? type}) async {
-    final queryType = type == 'DEBT_PAYMENT' ? 'DEBT' : type;
     final response = await _client.client.get<dynamic>(
       ApiEndpoints.categories,
-      queryParameters: queryType != null ? {'type': queryType} : null,
+      queryParameters: type != null ? {'type': type} : null,
     );
     final items = _extractListFromResponse(response.data);
     return items
@@ -85,10 +84,9 @@ class FinanceRepository {
     String? color,
     String? group,
   }) async {
-    final normalizedType = type == 'DEBT_PAYMENT' ? 'DEBT' : type;
     final payload = {
       'name': name,
-      'type': normalizedType,
+      'type': type,
       if (color != null) 'color': color,
       if (group != null) 'group': group,
     };

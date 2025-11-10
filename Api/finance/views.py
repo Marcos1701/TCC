@@ -431,17 +431,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if transaction.type == Transaction.TransactionType.INCOME:
             # Receita aumenta TPS potencial
             tps_impact = (amount / (total_income + amount)) * 100
-        elif transaction.type in [Transaction.TransactionType.EXPENSE, Transaction.TransactionType.DEBT_PAYMENT]:
-            # Despesa/pagamento reduz TPS
+        elif transaction.type == Transaction.TransactionType.EXPENSE:
+            # Despesa reduz TPS
             tps_impact = -(amount / total_income) * 100
         
-        # Impacto no RDR (apenas para dívidas)
+        # Impacto no RDR (apenas para despesas recorrentes)
         rdr_impact = 0
-        if transaction.category and transaction.category.type == Category.CategoryType.DEBT:
-            if transaction.type == Transaction.TransactionType.EXPENSE:
-                rdr_impact = (amount / total_income) * 100
-            elif transaction.type == Transaction.TransactionType.DEBT_PAYMENT:
-                rdr_impact = -(amount / total_income) * 100
+        if transaction.type == Transaction.TransactionType.EXPENSE and transaction.is_recurring:
+            rdr_impact = (amount / total_income) * 100
         
         return {
             'tps_impact': round(tps_impact, 2),
@@ -705,7 +702,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
             "source_id": 123,
             "target_id": 456,
             "amount": "150.00",
-            "link_type": "DEBT_PAYMENT",  # opcional
+            "link_type": "EXPENSE_PAYMENT",  # opcional
             "description": "...",  # opcional
             "is_recurring": false  # opcional
         }
@@ -759,7 +756,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         
         links = TransactionLink.objects.filter(
             user=request.user,
-            link_type=TransactionLink.LinkType.DEBT_PAYMENT
+            link_type=TransactionLink.LinkType.EXPENSE_PAYMENT
         ).select_related('target_transaction', 'target_transaction__category')
         
         if start_date:
@@ -870,8 +867,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         debts = Transaction.objects.filter(
             user=request.user
         ).filter(
-            Q(type=Transaction.TransactionType.EXPENSE) | 
-            Q(category__type=Category.CategoryType.DEBT)
+            Q(type=Transaction.TransactionType.EXPENSE)
         ).select_related('category')
         
         # Filtrar apenas com saldo devedor
