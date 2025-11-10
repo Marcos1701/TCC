@@ -1026,22 +1026,6 @@ class _ProfileTargetsCard extends StatefulWidget {
 
 class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
   final _repository = FinanceRepository();
-  
-  String _calculateIdealTps(double currentTps) {
-    if (currentTps < 20) {
-      return '≥ 20%';
-    } else {
-      return '≥ 20%';
-    }
-  }
-  
-  String _calculateIdealRdr(double currentRdr) {
-    return '< 35%';
-  }
-  
-  String _calculateIdealIli(double currentIli) {
-    return '≥ 6m';
-  }
 
   @override
   Widget build(BuildContext context) {
