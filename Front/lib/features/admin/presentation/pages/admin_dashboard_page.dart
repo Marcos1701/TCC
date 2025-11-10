@@ -46,10 +46,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       );
 
       if (response.data != null) {
-        // Debug: verificar tipo da resposta
-        print('Response type: ${response.data.runtimeType}');
-        print('Response data: ${response.data}');
-        
         Map<String, dynamic> data;
         
         if (response.data is Map<String, dynamic>) {
@@ -69,9 +65,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       String errorMsg = 'Erro desconhecido';
       
       if (e.response != null) {
-        print('Error status: ${e.response?.statusCode}');
-        print('Error data: ${e.response?.data}');
-        
         if (e.response?.statusCode == 403) {
           errorMsg = 'Acesso negado. Você precisa ser administrador.';
         } else if (e.response?.statusCode == 500) {
@@ -92,9 +85,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _error = errorMsg;
         _isLoading = false;
       });
-    } catch (e, stackTrace) {
-      print('Error loading stats: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       setState(() {
         _error = e.toString();
         _isLoading = false;

@@ -91,7 +91,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       
       // Para cada despesa selecionada, distribuir pagamento das receitas
       for (final debtEntry in _selectedDebts.entries) {
-        final debtId = debtEntry.key;
+        final debtUuid = debtEntry.key;
         final debtAmount = debtEntry.value;
         double remainingToAllocate = debtAmount;
         
@@ -99,7 +99,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
         for (final incomeEntry in _selectedIncomes.entries) {
           if (remainingToAllocate <= 0) break;
           
-          final incomeId = incomeEntry.key;
+          final incomeUuid = incomeEntry.key;
           final incomeAvailable = incomeEntry.value;
           
           // Quanto alocar desta receita para esta despesa
@@ -109,14 +109,14 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           
           if (allocateAmount > 0) {
             payments.add({
-              'source_id': incomeId,
-              'target_id': debtId,
+              'source_id': incomeUuid,
+              'target_id': debtUuid,
               'amount': allocateAmount,
             });
             
             remainingToAllocate -= allocateAmount;
             // Reduzir disponível para próximas despesas
-            _selectedIncomes[incomeId] = incomeAvailable - allocateAmount;
+            _selectedIncomes[incomeUuid] = incomeAvailable - allocateAmount;
           }
         }
       }
@@ -364,9 +364,10 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   }
 
   Widget _buildIncomeCard(TransactionModel income, ThemeData theme, AppDecorations tokens) {
-    final isSelected = _selectedIncomes.containsKey(income.id.toString());
+    final incomeKey = income.uuid ?? income.id.toString();
+    final isSelected = _selectedIncomes.containsKey(incomeKey);
     final available = income.availableAmount ?? income.amount;
-    final selectedAmount = _selectedIncomes[income.id.toString()] ?? available;
+    final selectedAmount = _selectedIncomes[incomeKey] ?? available;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -387,9 +388,9 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           onTap: () {
             setState(() {
               if (isSelected) {
-                _selectedIncomes.remove(income.id.toString());
+                _selectedIncomes.remove(incomeKey);
               } else {
-                _selectedIncomes[income.id.toString()] = available;
+                _selectedIncomes[incomeKey] = available;
               }
             });
           },
@@ -405,9 +406,9 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       onChanged: (value) {
                         setState(() {
                           if (value == true) {
-                            _selectedIncomes[income.id.toString()] = available;
+                            _selectedIncomes[incomeKey] = available;
                           } else {
-                            _selectedIncomes.remove(income.id.toString());
+                            _selectedIncomes.remove(incomeKey);
                           }
                         });
                       },
@@ -497,7 +498,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                             final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
                             final amount = double.tryParse(cleanValue) ?? 0.0;
                             setState(() {
-                              _selectedIncomes[income.id.toString()] = 
+                              _selectedIncomes[incomeKey] = 
                                   amount > available ? available : amount;
                             });
                           },
@@ -507,7 +508,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            _selectedIncomes[income.id.toString()] = available;
+                            _selectedIncomes[incomeKey] = available;
                           });
                         },
                         child: const Text('Máx'),
@@ -524,9 +525,10 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   }
 
   Widget _buildDebtCard(TransactionModel debt, ThemeData theme, AppDecorations tokens) {
-    final isSelected = _selectedDebts.containsKey(debt.id.toString());
+    final debtKey = debt.uuid ?? debt.id.toString();
+    final isSelected = _selectedDebts.containsKey(debtKey);
     final remaining = debt.availableAmount ?? debt.amount;
-    final selectedAmount = _selectedDebts[debt.id.toString()] ?? remaining;
+    final selectedAmount = _selectedDebts[debtKey] ?? remaining;
     final paymentPercentage = debt.linkPercentage ?? 0.0;
 
     return Container(
@@ -548,9 +550,9 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           onTap: () {
             setState(() {
               if (isSelected) {
-                _selectedDebts.remove(debt.id.toString());
+                _selectedDebts.remove(debtKey);
               } else {
-                _selectedDebts[debt.id.toString()] = remaining;
+                _selectedDebts[debtKey] = remaining;
               }
             });
           },
@@ -566,9 +568,9 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       onChanged: (value) {
                         setState(() {
                           if (value == true) {
-                            _selectedDebts[debt.id.toString()] = remaining;
+                            _selectedDebts[debtKey] = remaining;
                           } else {
-                            _selectedDebts.remove(debt.id.toString());
+                            _selectedDebts.remove(debtKey);
                           }
                         });
                       },
@@ -703,7 +705,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                             final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
                             final amount = double.tryParse(cleanValue) ?? 0.0;
                             setState(() {
-                              _selectedDebts[debt.id.toString()] = 
+                              _selectedDebts[debtKey] = 
                                   amount > remaining ? remaining : amount;
                             });
                           },
@@ -713,7 +715,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            _selectedDebts[debt.id.toString()] = remaining;
+                            _selectedDebts[debtKey] = remaining;
                           });
                         },
                         child: const Text('Quitar'),

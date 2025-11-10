@@ -136,18 +136,27 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _TransactionLinkDetailsSheet(
+      builder: (sheetContext) => _TransactionLinkDetailsSheet(
         link: link,
         currency: _currency,
         onDelete: () async {
           await _repository.deleteTransactionLink(link.identifier);  // Usar identifier
-          if (!mounted) return;
-          Navigator.pop(context);
+          
+          // Fecha o bottom sheet
+          if (sheetContext.mounted) {
+            Navigator.of(sheetContext).pop();
+          }
+          
+          // Atualiza os dados
           _viewModel.refreshSilently();
-          FeedbackService.showSuccess(
-            context,
-            'Vínculo removido com sucesso.',
-          );
+          
+          // Mostra feedback apenas se o widget principal ainda está montado
+          if (mounted && context.mounted) {
+            FeedbackService.showSuccess(
+              context,
+              'Vínculo removido com sucesso.',
+            );
+          }
         },
       ),
     );

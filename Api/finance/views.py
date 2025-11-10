@@ -479,12 +479,11 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         """
         from decimal import Decimal
         
-        # Buscar tanto transações do tipo EXPENSE quanto categorias do tipo DEBT
+        # Buscar apenas transações com categoria do tipo DEBT
+        # (o bulk_payment sempre usa link_type=DEBT_PAYMENT que exige categoria DEBT)
         transactions = Transaction.objects.filter(
-            user=request.user
-        ).filter(
-            Q(type=Transaction.TransactionType.EXPENSE) | 
-            Q(category__type=Category.CategoryType.DEBT)
+            user=request.user,
+            category__type=Category.CategoryType.DEBT
         ).select_related('category')
         
         # Filtrar por categoria se fornecido

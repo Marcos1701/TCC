@@ -98,40 +98,41 @@ class _HomePageState extends State<HomePage> {
     session.updateProfile(data.profile);
     
     // Verificar celebrações de gamificação
+    if (!mounted) return;
     await GamificationService.checkLevelUp(
       context: context,
       profile: data.profile,
     );
     
-    if (!context.mounted) return;
+    if (!mounted) return;
     await GamificationService.checkMissionCompletions(
       context: context,
       missions: data.activeMissions,
     );
     
     // Verificar missões próximas de expirar
-    if (!context.mounted) return;
+    if (!mounted) return;
     await MissionNotificationService.checkExpiringMissions(
       context: context,
       missions: data.activeMissions,
     );
     
     // Verificar novas missões
-    if (!context.mounted) return;
+    if (!mounted) return;
     await MissionNotificationService.checkNewMissions(
       context: context,
       missions: data.activeMissions,
     );
     
     // Verificar despesas pendentes (final do mês)
-    if (!context.mounted) return;
+    if (!mounted) return;
     final debtService = DebtNotificationService();
     final shouldNotify = await debtService.shouldShowNotification();
     
-    if (shouldNotify && context.mounted) {
+    if (shouldNotify && mounted) {
       final pendingData = await debtService.checkPendingDebts();
       
-      if (pendingData != null && context.mounted) {
+      if (pendingData != null && mounted) {
         await DebtNotificationService.showNotificationDialog(
           context,
           pendingData,

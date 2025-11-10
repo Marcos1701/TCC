@@ -113,6 +113,8 @@ class _ProgressPageState extends State<ProgressPage> {
       // Ignora erro
     }
     
+    if (!mounted) return;
+    
     // Função para filtrar categorias com base no tipo de meta
     List<CategoryModel> getFilteredCategories(GoalType goalType) {
       // CUSTOM: mostra todas as categorias
@@ -753,6 +755,7 @@ class _ProgressPageState extends State<ProgressPage> {
     final target = CurrencyInputFormatter.parse(targetController.text);
     final initialAmount = CurrencyInputFormatter.parse(initialAmountController.text);
 
+    if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
@@ -795,6 +798,8 @@ class _ProgressPageState extends State<ProgressPage> {
       
       // Invalida cache após criar/editar meta
       _cacheManager.invalidateAfterGoalUpdate();
+      
+      if (!mounted) return;
       
       // Feedback de sucesso
       ScaffoldMessenger.of(context).showSnackBar(

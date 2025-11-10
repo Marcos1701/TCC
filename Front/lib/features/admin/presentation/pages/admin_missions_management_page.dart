@@ -348,6 +348,10 @@ class _AdminMissionsManagementPageState
                     return;
                   }
 
+                  // Capturar referências antes do await
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
                   try {
                     await _apiClient.client.patch(
                       '/api/missions/${mission['id']}/',
@@ -360,25 +364,27 @@ class _AdminMissionsManagementPageState
                       },
                     );
 
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Missão atualizada com sucesso!'),
-                          backgroundColor: AppColors.success,
-                        ),
-                      );
-                      await _loadMissions();
-                    }
+                    if (!mounted) return;
+                    
+                    navigator.pop();
+                    
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Missão atualizada com sucesso!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                    
+                    await _loadMissions();
                   } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Erro ao atualizar: ${e.toString()}'),
-                          backgroundColor: AppColors.alert,
-                        ),
-                      );
-                    }
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao atualizar: ${e.toString()}'),
+                        backgroundColor: AppColors.alert,
+                      ),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(

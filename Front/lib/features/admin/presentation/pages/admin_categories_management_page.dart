@@ -54,25 +54,16 @@ class _AdminCategoriesManagementPageState
         
         final allCategories = dataList.cast<Map<String, dynamic>>();
         
-        // Log para debug: ver todas as categorias retornadas
-        print('📊 Total de categorias retornadas: ${allCategories.length}');
-        if (allCategories.isNotEmpty) {
-          print('📝 Primeira categoria: ${allCategories.first}');
-          print('🔍 Campo is_user_created existe? ${allCategories.first.containsKey('is_user_created')}');
-        }
-        
         // Filtrar apenas categorias globais (is_user_created = false)
         // Nota: Se o campo não existir, considera como global (false)
         setState(() {
           _categories = allCategories
               .where((cat) => (cat['is_user_created'] ?? false) == false)
               .toList();
-          print('✅ Categorias globais filtradas: ${_categories.length}');
           _isLoading = false;
         });
       }
     } catch (e) {
-      print('❌ Erro ao carregar categorias: $e');
       setState(() {
         _error = e.toString();
         _isLoading = false;
