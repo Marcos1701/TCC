@@ -424,6 +424,32 @@ class FinanceRepository {
     await _client.client.delete('${ApiEndpoints.transactionLinks}$linkId/');
   }
 
+  /// Buscar resumo de despesas pendentes
+  Future<Map<String, dynamic>> fetchPendingSummary({
+    String sortBy = 'urgency',
+  }) async {
+    final response = await _client.client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.transactionLinks}pending_summary/',
+      queryParameters: {'sort_by': sortBy},
+    );
+    return response.data ?? <String, dynamic>{};
+  }
+
+  /// Criar pagamento em lote (múltiplas vinculações)
+  Future<Map<String, dynamic>> createBulkPayment({
+    required List<Map<String, dynamic>> payments,
+    String? description,
+  }) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.transactionLinks}bulk_payment/',
+      data: {
+        'payments': payments,
+        if (description != null) 'description': description,
+      },
+    );
+    return response.data ?? <String, dynamic>{};
+  }
+
   /// Listar vinculações
   Future<List<TransactionLinkModel>> fetchTransactionLinks({
     String? linkType,

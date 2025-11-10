@@ -635,6 +635,291 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
             },
             'by_debt': list(by_debt.values())
         })
+    
+    @action(detail=False, methods=['get'])
+    def pending_summary(self, request):
+        """
+        Retorna resumo de despesas pendentes com análise de urgência.
+        Útil para notificações e telas de pagamento.
+        
+        Query params:
+        - min_remaining: Valor mínimo de saldo devedor (padrão: 0.01)
+        - sort_by: urgency|amount|date (padrão: urgency)
+        
+        Response:
+        {
+            "total_pending": 5000.00,
+            "urgent_count": 3,
+            "debts": [
+                {
+                    "id": "uuid",
+                    "description": "Cartão",
+                    "category": {...},
+                    "total_amount": 2000.00,
+                    "paid_amount": 500.00,
+                    "remaining_amount": 1500.00,
+                    "payment_percentage": 25.0,
+                    "is_urgent": false,
+                    "days_since_created": 15
+                }
+            ],
+            "available_income": 3500.00,
+            "coverage_percentage": 70.0
+        }
+        """
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        min_remaining = Decimal(request.query_params.get('min_remaining', '0.01'))
+        sort_by = request.query_params.get('sort_by', 'urgency')
+        
+        # Buscar despesas com saldo devedor
+        debts = Transaction.objects.filter(
+            user=request.user
+        ).filter(
+            Q(type=Transaction.TransactionType.EXPENSE) | 
+            Q(category__type=Category.CategoryType.DEBT)
+        ).select_related('category')
+        
+        # Filtrar apenas com saldo devedor
+        pending_debts = []
+        total_pending = Decimal('0')
+        urgent_count = 0
+        
+        for debt in debts:
+            remaining = debt.available_amount
+            if remaining < min_remaining:
+                continue
+            
+            payment_pct = float(debt.link_percentage)
+            is_urgent = payment_pct >= 80  # >80% vinculado = urgente
+            days_since = (timezone.now() - debt.created_at).days
+            
+            pending_debts.append({
+                'id': str(debt.id),
+                'description': debt.description,
+                'category': {
+                    'id': debt.category.id if debt.category else None,
+                    'name': debt.category.name if debt.category else 'Sem categoria',
+                    'type': debt.category.type if debt.category else None,
+                },
+                'total_amount': float(debt.amount),
+                'paid_amount': float(debt.linked_amount),
+                'remaining_amount': float(remaining),
+                'payment_percentage': payment_pct,
+                'is_urgent': is_urgent,
+                'days_since_created': days_since,
+                'created_at': debt.created_at.isoformat(),
+            })
+            
+            total_pending += remaining
+            if is_urgent:
+                urgent_count += 1
+        
+        # Ordenar
+        if sort_by == 'urgency':
+            # Urgentes primeiro, depois por valor decrescente
+            pending_debts.sort(
+                key=lambda x: (-int(x['is_urgent']), -x['remaining_amount'])
+            )
+        elif sort_by == 'amount':
+            pending_debts.sort(key=lambda x: -x['remaining_amount'])
+        elif sort_by == 'date':
+            pending_debts.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        # Calcular receita disponível total
+        incomes = Transaction.objects.filter(
+            user=request.user,
+            type=Transaction.TransactionType.INCOME
+        )
+        
+        available_income = sum(
+            (income.available_amount for income in incomes),
+            Decimal('0')
+        )
+        
+        # Calcular % de cobertura
+        coverage_pct = 0.0
+        if total_pending > 0:
+            coverage_pct = float(
+                min(available_income / total_pending, Decimal('1')) * Decimal('100')
+            )
+        
+        return Response({
+            'total_pending': float(total_pending),
+            'urgent_count': urgent_count,
+            'debts': pending_debts,
+            'available_income': float(available_income),
+            'coverage_percentage': coverage_pct,
+        })
+    
+    @action(detail=False, methods=['post'])
+    def bulk_payment(self, request):
+        """
+        Cria múltiplas vinculações de pagamento de uma vez.
+        Permite pagar várias despesas usando várias fontes de receita.
+        
+        Body:
+        {
+            "payments": [
+                {
+                    "source_id": "uuid-receita-1",
+                    "target_id": "uuid-despesa-1",
+                    "amount": 500.00
+                },
+                {
+                    "source_id": "uuid-receita-1",
+                    "target_id": "uuid-despesa-2",
+                    "amount": 300.00
+                }
+            ],
+            "description": "Pagamento mensal - Janeiro/2025"  // Opcional
+        }
+        
+        Response:
+        {
+            "success": true,
+            "created_count": 2,
+            "total_amount": 800.00,
+            "links": [...],
+            "summary": {
+                "sources_used": 1,
+                "targets_paid": 2,
+                "fully_paid_debts": ["uuid-despesa-2"]
+            }
+        }
+        """
+        from django.db import transaction as db_transaction
+        from decimal import Decimal
+        
+        payments_data = request.data.get('payments', [])
+        description = request.data.get('description', 'Pagamento em lote')
+        
+        if not payments_data:
+            return Response(
+                {'error': 'Nenhum pagamento fornecido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        created_links = []
+        total_amount = Decimal('0')
+        sources_used = set()
+        targets_paid = set()
+        fully_paid_debts = []
+        
+        try:
+            with db_transaction.atomic():
+                # Validar todos os pagamentos primeiro
+                for idx, payment in enumerate(payments_data):
+                    source_id = payment.get('source_id')
+                    target_id = payment.get('target_id')
+                    amount = payment.get('amount')
+                    
+                    if not source_id or not target_id or not amount:
+                        raise ValueError(
+                            f"Pagamento #{idx+1} inválido: faltam campos obrigatórios"
+                        )
+                    
+                    try:
+                        amount = Decimal(str(amount))
+                    except (ValueError, TypeError):
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: valor inválido '{amount}'"
+                        )
+                    
+                    if amount <= 0:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: valor deve ser positivo"
+                        )
+                
+                # Criar todos os links
+                for idx, payment in enumerate(payments_data):
+                    source_id = payment.get('source_id')
+                    target_id = payment.get('target_id')
+                    amount = Decimal(str(payment.get('amount')))
+                    
+                    # Verificar se as transações existem e pertencem ao usuário
+                    try:
+                        source = Transaction.objects.select_for_update().get(
+                            id=source_id,
+                            user=request.user
+                        )
+                        target = Transaction.objects.select_for_update().get(
+                            id=target_id,
+                            user=request.user
+                        )
+                    except Transaction.DoesNotExist:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: transação não encontrada ou não autorizada"
+                        )
+                    
+                    # Validar saldo disponível
+                    if amount > source.available_amount:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: valor R$ {amount} excede saldo disponível "
+                            f"de '{source.description}' (R$ {source.available_amount})"
+                        )
+                    
+                    if amount > target.available_amount:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: valor R$ {amount} excede saldo devedor "
+                            f"de '{target.description}' (R$ {target.available_amount})"
+                        )
+                    
+                    # Criar link
+                    link = TransactionLink.objects.create(
+                        user=request.user,
+                        source_transaction_uuid=source_id,
+                        target_transaction_uuid=target_id,
+                        linked_amount=amount,
+                        link_type=TransactionLink.LinkType.DEBT_PAYMENT,
+                        description=description
+                    )
+                    
+                    created_links.append(link)
+                    total_amount += amount
+                    sources_used.add(str(source_id))
+                    targets_paid.add(str(target_id))
+                    
+                    # Verificar se a despesa foi quitada totalmente
+                    # Recarregar target para pegar linked_amount atualizado
+                    target.refresh_from_db()
+                    if target.available_amount == 0:
+                        fully_paid_debts.append(str(target_id))
+                
+                # Invalidar cache
+                invalidate_user_dashboard_cache(request.user)
+            
+            # Serializar resposta
+            serializer = TransactionLinkSerializer(
+                created_links,
+                many=True,
+                context={'request': request}
+            )
+            
+            return Response({
+                'success': True,
+                'created_count': len(created_links),
+                'total_amount': float(total_amount),
+                'links': serializer.data,
+                'summary': {
+                    'sources_used': len(sources_used),
+                    'targets_paid': len(targets_paid),
+                    'fully_paid_debts': fully_paid_debts
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Erro ao criar pagamento em lote: {e}")
+            return Response(
+                {'error': f'Erro interno: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class GoalViewSet(viewsets.ModelViewSet):

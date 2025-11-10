@@ -20,7 +20,7 @@ import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
-import '../../../transactions/presentation/pages/expense_payment_page.dart';
+import '../../../transactions/presentation/pages/bulk_payment_page.dart';
 import '../../../transactions/presentation/widgets/register_transaction_sheet.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 
@@ -565,10 +565,10 @@ class _HomeSummaryCard extends StatelessWidget {
               Expanded(
                 child: _ActionButton(
                   icon: Icons.payment,
-                  label: 'Pagar Despesa',
+                  label: 'Pagar Despesas',
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ExpensePaymentPage()),
+                      MaterialPageRoute(builder: (_) => const BulkPaymentPage()),
                     );
                   },
                 ),
