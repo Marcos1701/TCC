@@ -629,7 +629,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "target_ili",
             "is_first_access",
         )
-        read_only_fields = ("level", "experience_points", "next_level_threshold", "is_first_access")
+        read_only_fields = ("level", "experience_points", "next_level_threshold")
 
 
 class DashboardSerializer(serializers.Serializer):

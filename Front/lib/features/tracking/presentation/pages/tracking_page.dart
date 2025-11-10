@@ -71,6 +71,7 @@ class _TrackingPageState extends State<TrackingPage> {
           ),
         ),
         centerTitle: false,
+        automaticallyImplyLeading: true,
       ),
       body: RefreshIndicator(
         color: AppColors.primary,
@@ -120,7 +121,7 @@ class _TrackingPageState extends State<TrackingPage> {
         _buildCashflowChart(data.cashflow, theme, tokens),
         const SizedBox(height: 24),
 
-        // Gráfico de Balanço Mensal
+        // Gráfico de Saldo Mensal
         _buildBalanceChart(data.cashflow, theme, tokens),
         const SizedBox(height: 24),
 
@@ -205,7 +206,7 @@ class _TrackingPageState extends State<TrackingPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Balanço',
+                'Saldo',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white70,
                   fontWeight: FontWeight.w600,
@@ -707,7 +708,7 @@ class _TrackingPageState extends State<TrackingPage> {
                                 ),
                               ),
                               TextSpan(
-                                text: '📊 Balanço: ',
+                                text: '📊 Saldo: ',
                                 style: TextStyle(
                                   color: balance >= 0 ? AppColors.success : AppColors.alert,
                                   fontWeight: FontWeight.w600,
@@ -765,7 +766,7 @@ class _TrackingPageState extends State<TrackingPage> {
       return const SizedBox.shrink();
     }
 
-    // Calcular balanço mensal e estatísticas
+    // Calcular saldo mensal e estatísticas
     final balances = cashflow.map((e) => e.income - e.expense).toList();
     final maxBalance = balances.reduce((a, b) => a.abs() > b.abs() ? a : b).abs();
     
@@ -811,7 +812,7 @@ class _TrackingPageState extends State<TrackingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Balanço Mensal',
+                            'Saldo Mensal',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -929,7 +930,7 @@ class _TrackingPageState extends State<TrackingPage> {
                             ),
                           ),
                           TextSpan(
-                            text: '📊 Balanço: ',
+                            text: '📊 Saldo: ',
                             style: TextStyle(
                               color: balance >= 0 ? AppColors.success : AppColors.alert,
                               fontWeight: FontWeight.w600,
@@ -1094,7 +1095,7 @@ class _TrackingPageState extends State<TrackingPage> {
             ),
           ),
           const SizedBox(height: 16),
-          // Legenda do gráfico de balanço
+          // Legenda do gráfico de saldo
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

@@ -900,10 +900,7 @@ class _ProgressPageState extends State<ProgressPage> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+        automaticallyImplyLeading: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),

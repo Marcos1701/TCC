@@ -1232,10 +1232,14 @@ class ProfileView(APIView):
         """Atualiza parcialmente o perfil, incluindo marcar primeiro acesso como concluído."""
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         
-        # Se veio a flag de completar onboarding, marca como não sendo mais primeiro acesso
-        if request.data.get('complete_first_access'):
-            profile.is_first_access = False
-            profile.save(update_fields=['is_first_access'])
+        # Preparar dados para atualização
+        update_data = request.data.copy()
+        
+        # Se veio a flag de completar onboarding, atualiza is_first_access
+        if update_data.get('complete_first_access'):
+            update_data['is_first_access'] = False
+            # Remove a flag customizada antes de passar ao serializer
+            update_data.pop('complete_first_access')
             
             # Log para auditoria
             import logging
@@ -1243,17 +1247,14 @@ class ProfileView(APIView):
             logger.info(
                 f"User {request.user.id} ({request.user.username}) completed first access/onboarding"
             )
-            
-            # Atualiza o profile do banco para garantir que tem o valor mais recente
-            profile.refresh_from_db()
         
         serializer = UserProfileSerializer(
-            profile, data=request.data, partial=True
+            profile, data=update_data, partial=True
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         
-        # Refresh do profile após o serializer.save() para garantir dados atualizados
+        # Refresh do profile após save para garantir dados atualizados
         profile.refresh_from_db()
         
         # Cria um novo serializer com os dados atualizados
