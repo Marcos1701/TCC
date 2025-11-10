@@ -1505,7 +1505,7 @@ class _TrackingPageState extends State<TrackingPage> {
                           ],
                         ),
                       );
-                    }).toList(),
+                    }),
                     if (slices.length > 6) ...[
                       const SizedBox(height: 4),
                       Container(
@@ -1567,7 +1567,7 @@ class _TrackingPageState extends State<TrackingPage> {
     
     // Determina a ordem de magnitude
     final magnitude = (maxValue / 5).ceilToDouble();
-    final base = 10.0;
+    const base = 10.0;
     
     // Calcula um intervalo "arredondado"
     final niceInterval = (magnitude / base.toInt()).ceilToDouble() * base;

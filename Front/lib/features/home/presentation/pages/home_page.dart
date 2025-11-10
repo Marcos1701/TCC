@@ -8,6 +8,7 @@ import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
+import '../../../../core/services/debt_notification_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/services/gamification_service.dart';
 import '../../../../core/services/mission_notification_service.dart';
@@ -121,6 +122,22 @@ class _HomePageState extends State<HomePage> {
       context: context,
       missions: data.activeMissions,
     );
+    
+    // Verificar despesas pendentes (final do mês)
+    if (!context.mounted) return;
+    final debtService = DebtNotificationService();
+    final shouldNotify = await debtService.shouldShowNotification();
+    
+    if (shouldNotify && context.mounted) {
+      final pendingData = await debtService.checkPendingDebts();
+      
+      if (pendingData != null && context.mounted) {
+        await DebtNotificationService.showNotificationDialog(
+          context,
+          pendingData,
+        );
+      }
+    }
     
     // Atualiza o estado DEPOIS de todo trabalho assíncrono
     if (mounted) {

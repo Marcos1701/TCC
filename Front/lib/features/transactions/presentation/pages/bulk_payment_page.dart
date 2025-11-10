@@ -235,7 +235,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
+              const Icon(Icons.check_circle_outline, size: 64, color: AppColors.success),
               const SizedBox(height: 16),
               Text(
                 'Nenhuma pendência! 🎉',
