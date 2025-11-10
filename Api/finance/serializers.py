@@ -604,6 +604,7 @@ class CashflowPointSerializer(serializers.Serializer):
     debt = serializers.DecimalField(max_digits=12, decimal_places=2)
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
     rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
+    is_projection = serializers.BooleanField(default=False)
 
 
 class IndicatorInsightSerializer(serializers.Serializer):

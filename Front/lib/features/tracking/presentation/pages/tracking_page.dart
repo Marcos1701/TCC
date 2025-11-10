@@ -22,6 +22,8 @@ class _TrackingPageState extends State<TrackingPage> {
   final _repository = FinanceRepository();
   final _cacheManager = CacheManager();
   late Future<DashboardData> _dashboardFuture;
+  int _touchedExpenseIndex = -1;
+  int _touchedIncomeIndex = -1;
   
   @override
   void initState() {
@@ -243,6 +245,28 @@ class _TrackingPageState extends State<TrackingPage> {
       return const SizedBox.shrink();
     }
 
+    // Separar dados reais de projeções
+    final realData = <CashflowPoint>[];
+    final projectionData = <CashflowPoint>[];
+    
+    for (var point in cashflow) {
+      if (point.isProjection) {
+        projectionData.add(point);
+      } else {
+        realData.add(point);
+      }
+    }
+
+    final hasProjections = projectionData.isNotEmpty;
+    final totalMonths = cashflow.length;
+    final realMonthsCount = realData.length;
+
+    // Calcular valores máximos para ajustar intervalos dinamicamente
+    final maxValue = cashflow
+        .expand((e) => [e.income, e.expense])
+        .reduce((a, b) => a > b ? a : b);
+    final interval = _calculateInterval(maxValue);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -254,28 +278,78 @@ class _TrackingPageState extends State<TrackingPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(
-                Icons.show_chart_rounded,
-                color: AppColors.primary,
-                size: 24,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.show_chart_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Evolução Temporal',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${cashflow.length} meses',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 12),
-              Text(
-                'Evolução Temporal',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 8),
+              // Indicador de dados
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.touch_app_rounded,
+                      size: 14,
+                      color: Colors.grey[500],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Detalhes',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                        fontSize: 9,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Receitas vs Despesas ao longo do tempo',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[500],
-            ),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -284,11 +358,19 @@ class _TrackingPageState extends State<TrackingPage> {
               LineChartData(
                 gridData: FlGridData(
                   show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 500,
+                  drawVerticalLine: true,
+                  horizontalInterval: interval,
+                  verticalInterval: 1,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withOpacity(0.05),
+                      strokeWidth: 1,
+                      dashArray: value == 0 ? null : [5, 5],
+                    );
+                  },
+                  getDrawingVerticalLine: (value) {
+                    return FlLine(
+                      color: Colors.white.withOpacity(0.03),
                       strokeWidth: 1,
                     );
                   },
@@ -297,17 +379,25 @@ class _TrackingPageState extends State<TrackingPage> {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 60,
+                      reservedSize: 65,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          NumberFormat.compactCurrency(
-                            locale: 'pt_BR',
-                            symbol: 'R\$',
-                            decimalDigits: 0,
-                          ).format(value),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                            fontSize: 10,
+                        if (value == 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            NumberFormat.compactCurrency(
+                              locale: 'pt_BR',
+                              symbol: 'R\$',
+                              decimalDigits: 0,
+                            ).format(value),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                              fontSize: 9,
+                            ),
+                            textAlign: TextAlign.right,
                           ),
                         );
                       },
@@ -316,19 +406,23 @@ class _TrackingPageState extends State<TrackingPage> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 30,
+                      reservedSize: 32,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
                         if (value.toInt() < 0 || value.toInt() >= cashflow.length) {
                           return const SizedBox.shrink();
                         }
-                        final month = cashflow[value.toInt()].month;
+                        final monthStr = cashflow[value.toInt()].month;
+                        final monthLabel = _formatMonthLabel(monthStr);
+                        
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: 10),
                           child: Text(
-                            month.length > 3 ? month.substring(0, 3) : month,
+                            monthLabel,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
-                              fontSize: 10,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         );
@@ -342,7 +436,13 @@ class _TrackingPageState extends State<TrackingPage> {
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
-                borderData: FlBorderData(show: false),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border(
+                    left: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                ),
                 lineBarsData: [
                   // Linha de Receitas
                   LineChartBarData(
@@ -352,13 +452,35 @@ class _TrackingPageState extends State<TrackingPage> {
                         .map((e) => FlSpot(e.key.toDouble(), e.value.income))
                         .toList(),
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     color: AppColors.success,
-                    barWidth: 3,
+                    barWidth: 3.5,
                     isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: AppColors.success,
+                          strokeWidth: 2,
+                          strokeColor: const Color(0xFF1E1E1E),
+                        );
+                      },
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.success.withOpacity(0.1),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.success.withOpacity(0.3),
+                          AppColors.success.withOpacity(0.05),
+                        ],
+                      ),
+                    ),
+                    shadow: Shadow(
+                      color: AppColors.success.withOpacity(0.3),
+                      blurRadius: 8,
                     ),
                   ),
                   // Linha de Despesas
@@ -369,41 +491,153 @@ class _TrackingPageState extends State<TrackingPage> {
                         .map((e) => FlSpot(e.key.toDouble(), e.value.expense))
                         .toList(),
                     isCurved: true,
+                    curveSmoothness: 0.35,
                     color: AppColors.alert,
-                    barWidth: 3,
+                    barWidth: 3.5,
                     isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 4,
+                          color: AppColors.alert,
+                          strokeWidth: 2,
+                          strokeColor: const Color(0xFF1E1E1E),
+                        );
+                      },
+                    ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.alert.withOpacity(0.1),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.alert.withOpacity(0.3),
+                          AppColors.alert.withOpacity(0.05),
+                        ],
+                      ),
+                    ),
+                    shadow: Shadow(
+                      color: AppColors.alert.withOpacity(0.3),
+                      blurRadius: 8,
                     ),
                   ),
                 ],
                 lineTouchData: LineTouchData(
+                  enabled: true,
+                  handleBuiltInTouches: true,
+                  touchSpotThreshold: 30,
+                  getTouchedSpotIndicator: (barData, spotIndexes) {
+                    return spotIndexes.map((index) {
+                      return TouchedSpotIndicatorData(
+                        FlLine(
+                          color: Colors.white.withOpacity(0.5),
+                          strokeWidth: 2,
+                          dashArray: [5, 5],
+                        ),
+                        FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, bar, index) {
+                            return FlDotCirclePainter(
+                              radius: 6,
+                              color: bar.color ?? Colors.white,
+                              strokeWidth: 3,
+                              strokeColor: Colors.white,
+                            );
+                          },
+                        ),
+                      );
+                    }).toList();
+                  },
                   touchTooltipData: LineTouchTooltipData(
+                    tooltipRoundedRadius: 12,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    tooltipMargin: 8,
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
                     getTooltipColor: (touchedSpot) => const Color(0xFF2D2D2D),
                     getTooltipItems: (touchedSpots) {
+                      if (touchedSpots.isEmpty) return [];
+                      
+                      final index = touchedSpots.first.x.toInt();
+                      if (index < 0 || index >= cashflow.length) return [];
+                      
+                      final point = cashflow[index];
+                      final monthStr = point.month;
+                      final monthName = _formatMonthName(monthStr);
+                      final income = point.income;
+                      final expense = point.expense;
+                      final balance = income - expense;
+                      
+                      // Retorna um tooltip para cada linha tocada
                       return touchedSpots.map((spot) {
-                        final isIncome = spot.barIndex == 0;
-                        return LineTooltipItem(
-                          '${isIncome ? 'Receita' : 'Despesa'}\n',
-                          TextStyle(
-                            color: isIncome ? AppColors.success : AppColors.alert,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: NumberFormat.currency(
-                                locale: 'pt_BR',
-                                symbol: 'R\$',
-                              ).format(spot.y),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.normal,
-                              ),
+                        if (spot.barIndex == 0) {
+                          // Primeira linha (Receitas) - mostra todas as informações
+                          return LineTooltipItem(
+                            '$monthName\n',
+                            const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
-                          ],
-                        );
+                            children: [
+                              const TextSpan(
+                                text: '💰 Receita: ',
+                                style: TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(income)}\n',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.normal,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: '💸 Despesa: ',
+                                style: TextStyle(
+                                  color: AppColors.alert,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(expense)}\n',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.normal,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '📊 Balanço: ',
+                                style: TextStyle(
+                                  color: balance >= 0 ? AppColors.success : AppColors.alert,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              TextSpan(
+                                text: NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(balance),
+                                style: TextStyle(
+                                  color: balance >= 0 ? AppColors.success : AppColors.alert,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Segunda linha (Despesas) - retorna null para não duplicar tooltip
+                          return null;
+                        }
                       }).toList();
                     },
                   ),
@@ -413,14 +647,14 @@ class _TrackingPageState extends State<TrackingPage> {
           ),
           const SizedBox(height: 16),
           // Legenda
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _LegendItem(
                 color: AppColors.success,
                 label: 'Receitas',
               ),
-              const SizedBox(width: 24),
+              SizedBox(width: 24),
               _LegendItem(
                 color: AppColors.alert,
                 label: 'Despesas',
@@ -441,6 +675,18 @@ class _TrackingPageState extends State<TrackingPage> {
       return const SizedBox.shrink();
     }
 
+    // Calcular balanço mensal e estatísticas
+    final balances = cashflow.map((e) => e.income - e.expense).toList();
+    final maxBalance = balances.reduce((a, b) => a.abs() > b.abs() ? a : b).abs();
+    
+    // Garantir valor mínimo para evitar gráfico "achatado"
+    final maxY = maxBalance < 100 ? 100.0 : maxBalance;
+    final interval = _calculateInterval(maxY);
+    
+    final positiveCount = balances.where((b) => b > 0).length;
+    final negativeCount = balances.where((b) => b < 0).length;
+    final avgBalance = balances.isEmpty ? 0.0 : balances.reduce((a, b) => a + b) / balances.length;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -452,68 +698,203 @@ class _TrackingPageState extends State<TrackingPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(
-                Icons.bar_chart_rounded,
-                color: AppColors.highlight,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Balanço Mensal',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.highlight.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.bar_chart_rounded,
+                        color: AppColors.highlight,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Balanço Mensal',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Média: ${NumberFormat.compactCurrency(locale: 'pt_BR', symbol: 'R\$', decimalDigits: 0).format(avgBalance)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: avgBalance >= 0 ? AppColors.success : AppColors.alert,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
+              // Indicadores de performance
+              Row(
+                children: [
+                  _buildBalanceIndicator(
+                    icon: Icons.trending_up_rounded,
+                    count: positiveCount,
+                    color: AppColors.success,
+                    theme: theme,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildBalanceIndicator(
+                    icon: Icons.trending_down_rounded,
+                    count: negativeCount,
+                    color: AppColors.alert,
+                    theme: theme,
+                  ),
+                ],
+              ),
             ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Diferença entre receitas e despesas',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[500],
-            ),
           ),
           const SizedBox(height: 24),
           SizedBox(
             height: 250,
             child: BarChart(
               BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: cashflow
-                    .map((e) => e.income - e.expense)
-                    .reduce((a, b) => a > b ? a : b)
-                    .abs() * 1.2,
-                minY: cashflow
-                    .map((e) => e.income - e.expense)
-                    .reduce((a, b) => a < b ? a : b) * 1.2,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 500,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: Colors.white.withOpacity(0.1),
-                      strokeWidth: 1,
-                    );
-                  },
+                alignment: BarChartAlignment.spaceEvenly,
+                maxY: maxY,
+                minY: -maxY,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  handleBuiltInTouches: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    tooltipRoundedRadius: 12,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    tooltipMargin: 8,
+                    fitInsideHorizontally: true,
+                    fitInsideVertically: true,
+                    getTooltipColor: (group) => const Color(0xFF2D2D2D),
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final index = group.x.toInt();
+                      if (index < 0 || index >= cashflow.length) return null;
+                      
+                      final monthStr = cashflow[index].month;
+                      final monthName = _formatMonthName(monthStr);
+                      final balance = balances[index];
+                      final income = cashflow[index].income;
+                      final expense = cashflow[index].expense;
+                      final percentChange = income > 0 
+                          ? ((balance / income) * 100)
+                          : 0.0;
+                      
+                      return BarTooltipItem(
+                        '$monthName\n',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        children: [
+                          const TextSpan(
+                            text: '💰 Receita: ',
+                            style: TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(income)}\n',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.normal,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const TextSpan(
+                            text: '💸 Despesa: ',
+                            style: TextStyle(
+                              color: AppColors.alert,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(expense)}\n',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.normal,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '📊 Balanço: ',
+                            style: TextStyle(
+                              color: balance >= 0 ? AppColors.success : AppColors.alert,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(balance)}\n',
+                            style: TextStyle(
+                              color: balance >= 0 ? AppColors.success : AppColors.alert,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const TextSpan(
+                            text: '📈 Margem: ',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${percentChange.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              color: percentChange >= 0 ? AppColors.success : AppColors.alert,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
                 titlesData: FlTitlesData(
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 60,
+                      reservedSize: 65,
+                      interval: interval,
                       getTitlesWidget: (value, meta) {
-                        return Text(
-                          NumberFormat.compactCurrency(
-                            locale: 'pt_BR',
-                            symbol: 'R\$',
-                            decimalDigits: 0,
-                          ).format(value),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                            fontSize: 10,
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Text(
+                            NumberFormat.compactCurrency(
+                              locale: 'pt_BR',
+                              symbol: 'R\$',
+                              decimalDigits: 0,
+                            ).format(value),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                              fontSize: 9,
+                            ),
+                            textAlign: TextAlign.right,
                           ),
                         );
                       },
@@ -522,19 +903,22 @@ class _TrackingPageState extends State<TrackingPage> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 30,
+                      reservedSize: 32,
                       getTitlesWidget: (value, meta) {
                         if (value.toInt() < 0 || value.toInt() >= cashflow.length) {
                           return const SizedBox.shrink();
                         }
-                        final month = cashflow[value.toInt()].month;
+                        final monthStr = cashflow[value.toInt()].month;
+                        final monthLabel = _formatMonthLabel(monthStr);
+                        
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: 10),
                           child: Text(
-                            month.length > 3 ? month.substring(0, 3) : month,
+                            monthLabel,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: Colors.grey[600],
-                              fontSize: 10,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         );
@@ -548,52 +932,155 @@ class _TrackingPageState extends State<TrackingPage> {
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                barGroups: cashflow.asMap().entries.map((entry) {
-                  final balance = entry.value.income - entry.value.expense;
-                  final isPositive = balance >= 0;
-                  
-                  return BarChartGroupData(
-                    x: entry.key,
-                    barRods: [
-                      BarChartRodData(
-                        toY: balance,
-                        color: isPositive ? AppColors.success : AppColors.alert,
-                        width: 16,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ],
-                  );
-                }).toList(),
-                barTouchData: BarTouchData(
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (group) => const Color(0xFF2D2D2D),
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      final point = cashflow[group.x.toInt()];
-                      final balance = point.income - point.expense;
-                      return BarTooltipItem(
-                        '${point.month}\n',
-                        const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        children: [
-                          TextSpan(
-                            text: NumberFormat.currency(
-                              locale: 'pt_BR',
-                              symbol: 'R\$',
-                            ).format(balance),
-                            style: TextStyle(
-                              color: balance >= 0 ? AppColors.success : AppColors.alert,
-                              fontWeight: FontWeight.normal,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: interval,
+                  getDrawingHorizontalLine: (value) {
+                    if (value == 0) {
+                      return FlLine(
+                        color: Colors.white.withOpacity(0.3),
+                        strokeWidth: 2,
+                      );
+                    }
+                    return FlLine(
+                      color: Colors.white.withOpacity(0.05),
+                      strokeWidth: 1,
+                      dashArray: [5, 5],
+                    );
+                  },
+                ),
+                borderData: FlBorderData(
+                  show: true,
+                  border: Border(
+                    left: BorderSide(color: Colors.white.withOpacity(0.1)),
+                    bottom: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
+                ),
+                barGroups: balances
+                    .asMap()
+                    .entries
+                    .map(
+                      (entry) => BarChartGroupData(
+                        x: entry.key,
+                        barRods: [
+                          BarChartRodData(
+                            toY: entry.value,
+                            width: 14,
+                            borderRadius: BorderRadius.vertical(
+                              top: entry.value >= 0 
+                                  ? const Radius.circular(6) 
+                                  : Radius.zero,
+                              bottom: entry.value < 0 
+                                  ? const Radius.circular(6) 
+                                  : Radius.zero,
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: entry.value >= 0
+                                  ? [
+                                      AppColors.success.withOpacity(0.7),
+                                      AppColors.success,
+                                    ]
+                                  : [
+                                      AppColors.alert,
+                                      AppColors.alert.withOpacity(0.7),
+                                    ],
+                            ),
+                            backDrawRodData: BackgroundBarChartRodData(
+                              show: true,
+                              toY: maxY,
+                              fromY: -maxY,
+                              color: Colors.white.withOpacity(0.02),
                             ),
                           ),
                         ],
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              swapAnimationDuration: const Duration(milliseconds: 300),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Legenda do gráfico de balanço
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.trending_up_rounded,
+                      color: AppColors.success,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Positivo',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.success,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Icon(
+                      Icons.trending_down_rounded,
+                      color: AppColors.alert,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Negativo',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.alert,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceIndicator({
+    required IconData icon,
+    required int count,
+    required Color color,
+    required ThemeData theme,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            '$count',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -643,6 +1130,8 @@ class _TrackingPageState extends State<TrackingPage> {
     AppDecorations tokens,
   ) {
     final total = slices.fold<double>(0, (sum, slice) => sum + slice.total);
+    final isExpense = baseColor == AppColors.alert;
+    final touchedIndex = isExpense ? _touchedExpenseIndex : _touchedIncomeIndex;
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -654,83 +1143,307 @@ class _TrackingPageState extends State<TrackingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 24),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              SizedBox(
-                width: 120,
-                height: 120,
-                child: PieChart(
-                  PieChartData(
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 30,
-                    sections: slices.asMap().entries.map((entry) {
-                      final percentage = (entry.value.total / total) * 100;
-                      return PieChartSectionData(
-                        value: entry.value.total,
-                        title: '${percentage.toStringAsFixed(0)}%',
-                        color: _getCategoryColor(entry.key, slices.length, baseColor),
-                        radius: 40,
-                        titleStyle: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 24),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: slices.take(5).map((slice) {
-                    final percentage = (slice.total / total) * 100;
-                    final index = slices.indexOf(slice);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: baseColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        isExpense ? Icons.payments_rounded : Icons.account_balance_wallet_rounded,
+                        color: baseColor,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: _getCategoryColor(index, slices.length, baseColor),
-                              shape: BoxShape.circle,
+                          Text(
+                            title,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              slice.name,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.white70,
-                                fontSize: 11,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            '${percentage.toStringAsFixed(1)}%',
+                            'Total: ${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(total)}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white,
+                              color: baseColor,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              fontSize: 11,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Text(
+                  '${slices.length} categorias',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                    fontSize: 9,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Gráfico de pizza
+              SizedBox(
+                width: 140,
+                height: 140,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            setState(() {
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                if (isExpense) {
+                                  _touchedExpenseIndex = -1;
+                                } else {
+                                  _touchedIncomeIndex = -1;
+                                }
+                                return;
+                              }
+                              if (isExpense) {
+                                _touchedExpenseIndex = pieTouchResponse
+                                    .touchedSection!.touchedSectionIndex;
+                              } else {
+                                _touchedIncomeIndex = pieTouchResponse
+                                    .touchedSection!.touchedSectionIndex;
+                              }
+                            });
+                          },
+                        ),
+                        sectionsSpace: 2,
+                        centerSpaceRadius: 35,
+                        sections: slices.asMap().entries.map((entry) {
+                          final isTouched = entry.key == touchedIndex;
+                          final percentage = (entry.value.total / total) * 100;
+                          final radius = isTouched ? 52.0 : 45.0;
+                          final fontSize = isTouched ? 12.0 : 10.0;
+                          
+                          return PieChartSectionData(
+                            value: entry.value.total,
+                            title: percentage >= 5 ? '${percentage.toStringAsFixed(0)}%' : '',
+                            color: _getCategoryColor(entry.key, slices.length, baseColor),
+                            radius: radius,
+                            titleStyle: TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.5),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                            badgeWidget: isTouched
+                                ? Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2D2D2D),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 2),
+                                    ),
+                                    child: Icon(
+                                      Icons.touch_app_rounded,
+                                      size: 16,
+                                      color: baseColor,
+                                    ),
+                                  )
+                                : null,
+                            badgePositionPercentageOffset: 1.3,
+                          );
+                        }).toList(),
+                      ),
+                      swapAnimationDuration: const Duration(milliseconds: 300),
+                      swapAnimationCurve: Curves.easeInOutCubic,
+                    ),
+                    // Centro do donut com ícone
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E1E1E),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: baseColor.withOpacity(0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        isExpense ? Icons.trending_down : Icons.trending_up,
+                        color: baseColor,
+                        size: 28,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Legenda expandida
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...slices.take(6).map((slice) {
+                      final percentage = (slice.total / total) * 100;
+                      final index = slices.indexOf(slice);
+                      final isTouched = index == touchedIndex;
+                      
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isTouched 
+                              ? baseColor.withOpacity(0.1) 
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isTouched 
+                                ? baseColor.withOpacity(0.3) 
+                                : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: isTouched ? 14 : 12,
+                              height: isTouched ? 14 : 12,
+                              decoration: BoxDecoration(
+                                color: _getCategoryColor(index, slices.length, baseColor),
+                                shape: BoxShape.circle,
+                                boxShadow: isTouched
+                                    ? [
+                                        BoxShadow(
+                                          color: _getCategoryColor(index, slices.length, baseColor)
+                                              .withOpacity(0.5),
+                                          blurRadius: 8,
+                                          spreadRadius: 2,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    slice.name,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: isTouched ? Colors.white : Colors.white70,
+                                      fontSize: isTouched ? 12 : 11,
+                                      fontWeight: isTouched 
+                                          ? FontWeight.w600 
+                                          : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (isTouched) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      NumberFormat.currency(
+                                        locale: 'pt_BR',
+                                        symbol: 'R\$',
+                                      ).format(slice.total),
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: baseColor,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isTouched
+                                    ? baseColor.withOpacity(0.2)
+                                    : Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${percentage.toStringAsFixed(1)}%',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: isTouched ? baseColor : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: isTouched ? 11 : 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    if (slices.length > 6) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.more_horiz_rounded,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '+${slices.length - 6} categorias',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -740,18 +1453,79 @@ class _TrackingPageState extends State<TrackingPage> {
     );
   }
 
+  /// Calcula cor para cada categoria baseado no índice
   Color _getCategoryColor(int index, int total, Color baseColor) {
-    final hue = (baseColor.value >> 16 & 0xFF) / 255.0;
-    final saturation = (baseColor.value >> 8 & 0xFF) / 255.0;
-    final lightness = (baseColor.value & 0xFF) / 255.0;
+    // Converte a cor base para HSL
+    final hslColor = HSLColor.fromColor(baseColor);
     
-    final variation = (index / total) * 0.3;
+    // Varia o matiz (hue) e luminosidade para criar variedade visual
+    final hueVariation = (index / total) * 60; // Variação de até 60 graus
+    final lightnessVariation = (index / total) * 0.2; // Variação de luminosidade
+    
     return HSLColor.fromAHSL(
       1.0,
-      hue * 360,
-      saturation,
-      (lightness + variation).clamp(0.2, 0.8),
+      (hslColor.hue + hueVariation) % 360,
+      hslColor.saturation.clamp(0.5, 0.9),
+      (hslColor.lightness + lightnessVariation).clamp(0.3, 0.7),
     ).toColor();
+  }
+
+  /// Calcula intervalo apropriado para os gráficos baseado no valor máximo
+  double _calculateInterval(double maxValue) {
+    if (maxValue == 0) return 100;
+    
+    // Determina a ordem de magnitude
+    final magnitude = (maxValue / 5).ceilToDouble();
+    final base = 10.0;
+    
+    // Calcula um intervalo "arredondado"
+    final niceInterval = (magnitude / base.toInt()).ceilToDouble() * base;
+    
+    // Retorna um valor mínimo de 100 para evitar intervalos muito pequenos
+    return niceInterval < 100 ? 100 : niceInterval;
+  }
+
+  /// Formata o mês para exibição nas labels do gráfico (ex: "2025-01" -> "JAN")
+  String _formatMonthLabel(String monthStr) {
+    try {
+      final parts = monthStr.split('-');
+      if (parts.length != 2) return monthStr;
+      
+      final month = int.parse(parts[1]);
+      const monthNames = [
+        'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+        'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
+      ];
+      
+      if (month >= 1 && month <= 12) {
+        return monthNames[month - 1];
+      }
+      return monthStr;
+    } catch (e) {
+      return monthStr;
+    }
+  }
+
+  /// Formata o mês para exibição completa no tooltip (ex: "2025-01" -> "Janeiro/2025")
+  String _formatMonthName(String monthStr) {
+    try {
+      final parts = monthStr.split('-');
+      if (parts.length != 2) return monthStr;
+      
+      final year = parts[0];
+      final month = int.parse(parts[1]);
+      const monthNames = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+      
+      if (month >= 1 && month <= 12) {
+        return '${monthNames[month - 1]}/$year';
+      }
+      return monthStr;
+    } catch (e) {
+      return monthStr;
+    }
   }
 
   Widget _buildErrorState(ThemeData theme) {

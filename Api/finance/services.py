@@ -464,16 +464,21 @@ def _calculate_monthly_indicators(income: Decimal, expense: Decimal, debt_paymen
 def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
     """
     Gera série temporal de fluxo de caixa e indicadores mensais.
+    Inclui dados históricos e projeções baseadas em transações recorrentes.
     
     Args:
         user: Usuário para análise
         months: Número de meses retroativos a incluir (padrão: 6)
         
     Returns:
-        Lista de dicionários com dados mensais (income, expense, debt, tps, rdr)
+        Lista de dicionários com dados mensais (income, expense, debt, tps, rdr, is_projection)
+        Filtra meses sem nenhuma transação ou projeção.
     """
     now = timezone.now().date()
+    current_month = now.replace(day=1)
     first_day = (now.replace(day=1) - timedelta(days=months * 31)).replace(day=1)
+    
+    # Buscar transações históricas
     data = (
         Transaction.objects.filter(user=user, date__gte=first_day)
         .annotate(month=TruncMonth("date"))
@@ -490,6 +495,7 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             month = month_value
         buckets[month][item["type"]] += _decimal(item["total"])
 
+    # Buscar transações de dívida
     debt_data = (
         Transaction.objects.filter(
             user=user,
@@ -510,38 +516,80 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             month = month_value
         debt_buckets[month][item["type"]] += _decimal(item["total"])
 
+    # Calcular projeções de recorrências para os próximos 3 meses
+    recurrence_projections: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
+    
+    # Buscar todas as transações recorrentes ativas
+    from .models import TransactionRecurrence
+    active_recurrences = TransactionRecurrence.objects.filter(
+        transaction__user=user,
+        is_active=True,
+    ).select_related('transaction', 'transaction__category')
+    
+    for recurrence in active_recurrences:
+        # Projetar para os próximos 3 meses
+        projection_month = current_month
+        for _ in range(3):
+            projection_month = projection_month + timedelta(days=32)
+            projection_month = projection_month.replace(day=1)
+            
+            # Verificar se deve gerar para este mês
+            if recurrence.frequency == TransactionRecurrence.RecurrenceFrequency.MONTHLY:
+                recurrence_projections[projection_month][recurrence.transaction.type] += recurrence.transaction.amount
+            elif recurrence.frequency == TransactionRecurrence.RecurrenceFrequency.WEEKLY:
+                # Estimar ~4 ocorrências por mês
+                recurrence_projections[projection_month][recurrence.transaction.type] += recurrence.transaction.amount * 4
+            elif recurrence.frequency == TransactionRecurrence.RecurrenceFrequency.YEARLY:
+                # Verificar se o mês corresponde
+                if recurrence.transaction.date.month == projection_month.month:
+                    recurrence_projections[projection_month][recurrence.transaction.type] += recurrence.transaction.amount
+
     series: List[Dict[str, str]] = []
-    current = now.replace(day=1)
-    for _ in range(months):
-        income = buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
-        expense = buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
-        debt_increase = debt_buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
-        debt_payment = debt_buckets[current].get(Transaction.TransactionType.DEBT_PAYMENT, Decimal("0"))
-        debt_adjustment = debt_buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
+    current = first_day
+    
+    # Gerar série incluindo meses passados e futuros
+    end_month = current_month + timedelta(days=100)  # ~3 meses no futuro
+    while current <= end_month:
+        is_future = current > current_month
         
-        # Saldo de dívidas do mês
-        debt = debt_increase - debt_payment - debt_adjustment
-        if debt < 0:
+        if is_future:
+            # Usar projeções para meses futuros
+            income = recurrence_projections[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
+            expense = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
             debt = Decimal("0")
-        
-        # Usa função auxiliar para calcular indicadores de forma consistente
-        indicators = _calculate_monthly_indicators(income, expense, debt_payment, debt)
-        
-        series.append(
-            {
-                "month": current.strftime("%Y-%m"),
-                "income": income.quantize(Decimal("0.01")),
-                "expense": expense.quantize(Decimal("0.01")),
-                "debt": debt.quantize(Decimal("0.01")),
-                "tps": indicators["tps"],
-                "rdr": indicators["rdr"],
-            }
-        )
-        if current.month == 1:
-            current = current.replace(year=current.year - 1, month=12)
         else:
-            current = current.replace(month=current.month - 1)
-    series.reverse()
+            # Usar dados reais para meses passados
+            income = buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
+            expense = buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+            debt_increase = debt_buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+            debt_payment = debt_buckets[current].get(Transaction.TransactionType.DEBT_PAYMENT, Decimal("0"))
+            debt_adjustment = debt_buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
+            debt = debt_increase - debt_payment - debt_adjustment
+            if debt < 0:
+                debt = Decimal("0")
+        
+        # Filtrar meses sem dados
+        if income > 0 or expense > 0 or debt > 0:
+            indicators = _calculate_monthly_indicators(income, expense, Decimal("0"), debt)
+            
+            series.append(
+                {
+                    "month": current.strftime("%Y-%m"),
+                    "income": income.quantize(Decimal("0.01")),
+                    "expense": expense.quantize(Decimal("0.01")),
+                    "debt": debt.quantize(Decimal("0.01")),
+                    "tps": indicators["tps"],
+                    "rdr": indicators["rdr"],
+                    "is_projection": is_future,
+                }
+            )
+        
+        # Avançar para o próximo mês
+        if current.month == 12:
+            current = current.replace(year=current.year + 1, month=1)
+        else:
+            current = current.replace(month=current.month + 1)
+    
     return series
 
 
