@@ -12,6 +12,7 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
+import '../../../../presentation/widgets/friendly_indicator_card.dart';
 import 'goal_details_page.dart';
 
 class ProgressPage extends StatefulWidget {
@@ -1160,33 +1161,38 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
                 iliCurrent = summary.ili;
               }
               
-              return Row(
+              return Column(
                 children: [
-                  Expanded(
-                    child: _TargetBadge(
-                      label: 'TPS',
-                      currentValue: '${tpsCurrent.toStringAsFixed(0)}%',
-                      idealRange: _calculateIdealTps(tpsCurrent),
-                      icon: Icons.savings_outlined,
-                    ),
+                  // TPS - Taxa de Poupança
+                  FriendlyIndicatorCard(
+                    title: UxStrings.savings,
+                    value: tpsCurrent,
+                    target: 20, // Meta: 20%
+                    type: IndicatorType.percentage,
+                    subtitle: 'da sua renda',
+                    customIcon: Icons.savings_outlined,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _TargetBadge(
-                      label: 'RDR',
-                      currentValue: '${rdrCurrent.toStringAsFixed(0)}%',
-                      idealRange: _calculateIdealRdr(rdrCurrent),
-                      icon: Icons.pie_chart_outline,
-                    ),
+                  const SizedBox(height: 12),
+                  
+                  // RDR - Despesas Recorrentes
+                  FriendlyIndicatorCard(
+                    title: UxStrings.fixedExpensesMonthly,
+                    value: rdrCurrent,
+                    target: 35, // Meta: < 35%
+                    type: IndicatorType.percentage,
+                    subtitle: 'comprometido da renda',
+                    customIcon: Icons.pie_chart_outline,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _TargetBadge(
-                      label: 'ILI',
-                      currentValue: '${iliCurrent.toStringAsFixed(1)}m',
-                      idealRange: _calculateIdealIli(iliCurrent),
-                      icon: Icons.health_and_safety_outlined,
-                    ),
+                  const SizedBox(height: 12),
+                  
+                  // ILI - Reserva de Emergência
+                  FriendlyIndicatorCard(
+                    title: UxStrings.emergencyFundMonths,
+                    value: iliCurrent,
+                    target: 6, // Meta: 6 meses
+                    type: IndicatorType.months,
+                    subtitle: 'para cobrir despesas',
+                    customIcon: Icons.health_and_safety_outlined,
                   ),
                 ],
               );
