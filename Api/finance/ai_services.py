@@ -410,7 +410,7 @@ Crie 20 missões variadas e progressivas para este cenário específico.
 
 **Contextualização:**
 - Use {period_name} no título/descrição quando relevante
-- Mencione {common_categories} em missões de EXPENSE_CONTROL
+- Mencione {common_categories} em missões de controle de gastos
 - Adapte metas ao perfil da faixa e cenário
 - Seja específico sobre valores alvo (TPS, RDR, ILI)
 
@@ -419,17 +419,17 @@ Retorne APENAS um array JSON válido, sem texto adicional antes ou depois.
 
 [
     {{
-        "title": "Título criativo e motivador (max 60 caracteres)",
-        "description": "Descrição clara do desafio e benefício educacional (max 200 caracteres)",
-        "mission_type": "SAVINGS|EXPENSE_CONTROL|DEBT_REDUCTION|ONBOARDING",
-        "target_tps": float ou null (use para SAVINGS, ex: 25.0 significa meta de 25% TPS),
-        "target_rdr": float ou null (use para DEBT_REDUCTION, ex: 30.0 significa meta de 30% RDR),
-        "min_ili": float ou null (use para SAVINGS com foco em reserva, ex: 6.0 significa 6 meses),
-        "target_category": "nome_categoria" ou null (use para EXPENSE_CONTROL),
-        "target_reduction_percent": float ou null (use para EXPENSE_CONTROL, ex: 15.0 significa reduzir 15%),
+        "title": "Título criativo e motivador (max 150 caracteres)",
+        "description": "Descrição clara do desafio e benefício educacional",
+        "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
+        "target_tps": float ou null (use para TPS_IMPROVEMENT, ex: 25.0 significa meta de 25% TPS),
+        "target_rdr": float ou null (use para RDR_REDUCTION, ex: 30.0 significa meta de 30% RDR),
+        "min_ili": float ou null (use para ILI_BUILDING, ex: 6.0 significa 6 meses),
+        "target_category": "nome_categoria" ou null (para missões de categoria específica),
+        "target_reduction_percent": float ou null (ex: 15.0 significa reduzir 15%),
         "min_transactions": int ou null (use para ONBOARDING, ex: 10 transações),
         "duration_days": int (7, 14, 21 ou 30),
-        "xp_reward": int,
+        "xp_reward": int (50-500),
         "difficulty": "EASY|MEDIUM|HARD",
         "tags": ["tag1", "tag2"]
     }}
@@ -1213,18 +1213,20 @@ def create_missions_from_batch(tier, missions_data, scenario_key=None):
                 ).first()
             
             mission = Mission.objects.create(
-                title=data['title'][:100],  # Limite do campo
-                description=data['description'][:255],
-                mission_type=data.get('mission_type', 'SAVINGS'),
+                title=data['title'][:150],  # Limite do campo title
+                description=data['description'],  # TextField não tem limite
+                mission_type=data.get('mission_type', 'ONBOARDING'),
+                difficulty=data.get('difficulty', 'MEDIUM'),
+                priority=1,  # Pode ser ajustado baseado em lógica futura
                 target_tps=Decimal(str(data['target_tps'])) if data.get('target_tps') else None,
                 target_rdr=Decimal(str(data['target_rdr'])) if data.get('target_rdr') else None,
                 min_ili=Decimal(str(data['min_ili'])) if data.get('min_ili') else None,
                 min_transactions=data.get('min_transactions'),
                 duration_days=data.get('duration_days', 14),
-                xp_reward=data.get('xp_reward', 100),
+                reward_points=data.get('xp_reward', 100),
                 is_active=True,
-                priority=data.get('difficulty', 'MEDIUM'),
-                # Futuramente adicionar: tier=tier, scenario=scenario_key, tags=data.get('tags', [])
+                target_category=target_category,
+                target_reduction_percent=Decimal(str(data['target_reduction_percent'])) if data.get('target_reduction_percent') else None,
             )
             created_missions.append(mission)
             
