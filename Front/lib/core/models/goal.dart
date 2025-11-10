@@ -3,7 +3,6 @@ enum GoalType {
   savings('SAVINGS', 'Juntar Dinheiro', '💰'),
   categoryExpense('CATEGORY_EXPENSE', 'Reduzir Gastos', '📉'),
   categoryIncome('CATEGORY_INCOME', 'Aumentar Receita', '📈'),
-  debtReduction('DEBT_REDUCTION', 'Reduzir Despesas', '💳'),
   custom('CUSTOM', 'Personalizada', '✏️');
 
   const GoalType(this.value, this.label, this.icon);
@@ -141,8 +140,6 @@ class GoalModel {
         return GoalType.categoryExpense;
       case 'CATEGORY_INCOME':
         return GoalType.categoryIncome;
-      case 'DEBT_REDUCTION':
-        return GoalType.debtReduction;
       default:
         return GoalType.custom;
     }

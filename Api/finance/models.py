@@ -721,7 +721,6 @@ class Goal(models.Model):
     - SAVINGS: Juntar dinheiro (pode monitorar categorias específicas via tracked_categories)
     - CATEGORY_EXPENSE: Reduzir gastos em categoria específica
     - CATEGORY_INCOME: Aumentar receita em categoria específica
-    - DEBT_REDUCTION: Reduzir dívidas (pode monitorar categorias específicas via tracked_categories)
     - CUSTOM: Meta personalizada (atualização manual)
     """
     
@@ -729,7 +728,6 @@ class Goal(models.Model):
         SAVINGS = "SAVINGS", "Juntar Dinheiro"
         CATEGORY_EXPENSE = "CATEGORY_EXPENSE", "Reduzir Gastos"
         CATEGORY_INCOME = "CATEGORY_INCOME", "Aumentar Receita"
-        DEBT_REDUCTION = "DEBT_REDUCTION", "Reduzir Dívidas"
         CUSTOM = "CUSTOM", "Personalizada"
     
     class TrackingPeriod(models.TextChoices):
@@ -886,7 +884,7 @@ class Goal(models.Model):
                 })
         
         # 11. Validar is_reduction_goal coerente
-        if self.goal_type in [self.GoalType.CATEGORY_EXPENSE, self.GoalType.DEBT_REDUCTION]:
+        if self.goal_type == self.GoalType.CATEGORY_EXPENSE:
             if not self.is_reduction_goal:
                 raise ValidationError({
                     'is_reduction_goal': 'Metas de redução devem ter is_reduction_goal=True.'
@@ -964,15 +962,6 @@ class Goal(models.Model):
                 )
             else:
                 return Transaction.objects.none()
-        elif self.goal_type == self.GoalType.DEBT_REDUCTION:
-            # Se há categorias específicas sendo monitoradas, usa elas
-            if self.tracked_categories.exists():
-                qs = qs.filter(category__in=self.tracked_categories.all())
-            else:
-                # Comportamento padrão: todas as dívidas
-                qs = qs.filter(
-                    category__group=Category.CategoryGroup.DEBT
-                )
         else:  # CUSTOM
             # Para metas personalizadas com atualização automática,
             # monitorar categorias específicas se definidas

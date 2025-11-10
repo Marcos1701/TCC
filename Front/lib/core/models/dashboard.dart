@@ -5,12 +5,14 @@ import 'profile.dart';
 class SummaryMetrics {
   const SummaryMetrics({
     required this.tps,
+    required this.rdr,
     required this.ili,
     required this.totalIncome,
     required this.totalExpense,
   });
 
   final double tps;
+  final double rdr;
   final double ili;
   final double totalIncome;
   final double totalExpense;
@@ -20,6 +22,7 @@ class SummaryMetrics {
     if (map.isEmpty) {
       return const SummaryMetrics(
         tps: 0.0,
+        rdr: 0.0,
         ili: 0.0,
         totalIncome: 0.0,
         totalExpense: 0.0,
@@ -28,6 +31,7 @@ class SummaryMetrics {
     
     return SummaryMetrics(
       tps: double.parse(map['tps']?.toString() ?? '0'),
+      rdr: double.parse(map['rdr']?.toString() ?? '0'),
       ili: double.parse(map['ili']?.toString() ?? '0'),
       totalIncome: double.parse(map['total_income']?.toString() ?? '0'),
       totalExpense: double.parse(map['total_expense']?.toString() ?? '0'),
@@ -60,18 +64,14 @@ class CashflowPoint {
     required this.month,
     required this.income,
     required this.expense,
-    required this.debt,
     required this.tps,
-    required this.rdr,
     this.isProjection = false,
   });
 
   final String month;
   final double income;
   final double expense;
-  final double debt;
   final double tps;
-  final double rdr;
   final bool isProjection;
 
   factory CashflowPoint.fromMap(Map<String, dynamic> map) {
@@ -79,9 +79,7 @@ class CashflowPoint {
       month: map['month']?.toString() ?? '',
       income: double.parse(map['income']?.toString() ?? '0'),
       expense: double.parse(map['expense']?.toString() ?? '0'),
-      debt: double.parse(map['debt']?.toString() ?? '0'),
       tps: double.parse(map['tps']?.toString() ?? '0'),
-      rdr: double.parse(map['rdr']?.toString() ?? '0'),
       isProjection: map['is_projection'] == true || map['isProjection'] == true,
     );
   }

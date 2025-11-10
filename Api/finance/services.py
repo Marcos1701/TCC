@@ -369,48 +369,6 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             month = month_value
         buckets[month][item["type"]] += _decimal(item["total"])
 
-    # Buscar transações de dívida
-    debt_data = (
-        Transaction.objects.filter(
-            user=user,
-            category__type=Category.CategoryType.DEBT,
-            date__gte=first_day,
-        )
-        .annotate(month=TruncMonth("date"))
-        .values("month", "type")
-        .annotate(total=Sum("amount"))
-    )
-
-    debt_buckets: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
-    for item in debt_data:
-        month_value = item["month"]
-        if isinstance(month_value, datetime):
-            month = month_value.date()
-        else:
-            month = month_value
-        debt_buckets[month][item["type"]] += _decimal(item["total"])
-
-    # Buscar transações de dívida
-    debt_data = (
-        Transaction.objects.filter(
-            user=user,
-            category__type=Category.CategoryType.DEBT,
-            date__gte=first_day,
-        )
-        .annotate(month=TruncMonth("date"))
-        .values("month", "type")
-        .annotate(total=Sum("amount"))
-    )
-
-    debt_buckets: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
-    for item in debt_data:
-        month_value = item["month"]
-        if isinstance(month_value, datetime):
-            month = month_value.date()
-        else:
-            month = month_value
-        debt_buckets[month][item["type"]] += _decimal(item["total"])
-
     # Calcular projeções de recorrências para os próximos 3 meses
     recurrence_projections: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     

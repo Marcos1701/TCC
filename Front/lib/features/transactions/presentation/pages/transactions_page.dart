@@ -663,7 +663,7 @@ class _TransactionTile extends StatelessWidget {
         return AppColors.support;
       case 'EXPENSE':
         return AppColors.alert;
-      case 'DEBT_PAYMENT':
+      case 'EXPENSE_PAYMENT':
         return AppColors.highlight;
       default:
         return AppColors.primary;

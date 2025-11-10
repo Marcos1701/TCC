@@ -124,8 +124,7 @@ MISSION_SCENARIOS = {
         'target_range': (15, 25),
         'distribution': {
             'SAVINGS': 14,
-            'EXPENSE_CONTROL': 4,
-            'DEBT_REDUCTION': 2
+            'EXPENSE_CONTROL': 6
         }
     },
     'TPS_MEDIUM': {
@@ -136,8 +135,7 @@ MISSION_SCENARIOS = {
         'target_range': (25, 35),
         'distribution': {
             'SAVINGS': 12,
-            'EXPENSE_CONTROL': 5,
-            'DEBT_REDUCTION': 3
+            'EXPENSE_CONTROL': 8
         }
     },
     'TPS_HIGH': {
@@ -148,44 +146,40 @@ MISSION_SCENARIOS = {
         'target_range': (30, 40),
         'distribution': {
             'SAVINGS': 10,
-            'EXPENSE_CONTROL': 6,
-            'DEBT_REDUCTION': 4
+            'EXPENSE_CONTROL': 10
         }
     },
     'RDR_HIGH': {
-        'name': 'Reduzindo Dívidas - Alto',
+        'name': 'Reduzindo Despesas Recorrentes - Alto',
         'description': 'Missões focadas em reduzir RDR de 50%+ para 30-40%',
-        'focus': 'DEBT_REDUCTION',
+        'focus': 'EXPENSE_CONTROL',
         'rdr_range': (50, 200),
         'target_range': (30, 40),
         'distribution': {
-            'DEBT_REDUCTION': 14,
-            'SAVINGS': 3,
-            'EXPENSE_CONTROL': 3
+            'EXPENSE_CONTROL': 17,
+            'SAVINGS': 3
         }
     },
     'RDR_MEDIUM': {
-        'name': 'Reduzindo Dívidas - Médio',
+        'name': 'Reduzindo Despesas Recorrentes - Médio',
         'description': 'Missões focadas em reduzir RDR de 30-50% para 20-30%',
-        'focus': 'DEBT_REDUCTION',
+        'focus': 'EXPENSE_CONTROL',
         'rdr_range': (30, 50),
         'target_range': (20, 30),
         'distribution': {
-            'DEBT_REDUCTION': 12,
-            'SAVINGS': 5,
-            'EXPENSE_CONTROL': 3
+            'EXPENSE_CONTROL': 15,
+            'SAVINGS': 5
         }
     },
     'RDR_LOW': {
-        'name': 'Mantendo Controle de Dívidas',
+        'name': 'Mantendo Controle de Despesas Recorrentes',
         'description': 'Missões focadas em manter RDR abaixo de 30%',
-        'focus': 'DEBT_REDUCTION',
+        'focus': 'EXPENSE_CONTROL',
         'rdr_range': (0, 30),
         'target_range': (0, 20),
         'distribution': {
-            'DEBT_REDUCTION': 8,
-            'SAVINGS': 8,
-            'EXPENSE_CONTROL': 4
+            'EXPENSE_CONTROL': 12,
+            'SAVINGS': 8
         }
     },
     'ILI_LOW': {
@@ -196,8 +190,7 @@ MISSION_SCENARIOS = {
         'target_range': (3, 6),
         'distribution': {
             'SAVINGS': 14,
-            'EXPENSE_CONTROL': 4,
-            'DEBT_REDUCTION': 2
+            'EXPENSE_CONTROL': 6
         }
     },
     'ILI_MEDIUM': {
@@ -208,8 +201,7 @@ MISSION_SCENARIOS = {
         'target_range': (6, 12),
         'distribution': {
             'SAVINGS': 12,
-            'EXPENSE_CONTROL': 5,
-            'DEBT_REDUCTION': 3
+            'EXPENSE_CONTROL': 8
         }
     },
     'ILI_HIGH': {
@@ -220,8 +212,7 @@ MISSION_SCENARIOS = {
         'target_range': (12, 24),
         'distribution': {
             'SAVINGS': 10,
-            'EXPENSE_CONTROL': 6,
-            'DEBT_REDUCTION': 4
+            'EXPENSE_CONTROL': 10
         }
     },
     'MIXED_BALANCED': {
@@ -229,9 +220,8 @@ MISSION_SCENARIOS = {
         'description': 'Missões mistas focadas em melhorar TPS, RDR e ILI simultaneamente',
         'focus': 'MIXED',
         'distribution': {
-            'SAVINGS': 8,
-            'DEBT_REDUCTION': 6,
-            'EXPENSE_CONTROL': 6
+            'SAVINGS': 10,
+            'EXPENSE_CONTROL': 10
         }
     },
     'MIXED_RECOVERY': {
@@ -243,9 +233,8 @@ MISSION_SCENARIOS = {
             'rdr': (40, 200)
         },
         'distribution': {
-            'DEBT_REDUCTION': 10,
-            'SAVINGS': 6,
-            'EXPENSE_CONTROL': 4
+            'EXPENSE_CONTROL': 14,
+            'SAVINGS': 6
         }
     },
     'MIXED_OPTIMIZATION': {
@@ -258,9 +247,8 @@ MISSION_SCENARIOS = {
             'ili': (6, 100)
         },
         'distribution': {
-            'SAVINGS': 7,
-            'EXPENSE_CONTROL': 7,
-            'DEBT_REDUCTION': 6
+            'SAVINGS': 10,
+            'EXPENSE_CONTROL': 10
         }
     }
 }
@@ -566,16 +554,16 @@ def get_scenario_guidelines(scenario_key, tier_stats):
             guidelines.append("- Enfatize importância da reserva de emergência")
             guidelines.append("- Sugira automatização de poupança")
     
-    elif scenario.get('focus') == 'DEBT_REDUCTION':
+    elif scenario.get('focus') == 'EXPENSE_CONTROL':
         rdr_range = scenario.get('rdr_range')
         target_range = scenario.get('target_range')
         
         if rdr_range:
             guidelines.append(f"- Usuários têm RDR entre {rdr_range[0]}% e {rdr_range[1]}%")
             guidelines.append(f"- Meta: reduzir RDR para {target_range[0]}-{target_range[1]}%")
-            guidelines.append("- Priorize dívidas com juros altos primeiro")
-            guidelines.append("- Sugira método bola de neve ou avalanche")
-            guidelines.append("- Combine redução de despesas com pagamento de dívidas")
+            guidelines.append("- RDR mede despesas recorrentes/renda (quanto menor, melhor)")
+            guidelines.append("- Sugira revisar assinaturas, contratos e gastos fixos")
+            guidelines.append("- Enfatize negociação e cancelamento de serviços desnecessários")
     
     elif scenario.get('focus') == 'MIXED':
         guidelines.append("- Equilibre melhorias em TPS, RDR e ILI simultaneamente")

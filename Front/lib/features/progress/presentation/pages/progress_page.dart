@@ -129,13 +129,6 @@ class _ProgressPageState extends State<ProgressPage> {
         }).toList();
       }
       
-      // DEBT_REDUCTION: apenas categorias de dívida (DEBT) e categorias criadas pelo usuário
-      if (goalType == GoalType.debtReduction) {
-        return categories.where((cat) {
-          return cat.type == 'DEBT' || cat.isUserCreated;
-        }).toList();
-      }
-      
       // CATEGORY_EXPENSE: apenas categorias de despesa (EXPENSE)
       if (goalType == GoalType.categoryExpense) {
         return categories.where((cat) => cat.type == 'EXPENSE').toList();
@@ -157,9 +150,8 @@ class _ProgressPageState extends State<ProgressPage> {
           final needsSingleCategory = selectedGoalType == GoalType.categoryExpense ||
               selectedGoalType == GoalType.categoryIncome;
           
-          // Verifica se permite múltiplas categorias (SAVINGS/DEBT_REDUCTION)
-          final allowsMultipleCategories = selectedGoalType == GoalType.savings ||
-              selectedGoalType == GoalType.debtReduction;
+          // Verifica se permite múltiplas categorias (SAVINGS apenas)
+          final allowsMultipleCategories = selectedGoalType == GoalType.savings;
           
           // Automaticamente define isReductionGoal para CATEGORY_EXPENSE
           if (selectedGoalType == GoalType.categoryExpense && !isReductionGoal) {
