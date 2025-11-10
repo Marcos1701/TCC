@@ -390,8 +390,8 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Buscar dívidas pendentes
-  Future<List<TransactionModel>> fetchPendingDebts({double? maxAmount}) async {
+  /// Buscar despesas pendentes
+  Future<List<TransactionModel>> fetchPendingExpenses({double? maxAmount}) async {
     final queryParams = <String, dynamic>{};
     if (maxAmount != null) {
       queryParams['max_amount'] = maxAmount.toString();

@@ -51,12 +51,12 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
 
     try {
       final incomes = await _repository.fetchAvailableIncomes();
-      final debts = await _repository.fetchPendingDebts();
+      final expenses = await _repository.fetchPendingExpenses();
 
       if (!mounted) return;
       setState(() {
         _availableIncomes = incomes;
-        _pendingExpenses = debts;
+        _pendingExpenses = expenses;
         _isLoading = false;
       });
     } catch (e) {

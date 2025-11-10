@@ -406,7 +406,7 @@ class TransactionLink(models.Model):
                 "Usuário da vinculação deve ser o mesmo das transações."
             )
         
-        # 4. Validar tipo de transação para DEBT_PAYMENT
+        # 4. Validar tipo de transação para diferentes link_types
         if self.link_type == self.LinkType.DEBT_PAYMENT:
             # Source deve ser receita
             if self.source_transaction.type != Transaction.TransactionType.INCOME:
@@ -421,7 +421,26 @@ class TransactionLink(models.Model):
                     "Para pagamento de dívida, a transação de destino deve ser uma dívida."
                 )
         
-        # 5. Validar valor disponível com lock (previne race conditions)
+        elif self.link_type == self.LinkType.EXPENSE_PAYMENT:
+            # Source deve ser receita
+            if self.source_transaction.type != Transaction.TransactionType.INCOME:
+                raise ValidationError(
+                    "Para pagamento de despesa, a transação de origem deve ser uma receita (INCOME)."
+                )
+            
+            # Target deve ser despesa
+            if self.target_transaction.type != Transaction.TransactionType.EXPENSE:
+                raise ValidationError(
+                    "Para pagamento de despesa, a transação de destino deve ser uma despesa (EXPENSE)."
+                )
+        
+        # 5. Validar amount positivo
+        if self.linked_amount <= 0:
+            raise ValidationError(
+                "O valor vinculado deve ser maior que zero."
+            )
+        
+        # 6. Validar valor disponível com lock (previne race conditions)
         try:
             with db_transaction.atomic():
                 # Recarregar transações com SELECT FOR UPDATE
@@ -439,12 +458,13 @@ class TransactionLink(models.Model):
                         f"na transação de origem (R$ {source.available_amount})"
                     )
                 
-                # Validar amount disponível na target (se for dívida)
-                if target.category and target.category.type == Category.CategoryType.DEBT:
+                # Validar amount disponível na target (para despesas e dívidas)
+                if target.type == Transaction.TransactionType.EXPENSE or \
+                   (target.category and target.category.type == Category.CategoryType.DEBT):
                     if self.linked_amount > target.available_amount:
                         raise ValidationError(
-                            f"Valor vinculado (R$ {self.linked_amount}) excede o devido "
-                            f"na dívida (R$ {target.available_amount})"
+                            f"Valor vinculado (R$ {self.linked_amount}) excede o pendente "
+                            f"na transação de destino (R$ {target.available_amount})"
                         )
         except Transaction.DoesNotExist as e:
             raise ValidationError(f"Transação não encontrada: {e}")

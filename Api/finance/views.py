@@ -471,7 +471,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def available_targets(self, request):
         """
-        Lista despesas e dívidas que ainda têm saldo devedor.
+        Lista despesas que ainda têm saldo pendente de pagamento.
         
         Query params:
         - max_amount: Filtrar despesas com saldo <= max_amount
@@ -479,11 +479,10 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         """
         from decimal import Decimal
         
-        # Buscar apenas transações com categoria do tipo DEBT
-        # (o bulk_payment sempre usa link_type=DEBT_PAYMENT que exige categoria DEBT)
+        # Buscar transações do tipo EXPENSE com saldo pendente
         transactions = Transaction.objects.filter(
             user=request.user,
-            category__type=Category.CategoryType.DEBT
+            type=Transaction.TransactionType.EXPENSE
         ).select_related('category')
         
         # Filtrar por categoria se fornecido
@@ -491,7 +490,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         if category_id:
             transactions = transactions.filter(category_id=category_id)
         
-        # Filtrar apenas com saldo devedor
+        # Filtrar apenas com saldo pendente
         max_amount = request.query_params.get('max_amount')
         available = [
             tx for tx in transactions 
@@ -784,7 +783,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
             "summary": {
                 "sources_used": 1,
                 "targets_paid": 2,
-                "fully_paid_debts": ["uuid-despesa-2"]
+                "fully_paid_expenses": ["uuid-despesa-2"]
             }
         }
         """
@@ -794,9 +793,22 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         payments_data = request.data.get('payments', [])
         description = request.data.get('description', 'Pagamento em lote')
         
+        # Validações iniciais
         if not payments_data:
             return Response(
                 {'error': 'Nenhum pagamento fornecido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not isinstance(payments_data, list):
+            return Response(
+                {'error': 'O campo "payments" deve ser uma lista'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if len(payments_data) > 100:
+            return Response(
+                {'error': 'Máximo de 100 pagamentos por lote'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -804,19 +816,39 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         total_amount = Decimal('0')
         sources_used = set()
         targets_paid = set()
-        fully_paid_debts = []
+        fully_paid_expenses = []
         
         try:
             with db_transaction.atomic():
                 # Validar todos os pagamentos primeiro
                 for idx, payment in enumerate(payments_data):
+                    if not isinstance(payment, dict):
+                        raise ValueError(
+                            f"Pagamento #{idx+1} inválido: deve ser um objeto"
+                        )
+                    
                     source_id = payment.get('source_id')
                     target_id = payment.get('target_id')
                     amount = payment.get('amount')
                     
-                    if not source_id or not target_id or not amount:
+                    if not source_id or not target_id or amount is None:
                         raise ValueError(
-                            f"Pagamento #{idx+1} inválido: faltam campos obrigatórios"
+                            f"Pagamento #{idx+1} inválido: faltam campos obrigatórios (source_id, target_id, amount)"
+                        )
+                    
+                    # Validar formato UUID
+                    try:
+                        from uuid import UUID
+                        UUID(str(source_id))
+                        UUID(str(target_id))
+                    except (ValueError, AttributeError):
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: IDs devem ser UUIDs válidos"
+                        )
+                    
+                    if source_id == target_id:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: source_id e target_id não podem ser iguais"
                         )
                     
                     try:
@@ -828,7 +860,13 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                     
                     if amount <= 0:
                         raise ValueError(
-                            f"Pagamento #{idx+1}: valor deve ser positivo"
+                            f"Pagamento #{idx+1}: valor deve ser positivo (recebido: {amount})"
+                        )
+                    
+                    # Validar limite máximo por pagamento (prevenir erros)
+                    if amount > Decimal('999999999.99'):
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: valor muito alto (máximo: R$ 999.999.999,99)"
                         )
                 
                 # Criar todos os links
@@ -852,6 +890,19 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                             f"Pagamento #{idx+1}: transação não encontrada ou não autorizada"
                         )
                     
+                    # Validar tipos de transação
+                    if source.type != Transaction.TransactionType.INCOME:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: source deve ser uma receita (INCOME), "
+                            f"mas '{source.description}' é {source.type}"
+                        )
+                    
+                    if target.type != Transaction.TransactionType.EXPENSE:
+                        raise ValueError(
+                            f"Pagamento #{idx+1}: target deve ser uma despesa (EXPENSE), "
+                            f"mas '{target.description}' é {target.type}"
+                        )
+                    
                     # Validar saldo disponível
                     if amount > source.available_amount:
                         raise ValueError(
@@ -861,17 +912,17 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                     
                     if amount > target.available_amount:
                         raise ValueError(
-                            f"Pagamento #{idx+1}: valor R$ {amount} excede saldo devedor "
+                            f"Pagamento #{idx+1}: valor R$ {amount} excede saldo pendente "
                             f"de '{target.description}' (R$ {target.available_amount})"
                         )
                     
-                    # Criar link
+                    # Criar link (usar EXPENSE_PAYMENT para despesas comuns)
                     link = TransactionLink.objects.create(
                         user=request.user,
                         source_transaction_uuid=source_id,
                         target_transaction_uuid=target_id,
                         linked_amount=amount,
-                        link_type=TransactionLink.LinkType.DEBT_PAYMENT,
+                        link_type=TransactionLink.LinkType.EXPENSE_PAYMENT,
                         description=description
                     )
                     
@@ -884,7 +935,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                     # Recarregar target para pegar linked_amount atualizado
                     target.refresh_from_db()
                     if target.available_amount == 0:
-                        fully_paid_debts.append(str(target_id))
+                        fully_paid_expenses.append(str(target_id))
                 
                 # Invalidar cache
                 invalidate_user_dashboard_cache(request.user)
@@ -904,7 +955,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                 'summary': {
                     'sources_used': len(sources_used),
                     'targets_paid': len(targets_paid),
-                    'fully_paid_debts': fully_paid_debts
+                    'fully_paid_expenses': fully_paid_expenses
                 }
             }, status=status.HTTP_201_CREATED)
             

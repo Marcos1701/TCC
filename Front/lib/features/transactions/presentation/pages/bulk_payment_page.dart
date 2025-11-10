@@ -33,11 +33,11 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   
   // Dados
   List<TransactionModel> _availableIncomes = [];
-  List<TransactionModel> _pendingDebts = [];
+  List<TransactionModel> _pendingExpenses = [];
   
   // Seleções (Map<transactionId, amount>)
   final Map<String, double> _selectedIncomes = {};
-  final Map<String, double> _selectedDebts = {};
+  final Map<String, double> _selectedExpenses = {};
   
   @override
   void initState() {
@@ -53,12 +53,26 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
 
     try {
       final incomes = await _repository.fetchAvailableIncomes();
-      final debts = await _repository.fetchPendingDebts();
+      final expenses = await _repository.fetchPendingExpenses();
 
       if (!mounted) return;
+      
+      // Filtrar apenas transações com UUID e saldo disponível
+      final validIncomes = incomes.where((income) => 
+        income.uuid != null && 
+        income.uuid!.isNotEmpty &&
+        (income.availableAmount ?? income.amount) > 0
+      ).toList();
+      
+      final validExpenses = expenses.where((expense) => 
+        expense.uuid != null && 
+        expense.uuid!.isNotEmpty &&
+        (expense.availableAmount ?? expense.amount) > 0
+      ).toList();
+      
       setState(() {
-        _availableIncomes = incomes;
-        _pendingDebts = debts;
+        _availableIncomes = validIncomes;
+        _pendingExpenses = validExpenses;
         _isLoading = false;
       });
     } catch (e) {
@@ -72,28 +86,88 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
 
   // Calcular totais
   double get _totalIncomeSelected => _selectedIncomes.values.fold(0.0, (a, b) => a + b);
-  double get _totalDebtsSelected => _selectedDebts.values.fold(0.0, (a, b) => a + b);
-  double get _balance => _totalIncomeSelected - _totalDebtsSelected;
+  double get _totalExpensesSelected => _selectedExpenses.values.fold(0.0, (a, b) => a + b);
+  double get _balance => _totalIncomeSelected - _totalExpensesSelected;
   
   bool get _canSubmit => 
       _selectedIncomes.isNotEmpty && 
-      _selectedDebts.isNotEmpty && 
+      _selectedExpenses.isNotEmpty && 
       _balance >= 0;
 
   Future<void> _submitPayments() async {
     if (!_canSubmit) return;
 
+    // Validação adicional antes de enviar
+    if (_selectedIncomes.isEmpty) {
+      FeedbackService.showError(context, 'Selecione pelo menos uma receita');
+      return;
+    }
+
+    if (_selectedExpenses.isEmpty) {
+      FeedbackService.showError(context, 'Selecione pelo menos uma despesa');
+      return;
+    }
+
+    if (_balance < 0) {
+      FeedbackService.showError(
+        context,
+        'Saldo insuficiente! Faltam ${_currency.format(_balance.abs())}',
+      );
+      return;
+    }
+
+    // Validar que todos os valores são positivos
+    for (final entry in _selectedIncomes.entries) {
+      if (entry.value <= 0) {
+        FeedbackService.showError(
+          context,
+          'Valor da receita deve ser maior que zero',
+        );
+        return;
+      }
+    }
+
+    for (final entry in _selectedExpenses.entries) {
+      if (entry.value <= 0) {
+        FeedbackService.showError(
+          context,
+          'Valor da despesa deve ser maior que zero',
+        );
+        return;
+      }
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
+      // Validar limite de pagamentos (máximo 100)
+      final totalPayments = _selectedExpenses.length * _selectedIncomes.length;
+      if (totalPayments > 100) {
+        throw Exception(
+          'Muitas combinações de pagamento ($totalPayments). '
+          'Reduza a seleção para menos de 100 combinações.',
+        );
+      }
+
       // Montar lista de pagamentos
       final payments = <Map<String, dynamic>>[];
       
       // Para cada despesa selecionada, distribuir pagamento das receitas
-      for (final debtEntry in _selectedDebts.entries) {
-        final debtUuid = debtEntry.key;
-        final debtAmount = debtEntry.value;
-        double remainingToAllocate = debtAmount;
+      for (final expenseEntry in _selectedExpenses.entries) {
+        final expenseUuid = expenseEntry.key;
+        final expenseAmount = expenseEntry.value;
+        
+        // Validar UUID não vazio
+        if (expenseUuid.isEmpty) {
+          throw Exception('UUID de despesa inválido');
+        }
+        
+        // Validar valor positivo
+        if (expenseAmount <= 0) {
+          throw Exception('Valor de despesa deve ser positivo');
+        }
+        
+        double remainingToAllocate = expenseAmount;
         
         // Distribuir entre as receitas selecionadas
         for (final incomeEntry in _selectedIncomes.entries) {
@@ -101,6 +175,19 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           
           final incomeUuid = incomeEntry.key;
           final incomeAvailable = incomeEntry.value;
+          
+          // Validar UUID não vazio
+          if (incomeUuid.isEmpty) {
+            throw Exception('UUID de receita inválido');
+          }
+          
+          // Validar valor positivo
+          if (incomeAvailable <= 0) continue;
+          
+          // Validar que não está vinculando transação consigo mesma
+          if (incomeUuid == expenseUuid) {
+            throw Exception('Não é possível vincular transação consigo mesma');
+          }
           
           // Quanto alocar desta receita para esta despesa
           final allocateAmount = remainingToAllocate < incomeAvailable 
@@ -110,7 +197,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           if (allocateAmount > 0) {
             payments.add({
               'source_id': incomeUuid,
-              'target_id': debtUuid,
+              'target_id': expenseUuid,
               'amount': allocateAmount,
             });
             
@@ -141,7 +228,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
 
       // Feedback de sucesso
       final createdCount = result['created_count'] ?? 0;
-      final fullyPaidCount = (result['summary']?['fully_paid_debts'] as List?)?.length ?? 0;
+      final fullyPaidCount = (result['summary']?['fully_paid_expenses'] as List?)?.length ?? 0;
       
       FeedbackService.showSuccess(
         context,
@@ -156,10 +243,32 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       
       setState(() => _isSubmitting = false);
       
-      FeedbackService.showError(
-        context,
-        'Erro ao processar pagamentos: $e',
-      );
+      // Melhorar mensagem de erro
+      String errorMessage = 'Erro ao processar pagamentos';
+      
+      if (e.toString().contains('DioException')) {
+        if (e.toString().contains('400')) {
+          errorMessage = 'Dados inválidos. Verifique os valores selecionados.';
+        } else if (e.toString().contains('401')) {
+          errorMessage = 'Sessão expirada. Faça login novamente.';
+        } else if (e.toString().contains('403')) {
+          errorMessage = 'Você não tem permissão para realizar esta operação.';
+        } else if (e.toString().contains('500')) {
+          errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
+        } else if (e.toString().contains('Network')) {
+          errorMessage = 'Sem conexão com a internet.';
+        }
+      } else {
+        // Usar mensagem do erro se disponível
+        final errorStr = e.toString();
+        if (errorStr.contains('Exception:')) {
+          errorMessage = errorStr.replaceFirst('Exception:', '').trim();
+        } else {
+          errorMessage = errorStr;
+        }
+      }
+      
+      FeedbackService.showError(context, errorMessage);
     }
   }
 
@@ -228,7 +337,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   }
 
   Widget _buildContent(ThemeData theme, AppDecorations tokens) {
-    if (_availableIncomes.isEmpty && _pendingDebts.isEmpty) {
+    if (_availableIncomes.isEmpty && _pendingExpenses.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -315,10 +424,10 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           ),
           const SizedBox(height: 12),
           
-          if (_pendingDebts.isEmpty)
+          if (_pendingExpenses.isEmpty)
             _buildEmptyCard('Nenhuma despesa pendente', theme, tokens)
           else
-            ..._pendingDebts.map((debt) => _buildDebtCard(debt, theme, tokens)),
+            ..._pendingExpenses.map((expense) => _buildExpenseCard(expense, theme, tokens)),
         ],
       ),
     );
@@ -364,7 +473,12 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   }
 
   Widget _buildIncomeCard(TransactionModel income, ThemeData theme, AppDecorations tokens) {
-    final incomeKey = income.uuid ?? income.id.toString();
+    // Validar UUID disponível
+    if (income.uuid == null || income.uuid!.isEmpty) {
+      return const SizedBox.shrink(); // Não exibir se não tiver UUID
+    }
+    
+    final incomeKey = income.uuid!;
     final isSelected = _selectedIncomes.containsKey(incomeKey);
     final available = income.availableAmount ?? income.amount;
     final selectedAmount = _selectedIncomes[incomeKey] ?? available;
@@ -497,9 +611,19 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                           onChanged: (value) {
                             final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
                             final amount = double.tryParse(cleanValue) ?? 0.0;
+                            
+                            // Validar limites
+                            if (amount < 0) return;
+                            if (amount > 999999999.99) return;
+                            
                             setState(() {
-                              _selectedIncomes[incomeKey] = 
-                                  amount > available ? available : amount;
+                              final limitedAmount = amount > available ? available : amount;
+                              // Não permitir valor zero se selecionado
+                              if (limitedAmount > 0) {
+                                _selectedIncomes[incomeKey] = limitedAmount;
+                              } else {
+                                _selectedIncomes.remove(incomeKey);
+                              }
                             });
                           },
                         ),
@@ -524,12 +648,17 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
     );
   }
 
-  Widget _buildDebtCard(TransactionModel debt, ThemeData theme, AppDecorations tokens) {
-    final debtKey = debt.uuid ?? debt.id.toString();
-    final isSelected = _selectedDebts.containsKey(debtKey);
-    final remaining = debt.availableAmount ?? debt.amount;
-    final selectedAmount = _selectedDebts[debtKey] ?? remaining;
-    final paymentPercentage = debt.linkPercentage ?? 0.0;
+  Widget _buildExpenseCard(TransactionModel expense, ThemeData theme, AppDecorations tokens) {
+    // Validar UUID disponível
+    if (expense.uuid == null || expense.uuid!.isEmpty) {
+      return const SizedBox.shrink(); // Não exibir se não tiver UUID
+    }
+    
+    final expenseKey = expense.uuid!;
+    final isSelected = _selectedExpenses.containsKey(expenseKey);
+    final remaining = expense.availableAmount ?? expense.amount;
+    final selectedAmount = _selectedExpenses[expenseKey] ?? remaining;
+    final paymentPercentage = expense.linkPercentage ?? 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -550,9 +679,9 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           onTap: () {
             setState(() {
               if (isSelected) {
-                _selectedDebts.remove(debtKey);
+                _selectedExpenses.remove(expenseKey);
               } else {
-                _selectedDebts[debtKey] = remaining;
+                _selectedExpenses[expenseKey] = remaining;
               }
             });
           },
@@ -568,9 +697,9 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       onChanged: (value) {
                         setState(() {
                           if (value == true) {
-                            _selectedDebts[debtKey] = remaining;
+                            _selectedExpenses[expenseKey] = remaining;
                           } else {
-                            _selectedDebts.remove(debtKey);
+                            _selectedExpenses.remove(expenseKey);
                           }
                         });
                       },
@@ -582,7 +711,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            debt.description,
+                            expense.description,
                             style: theme.textTheme.titleSmall?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
@@ -629,7 +758,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       ),
                     ),
                     Text(
-                      _currency.format(debt.amount),
+                      _currency.format(expense.amount),
                       style: theme.textTheme.titleSmall?.copyWith(
                         color: Colors.white70,
                         fontWeight: FontWeight.w600,
@@ -704,9 +833,19 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                           onChanged: (value) {
                             final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
                             final amount = double.tryParse(cleanValue) ?? 0.0;
+                            
+                            // Validar limites
+                            if (amount < 0) return;
+                            if (amount > 999999999.99) return;
+                            
                             setState(() {
-                              _selectedDebts[debtKey] = 
-                                  amount > remaining ? remaining : amount;
+                              final limitedAmount = amount > remaining ? remaining : amount;
+                              // Não permitir valor zero se selecionado
+                              if (limitedAmount > 0) {
+                                _selectedExpenses[expenseKey] = limitedAmount;
+                              } else {
+                                _selectedExpenses.remove(expenseKey);
+                              }
                             });
                           },
                         ),
@@ -715,7 +854,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                       TextButton(
                         onPressed: () {
                           setState(() {
-                            _selectedDebts[debtKey] = remaining;
+                            _selectedExpenses[expenseKey] = remaining;
                           });
                         },
                         child: const Text('Quitar'),
@@ -778,7 +917,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                         const Icon(Icons.arrow_forward, color: Colors.white38, size: 16),
                         const SizedBox(width: 8),
                         Text(
-                          _currency.format(_totalDebtsSelected),
+                          _currency.format(_totalExpensesSelected),
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: AppColors.alert,
                             fontWeight: FontWeight.w700,
@@ -840,7 +979,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
                           const Icon(Icons.check_circle_outline),
                           const SizedBox(width: 8),
                           Text(
-                            'Confirmar Pagamento${_selectedDebts.length > 1 ? "s" : ""} (${_selectedDebts.length})',
+                            'Confirmar Pagamento${_selectedExpenses.length > 1 ? "s" : ""} (${_selectedExpenses.length})',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -852,7 +991,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
             ),
             
             // Texto de validação
-            if (!_canSubmit && (_selectedIncomes.isNotEmpty || _selectedDebts.isNotEmpty))
+            if (!_canSubmit && (_selectedIncomes.isNotEmpty || _selectedExpenses.isNotEmpty))
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
