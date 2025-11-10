@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
@@ -80,7 +81,7 @@ class _MissionsPageState extends State<MissionsPage> {
         backgroundColor: Colors.black,
         elevation: 0,
         title: Text(
-          'Missões',
+          UxStrings.challenges,
           style: theme.textTheme.titleLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w700,
@@ -126,7 +127,7 @@ class _MissionsPageState extends State<MissionsPage> {
                     const SizedBox(height: 8),
                     Text(
                       _viewModel.errorMessage ?? 
-                          'Não foi possível carregar as missões.',
+                          'Não foi possível carregar os desafios.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.grey[400],
@@ -136,7 +137,7 @@ class _MissionsPageState extends State<MissionsPage> {
                     ElevatedButton.icon(
                       onPressed: () => _viewModel.loadMissions(),
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Tentar Novamente'),
+                      label: Text(UxStrings.tryAgain),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -166,7 +167,7 @@ class _MissionsPageState extends State<MissionsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Missões Ativas',
+                        UxStrings.activeChallenges,
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -183,7 +184,7 @@ class _MissionsPageState extends State<MissionsPage> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${_viewModel.activeMissions.length} ativas',
+                          '${_viewModel.activeMissions.length} ${_viewModel.activeMissions.length == 1 ? 'ativo' : 'ativos'}',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -196,7 +197,7 @@ class _MissionsPageState extends State<MissionsPage> {
                   if (_viewModel.activeMissions.isEmpty)
                     const _EmptyState(
                       message:
-                          'Sem missões ativas no momento.\nContinue realizando transações para receber novas missões!',
+                          'Sem desafios ativos no momento.\nContinue realizando transações para receber novos desafios!',
                     )
                   else
                     ..._viewModel.activeMissions.map(

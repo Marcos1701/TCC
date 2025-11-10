@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/models/goal.dart';
 import '../../../../core/models/profile.dart';
@@ -1114,7 +1115,7 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
           ),
           const SizedBox(height: 10),
           Text(
-            '${widget.profile.experiencePoints} / ${widget.profile.nextLevelThreshold} XP',
+            '${widget.profile.experiencePoints} / ${widget.profile.nextLevelThreshold} pontos',
             style: theme.textTheme.bodySmall?.copyWith(
               color: Colors.white70,
               fontWeight: FontWeight.w600,

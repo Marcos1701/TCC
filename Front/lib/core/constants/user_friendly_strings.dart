@@ -1,0 +1,141 @@
+/// Substitui termos técnicos por linguagem mais acessível.
+class UxStrings {
+  // Privado - não permitir instanciação
+  UxStrings._();
+
+  // ========== Gamificação ==========
+  
+  /// "Desafios" ao invés de "Missões"
+  static const challenges = 'Desafios';
+  static const activeChallenges = 'Desafios Ativos';
+  static const completedChallenges = 'Desafios Concluídos';
+  static const weeklyChallenge = 'Desafio da Semana';
+  
+  /// "Pontos" ao invés de "XP" ou "Experience Points"
+  static const points = 'Pontos';
+  static const earnPoints = 'Ganhe pontos';
+  static const pointsEarned = 'Pontos ganhos';
+  
+  /// Níveis
+  static const level = 'Nível';
+  static const nextLevel = 'Próximo nível';
+  
+  // ========== Transações ==========
+  
+  static const transactions = 'Transações';
+  static const newTransaction = 'Nova transação';
+  static const recentTransactions = 'Últimas transações';
+  
+  /// Linguagem mais amigável para receitas e despesas
+  static const income = 'Entrou';
+  static const expense = 'Saiu';
+  static const balance = 'Sobrou';
+  
+  /// "Transferência" ao invés de "Vínculo"
+  static const transfer = 'Transferência';
+  static const transfers = 'Transferências';
+  
+  // ========== Indicadores Financeiros ==========
+  
+  /// Indicadores com linguagem natural
+  static const savings = 'Você está guardando';
+  static const savingsAmount = 'Guardando por mês';
+  static const fixedExpenses = 'Gastos fixos';
+  static const fixedExpensesMonthly = 'Gastos fixos mensais';
+  static const emergencyFund = 'Reserva de emergência';
+  static const emergencyFundMonths = 'Reserva para emergências';
+  
+  // ========== Status e Badges ==========
+  
+  static const excellent = 'Excelente!';
+  static const good = 'Bom';
+  static const warning = 'Atenção';
+  static const critical = 'Crítico';
+  static const healthy = 'Saudável';
+  static const protected = 'Protegido';
+  static const vulnerable = 'Vulnerável';
+  
+  // ========== Metas ==========
+  
+  static const goals = 'Metas';
+  static const newGoal = 'Nova meta';
+  static const activeGoals = 'Metas ativas';
+  static const completedGoals = 'Metas concluídas';
+  static const goalProgress = 'Progresso da meta';
+  
+  // ========== Ranking e Social ==========
+  
+  static const ranking = 'Ranking';
+  static const friendsRanking = 'Ranking de Amigos';
+  static const friends = 'Amigos';
+  static const addFriends = 'Adicionar Amigos';
+  static const inviteFriends = 'Convidar Amigos';
+  
+  // ========== Navegação ==========
+  
+  static const home = 'Início';
+  static const finances = 'Finanças';
+  static const profile = 'Perfil';
+  static const settings = 'Configurações';
+  static const analysis = 'Análise';
+  
+  // ========== Ações ==========
+  
+  static const add = 'Adicionar';
+  static const edit = 'Editar';
+  static const delete = 'Excluir';
+  static const save = 'Salvar';
+  static const cancel = 'Cancelar';
+  static const confirm = 'Confirmar';
+  static const continue_ = 'Continuar';
+  static const skip = 'Pular';
+  static const seeAll = 'Ver tudo';
+  static const viewMore = 'Ver Mais';
+  static const refresh = 'Atualizar';
+  
+  // ========== Mensagens Contextuais ==========
+  
+  /// Mensagens dinâmicas para progresso de poupança
+  static String savingsProgress(double percentage) => 
+      'Você está guardando ${percentage.toStringAsFixed(0)}% da sua renda';
+  
+  /// Mensagens de progresso de meta
+  static String goalProgressMessage(double current, double target) {
+    final percentage = ((current / target) * 100).toStringAsFixed(0);
+    return 'R\$ ${current.toStringAsFixed(2)} de R\$ ${target.toStringAsFixed(2)} ($percentage%)';
+  }
+  
+  /// Mensagens de pontos ganhos
+  static String pointsEarnedMessage(int points) =>
+      points == 1 ? '1 ponto ganho!' : '$points pontos ganhos!';
+  
+  /// Mensagens de nível alcançado
+  static String levelReached(int level) => 'Você alcançou o nível $level!';
+  
+  /// Mensagem de falta para próximo nível
+  static String pointsToNextLevel(int points) =>
+      'Faltam $points pontos para o próximo nível';
+  
+  // ========== Onboarding ==========
+  
+  static const welcome = 'Bem-vindo!';
+  static const letsStart = "Vamos começar";
+  static const basicInfo = 'Informações básicas';
+  static const allSet = 'Tudo pronto!';
+  
+  // ========== Períodos de Tempo ==========
+  
+  static const today = 'Hoje';
+  static const thisWeek = 'Esta semana';
+  static const thisMonth = 'Este mês';
+  static const thisYear = 'Este ano';
+  static const total = 'Total';
+  
+  // ========== Feedback ==========
+  
+  static const success = 'Sucesso!';
+  static const error = 'Erro';
+  static const loading = 'Carregando...';
+  static const noData = 'Nenhum dado disponível';
+  static const tryAgain = 'Tentar novamente';
+}

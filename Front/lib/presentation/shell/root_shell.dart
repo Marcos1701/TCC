@@ -33,7 +33,7 @@ class _RootShellState extends State<RootShell> {
 
   final List<_NavigationItem> _items = [
     const _NavigationItem(
-      label: 'Home',
+      label: 'Início',
       icon: Icons.home_rounded,
       builder: HomePage.new,
     ),
@@ -43,7 +43,7 @@ class _RootShellState extends State<RootShell> {
       builder: TransactionsPage.new,
     ),
     const _NavigationItem(
-      label: 'Missões',
+      label: 'Desafios',
       icon: Icons.videogame_asset_rounded,
       builder: MissionsPage.new,
     ),

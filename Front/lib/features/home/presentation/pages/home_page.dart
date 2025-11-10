@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
@@ -150,7 +151,7 @@ class _HomePageState extends State<HomePage> {
     // Mostrar feedback de sucesso
     FeedbackService.showSuccess(
       context,
-      '✅ Transação registrada! Confira seu progresso nas missões.',
+      '✅ Transação registrada! Confira seu progresso nos desafios.',
     );
   }
 
@@ -273,7 +274,7 @@ class _HomePageState extends State<HomePage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Missões em Andamento',
+                        UxStrings.activeChallenges,
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -285,7 +286,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.primary,
                         ),
-                        child: const Text('Ver Mais'),
+                        child: const Text(UxStrings.viewMore),
                       ),
                     ],
                   ),
@@ -374,7 +375,7 @@ class _HomeSummaryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'XP Atual',
+                    UxStrings.points,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey[400],
                       fontSize: 11,

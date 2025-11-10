@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/leaderboard.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -97,7 +98,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
           ),
           tabs: const [
             Tab(text: 'Ranking Geral'),
-            Tab(text: 'Amigos'),
+            Tab(text: UxStrings.friends),
           ],
         ),
       ),
@@ -427,7 +428,7 @@ class _CurrentUserRankCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Nível ${entry.level} • ${entry.xp} XP',
+                      'Nível ${entry.level} • ${entry.xp} pontos',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.white.withOpacity(0.9),
                       ),
@@ -560,7 +561,7 @@ class _PodiumWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${user.xp} XP',
+                    '${user.xp} pontos',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey[400],
                       fontSize: 11,
@@ -713,7 +714,7 @@ class _RankTile extends StatelessWidget {
             ),
           ),
 
-          // XP
+          // Pontos
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -725,7 +726,7 @@ class _RankTile extends StatelessWidget {
                 ),
               ),
               Text(
-                'XP',
+                UxStrings.points,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: Colors.grey[400],
                   fontSize: 11,
