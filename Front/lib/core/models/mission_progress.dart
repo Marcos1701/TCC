@@ -13,6 +13,21 @@ class MissionProgressModel {
     this.completedAt,
     required this.updatedAt,
     required this.mission,
+    // Novos campos de rastreamento avançado
+    this.baselineCategorySpending,
+    this.baselinePeriodDays,
+    this.initialGoalProgress,
+    this.initialSavingsAmount,
+    this.currentStreak,
+    this.maxStreak,
+    this.daysMetCriteria,
+    this.daysViolatedCriteria,
+    this.lastViolationDate,
+    this.validationDetails,
+    // Campos calculados do serializer
+    this.daysRemaining,
+    this.progressPercentage,
+    this.currentVsInitial,
   });
 
   final int id;
@@ -26,6 +41,23 @@ class MissionProgressModel {
   final DateTime? completedAt;
   final DateTime updatedAt;
   final MissionModel mission;
+  
+  // Novos campos
+  final double? baselineCategorySpending;
+  final int? baselinePeriodDays;
+  final double? initialGoalProgress;
+  final double? initialSavingsAmount;
+  final int? currentStreak;
+  final int? maxStreak;
+  final int? daysMetCriteria;
+  final int? daysViolatedCriteria;
+  final DateTime? lastViolationDate;
+  final Map<String, dynamic>? validationDetails;
+  
+  // Campos calculados
+  final int? daysRemaining;
+  final String? progressPercentage;
+  final Map<String, dynamic>? currentVsInitial;
 
   factory MissionProgressModel.fromMap(Map<String, dynamic> map) {
     return MissionProgressModel(
@@ -50,6 +82,29 @@ class MissionProgressModel {
           : null,
       updatedAt: DateTime.parse(map['updated_at'] as String),
       mission: MissionModel.fromMap(map['mission'] as Map<String, dynamic>),
+      // Novos campos
+      baselineCategorySpending: map['baseline_category_spending'] != null
+          ? double.parse(map['baseline_category_spending'].toString())
+          : null,
+      baselinePeriodDays: map['baseline_period_days'] as int?,
+      initialGoalProgress: map['initial_goal_progress'] != null
+          ? double.parse(map['initial_goal_progress'].toString())
+          : null,
+      initialSavingsAmount: map['initial_savings_amount'] != null
+          ? double.parse(map['initial_savings_amount'].toString())
+          : null,
+      currentStreak: map['current_streak'] as int?,
+      maxStreak: map['max_streak'] as int?,
+      daysMetCriteria: map['days_met_criteria'] as int?,
+      daysViolatedCriteria: map['days_violated_criteria'] as int?,
+      lastViolationDate: map['last_violation_date'] != null
+          ? DateTime.parse(map['last_violation_date'] as String)
+          : null,
+      validationDetails: map['validation_details'] as Map<String, dynamic>?,
+      // Campos calculados
+      daysRemaining: map['days_remaining'] as int?,
+      progressPercentage: map['progress_percentage'] as String?,
+      currentVsInitial: map['current_vs_initial'] as Map<String, dynamic>?,
     );
   }
 
@@ -91,4 +146,22 @@ class MissionProgressModel {
         return status;
     }
   }
+  
+  /// Retorna true se está em uma sequência ativa (streak)
+  bool get hasActiveStreak => (currentStreak ?? 0) > 0;
+  
+  /// Retorna texto descritivo da sequência
+  String get streakDescription {
+    if (currentStreak == null || currentStreak == 0) {
+      return 'Nenhuma sequência ativa';
+    }
+    final days = currentStreak == 1 ? 'dia' : 'dias';
+    return '$currentStreak $days consecutivos';
+  }
+  
+  /// Retorna progresso formatado como percentual
+  String get progressFormatted {
+    return '${progress.toStringAsFixed(1)}%';
+  }
 }
+

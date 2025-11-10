@@ -18,7 +18,6 @@ import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
 import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
 import '../../../transactions/presentation/pages/expense_payment_page.dart';
@@ -247,7 +246,7 @@ class _HomePageState extends State<HomePage> {
                     profile: data.profile,
                     summary: data.summary,
                     currency: _currency,
-                    onProfileTap: () => _openPage(const ProfilePage()),
+                    onProfileTap: () => _openPage(const SettingsPage()),
                     onProgressTap: () => _openPage(const ProgressPage()),
                     onTransactionsTap: () =>
                         _openPage(const TransactionsPage()),

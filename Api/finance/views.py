@@ -6,6 +6,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
 from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
@@ -698,6 +701,15 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MissionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def _get_tier_level_range(self, tier):
+        """Retorna o range de níveis para um tier específico."""
+        tier_ranges = {
+            'BEGINNER': (1, 5),
+            'INTERMEDIATE': (6, 15),
+            'ADVANCED': (16, 100)
+        }
+        return tier_ranges.get(tier, (1, 100))
+
     def get_queryset(self):
         return Mission.objects.filter(is_active=True)
     
@@ -784,12 +796,31 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Caso 2: Tier específica, auto-detectar cenário
         elif tier:
-            batch = generate_batch_missions_for_tier(tier)
+            # Tentar usar contexto de usuário representativo do tier
+            from .services import get_comprehensive_mission_context
+            from .models import User, UserProfile
+            
+            user_context = None
+            try:
+                # Buscar usuário representativo do tier para personalização
+                tier_level_range = self._get_tier_level_range(tier)
+                representative_profile = UserProfile.objects.filter(
+                    level__range=tier_level_range
+                ).select_related('user').order_by('-user__last_login').first()
+                
+                if representative_profile and representative_profile.user:
+                    user_context = get_comprehensive_mission_context(representative_profile.user)
+                    logger.info(f"Usando contexto do usuário {representative_profile.user.username} (nível {representative_profile.level}) para tier {tier}")
+            except Exception as e:
+                logger.warning(f"Não foi possível obter contexto de usuário para {tier}: {e}")
+            
+            batch = generate_batch_missions_for_tier(tier, user_context=user_context)
             if batch:
                 created = create_missions_from_batch(tier, batch)
                 results[tier] = {
                     'generated': len(batch),
                     'created': len(created),
+                    'personalized': user_context is not None,
                     'missions': [
                         {
                             'id': str(m.id),
@@ -1113,6 +1144,57 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         progress_qs = MissionProgress.objects.filter(user=request.user).select_related("mission")
         serializer = MissionProgressSerializer(progress_qs, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=["get"], url_path="analytics")
+    def analytics(self, request):
+        """
+        Retorna análises avançadas sobre evolução, padrões de categoria e distribuição de missões.
+        
+        GET /api/dashboard/analytics/
+        
+        Retorna:
+        {
+            "comprehensive_context": {...},  // Contexto completo do usuário
+            "category_patterns": {...},      // Análise de padrões por categoria
+            "tier_progression": {...},       // Análise de progressão entre tiers
+            "mission_distribution": {...}    // Análise de distribuição de missões
+        }
+        """
+        from .services import (
+            get_comprehensive_mission_context,
+            analyze_category_patterns,
+            analyze_tier_progression,
+            get_mission_distribution_analysis
+        )
+        
+        user = request.user
+        
+        try:
+            # Obter contexto abrangente
+            comprehensive = get_comprehensive_mission_context(user)
+            
+            # Análises adicionais
+            category_patterns = analyze_category_patterns(user)
+            tier_progression = analyze_tier_progression(user)
+            mission_distribution = get_mission_distribution_analysis(user)
+            
+            return Response({
+                'success': True,
+                'comprehensive_context': comprehensive,
+                'category_patterns': category_patterns,
+                'tier_progression': tier_progression,
+                'mission_distribution': mission_distribution
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar analytics para usuário {user.id}: {e}")
+            return Response(
+                {
+                    'success': False,
+                    'error': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ProfileView(APIView):

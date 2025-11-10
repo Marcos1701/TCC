@@ -198,10 +198,25 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                               _buildDescriptionSection(theme, tokens),
                               const SizedBox(height: 24),
                               _buildInfoSection(theme, tokens),
+                              // Nova seção de validação e streak
+                              if (widget.missionProgress.mission.validationType != 'SNAPSHOT' ||
+                                  widget.missionProgress.hasActiveStreak) ...[
+                                const SizedBox(height: 24),
+                                _buildValidationSection(theme, tokens),
+                              ],
+                              // Seção de requisitos detalhados
+                              const SizedBox(height: 24),
+                              _buildRequirementsSection(theme, tokens),
+                              // Seção de impacto esperado
+                              const SizedBox(height: 24),
+                              _buildImpactSection(theme, tokens),
                               if (_details?['progress_breakdown'] != null) ...[
                                 const SizedBox(height: 24),
                                 _buildBreakdownSection(theme, tokens),
                               ],
+                              // Seção de recomendações personalizadas
+                              const SizedBox(height: 24),
+                              _buildRecommendationsSection(theme, tokens),
                               if (_details?['progress_timeline'] != null) ...[
                                 const SizedBox(height: 24),
                                 _buildTimelineSection(theme, tokens),
@@ -412,6 +427,875 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       ],
     );
   }
+
+  Widget _buildValidationSection(ThemeData theme, AppDecorations tokens) {
+    final mission = widget.missionProgress.mission;
+    final progress = widget.missionProgress;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: tokens.cardRadius,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Validação e Progresso',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Tipo de validação
+          _buildInfoRow(
+            theme,
+            'Tipo de validação',
+            mission.validationTypeLabel,
+            Icons.verified_outlined,
+            AppColors.primary,
+          ),
+          
+          // Streak (se aplicável)
+          if (progress.hasActiveStreak || (progress.maxStreak ?? 0) > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(12),
+                border: progress.hasActiveStreak
+                    ? Border.all(color: AppColors.support.withOpacity(0.3))
+                    : null,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.local_fire_department,
+                        color: progress.hasActiveStreak
+                            ? const Color(0xFFFF6B00)
+                            : Colors.grey[400],
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Sequência Atual',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[400],
+                              fontSize: 11,
+                            ),
+                          ),
+                          Text(
+                            progress.streakDescription,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: progress.hasActiveStreak
+                                  ? const Color(0xFFFF6B00)
+                                  : Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  if ((progress.maxStreak ?? 0) > 0) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Melhor sequência: ${progress.maxStreak} dias',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          
+          // Dias atendendo critério
+          if ((progress.daysMetCriteria ?? 0) > 0 ||
+              (progress.daysViolatedCriteria ?? 0) > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2A2A2A),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  if ((progress.daysMetCriteria ?? 0) > 0)
+                    _buildStatColumn(
+                      theme,
+                      '${progress.daysMetCriteria}',
+                      'Dias OK',
+                      AppColors.support,
+                      Icons.check_circle_outline,
+                    ),
+                  if ((progress.daysViolatedCriteria ?? 0) > 0)
+                    _buildStatColumn(
+                      theme,
+                      '${progress.daysViolatedCriteria}',
+                      'Violações',
+                      AppColors.alert,
+                      Icons.cancel_outlined,
+                    ),
+                ],
+              ),
+            ),
+          ],
+          
+          // Última violação
+          if (progress.lastViolationDate != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.warning_outlined, color: AppColors.alert, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Última violação: ${DateFormat('dd/MM/yyyy').format(progress.lastViolationDate!)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(
+      ThemeData theme, String value, String label, Color color, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.grey[500],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRequirementsSection(ThemeData theme, AppDecorations tokens) {
+    final mission = widget.missionProgress.mission;
+    final List<Map<String, dynamic>> requirements = [];
+
+    // Adiciona requisitos baseados no tipo de validação
+    switch (mission.validationType) {
+      case 'TEMPORAL':
+        if (mission.requiresConsecutiveDays == true && mission.minConsecutiveDays != null) {
+          requirements.add({
+            'icon': Icons.calendar_today,
+            'title': 'Dias Consecutivos',
+            'description': 'Mantenha os critérios por ${mission.minConsecutiveDays} dias seguidos',
+            'color': AppColors.primary,
+          });
+        }
+        break;
+      
+      case 'CATEGORY_REDUCTION':
+        if (mission.targetCategory != null && mission.targetReductionPercent != null) {
+          requirements.add({
+            'icon': Icons.trending_down,
+            'title': 'Redução de Categoria',
+            'description': 'Reduza gastos em ${mission.targetReductionPercent}% comparado ao período base',
+            'color': AppColors.support,
+          });
+        }
+        break;
+      
+      case 'CATEGORY_LIMIT':
+        if (mission.categorySpendingLimit != null) {
+          requirements.add({
+            'icon': Icons.block,
+            'title': 'Limite de Gastos',
+            'description': 'Não ultrapasse R\$ ${mission.categorySpendingLimit!.toStringAsFixed(2)}',
+            'color': AppColors.alert,
+          });
+        }
+        break;
+      
+      case 'GOAL_PROGRESS':
+        if (mission.targetGoal != null && mission.goalProgressTarget != null) {
+          requirements.add({
+            'icon': Icons.track_changes,
+            'title': 'Progresso em Meta',
+            'description': 'Alcance ${mission.goalProgressTarget}% da meta',
+            'color': AppColors.primary,
+          });
+        }
+        break;
+      
+      case 'SAVINGS_INCREASE':
+        if (mission.savingsIncreaseAmount != null) {
+          requirements.add({
+            'icon': Icons.savings_outlined,
+            'title': 'Aumento de Poupança',
+            'description': 'Aumente a poupança em R\$ ${mission.savingsIncreaseAmount!.toStringAsFixed(2)}',
+            'color': AppColors.support,
+          });
+        }
+        break;
+      
+      case 'CONSISTENCY':
+        if (mission.requiresDailyAction == true && mission.minDailyActions != null) {
+          requirements.add({
+            'icon': Icons.repeat,
+            'title': 'Ações Diárias',
+            'description': 'Execute pelo menos ${mission.minDailyActions} ações por dia',
+            'color': AppColors.primary,
+          });
+        }
+        break;
+    }
+
+    // Adiciona requisitos de indicadores se houver
+    if (mission.targetTps != null) {
+      requirements.add({
+        'icon': Icons.account_balance_wallet,
+        'title': 'TPS Alvo',
+        'description': 'Atinja ${mission.targetTps}% de Taxa de Poupança',
+        'color': const Color(0xFF4CAF50),
+      });
+    }
+    
+    if (mission.targetRdr != null) {
+      requirements.add({
+        'icon': Icons.credit_card,
+        'title': 'RDR Alvo',
+        'description': 'Mantenha RDR abaixo de ${mission.targetRdr}%',
+        'color': const Color(0xFFF44336),
+      });
+    }
+    
+    if (mission.minIli != null || mission.maxIli != null) {
+      final minIli = mission.minIli ?? 0;
+      final maxIli = mission.maxIli ?? double.infinity;
+      requirements.add({
+        'icon': Icons.shield,
+        'title': 'ILI Alvo',
+        'description': maxIli == double.infinity 
+            ? 'Mantenha ILI acima de $minIli meses'
+            : 'Mantenha ILI entre $minIli e $maxIli meses',
+        'color': const Color(0xFF2196F3),
+      });
+    }
+    
+    if (mission.minTransactions != null) {
+      requirements.add({
+        'icon': Icons.receipt_long,
+        'title': 'Transações Mínimas',
+        'description': 'Registre pelo menos ${mission.minTransactions} transações',
+        'color': const Color(0xFFFF9800),
+      });
+    }
+
+    if (requirements.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: tokens.cardRadius,
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.checklist,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Requisitos da Missão',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...requirements.map((req) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildRequirementItem(theme, req),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementItem(ThemeData theme, Map<String, dynamic> requirement) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (requirement['color'] as Color).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              requirement['icon'] as IconData,
+              color: requirement['color'] as Color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  requirement['title'] as String,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  requirement['description'] as String,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactSection(ThemeData theme, AppDecorations tokens) {
+    final mission = widget.missionProgress.mission;
+    final List<Map<String, dynamic>> impacts = [];
+
+    // Determina os impactos baseado no tipo de missão
+    switch (mission.missionType) {
+      case 'TPS_IMPROVEMENT':
+        impacts.addAll([
+          {
+            'icon': Icons.trending_up,
+            'title': 'Aumenta sua Taxa de Poupança',
+            'description': 'Você estará guardando mais dinheiro mensalmente',
+            'color': const Color(0xFF4CAF50),
+          },
+          {
+            'icon': Icons.security,
+            'title': 'Melhora sua Segurança Financeira',
+            'description': 'Construindo uma reserva para emergências',
+            'color': AppColors.primary,
+          },
+        ]);
+        break;
+      
+      case 'RDR_REDUCTION':
+        impacts.addAll([
+          {
+            'icon': Icons.trending_down,
+            'title': 'Reduz Comprometimento da Renda',
+            'description': 'Menos dinheiro comprometido com dívidas',
+            'color': AppColors.support,
+          },
+          {
+            'icon': Icons.psychology,
+            'title': 'Menos Estresse Financeiro',
+            'description': 'Dívidas menores significam mais tranquilidade',
+            'color': const Color(0xFF9C27B0),
+          },
+        ]);
+        break;
+      
+      case 'ILI_BUILDING':
+        impacts.addAll([
+          {
+            'icon': Icons.shield,
+            'title': 'Aumenta sua Liquidez Imediata',
+            'description': 'Mais meses de despesas cobertas em emergências',
+            'color': const Color(0xFF2196F3),
+          },
+          {
+            'icon': Icons.self_improvement,
+            'title': 'Independência Financeira',
+            'description': 'Maior capacidade de enfrentar imprevistos',
+            'color': AppColors.primary,
+          },
+        ]);
+        break;
+      
+      case 'ADVANCED':
+        impacts.addAll([
+          {
+            'icon': Icons.rocket_launch,
+            'title': 'Nível Avançado de Controle',
+            'description': 'Domínio completo das suas finanças',
+            'color': const Color(0xFFFF9800),
+          },
+          {
+            'icon': Icons.stars,
+            'title': 'Maximiza Recompensas',
+            'description': 'Maior ganho de XP e progressão rápida',
+            'color': AppColors.primary,
+          },
+        ]);
+        break;
+      
+      case 'ONBOARDING':
+        impacts.addAll([
+          {
+            'icon': Icons.lightbulb_outline,
+            'title': 'Aprenda Conceitos Fundamentais',
+            'description': 'Entenda os pilares da saúde financeira',
+            'color': const Color(0xFF9C27B0),
+          },
+          {
+            'icon': Icons.rocket,
+            'title': 'Comece sua Jornada',
+            'description': 'Primeiros passos para transformar suas finanças',
+            'color': AppColors.primary,
+          },
+        ]);
+        break;
+    }
+
+    // Adiciona impacto de XP
+    impacts.add({
+      'icon': Icons.star_rounded,
+      'title': '+${mission.rewardPoints} XP de Recompensa',
+      'description': 'Avance de nível e desbloqueie novas missões',
+      'color': AppColors.primary,
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: tokens.cardRadius,
+        border: Border.all(
+          color: AppColors.support.withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.support.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: AppColors.support,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Impacto ao Completar',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Veja como esta missão vai melhorar suas finanças',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[400],
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...impacts.map((impact) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildImpactItem(theme, impact),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactItem(ThemeData theme, Map<String, dynamic> impact) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (impact['color'] as Color).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              impact['icon'] as IconData,
+              color: impact['color'] as Color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  impact['title'] as String,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  impact['description'] as String,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsSection(ThemeData theme, AppDecorations tokens) {
+    final mission = widget.missionProgress.mission;
+    final progress = widget.missionProgress;
+    final List<Map<String, dynamic>> recommendations = [];
+
+    // Recomendações baseadas no progresso
+    if (progress.progress < 25) {
+      recommendations.add({
+        'icon': Icons.rocket_launch,
+        'title': 'Comece Agora!',
+        'description': 'Quanto antes você começar, mais fácil será completar a missão no prazo.',
+        'color': AppColors.primary,
+        'priority': 'high',
+      });
+    } else if (progress.progress >= 25 && progress.progress < 50) {
+      recommendations.add({
+        'icon': Icons.speed,
+        'title': 'Mantenha o Ritmo',
+        'description': 'Você está no caminho certo! Continue assim para garantir o sucesso.',
+        'color': AppColors.support,
+        'priority': 'medium',
+      });
+    } else if (progress.progress >= 75 && progress.progress < 100) {
+      recommendations.add({
+        'icon': Icons.celebration,
+        'title': 'Quase Lá!',
+        'description': 'Falta pouco! Mantenha o foco para completar a missão.',
+        'color': AppColors.support,
+        'priority': 'low',
+      });
+    }
+
+    // Recomendações baseadas no tipo de missão
+    switch (mission.missionType) {
+      case 'TPS_IMPROVEMENT':
+        recommendations.add({
+          'icon': Icons.savings_outlined,
+          'title': 'Automatize sua Poupança',
+          'description': 'Configure transferências automáticas no início do mês para garantir que você poupe antes de gastar.',
+          'color': const Color(0xFF4CAF50),
+          'priority': 'high',
+        });
+        recommendations.add({
+          'icon': Icons.cut,
+          'title': 'Reduza Gastos Supérfluos',
+          'description': 'Identifique e corte despesas não essenciais como assinaturas não utilizadas.',
+          'color': const Color(0xFFFF9800),
+          'priority': 'medium',
+        });
+        break;
+      
+      case 'RDR_REDUCTION':
+        recommendations.add({
+          'icon': Icons.priority_high,
+          'title': 'Priorize Dívidas Caras',
+          'description': 'Foque em pagar primeiro as dívidas com juros mais altos (cartão de crédito, cheque especial).',
+          'color': AppColors.alert,
+          'priority': 'high',
+        });
+        recommendations.add({
+          'icon': Icons.handshake,
+          'title': 'Negocie suas Dívidas',
+          'description': 'Entre em contato com credores para renegociar taxas e prazos mais favoráveis.',
+          'color': const Color(0xFF9C27B0),
+          'priority': 'medium',
+        });
+        break;
+      
+      case 'ILI_BUILDING':
+        recommendations.add({
+          'icon': Icons.account_balance,
+          'title': 'Escolha a Conta Certa',
+          'description': 'Mantenha sua reserva de emergência em conta com liquidez imediata e rendimento.',
+          'color': const Color(0xFF2196F3),
+          'priority': 'high',
+        });
+        recommendations.add({
+          'icon': Icons.shield_moon,
+          'title': 'Proteja sua Reserva',
+          'description': 'Use a reserva APENAS para emergências reais. Evite retiradas para gastos planejados.',
+          'color': AppColors.primary,
+          'priority': 'medium',
+        });
+        break;
+      
+      case 'ADVANCED':
+        recommendations.add({
+          'icon': Icons.analytics,
+          'title': 'Analise Padrões',
+          'description': 'Use a aba Analytics para identificar tendências e otimizar seus gastos.',
+          'color': const Color(0xFFFF9800),
+          'priority': 'medium',
+        });
+        recommendations.add({
+          'icon': Icons.calendar_month,
+          'title': 'Planejamento Mensal',
+          'description': 'Revise e ajuste seu orçamento no início de cada mês baseado no mês anterior.',
+          'color': AppColors.primary,
+          'priority': 'medium',
+        });
+        break;
+    }
+
+    // Recomendações baseadas em streak
+    if (progress.currentStreak != null && progress.currentStreak! > 0) {
+      recommendations.add({
+        'icon': Icons.local_fire_department,
+        'title': 'Não Quebre sua Sequência!',
+        'description': 'Você está em uma sequência de ${progress.currentStreak} dias. Continue todos os dias!',
+        'color': const Color(0xFFFF5722),
+        'priority': 'high',
+      });
+    }
+
+    // Recomendações baseadas em dias restantes
+    if (_details?['days_remaining'] != null) {
+      final daysRemaining = _details!['days_remaining'] as int;
+      if (daysRemaining <= 3 && daysRemaining > 0 && progress.progress < 80) {
+        recommendations.add({
+          'icon': Icons.timer,
+          'title': 'Prazo Crítico!',
+          'description': 'Apenas $daysRemaining dias restantes. Concentre esforços para completar a tempo.',
+          'color': AppColors.alert,
+          'priority': 'high',
+        });
+      }
+    }
+
+    if (recommendations.isEmpty) {
+      recommendations.add({
+        'icon': Icons.lightbulb,
+        'title': 'Continue Progredindo',
+        'description': 'Mantenha o foco nos requisitos da missão e acompanhe seu progresso diariamente.',
+        'color': AppColors.primary,
+        'priority': 'medium',
+      });
+    }
+
+    // Ordena por prioridade
+    recommendations.sort((a, b) {
+      final priorityOrder = {'high': 0, 'medium': 1, 'low': 2};
+      return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: tokens.cardRadius,
+        border: Border.all(
+          color: const Color(0xFFFF9800).withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF9800).withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.lightbulb,
+                  color: Color(0xFFFF9800),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Dicas Personalizadas',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Recomendações baseadas no seu progresso atual',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[400],
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...recommendations.map((rec) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildRecommendationItem(theme, rec),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItem(ThemeData theme, Map<String, dynamic> recommendation) {
+    final priority = recommendation['priority'] as String;
+    final isPriority = priority == 'high';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(10),
+        border: isPriority 
+            ? Border.all(color: (recommendation['color'] as Color).withOpacity(0.3), width: 1.5)
+            : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: (recommendation['color'] as Color).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              recommendation['icon'] as IconData,
+              color: recommendation['color'] as Color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        recommendation['title'] as String,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (isPriority)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: (recommendation['color'] as Color).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'PRIORITÁRIO',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: recommendation['color'] as Color,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  recommendation['description'] as String,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   Widget _buildBreakdownSection(ThemeData theme, AppDecorations tokens) {
     final breakdown = _details!['progress_breakdown'] as Map<String, dynamic>;

@@ -5,7 +5,7 @@ import '../../core/theme/app_theme_extension.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/missions/presentation/pages/missions_page.dart';
 import '../../features/progress/presentation/pages/progress_page.dart';
-import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/tracking/presentation/pages/tracking_page.dart';
 import '../../features/transactions/presentation/pages/transactions_page.dart';
 
 class _NavigationItem {
@@ -53,9 +53,9 @@ class _RootShellState extends State<RootShell> {
       builder: ProgressPage.new,
     ),
     const _NavigationItem(
-      label: 'Perfil',
-      icon: Icons.person_rounded,
-      builder: ProfilePage.new,
+      label: 'Análise',
+      icon: Icons.analytics_rounded,
+      builder: TrackingPage.new,
     ),
   ];
 

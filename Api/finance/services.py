@@ -1427,6 +1427,16 @@ def analyze_user_evolution(user, days=90):
     last_rdr = float(snapshots.last().rdr)
     rdr_trend = 'crescente' if last_rdr > first_rdr else 'decrescente' if last_rdr < first_rdr else 'estável'
     
+    # Análise de ILI
+    ili_data = snapshots.aggregate(
+        avg=Avg('ili'),
+        min=Min('ili'),
+        max=Max('ili')
+    )
+    first_ili = float(snapshots.first().ili)
+    last_ili = float(snapshots.last().ili)
+    ili_trend = 'crescente' if last_ili > first_ili else 'decrescente' if last_ili < first_ili else 'estável'
+    
     # Categoria mais problemática
     all_category_spending = {}
     for snapshot in snapshots:
@@ -1452,6 +1462,8 @@ def analyze_user_evolution(user, days=90):
         problems.append('TPS_BAIXO')
     if rdr_data['avg'] > 40:
         problems.append('RDR_ALTO')
+    if ili_data['avg'] < 3:
+        problems.append('ILI_BAIXO')
     if consistency_rate < 50:
         problems.append('BAIXA_CONSISTENCIA')
     
@@ -1461,6 +1473,8 @@ def analyze_user_evolution(user, days=90):
         strengths.append('TPS_MELHORANDO')
     if rdr_trend == 'decrescente':
         strengths.append('RDR_MELHORANDO')
+    if ili_trend == 'crescente':
+        strengths.append('ILI_MELHORANDO')
     if consistency_rate > 80:
         strengths.append('ALTA_CONSISTENCIA')
     
@@ -1483,6 +1497,14 @@ def analyze_user_evolution(user, days=90):
             'first': first_rdr,
             'last': last_rdr,
             'trend': rdr_trend,
+        },
+        'ili': {
+            'average': float(ili_data['avg']),
+            'min': float(ili_data['min']),
+            'max': float(ili_data['max']),
+            'first': first_ili,
+            'last': last_ili,
+            'trend': ili_trend,
         },
         'categories': {
             'most_spending': problem_category,
@@ -1511,76 +1533,104 @@ def analyze_category_patterns(user, days=90):
     """
     from .models import UserDailySnapshot
     from datetime import timedelta
+    from django.core.cache import cache
     
-    start_date = timezone.now().date() - timedelta(days=days)
+    # Validação de entrada
+    if not user or days <= 0:
+        return {'has_data': False, 'error': 'Parâmetros inválidos'}
     
-    snapshots = UserDailySnapshot.objects.filter(
-        user=user,
-        snapshot_date__gte=start_date
-    ).order_by('snapshot_date')
+    # Cache de 15 minutos
+    cache_key = f'category_patterns_{user.id}_{days}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return cached_result
     
-    if not snapshots.exists():
-        return {'has_data': False}
-    
-    # Análise por categoria
-    category_analysis = {}
-    
-    for snapshot in snapshots:
-        for cat, data in snapshot.category_spending.items():
-            if cat not in category_analysis:
-                category_analysis[cat] = {
-                    'total': 0,
-                    'count': 0,
-                    'daily_values': [],
-                    'days_with_spending': 0,
-                }
+    try:
+        start_date = timezone.now().date() - timedelta(days=days)
+        
+        snapshots = UserDailySnapshot.objects.filter(
+            user=user,
+            snapshot_date__gte=start_date
+        ).order_by('snapshot_date')
+        
+        if not snapshots.exists():
+            result = {'has_data': False}
+            cache.set(cache_key, result, 900)  # 15 minutos
+            return result
+        
+        # Análise por categoria
+        category_analysis = {}
+        
+        for snapshot in snapshots:
+            if not hasattr(snapshot, 'category_spending') or not snapshot.category_spending:
+                continue
+                
+            for cat, data in snapshot.category_spending.items():
+                if cat not in category_analysis:
+                    category_analysis[cat] = {
+                        'total': 0,
+                        'count': 0,
+                        'daily_values': [],
+                        'days_with_spending': 0,
+                    }
+                
+                category_analysis[cat]['total'] += data.get('total', 0)
+                category_analysis[cat]['count'] += data.get('count', 0)
+                category_analysis[cat]['daily_values'].append(data.get('total', 0))
+                if data.get('total', 0) > 0:
+                    category_analysis[cat]['days_with_spending'] += 1
+        
+        # Calcular estatísticas e sugestões
+        recommendations = []
+        
+        for cat, stats in category_analysis.items():
+            avg_daily = stats['total'] / len(snapshots) if len(snapshots) > 0 else 0
+            max_daily = max(stats['daily_values']) if stats['daily_values'] else 0
             
-            category_analysis[cat]['total'] += data['total']
-            category_analysis[cat]['count'] += data['count']
-            category_analysis[cat]['daily_values'].append(data['total'])
-            if data['total'] > 0:
-                category_analysis[cat]['days_with_spending'] += 1
-    
-    # Calcular estatísticas e sugestões
-    recommendations = []
-    
-    for cat, stats in category_analysis.items():
-        avg_daily = stats['total'] / len(snapshots) if len(snapshots) > 0 else 0
-        max_daily = max(stats['daily_values']) if stats['daily_values'] else 0
+            stats['average_daily'] = avg_daily
+            stats['max_daily'] = max_daily
+            stats['frequency'] = (stats['days_with_spending'] / len(snapshots)) * 100
+            
+            # Identificar categorias problemáticas
+            if avg_daily > 50 and stats['frequency'] > 70:  # Gasto alto e frequente
+                recommendations.append({
+                    'category': cat,
+                    'type': 'CATEGORY_LIMIT',
+                    'reason': 'Categoria com gasto alto e frequente',
+                    'suggested_limit': stats['total'] * 0.9,  # 10% de redução
+                    'priority': 'HIGH',
+                })
+            elif avg_daily > 30 and stats['frequency'] > 50:  # Gasto médio frequente
+                recommendations.append({
+                    'category': cat,
+                    'type': 'CATEGORY_REDUCTION',
+                    'reason': 'Categoria com potencial de otimização',
+                    'suggested_reduction_percent': 15,
+                    'priority': 'MEDIUM',
+                })
         
-        stats['average_daily'] = avg_daily
-        stats['max_daily'] = max_daily
-        stats['frequency'] = (stats['days_with_spending'] / len(snapshots)) * 100
+        # Ordenar por prioridade
+        priority_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+        recommendations.sort(key=lambda x: priority_order.get(x.get('priority', 'LOW'), 2))
         
-        # Identificar categorias problemáticas
-        if avg_daily > 50 and stats['frequency'] > 70:  # Gasto alto e frequente
-            recommendations.append({
-                'category': cat,
-                'type': 'CATEGORY_LIMIT',
-                'reason': 'Categoria com gasto alto e frequente',
-                'suggested_limit': stats['total'] * 0.9,  # 10% de redução
-                'priority': 'HIGH',
-            })
-        elif avg_daily > 30 and stats['frequency'] > 50:  # Gasto médio frequente
-            recommendations.append({
-                'category': cat,
-                'type': 'CATEGORY_REDUCTION',
-                'reason': 'Categoria com potencial de otimização',
-                'suggested_reduction_percent': 15,
-                'priority': 'MEDIUM',
-            })
-    
-    # Ordenar por prioridade
-    priority_order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
-    recommendations.sort(key=lambda x: priority_order[x['priority']])
-    
-    return {
-        'has_data': True,
-        'period_days': days,
-        'categories': category_analysis,
-        'recommendations': recommendations[:5],  # Top 5
-        'total_categories': len(category_analysis),
-    }
+        result = {
+            'has_data': True,
+            'period_days': days,
+            'categories': category_analysis,
+            'recommendations': recommendations[:5],  # Top 5
+            'total_categories': len(category_analysis),
+        }
+        
+        cache.set(cache_key, result, 900)  # Cache por 15 minutos
+        return result
+        
+    except Exception as e:
+        logger.error(f"Erro ao analisar padrões de categoria para user {user.id}: {e}")
+        return {
+            'has_data': False,
+            'error': str(e),
+            'recommendations': []
+        }
 
 
 def analyze_tier_progression(user):
@@ -1599,76 +1649,109 @@ def analyze_tier_progression(user):
     Returns:
         dict: Análise completa de tier e progressão
     """
-    profile = user.userprofile
-    level = profile.level
-    xp = profile.experience_points
+    from django.core.cache import cache
     
-    # Definir tiers baseados em níveis
-    if level <= 5:
-        tier = 'BEGINNER'
-        tier_min_level = 1
-        tier_max_level = 5
-        next_tier = 'INTERMEDIATE'
-    elif level <= 15:
-        tier = 'INTERMEDIATE'
-        tier_min_level = 6
-        tier_max_level = 15
-        next_tier = 'ADVANCED'
-    else:
-        tier = 'ADVANCED'
-        tier_min_level = 16
-        tier_max_level = None  # Sem limite superior
-        next_tier = None
+    # Validação
+    if not user:
+        return {'error': 'Usuário inválido'}
     
-    # Calcular XP necessário para próximo nível
-    next_level_xp = profile.next_level_threshold
-    current_level_xp = 150 + (level - 2) * 50 if level > 1 else 0
-    xp_in_level = xp - current_level_xp
-    xp_needed_for_next = next_level_xp - xp
+    # Cache de 10 minutos
+    cache_key = f'tier_progression_{user.id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return cached_result
     
-    # Progresso dentro do tier
-    if tier_max_level:
-        levels_in_tier = tier_max_level - tier_min_level + 1
-        current_position = level - tier_min_level + 1
-        tier_progress = (current_position / levels_in_tier) * 100
-    else:
-        tier_progress = 100  # Tier ADVANCED não tem limite
-    
-    # Missões recomendadas por tier
-    mission_focus = {
-        'BEGINNER': [
-            {'type': 'CONSISTENCY', 'description': 'Registrar transações diariamente'},
-            {'type': 'SNAPSHOT', 'description': 'Alcançar TPS de 15%'},
-            {'type': 'ONBOARDING', 'description': 'Completar primeiras transações'},
-        ],
-        'INTERMEDIATE': [
-            {'type': 'TEMPORAL', 'description': 'Manter TPS > 20% por 30 dias'},
-            {'type': 'CATEGORY_LIMIT', 'description': 'Controlar gastos por categoria'},
-            {'type': 'SAVINGS_INCREASE', 'description': 'Aumentar poupança em R$ 500'},
-        ],
-        'ADVANCED': [
-            {'type': 'CATEGORY_REDUCTION', 'description': 'Reduzir categoria em 15%'},
-            {'type': 'GOAL_PROGRESS', 'description': 'Completar 80% de uma meta'},
-            {'type': 'TEMPORAL', 'description': 'Manter TPS > 30% por 90 dias'},
-        ],
-    }
-    
-    return {
-        'tier': tier,
-        'level': level,
-        'xp': xp,
-        'next_level_xp': next_level_xp,
-        'xp_needed': xp_needed_for_next,
-        'xp_progress_in_level': (xp_in_level / (next_level_xp - current_level_xp) * 100) if next_level_xp > current_level_xp else 100,
-        'tier_range': {
-            'min': tier_min_level,
-            'max': tier_max_level,
-        },
-        'tier_progress': tier_progress,
-        'next_tier': next_tier,
-        'recommended_mission_types': mission_focus[tier],
-        'tier_description': _get_tier_description(tier),
-    }
+    try:
+        profile = user.userprofile
+        level = profile.level
+        xp = profile.experience_points
+        
+        # Definir tiers baseados em níveis
+        if level <= 5:
+            tier = 'BEGINNER'
+            tier_min_level = 1
+            tier_max_level = 5
+            next_tier = 'INTERMEDIATE'
+        elif level <= 15:
+            tier = 'INTERMEDIATE'
+            tier_min_level = 6
+            tier_max_level = 15
+            next_tier = 'ADVANCED'
+        else:
+            tier = 'ADVANCED'
+            tier_min_level = 16
+            tier_max_level = None  # Sem limite superior
+            next_tier = None
+        
+        # Calcular XP necessário para próximo nível
+        next_level_xp = profile.next_level_threshold
+        current_level_xp = 150 + (level - 2) * 50 if level > 1 else 0
+        xp_in_level = xp - current_level_xp
+        xp_needed_for_next = next_level_xp - xp
+        
+        # Progresso dentro do tier
+        if tier_max_level:
+            levels_in_tier = tier_max_level - tier_min_level + 1
+            current_position = level - tier_min_level + 1
+            tier_progress = (current_position / levels_in_tier) * 100
+        else:
+            tier_progress = 100  # Tier ADVANCED não tem limite
+        
+        # Missões recomendadas por tier
+        mission_focus = {
+            'BEGINNER': [
+                {'type': 'CONSISTENCY', 'description': 'Registrar transações diariamente'},
+                {'type': 'SNAPSHOT', 'description': 'Alcançar TPS de 15%'},
+                {'type': 'ONBOARDING', 'description': 'Completar primeiras transações'},
+            ],
+            'INTERMEDIATE': [
+                {'type': 'TEMPORAL', 'description': 'Manter TPS > 20% por 30 dias'},
+                {'type': 'CATEGORY_LIMIT', 'description': 'Controlar gastos por categoria'},
+                {'type': 'SAVINGS_INCREASE', 'description': 'Aumentar poupança em R$ 500'},
+            ],
+            'ADVANCED': [
+                {'type': 'CATEGORY_REDUCTION', 'description': 'Reduzir categoria em 15%'},
+                {'type': 'GOAL_PROGRESS', 'description': 'Completar 80% de uma meta'},
+                {'type': 'TEMPORAL', 'description': 'Manter TPS > 30% por 90 dias'},
+            ],
+        }
+        
+        result = {
+            'tier': tier,
+            'level': level,
+            'xp': xp,
+            'next_level_xp': next_level_xp,
+            'xp_needed': xp_needed_for_next,
+            'xp_progress_in_level': (xp_in_level / (next_level_xp - current_level_xp) * 100) if next_level_xp > current_level_xp else 100,
+            'tier_range': {
+                'min': tier_min_level,
+                'max': tier_max_level,
+            },
+            'tier_progress': tier_progress,
+            'next_tier': next_tier,
+            'recommended_mission_types': mission_focus.get(tier, []),
+            'tier_description': _get_tier_description(tier),
+        }
+        
+        cache.set(cache_key, result, 600)  # Cache por 10 minutos
+        return result
+        
+    except Exception as e:
+        logger.error(f"Erro ao analisar tier progression para user {user.id}: {e}")
+        return {
+            'error': str(e),
+            'tier': 'BEGINNER',
+            'level': 1,
+            'xp': 0,
+            'next_level_xp': 100,
+            'xp_needed': 100,
+            'xp_progress_in_level': 0,
+            'tier_range': {'min': 1, 'max': 5},
+            'tier_progress': 0,
+            'next_tier': 'INTERMEDIATE',
+            'recommended_mission_types': [],
+            'tier_description': 'Iniciante - Aprendendo os fundamentos da educação financeira',
+        }
 
 
 def _get_tier_description(tier):
@@ -1693,82 +1776,113 @@ def get_mission_distribution_analysis(user):
     Returns:
         dict: Análise de distribuição com recomendações
     """
-    # Contar missões por tipo
-    mission_counts = MissionProgress.objects.filter(
-        user=user
-    ).values('mission__mission_type').annotate(
-        total=Count('id'),
-        active=Count('id', filter=Q(status='ACTIVE')),
-        completed=Count('id', filter=Q(status='COMPLETED')),
-        failed=Count('id', filter=Q(status='FAILED')),
-    )
+    from django.core.cache import cache
     
-    distribution = {item['mission__mission_type']: item for item in mission_counts}
+    # Validação
+    if not user:
+        return {'error': 'Usuário inválido', 'total_missions': 0}
     
-    # Contar por validation_type
-    validation_counts = MissionProgress.objects.filter(
-        user=user
-    ).values('mission__validation_type').annotate(
-        total=Count('id'),
-        active=Count('id', filter=Q(status='ACTIVE')),
-        completed=Count('id', filter=Q(status='COMPLETED')),
-    )
+    # Cache de 10 minutos
+    cache_key = f'mission_distribution_{user.id}'
+    cached_result = cache.get(cache_key)
+    if cached_result:
+        return cached_result
     
-    validation_distribution = {item['mission__validation_type']: item for item in validation_counts}
-    
-    # Identificar tipos subutilizados
-    all_mission_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
-    all_validation_types = ['SNAPSHOT', 'TEMPORAL', 'CATEGORY_REDUCTION', 'CATEGORY_LIMIT', 
-                           'GOAL_PROGRESS', 'SAVINGS_INCREASE', 'CONSISTENCY']
-    
-    underutilized_mission_types = []
-    underutilized_validation_types = []
-    
-    for mtype in all_mission_types:
-        if mtype not in distribution or distribution[mtype]['total'] < 3:
-            underutilized_mission_types.append(mtype)
-    
-    for vtype in all_validation_types:
-        if vtype not in validation_distribution or validation_distribution[vtype]['total'] < 2:
-            underutilized_validation_types.append(vtype)
-    
-    # Taxa de sucesso por tipo
-    success_rates = {}
-    for mtype, data in distribution.items():
-        if data['total'] > 0:
-            success_rates[mtype] = (data['completed'] / data['total']) * 100
-    
-    # Recomendar balanceamento
-    recommendations = []
-    
-    # Se tem muitas missões ativas de um tipo
-    for mtype, data in distribution.items():
-        if data['active'] > 5:
+    try:
+        # Contar missões por tipo
+        mission_counts = MissionProgress.objects.filter(
+            user=user
+        ).values('mission__mission_type').annotate(
+            total=Count('id'),
+            active=Count('id', filter=Q(status='ACTIVE')),
+            completed=Count('id', filter=Q(status='COMPLETED')),
+            failed=Count('id', filter=Q(status='FAILED')),
+        )
+        
+        distribution = {item['mission__mission_type']: item for item in mission_counts}
+        
+        # Contar por validation_type
+        validation_counts = MissionProgress.objects.filter(
+            user=user
+        ).values('mission__validation_type').annotate(
+            total=Count('id'),
+            active=Count('id', filter=Q(status='ACTIVE')),
+            completed=Count('id', filter=Q(status='COMPLETED')),
+        )
+        
+        validation_distribution = {item['mission__validation_type']: item for item in validation_counts}
+        
+        # Identificar tipos subutilizados
+        all_mission_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
+        all_validation_types = ['SNAPSHOT', 'TEMPORAL', 'CATEGORY_REDUCTION', 'CATEGORY_LIMIT', 
+                               'GOAL_PROGRESS', 'SAVINGS_INCREASE', 'CONSISTENCY']
+        
+        underutilized_mission_types = []
+        underutilized_validation_types = []
+        
+        for mtype in all_mission_types:
+            if mtype not in distribution or distribution[mtype]['total'] < 3:
+                underutilized_mission_types.append(mtype)
+        
+        for vtype in all_validation_types:
+            if vtype not in validation_distribution or validation_distribution[vtype]['total'] < 2:
+                underutilized_validation_types.append(vtype)
+        
+        # Taxa de sucesso por tipo
+        success_rates = {}
+        for mtype, data in distribution.items():
+            if data['total'] > 0:
+                success_rates[mtype] = (data['completed'] / data['total']) * 100
+        
+        # Recomendar balanceamento
+        recommendations = []
+        
+        # Se tem muitas missões ativas de um tipo
+        for mtype, data in distribution.items():
+            if data['active'] > 5:
+                recommendations.append({
+                    'action': 'REDUCE',
+                    'type': mtype,
+                    'reason': f'Muitas missões ativas do tipo {mtype}',
+                })
+        
+        # Se tem tipos subutilizados
+        for mtype in underutilized_mission_types[:3]:  # Top 3
             recommendations.append({
-                'action': 'REDUCE',
+                'action': 'INCREASE',
                 'type': mtype,
-                'reason': f'Muitas missões ativas do tipo {mtype}',
+                'reason': f'Tipo {mtype} pouco explorado',
             })
-    
-    # Se tem tipos subutilizados
-    for mtype in underutilized_mission_types[:3]:  # Top 3
-        recommendations.append({
-            'action': 'INCREASE',
-            'type': mtype,
-            'reason': f'Tipo {mtype} pouco explorado',
-        })
-    
-    return {
-        'mission_type_distribution': distribution,
-        'validation_type_distribution': validation_distribution,
-        'underutilized_mission_types': underutilized_mission_types,
-        'underutilized_validation_types': underutilized_validation_types,
-        'success_rates': success_rates,
-        'recommendations': recommendations,
-        'total_missions': sum(d['total'] for d in distribution.values()),
-        'active_missions': sum(d['active'] for d in distribution.values()),
-        'completed_missions': sum(d['completed'] for d in distribution.values()),
-    }
+        
+        result = {
+            'mission_type_distribution': distribution,
+            'validation_type_distribution': validation_distribution,
+            'underutilized_mission_types': underutilized_mission_types,
+            'underutilized_validation_types': underutilized_validation_types,
+            'success_rates': success_rates,
+            'recommendations': recommendations,
+            'total_missions': sum(d['total'] for d in distribution.values()) if distribution else 0,
+            'active_missions': sum(d['active'] for d in distribution.values()) if distribution else 0,
+            'completed_missions': sum(d['completed'] for d in distribution.values()) if distribution else 0,
+        }
+        
+        cache.set(cache_key, result, 600)  # Cache por 10 minutos
+        return result
+        
+    except Exception as e:
+        logger.error(f"Erro ao analisar distribuição de missões para user {user.id}: {e}")
+        return {
+            'error': str(e),
+            'mission_type_distribution': {},
+            'validation_type_distribution': {},
+            'underutilized_mission_types': [],
+            'underutilized_validation_types': [],
+            'success_rates': {},
+            'recommendations': [],
+            'total_missions': 0,
+            'active_missions': 0,
+            'completed_missions': 0,
+        }
 
 
 def get_comprehensive_mission_context(user):
@@ -1776,6 +1890,7 @@ def get_comprehensive_mission_context(user):
     Retorna contexto COMPLETO para geração de missões pela IA.
     
     Combina todas as análises em um único contexto rico.
+    Usa cache de 30 minutos para evitar cálculos repetidos.
     
     Args:
         user: Usuário para análise
@@ -1783,14 +1898,73 @@ def get_comprehensive_mission_context(user):
     Returns:
         dict: Contexto completo com todas as informações necessárias
     """
-    # Obter todas as análises
-    evolution = analyze_user_evolution(user, days=90)
-    category_patterns = analyze_category_patterns(user, days=90)
-    tier_info = analyze_tier_progression(user)
-    distribution = get_mission_distribution_analysis(user)
+    from django.core.cache import cache
     
-    # Summary atual
-    summary = calculate_summary(user)
+    # Tentar obter do cache
+    cache_key = f'mission_context_{user.id}'
+    cached_context = cache.get(cache_key)
+    if cached_context:
+        logger.debug(f"Usando contexto em cache para usuário {user.id}")
+        return cached_context
+    
+    logger.info(f"Gerando novo contexto para usuário {user.id}")
+    
+    # Obter todas as análises com tratamento de erros
+    try:
+        evolution = analyze_user_evolution(user, days=90)
+    except Exception as e:
+        logger.error(f"Erro ao analisar evolução: {e}")
+        evolution = {'has_data': False, 'message': str(e)}
+    
+    try:
+        category_patterns = analyze_category_patterns(user, days=90)
+    except Exception as e:
+        logger.error(f"Erro ao analisar categorias: {e}")
+        category_patterns = {'has_data': False, 'recommendations': []}
+    
+    try:
+        tier_info = analyze_tier_progression(user)
+    except Exception as e:
+        logger.error(f"Erro ao analisar tier: {e}")
+        tier_info = {
+            'tier': 'BEGINNER',
+            'level': 1,
+            'xp': 0,
+            'next_level_xp': 100,
+            'xp_needed': 100,
+            'xp_progress_in_level': 0,
+            'tier_range': {'min': 1, 'max': 5},
+            'tier_progress': 0,
+            'next_tier': 'INTERMEDIATE',
+            'recommended_mission_types': [],
+            'tier_description': 'Iniciante'
+        }
+    
+    try:
+        distribution = get_mission_distribution_analysis(user)
+    except Exception as e:
+        logger.error(f"Erro ao analisar distribuição: {e}")
+        distribution = {
+            'total_missions': 0,
+            'active_missions': 0,
+            'completed_missions': 0,
+            'underutilized_mission_types': [],
+            'underutilized_validation_types': [],
+            'success_rates': {}
+        }
+    
+    # Summary atual com fallback
+    try:
+        summary = calculate_summary(user)
+    except Exception as e:
+        logger.error(f"Erro ao calcular summary: {e}")
+        summary = {
+            'tps': Decimal('0'),
+            'rdr': Decimal('0'),
+            'ili': Decimal('0'),
+            'total_income': Decimal('0'),
+            'total_expense': Decimal('0')
+        }
     
     # Missões recentes
     recent_completed = MissionProgress.objects.filter(
@@ -1822,7 +1996,7 @@ def get_comprehensive_mission_context(user):
     if not recommended_focus:
         recommended_focus.append('TIER_PROGRESSION')
     
-    return {
+    context = {
         'user_id': user.id,
         'username': user.username,
         
@@ -1853,7 +2027,7 @@ def get_comprehensive_mission_context(user):
                 'title': m.mission.title,
                 'type': m.mission.mission_type,
                 'validation_type': m.mission.validation_type,
-                'completed_at': m.completed_at,
+                'completed_at': m.completed_at.isoformat() if m.completed_at else None,
             }
             for m in recent_completed
         ],
@@ -1873,11 +2047,17 @@ def get_comprehensive_mission_context(user):
         
         # Flags especiais
         'flags': {
-            'is_new_user': tier_info['level'] <= 2,
+            'is_new_user': tier_info.get('level', 1) <= 2,
             'has_low_consistency': evolution.get('consistency', {}).get('rate', 100) < 50 if evolution.get('has_data') else False,
             'needs_category_work': len(category_patterns.get('recommendations', [])) > 0,
             'mission_imbalance': len(distribution.get('underutilized_mission_types', [])) > 3,
         },
     }
+    
+    # Cachear por 30 minutos
+    cache.set(cache_key, context, timeout=1800)
+    logger.debug(f"Contexto cacheado para usuário {user.id} (30 min)")
+    
+    return context
 
 

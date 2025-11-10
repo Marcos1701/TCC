@@ -36,7 +36,7 @@ Já criado! Contém 3 comandos:
 #### 1.3 Configurar variáveis de ambiente no código
 
 Já configurado em `settings.py`:
-- `REDIS_URL` - Railway injeta automaticamente
+- `REDIS_URL` - Railway injeta automaticamente (formato: `redis://default:**@redis.railway.internal:6379/`)
 - `RAILWAY_ENVIRONMENT` - Detecta ambiente de produção
 - `DATABASE_URL` - Railway injeta automaticamente
 
@@ -261,11 +261,13 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 - Deve mostrar:
   ```
   [tasks]
-    . finance.tasks.create_daily_mission_snapshots
-    . finance.tasks.create_daily_user_snapshots
-    . finance.tasks.create_monthly_snapshots
+    . config.celery.debug_task
+    . finance.create_daily_mission_snapshots
+    . finance.create_daily_user_snapshots
+    . finance.create_monthly_snapshots
   
-  celery@worker-xxx ready.
+  Connected to redis://default:**@redis.railway.internal:6379//
+  celery@xxxxxxxx ready.
   ```
 
 **Serviço Beat:**

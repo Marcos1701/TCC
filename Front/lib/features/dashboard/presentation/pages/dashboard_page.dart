@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../../analytics/presentation/pages/analytics_page.dart';
 import '../../data/dashboard_service.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -44,6 +45,20 @@ class _DashboardPageState extends State<DashboardPage> {
         centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics_outlined),
+            tooltip: 'Ver Analytics',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AnalyticsPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshDashboard,

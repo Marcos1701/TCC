@@ -123,194 +123,220 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-        children: [
-          // Card de Usuário
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withOpacity(0.2),
-                  AppColors.primary.withOpacity(0.05),
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: () async {
+          final session = SessionScope.of(context);
+          await session.refreshSession();
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+          children: [
+            // Card de Perfil do Usuário (expandido)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary,
+                    AppColors.primary.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: tokens.cardRadius,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
               ),
-              borderRadius: tokens.cardRadius,
-              border: Border.all(
-                color: AppColors.primary.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: AppColors.primary.withOpacity(0.2),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        color: AppColors.primary,
-                        size: 32,
-                      ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white.withOpacity(0.2),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.name ?? 'Usuário',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? '',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    child: const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    user?.name ?? 'Usuário',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (user?.email != null && user!.email.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      user.email,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white70,
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        label: 'Nível',
-                        value: '${profile?.level ?? 0}',
-                        icon: Icons.star,
-                        color: AppColors.highlight,
-                        tokens: tokens,
-                        theme: theme,
+                  if (profile != null) ...[
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _ProfileStatItem(
+                          label: 'Nível',
+                          value: '${profile.level}',
+                          icon: Icons.military_tech,
+                        ),
+                        Container(
+                          width: 1,
+                          height: 40,
+                          color: Colors.white30,
+                        ),
+                        _ProfileStatItem(
+                          label: 'XP',
+                          value: '${profile.experiencePoints}',
+                          icon: Icons.star_rounded,
+                        ),
+                        Container(
+                          width: 1,
+                          height: 40,
+                          color: Colors.white30,
+                        ),
+                        _ProfileStatItem(
+                          label: 'Próximo',
+                          value: '${profile.nextLevelThreshold}',
+                          icon: Icons.trending_up,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: profile.experiencePoints /
+                            profile.nextLevelThreshold,
+                        minHeight: 10,
+                        backgroundColor: Colors.white24,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        label: 'XP Total',
-                        value: '${profile?.experiencePoints ?? 0}',
-                        icon: Icons.military_tech,
-                        color: AppColors.primary,
-                        tokens: tokens,
-                        theme: theme,
+                    const SizedBox(height: 8),
+                    Text(
+                      'Faltam ${profile.nextLevelThreshold - profile.experiencePoints} XP para o próximo nível',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white70,
                       ),
                     ),
                   ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // Seção de Conta
-          Text(
-            'Conta',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.grey[400],
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+            // Seção de Conta
+            Text(
+              'Conta',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.grey[400],
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.edit_outlined,
-            title: 'Editar Perfil',
-            subtitle: 'Alterar nome e e-mail',
-            onTap: () => _showEditProfileSheet(context, user),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.lock_outline,
-            title: 'Alterar Senha',
-            subtitle: 'Atualizar sua senha de acesso',
-            onTap: () => _showChangePasswordSheet(context),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          _SettingsTile(
-            icon: Icons.leaderboard,
-            title: 'Ranking',
-            subtitle: 'Veja sua posição no ranking',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LeaderboardPage()),
-            ),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 12),
-          
-          // Recursos Administrativos (apenas para staff/superuser)
-          if (user?.isAdmin == true) ...[
+            const SizedBox(height: 12),
+            
             _SettingsTile(
-              icon: Icons.admin_panel_settings,
-              title: 'Administração',
-              subtitle: 'Dashboard e gerenciamento do sistema',
+              icon: Icons.edit_outlined,
+              title: 'Editar Perfil',
+              subtitle: 'Alterar nome e e-mail',
+              onTap: () => _showEditProfileSheet(context, user),
+              tokens: tokens,
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+            
+            _SettingsTile(
+              icon: Icons.lock_outline,
+              title: 'Alterar Senha',
+              subtitle: 'Atualizar sua senha de acesso',
+              onTap: () => _showChangePasswordSheet(context),
+              tokens: tokens,
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+            
+            _SettingsTile(
+              icon: Icons.leaderboard,
+              title: 'Ranking',
+              subtitle: 'Veja sua posição no ranking',
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AdminDashboardPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const LeaderboardPage()),
               ),
               tokens: tokens,
               theme: theme,
             ),
             const SizedBox(height: 12),
-          ],
-          
-          _SettingsTile(
-            icon: Icons.delete_forever_outlined,
-            title: 'Excluir Conta',
-            subtitle: 'Remover permanentemente sua conta',
-            onTap: () => _showDeleteAccountDialog(context),
-            tokens: tokens,
-            theme: theme,
-          ),
-          const SizedBox(height: 32),
+            
+            // Recursos Administrativos (apenas para staff/superuser)
+            if (user?.isAdmin == true) ...[
+              _SettingsTile(
+                icon: Icons.admin_panel_settings,
+                title: 'Administração',
+                subtitle: 'Dashboard e gerenciamento do sistema',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AdminDashboardPage(),
+                  ),
+                ),
+                tokens: tokens,
+                theme: theme,
+              ),
+              const SizedBox(height: 12),
+            ],
+            
+            _SettingsTile(
+              icon: Icons.delete_forever_outlined,
+              title: 'Excluir Conta',
+              subtitle: 'Remover permanentemente sua conta',
+              onTap: () => _showDeleteAccountDialog(context),
+              tokens: tokens,
+              theme: theme,
+            ),
+            const SizedBox(height: 32),
 
-          // Botão de Logout
-          ElevatedButton.icon(
-            onPressed: () => _confirmLogout(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              foregroundColor: AppColors.alert,
-              side: const BorderSide(color: AppColors.alert, width: 2),
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+            // Botão de Logout
+            ElevatedButton.icon(
+              onPressed: () => _confirmLogout(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: AppColors.alert,
+                side: const BorderSide(color: AppColors.alert, width: 2),
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: const Icon(Icons.logout_rounded, size: 22),
+              label: Text(
+                'Sair da Conta',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: AppColors.alert,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-            icon: const Icon(Icons.logout_rounded, size: 22),
-            label: Text(
-              'Sair da Conta',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: AppColors.alert,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -368,51 +394,39 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
+class _ProfileStatItem extends StatelessWidget {
+  const _ProfileStatItem({
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
-    required this.tokens,
-    required this.theme,
   });
 
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
-  final AppDecorations tokens;
-  final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 24),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
           ),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: Colors.grey[400],
-              fontSize: 11,
-            ),
+        ),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white70,
+            fontSize: 11,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

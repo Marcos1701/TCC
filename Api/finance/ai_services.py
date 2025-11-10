@@ -718,52 +718,290 @@ def get_period_context():
 
 # ==================== GERAÇÃO DE MISSÕES ====================
 
-def generate_batch_missions_for_tier(tier, scenario_key=None):
+
+def _extract_stats_from_user_context(user_context):
     """
-    Gera 20 missões em lote para uma faixa de usuários usando Gemini.
+    Extrai estatísticas do contexto completo do usuário para geração de missões.
     
     Args:
-        tier: 'BEGINNER', 'INTERMEDIATE' ou 'ADVANCED'
-        scenario_key: Chave do cenário específico ou None para auto-detectar
-        
+        user_context: Dict retornado por get_comprehensive_mission_context()
+    
     Returns:
-        List[dict]: Lista de 20 missões geradas ou lista vazia em caso de erro
+        dict: Estatísticas formatadas para uso na geração
     """
-    if not model:
-        logger.error("Gemini API não configurada")
-        return []
+    tier_info = user_context.get('tier', {})
+    current = user_context.get('current_indicators', {})
+    evolution = user_context.get('evolution', {})
     
-    # Coletar estatísticas da faixa
-    stats = get_user_tier_stats(tier)
+    # Extrair categorias de forma segura
+    categories_dict = evolution.get('categories', {}) if evolution.get('has_data') else {}
+    all_spending = categories_dict.get('all_spending', {})
+    common_categories = ', '.join(list(all_spending.keys())[:3]) if all_spending else 'Alimentação, Transporte, Moradia'
     
-    # Determinar cenário se não fornecido
-    if not scenario_key:
-        scenario_key = determine_best_scenario(stats)
-        logger.info(f"Cenário auto-detectado para {tier}: {scenario_key}")
+    # Extrair dados de evolução de forma segura (campos podem ser None)
+    evolution_data = evolution if evolution.get('has_data') else {}
+    tps_evo = evolution_data.get('tps', {}) or {}
+    rdr_evo = evolution_data.get('rdr', {}) or {}
+    ili_evo = evolution_data.get('ili', {}) or {}
+    consistency_data = evolution_data.get('consistency', {}) or {}
     
-    scenario = MISSION_SCENARIOS.get(scenario_key)
-    if not scenario:
-        logger.error(f"Cenário inválido: {scenario_key}")
-        return []
+    return {
+        'tier': tier_info.get('tier', 'BEGINNER'),
+        'avg_level': tier_info.get('level', 1),
+        'avg_tps': current.get('tps', 0),
+        'avg_rdr': current.get('rdr', 0),
+        'avg_ili': current.get('ili', 0),
+        'common_categories': common_categories,
+        'experience_level': _get_experience_level(tier_info.get('level', 1)),
+        'user_count': 1,  # Contexto individual
+        # Dados extras do contexto (com fallbacks seguros)
+        'problems': evolution_data.get('problems', []),
+        'strengths': evolution_data.get('strengths', []),
+        'consistency_rate': consistency_data.get('rate', 0),
+        'category_recommendations': user_context.get('category_patterns', {}).get('recommendations', []),
+        'recommended_focus': user_context.get('recommended_focus', []),
+        # Dados de evolução (para uso em prompts personalizados)
+        'tps_trend': tps_evo.get('trend', 'estável'),
+        'rdr_trend': rdr_evo.get('trend', 'estável'),
+        'ili_trend': ili_evo.get('trend', 'estável'),
+        'tps_average': tps_evo.get('average', 0),
+        'rdr_average': rdr_evo.get('average', 0),
+        'ili_average': ili_evo.get('average', 0),
+    }
+
+
+def _get_experience_level(level):
+    """Retorna descrição de experiência baseada no nível."""
+    if level <= 5:
+        return "Primeiras semanas no app"
+    elif level <= 15:
+        return "1-3 meses de uso regular"
+    else:
+        return "Mais de 3 meses de uso consistente"
+
+
+def _determine_scenario_from_context(user_context):
+    """
+    Determina o melhor cenário baseado no contexto completo do usuário.
     
-    # Verificar se já temos missões suficientes deste tipo
-    min_existing = scenario.get('min_existing', 0)
-    if min_existing > 0:
-        existing_count = count_existing_missions_by_type(scenario.get('focus'), tier)
-        if existing_count >= min_existing:
-            logger.info(f"Já existem {existing_count} missões de {scenario.get('focus')} para {tier}, pulando geração")
-            return []
+    Args:
+        user_context: Dict retornado por get_comprehensive_mission_context()
     
-    # Verificar cache
-    cache_key = f'ai_missions_{tier}_{scenario_key}_{datetime.datetime.now().strftime("%Y_%m")}'
-    cached_missions = cache.get(cache_key)
-    if cached_missions:
-        logger.info(f"Usando missões em cache para {tier}/{scenario_key}")
-        return cached_missions
+    Returns:
+        str: Chave do cenário mais adequado
+    """
+    recommended_focus = user_context.get('recommended_focus', [])
+    current = user_context.get('current_indicators', {})
+    tier_info = user_context.get('tier', {})
+    evolution = user_context.get('evolution', {})
+    flags = user_context.get('flags', {})
     
-    # Contexto do período
-    period_type, period_name, period_context = get_period_context()
+    tps = current.get('tps', 0)
+    rdr = current.get('rdr', 0)
+    ili = current.get('ili', 0)
+    level = tier_info.get('level', 1)
     
+    # Usuários novos sempre começam com onboarding
+    if flags.get('is_new_user') or level <= 2:
+        return 'BEGINNER_ONBOARDING'
+    
+    # Baseado no foco recomendado (prioridade)
+    if 'CONSISTENCY' in recommended_focus:
+        return 'BEGINNER_ONBOARDING'  # Melhorar consistência
+    
+    if 'DEBT' in recommended_focus and rdr > 50:
+        return 'RDR_HIGH'
+    elif 'DEBT' in recommended_focus:
+        return 'RDR_MEDIUM'
+    
+    if 'SAVINGS' in recommended_focus and tps < 10:
+        return 'TPS_LOW'
+    elif 'SAVINGS' in recommended_focus:
+        return 'TPS_MEDIUM'
+    
+    if 'CATEGORY_CONTROL' in recommended_focus:
+        # Usuário precisa controlar categorias específicas
+        if level <= 5:
+            return 'TPS_LOW'  # Começar simples
+        else:
+            return 'MIXED_BALANCED'  # Otimização geral
+    
+    # Baseado nos indicadores (fallback)
+    if tps < 10:
+        return 'TPS_LOW'
+    elif tps < 20:
+        return 'TPS_MEDIUM'
+    elif tps >= 30:
+        return 'TPS_HIGH'
+    
+    if rdr > 50:
+        return 'RDR_HIGH'
+    elif rdr > 30:
+        return 'RDR_MEDIUM'
+    
+    if ili < 3:
+        return 'ILI_LOW'
+    elif ili >= 6:
+        return 'ILI_HIGH'
+    
+    # Situação mista
+    if tps < 15 and rdr > 40:
+        return 'MIXED_RECOVERY'
+    
+    return 'MIXED_BALANCED'
+
+
+def _build_personalized_prompt(tier, scenario, stats, user_context, period_type, period_name, period_context):
+    """
+    Constrói prompt enriquecido com contexto completo do usuário.
+    
+    Args:
+        tier: BEGINNER/INTERMEDIATE/ADVANCED
+        scenario: Dict do cenário
+        stats: Estatísticas extraídas
+        user_context: Contexto completo do usuário
+        period_type, period_name, period_context: Contexto temporal
+    
+    Returns:
+        str: Prompt formatado para Gemini
+    """
+    evolution = user_context.get('evolution', {})
+    category_patterns = user_context.get('category_patterns', {})
+    mission_distribution = user_context.get('mission_distribution', {})
+    
+    # Construir contexto de problemas
+    problems_text = ""
+    if stats.get('problems'):
+        problems_text = "\n**PROBLEMAS IDENTIFICADOS:**\n" + "\n".join([f"- {p}" for p in stats['problems']])
+    
+    # Construir contexto de forças
+    strengths_text = ""
+    if stats.get('strengths'):
+        strengths_text = "\n**PONTOS FORTES:**\n" + "\n".join([f"- {s}" for s in stats['strengths']])
+    
+    # Construir contexto de categorias problemáticas
+    categories_text = ""
+    if category_patterns.get('recommendations'):
+        categories_text = "\n**CATEGORIAS QUE PRECISAM ATENÇÃO:**\n"
+        for rec in category_patterns['recommendations'][:3]:
+            categories_text += f"- {rec['category']}: {rec['reason']} (prioridade {rec['priority']})\n"
+    
+    # Construir contexto de distribuição de missões
+    distribution_text = ""
+    underutilized = mission_distribution.get('underutilized_mission_types', [])
+    if underutilized:
+        distribution_text = f"\n**TIPOS DE MISSÕES POUCO EXPLORADOS:** {', '.join(underutilized[:3])}\n"
+    
+    # Construir contexto de evolução
+    evolution_text = ""
+    if evolution.get('has_data'):
+        # Acessar de forma segura os dados que podem ser None
+        tps_data = evolution.get('tps') or {}
+        rdr_data = evolution.get('rdr') or {}
+        ili_data = evolution.get('ili') or {}
+        consistency_data = evolution.get('consistency') or {}
+        
+        tps_trend = tps_data.get('trend', 'estável')
+        rdr_trend = rdr_data.get('trend', 'estável')
+        ili_trend = ili_data.get('trend', 'estável')
+        consistency = consistency_data.get('rate', 0)
+        
+        evolution_lines = []
+        
+        if tps_data:
+            evolution_lines.append(f"- TPS: {tps_data.get('average', 0):.1f}% (tendência: {tps_trend})")
+        if rdr_data:
+            evolution_lines.append(f"- RDR: {rdr_data.get('average', 0):.1f}% (tendência: {rdr_trend})")
+        if ili_data:
+            evolution_lines.append(f"- ILI: {ili_data.get('average', 0):.1f} meses (tendência: {ili_trend})")
+        if consistency_data:
+            evolution_lines.append(f"- Consistência: {consistency:.1f}% dos dias com registro")
+        
+        if evolution_lines:
+            evolution_text = "\n**EVOLUÇÃO (últimos 90 dias):**\n" + "\n".join(evolution_lines)
+    
+    # Preparar requirements de distribuição do cenário
+    distribution = scenario.get('distribution', {})
+    dist_requirements = []
+    for mission_type, count in distribution.items():
+        dist_requirements.append(f"   - {count} missões de {mission_type}")
+    distribution_requirements = '\n'.join(dist_requirements) if dist_requirements else "   - Distribuir equilibradamente"
+    
+    # Montar prompt personalizado
+    prompt = f"""Você é um especialista em educação financeira gamificada. Gere 20 missões PERSONALIZADAS para este usuário específico.
+
+**CONTEXTO DO USUÁRIO:**
+Nome/ID: {user_context.get('username', 'usuário')}
+Tier: {tier} (Nível {stats['avg_level']})
+Foco recomendado: {', '.join(user_context.get('recommended_focus', []))}
+
+**INDICADORES ATUAIS:**
+- TPS (Taxa de Poupança): {stats['avg_tps']:.1f}%
+- RDR (Relação Dívida/Renda): {stats['avg_rdr']:.1f}%
+- ILI (Índice de Liquidez Imediata): {stats['avg_ili']:.1f} meses
+{evolution_text}
+{problems_text}
+{strengths_text}
+{categories_text}
+{distribution_text}
+
+**CENÁRIO ALVO:**
+Nome: {scenario['name']}
+Descrição: {scenario['description']}
+Foco: {scenario['focus']}
+
+**PERÍODO:**
+{period_name} - {period_context}
+
+**DISTRIBUIÇÃO REQUERIDA:**
+{distribution_requirements}
+
+**INSTRUÇÕES ESPECÍFICAS:**
+1. Use os problemas identificados para criar missões corretivas
+2. Reforce os pontos fortes com missões de consolidação
+3. Foque nas categorias problemáticas quando relevante
+4. Evite tipos de missões já muito utilizados: {', '.join(underutilized[:2]) if underutilized else 'nenhum'}
+5. Considere a tendência dos indicadores (crescente/decrescente)
+6. Adapte a dificuldade ao nível atual ({stats['avg_level']})
+
+{USER_TIER_DESCRIPTIONS[tier]}
+
+**FORMATO DE RESPOSTA:**
+Retorne APENAS um array JSON com 20 missões. Cada missão deve ter:
+{{
+  "title": "Título motivador e específico",
+  "description": "Descrição clara do objetivo",
+  "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
+  "validation_type": "SNAPSHOT|TEMPORAL|CATEGORY_REDUCTION|CATEGORY_LIMIT|GOAL_PROGRESS|SAVINGS_INCREASE|CONSISTENCY",
+  "priority": "LOW|MEDIUM|HIGH",
+  "xp_reward": número (50-500),
+  "duration_days": número (7-90),
+  "target_tps": número ou null,
+  "target_rdr": número ou null,
+  "target_category": "nome da categoria" ou null,
+  "category_limit_amount": número ou null,
+  "category_reduction_percent": número ou null,
+  "target_goal_id": null,
+  "target_goal_progress_percent": número ou null,
+  "target_savings_amount": número ou null,
+  "consistency_required_days": número ou null
+}}
+
+**IMPORTANTE:** 
+- NÃO use markdown, retorne APENAS o JSON
+- As missões devem ser ESPECÍFICAS para este usuário
+- Use os dados de evolução para criar desafios progressivos
+- Seja criativo mas realista
+"""
+    
+    return prompt
+
+
+def _build_standard_prompt(tier, scenario, stats, period_type, period_name, period_context):
+    """
+    Constrói prompt padrão (sem contexto de usuário específico).
+    Mantém a lógica original.
+    """
     # Preparar contextos adicionais baseados no cenário
     tps_context = ""
     rdr_context = ""
@@ -792,9 +1030,9 @@ def generate_batch_missions_for_tier(tier, scenario_key=None):
     distribution_text = '\n'.join(dist_requirements)
     
     # Obter diretrizes específicas do cenário
-    guidelines = get_scenario_guidelines(scenario_key, stats)
+    guidelines = get_scenario_guidelines(scenario.get('key', ''), stats)
     
-    # Montar prompt
+    # Montar prompt padrão (original)
     prompt = BATCH_MISSION_GENERATION_PROMPT.format(
         scenario_name=scenario['name'],
         scenario_description=scenario['description'],
@@ -816,6 +1054,74 @@ def generate_batch_missions_for_tier(tier, scenario_key=None):
         distribution_requirements=distribution_text,
         scenario_guidelines=guidelines
     )
+    
+    return prompt
+
+
+def generate_batch_missions_for_tier(tier, scenario_key=None, user_context=None):
+    """
+    Gera 20 missões em lote para uma faixa de usuários usando Gemini.
+    
+    Args:
+        tier: 'BEGINNER', 'INTERMEDIATE' ou 'ADVANCED'
+        scenario_key: Chave do cenário específico ou None para auto-detectar
+        user_context: Contexto completo de um usuário real (opcional, para personalização)
+        
+    Returns:
+        List[dict]: Lista de 20 missões geradas ou lista vazia em caso de erro
+    """
+    if not model:
+        logger.error("Gemini API não configurada")
+        return []
+    
+    # Se forneceu contexto de usuário real, usar para personalização
+    if user_context:
+        logger.info(f"Usando contexto de usuário real para geração personalizada (tier: {tier})")
+        stats = _extract_stats_from_user_context(user_context)
+        
+        # Determinar cenário baseado no contexto do usuário
+        if not scenario_key:
+            scenario_key = _determine_scenario_from_context(user_context)
+            logger.info(f"Cenário determinado pelo contexto do usuário: {scenario_key}")
+    else:
+        # Coletar estatísticas da faixa (método antigo)
+        stats = get_user_tier_stats(tier)
+        
+        # Determinar cenário se não fornecido
+        if not scenario_key:
+            scenario_key = determine_best_scenario(stats)
+            logger.info(f"Cenário auto-detectado para {tier}: {scenario_key}")
+    
+    scenario = MISSION_SCENARIOS.get(scenario_key)
+    if not scenario:
+        logger.error(f"Cenário inválido: {scenario_key}")
+        return []
+    
+    # Verificar se já temos missões suficientes deste tipo
+    min_existing = scenario.get('min_existing', 0)
+    if min_existing > 0:
+        existing_count = count_existing_missions_by_type(scenario.get('focus'), tier)
+        if existing_count >= min_existing:
+            logger.info(f"Já existem {existing_count} missões de {scenario.get('focus')} para {tier}, pulando geração")
+            return []
+    
+    # Verificar cache (desabilitar se for personalizado)
+    cache_key = None
+    if not user_context:
+        cache_key = f'ai_missions_{tier}_{scenario_key}_{datetime.datetime.now().strftime("%Y_%m")}'
+        cached_missions = cache.get(cache_key)
+        if cached_missions:
+            logger.info(f"Usando missões em cache para {tier}/{scenario_key}")
+            return cached_missions
+    
+    # Contexto do período
+    period_type, period_name, period_context = get_period_context()
+    
+    # Preparar prompt enriquecido com contexto do usuário
+    if user_context:
+        prompt = _build_personalized_prompt(tier, scenario, stats, user_context, period_type, period_name, period_context)
+    else:
+        prompt = _build_standard_prompt(tier, scenario, stats, period_type, period_name, period_context)
     
     try:
         logger.info(f"Gerando missões para {tier}/{scenario_key} via Gemini API...")

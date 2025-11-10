@@ -225,11 +225,11 @@ O desenvolvimento do frontend será realizado em \textbf{Flutter}, o framework m
 \section{Desenvolvimento Backend}
 O backend será desenvolvido em \textbf{Python}, utilizando o framework \textbf{Django}, pela robustez, produtividade e ecossistema consolidado. As principais características dessa escolha são:
 \begin{itemize}\itemsep=5pt
-    \item Arquitetura baseada em \textbf{MVC (Model-View-Controller)}, facilitando a organização do código;
+    \item Arquitetura do Django baseada no padrão \textbf{MTV (Model-Template-View)}; no contexto de API utiliza-se as \textbf{Views do DRF} e \textbf{Serializers} para organizar a lógica e os contratos de dados;
     \item Implementação simplificada de APIs RESTful por meio do \textbf{Django REST Framework (DRF)};
     \item Integração eficiente com bancos de dados relacionais utilizando o \textbf{ORM nativo do Django};
     \item Suporte integrado a autenticação, autorização, sessões e middleware de segurança;
-    \item Ecossistema maduro, com pacotes adicionais como \texttt{django-allauth} (gestão de contas) e \texttt{djangorestframework-simplejwt} (tokens JWT).
+    \item Ecossistema maduro; neste projeto utiliza-se \texttt{djangorestframework-simplejwt} (tokens JWT).
 \end{itemize}
 
 
@@ -255,7 +255,7 @@ O \textbf{GitHub} é utilizado para hospedagem e controle do código-fonte. A pl
 O sistema de autenticação do GenApp combina \textbf{hashing seguro}, \textbf{tokens baseados em JWT} e o uso do \textbf{protocolo TLS}, visando proteger a privacidade e integridade dos dados do usuário.
 
 \subsection{Proteção de Senhas}
-As senhas não são armazenadas em texto plano. O backend aplica a função de hash \textbf{SHA-256} com a adição de um \textit{salt} único por usuário, dificultando ataques de dicionário e \textit{rainbow tables}. Alternativamente, funções derivadas de chave como \texttt{bcrypt} ou \texttt{scrypt} podem ser utilizadas para maior resiliência.
+As senhas não são armazenadas em texto plano. O \textbf{Django} utiliza por padrão \textbf{PBKDF2 com SHA-256}, com \textit{salt} e \textbf{múltiplas iterações}, o que mitiga ataques de dicionário e \textit{rainbow tables}. O framework também oferece suporte a algoritmos como \textbf{Argon2}, \textbf{bcrypt} e \textbf{scrypt}.
 
 \subsection{Autenticação por Token}
 Após um login bem-sucedido, o servidor gera um \textbf{JSON Web Token (JWT)}:
@@ -279,8 +279,7 @@ O processo ocorre em três etapas:
 \subsubsection*{Etapa 1: Registro do Usuário}
 \begin{enumerate}\itemsep=3pt
     \item O usuário fornece e-mail e senha no app.
-    \item O backend gera um salt, aplica SHA-256 e armazena o hash e o salt no PostgreSQL.
-    \item É enviado um e-mail de confirmação para ativação da conta.
+    \item O backend armazena a senha utilizando o mecanismo padrão do Django (\textbf{PBKDF2 com SHA-256}, com \textit{salt} e múltiplas iterações).
 \end{enumerate}
 
 \subsubsection*{Etapa 2: Login do Usuário}
@@ -321,6 +320,8 @@ Dessa forma, a aplicação reforça a proteção da privacidade dos usuários e 
 
 \chapter{Definição e Aplicação dos Índices Financeiros e Distribuição de Desafios}
 
+\noindent\textit{Nota de referência} — As definições e interpretações completas dos índices seguem abaixo. Para uma visão de implementação consolidada (fórmulas finais, vínculos de transações e rotinas de processamento), consulte o Capítulo~\ref{chap:impl-consolidada}.
+
 O comportamento econômico e a educação financeira são conceitos conhecidos que têm uma literatura extensa. Ingale, Paluri e Bonfigt (2021)\cite{Ingale2021} afirmam que fatores comportamentais e psicológicos são centrais na maneira como as pessoas gerenciam dinheiro. Portanto, a inserção de métricas quantitativas possibilita não somente diagnosticar o perfil do usuário, como também facilita o planejamento de estratégias que promovam hábitos financeiros saudáveis.
 
 Para que essa análise seja mais precisa, serão utilizados índices financeiros que envolvem outros aspectos econômicos do usuário. Esses índices são fundamentais para a definição de perfil de usuários para a recomendação de missões personalizadas, evitando a generalização das missões.
@@ -329,18 +330,18 @@ Para que essa análise seja mais precisa, serão utilizados índices financeiros
 Os principais indicadores e suas interpretações são:
 
 \subsection{Taxa de Poupança Pessoal (TPS)}
-A Taxa de Poupança Pessoal (TPS), do inglês *Personal Savings Rate*, mede a porcentagem da renda mensal total que é efetivamente poupada após o pagamento de todas as despesas e obrigações de dívida. Trata-se de um indicador crucial para avaliar a capacidade de um indivíduo em acumular patrimônio, preparar-se para emergências e alcançar objetivos financeiros de longo prazo. Autores como Gitman (2012) \cite{gitman2012} enfatizam a importância da poupança regular como um dos pilares da administração financeira pessoal.
+ A Taxa de Poupança Pessoal (TPS), do inglês *Personal Savings Rate*, mede a porcentagem da renda mensal total que é efetivamente poupada após o pagamento de todas as despesas e obrigações de dívida. Trata-se de um indicador crucial para avaliar a capacidade de um indivíduo em acumular patrimônio, preparar-se para emergências e alcançar objetivos financeiros de longo prazo. Autores como Gitman (2012) \cite{gitman2012} enfatizam a importância da poupança regular como um dos pilares da administração financeira pessoal.
 
-\textbf{Cálculo:}
+    extbf{Cálculo:}
 $$
-\text{TPS} = \left(\frac{\text{Receitas Totais} - \text{Despesas Totais} - \text{Pagamentos de Dívidas}}{\text{Receitas Totais}}\right) \times 100
+    ext{TPS} = \left(\frac{\text{Receitas Totais} - \text{Despesas Totais} - \text{Pagamentos de Despesas}}{\text{Receitas Totais}}\right) \times 100
 $$
 Alternativamente, pode ser expressa como:
 $$
 \text{TPS} = \left(\frac{\text{Poupança Líquida Mensal}}{\text{Receitas Totais}}\right) \times 100
 $$
 
-Onde \textit{Receitas Totais} representa todos os rendimentos do período (salários, freelances, rendimentos de investimentos, etc.), \textit{Despesas Totais} são os gastos do dia a dia (alimentação, moradia, transporte, lazer, etc.), e \textit{Pagamentos de Dívidas} incluem parcelas de empréstimos, financiamentos e cartões de crédito.
+Onde \textit{Receitas Totais} representa todos os rendimentos do período (salários, freelances, rendimentos de investimentos, etc.), \textit{Despesas Totais} são os gastos do dia a dia (alimentação, moradia, transporte, lazer, etc.), e \textit{Pagamentos de Despesas} representam desembolsos classificados como comprometidos ou recorrentes (parcelas de empréstimos, financiamentos e pagamentos mínimos de cartões quando informados). Para efeitos de cálculo interno, o sistema distingue esses lançamentos por meio de vínculos de transação (links) e grupos de categoria.
 
 \textbf{Interpretação:}  
 
@@ -355,7 +356,7 @@ A Razão Dívida-Renda (RDR), conhecida internacionalmente como *Debt-to-Income 
 $$
 \text{RDR} = \left(\frac{\text{Soma dos Pagamentos Mensais de Todas as Dívidas}}{\text{Receitas Totais}}\right) \times 100
 $$
-Onde a ``Soma dos Pagamentos Mensais de Todas as Dívidas'' inclui parcelas de empréstimos, financiamentos (imobiliário, veículo), pagamentos mínimos de cartões de crédito, e outras obrigações financeiras regulares. As ``Receitas Totais'' referem-se ao total de rendimentos do período, incluindo salários, freelances, e outras fontes de renda.
+Onde a ``Soma dos Pagamentos Mensais de Todas as Dívidas'' inclui parcelas de empréstimos, financiamentos (imobiliário, veículo), pagamentos mínimos de cartões de crédito, e outras obrigações financeiras regulares. As ``Receitas Totais'' referem-se ao total de rendimentos do período, incluindo salários, freelances, e outras fontes de renda. No contexto do GenApp,\ apenas são considerados os pagamentos explicitamente \textit{vinculados} a dívidas por meio de vínculos de transação.
 
 \textbf{Interpretação (baseada em diretrizes como as do Consumer Financial Protection Bureau \cite{cfpb_dti}):} 
 
@@ -441,7 +442,7 @@ Considere um usuário fictício, João, com os seguintes dados financeiros decla
         \item Transporte e lazer: R\$ 200,00
     \end{itemize}
     
-    \item \textbf{Pagamentos Mensais de Dívidas}: R\$ 2.100,00, composto por: 
+    \item \textbf{Pagamentos Mensais de Despesas Comprometidas (vinculadas a dívidas)}: R\$ 2.100,00, composto por: 
     \begin{itemize}
         \item Financiamento do carro: R\$ 1.200,00
         \item Pagamento mínimo do cartão de crédito: R\$ 900,00
@@ -468,7 +469,7 @@ João consegue poupar 24\% de suas receitas mensais, valor acima do mínimo reco
 \[
 \text{RDR} = \frac{2.100}{5.000} \times 100 = 42\%
 \]
-Isso significa que 42\% das receitas de João estão comprometidas com pagamentos de dívidas. Este valor está na faixa de atenção (36--42\%), próximo ao limite crítico de 43\%.
+Isso significa que 42\% das receitas de João estão comprometidas com pagamentos vinculados a dívidas (despesas comprometidas). Este valor está na faixa de atenção (36--42\%), próximo ao limite crítico de 43\%.
 
 \noindent
 \textbf{3. Cálculo do Índice de Liquidez Imediata (ILI):}
@@ -786,6 +787,73 @@ As telas de cadastro e login serão limpas e diretas, solicitando apenas as info
 
 O design geral buscará um equilíbrio entre fornecer informações financeiras de forma clara e objetiva e manter uma atmosfera lúdica e encorajadora por meio dos elementos de gamificação.
 
+\chapter{Implementação Técnica Consolidada}
+\label{chap:impl-consolidada}
+
+Este capítulo sintetiza, em linguagem objetiva, os principais aspectos técnicos efetivamente implementados no GenApp, preservando a coerência com as seções anteriores e oferecendo uma visão consolidada para referência rápida.
+
+\section{Arquitetura e Processamento}
+O backend segue o padrão \textit{Model-Template-View} (MTV) do Django, adaptado ao contexto de API REST, em que os templates são substituídos por serializadores e validações. Uma camada de serviços concentra regras de negócio e cálculos financeiros, favorecendo separação de responsabilidades e testes unitários. Para tarefas de maior custo e processamento periódico, utiliza-se Celery com Redis como corretor, permitindo a execução assíncrona de rotinas de snapshots diários e mensais, além de políticas de expiração/renovação de cache de indicadores, reduzindo recomputações em leituras frequentes.
+
+\subsection*{Tarefas Assíncronas (resumo)}
+\renewcommand{\arraystretch}{1.2}
+\begin{table}[H]
+    \centering
+    \caption{Principais tarefas assíncronas do sistema}
+    \label{tab:tasks-assincronas-condensado}
+    \begin{tabularx}{\textwidth}{@{}p{4.4cm}p{2.8cm}X@{}}
+        	oprule
+        	extbf{Tarefa} & \textbf{Agenda} & \textbf{Objetivo} \\
+        \midrule
+        Snapshot diário de usuários & Diária (23:59) & Congelar métricas e agregados para evolução temporal \newline (TPS, RDR, ILI, totais, uso por categoria). \\
+        Snapshot diário de missões & Diária (23:59) & Registrar progresso e critérios atingidos das missões ativas. \\
+        Snapshot mensal consolidado & Últimos dias do mês & Consolidar indicadores para análises macro mensais. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\section{Inteligência Artificial e Gamificação}
+Missões são geradas por modelo generativo (Gemini) a partir de um \textit{prompt} estruturado que considera perfil e métricas do usuário. Cenários temáticos e \textit{tiers} graduam a dificuldade e o impacto esperado, permitindo progressão gradual e feedback motivador. Para controle de custos e robustez, aplicam-se salvaguardas como limitação de frequência de geração, reaproveitamento de sugestões recentes quando adequado e validações de conteúdo antes da publicação ao usuário.
+
+\section{Indicadores e Vinculação de Transações}
+Os indicadores refletem o estado financeiro do usuário e guiam recomendações. A terminologia \textit{pagamentos de despesas} é adotada para uniformidade de entendimento.
+
+\begin{equation}\label{eq:tps-condensado}
+TPS = \frac{Receitas - Despesas - Pagamentos\;de\;Despesas\;Vinculados}{Receitas} \times 100
+\end{equation}
+
+\begin{equation}\label{eq:rdr-condensado}
+RDR = \frac{Pagamentos\;de\;Despesas\;Vinculados}{Receitas} \times 100
+\end{equation}
+
+\begin{equation}\label{eq:ili-condensado}
+ILI = \frac{Despesas\;Essenciais\;Médias\;90d}{Receitas\;Médias\;90d} \times 100
+\end{equation}
+
+\noindent\textit{Nota:} As ligações explícitas entre receitas e despesas (\textit{links} de transação) evitam dupla contagem e permitem atribuição de saídas a entradas, afetando diretamente \eqref{eq:tps-condensado} e \eqref{eq:rdr-condensado}.
+
+\section{Segurança e Deploy}
+SENHAS são tratadas pelo mecanismo padrão do Django (PBKDF2 com SHA-256, com \textit{salt} e múltiplas iterações). A autenticação utiliza JWT no backend e armazenamento seguro de credenciais no aplicativo cliente. A comunicação deve ocorrer via TLS. O Railway é empregado exclusivamente como ambiente de validação e testes controlados, não caracterizando infraestrutura de produção.
+
+\section{Testes e Próximos Passos}
+Há cobertura inicial para serviços de cálculo e validações de serialização. Como próximos passos, recomenda-se ampliar testes de integração (incluindo tarefas assíncronas) e testes de interface no aplicativo.
+
+\begin{table}[H]
+    \centering
+    \caption{Resumo de testes (estado atual e planejados)}
+    \label{tab:testes-condensado}
+    \begin{tabularx}{\textwidth}{@{}p{4.6cm}p{3.2cm}X@{}}
+        	oprule
+        	extbf{Componente} & \textbf{Tipo} & \textbf{Objetivo} \\
+        \midrule
+        Serviços financeiros & Unitário & Validar cálculos (TPS, RDR, ILI) e invalidação de cache. \\
+        Serializers (principais) & Unitário & Garantir estrutura e validação de dados em endpoints críticos. \\
+        Tarefas Celery & Integração (planejado) & Verificar execução e agendamento com dados de teste. \\
+        Aplicativo (Flutter) & Widget/integração (planejado) & Assegurar fluxo de autenticação e dashboard básico. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 \chapter{Resultados Esperados e Discussão}
 
 Espera-se que o desenvolvimento do GenApp resulte em uma ferramenta eficaz para auxiliar os usuários no gerenciamento de suas finanças pessoais, promovendo maior conscientização sobre seus hábitos de consumo, níveis de endividamento e capacidade de poupança. A incorporação de elementos de gamificação busca potencializar o engajamento e a motivação dos usuários, tornando o processo de controle financeiro mais acessível e estimulante.
@@ -882,6 +950,38 @@ O GenApp não se limita a propor um aplicativo, mas também contribui com a disc
 
 \bibliographystyle{IEEEtran}
 \bibliography{bibliografia}
+
+\appendix
+\chapter{Apêndices Técnicos}
+
+\section{Prompt de Geração de Missões (IA)}\label{apendice:prompt-missoes}
+O prompt estruturado incorpora: (i) perfil e métricas (TPS, RDR, ILI), (ii) distribuição recente de gastos por categoria, (iii) contexto temporal (mensal/diário) e (iv) restrições de escopo e linguagem clara. O objetivo é obter missões específicas, atingíveis e alinhadas a cenário e \textit{tier} selecionados. Abaixo, um excerto representativo:
+
+\begin{verbatim}
+Contexto do usuário: métricas {TPS, RDR, ILI}, gastos por categoria, metas ativas.
+Tarefa: propor 3 missões concisas, específicas e mensuráveis, com prazo e critério
+de validação. Limitar a instruções praticáveis, evitar jargões técnicos.
+Restrições: respeitar salvaguardas de custo; evitar recomendações inviáveis.
+Saída: JSON com {titulo, descricao, prazo, criterio, tier, categoria foco}.
+\end{verbatim}
+
+\section{Tarefas Assíncronas Programadas (Celery/Beat)}\label{apendice:celery-beat}
+O sistema agenda três rotinas principais:
+\begin{itemize}
+    \item \textbf{Snapshot diário de usuários (23:59):} congela métricas e agregados do dia.
+    \item \textbf{Snapshot diário de missões (23:59):} registra progresso e cumprimento de critérios.
+    \item \textbf{Snapshot mensal consolidado (últimos dias do mês):} compila visão macro.
+\end{itemize}
+As tarefas são executadas por workers Celery, com Redis como corretor, e utilizam o fuso \textit{America/Sao\_Paulo}. Resultados não necessários são suprimidos para eficiência.
+
+\section{Salvaguardas de Custo e Uso de IA}\label{apendice:ia-salvaguardas}
+Para evitar custos excessivos e garantir estabilidade:
+\begin{itemize}
+    \item Limitar a frequência de geração por usuário e por período.
+    \item Cachear recomendações recentes quando aplicável.
+    \item Validar conteúdo e tamanho da resposta antes de persistir.
+    \item Degradar graciosamente para missões predefinidas caso haja indisponibilidade.
+\end{itemize}
 
 \end{document}
 

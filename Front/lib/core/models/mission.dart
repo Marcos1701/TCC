@@ -13,6 +13,18 @@ class MissionModel {
     this.maxIli,
     this.minTransactions,
     required this.durationDays,
+    // Novos campos de validação avançada
+    required this.validationType,
+    this.requiresConsecutiveDays,
+    this.minConsecutiveDays,
+    this.targetCategory,
+    this.targetReductionPercent,
+    this.categorySpendingLimit,
+    this.targetGoal,
+    this.goalProgressTarget,
+    this.savingsIncreaseAmount,
+    this.requiresDailyAction,
+    this.minDailyActions,
   });
 
   final int id;
@@ -28,6 +40,19 @@ class MissionModel {
   final double? maxIli;
   final int? minTransactions;
   final int durationDays;
+  
+  // Novos campos
+  final String validationType;
+  final bool? requiresConsecutiveDays;
+  final int? minConsecutiveDays;
+  final int? targetCategory;
+  final double? targetReductionPercent;
+  final double? categorySpendingLimit;
+  final int? targetGoal;
+  final double? goalProgressTarget;
+  final double? savingsIncreaseAmount;
+  final bool? requiresDailyAction;
+  final int? minDailyActions;
 
   factory MissionModel.fromMap(Map<String, dynamic> map) {
     return MissionModel(
@@ -48,6 +73,26 @@ class MissionModel {
           : null,
       minTransactions: map['min_transactions'] as int?,
       durationDays: map['duration_days'] as int,
+      // Novos campos
+      validationType: map['validation_type'] as String? ?? 'SNAPSHOT',
+      requiresConsecutiveDays: map['requires_consecutive_days'] as bool?,
+      minConsecutiveDays: map['min_consecutive_days'] as int?,
+      targetCategory: map['target_category'] as int?,
+      targetReductionPercent: map['target_reduction_percent'] != null
+          ? double.parse(map['target_reduction_percent'].toString())
+          : null,
+      categorySpendingLimit: map['category_spending_limit'] != null
+          ? double.parse(map['category_spending_limit'].toString())
+          : null,
+      targetGoal: map['target_goal'] as int?,
+      goalProgressTarget: map['goal_progress_target'] != null
+          ? double.parse(map['goal_progress_target'].toString())
+          : null,
+      savingsIncreaseAmount: map['savings_increase_amount'] != null
+          ? double.parse(map['savings_increase_amount'].toString())
+          : null,
+      requiresDailyAction: map['requires_daily_action'] as bool?,
+      minDailyActions: map['min_daily_actions'] as int?,
     );
   }
 
@@ -68,4 +113,27 @@ class MissionModel {
         return 'Geral';
     }
   }
+  
+  /// Retorna uma descrição amigável do tipo de validação
+  String get validationTypeLabel {
+    switch (validationType) {
+      case 'SNAPSHOT':
+        return 'Comparação pontual';
+      case 'TEMPORAL':
+        return 'Manter por período';
+      case 'CATEGORY_REDUCTION':
+        return 'Reduzir categoria';
+      case 'CATEGORY_LIMIT':
+        return 'Limite de categoria';
+      case 'GOAL_PROGRESS':
+        return 'Progresso em meta';
+      case 'SAVINGS_INCREASE':
+        return 'Aumentar poupança';
+      case 'CONSISTENCY':
+        return 'Consistência';
+      default:
+        return validationType;
+    }
+  }
 }
+
