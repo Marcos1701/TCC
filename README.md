@@ -1023,15 +1023,6 @@ server {
 - ✅ Sanitização de dados
 - ✅ HTTPS enforced em produção
 
-### Boas Práticas
-
-1. **Nunca commite** `.env` ou secrets
-2. **Use senhas fortes** para banco de dados
-3. **Rotacione** API keys periodicamente
-4. **Monitore** logs de acesso suspeito
-5. **Atualize** dependências regularmente
-6. **Faça backup** do banco de dados
-
 ---
 
 ## Troubleshooting
@@ -1085,22 +1076,6 @@ celery -A config worker -l debug
 Este projeto foi desenvolvido como **Trabalho de Conclusão de Curso (TCC)** do curso de Tecnologia em Análise e Desenvolvimento de Sistemas do Instituto Federal do Piauí (IFPI).
 
 **Licença:** Este código é disponibilizado para fins **educacionais e acadêmicos**.
-
-**Você pode:**
-- ✅ Estudar e aprender com o código
-- ✅ Usar como referência para projetos acadêmicos
-- ✅ Modificar e experimentar localmente
-- ✅ Citar em trabalhos acadêmicos
-
-**Você não pode (sem autorização):**
-- ❌ Usar comercialmente
-- ❌ Redistribuir como próprio
-- ❌ Hospedar publicamente sem créditos
-- ❌ Remover atribuições
-
-**Para uso comercial ou outras licenças, entre em contato.**
-
----
 
 ## Referências Bibliográficas
 
