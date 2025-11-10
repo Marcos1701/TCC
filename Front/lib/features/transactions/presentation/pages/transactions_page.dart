@@ -101,7 +101,10 @@ class _TransactionsPageState extends State<TransactionsPage> {
   }
 
   void _applyFilter(String? type) {
-    _viewModel.updateFilter(type);
+    setState(() {
+      // Força rebuild imediato para atualizar os chips visuais
+      _viewModel.updateFilter(type);
+    });
   }
 
   Map<String, double> _buildTotals(List<TransactionModel> transactions) {
@@ -110,10 +113,21 @@ class _TransactionsPageState extends State<TransactionsPage> {
       'EXPENSE': 0,
       'DEBT_PAYMENT': 0,
     };
+    
+    // Somar transações normais
     for (final tx in transactions) {
       totals.update(tx.type, (value) => value + tx.amount,
           ifAbsent: () => tx.amount);
     }
+    
+    // Somar valores dos links de pagamento
+    for (final link in _viewModel.links) {
+      if (link.linkType == 'DEBT_PAYMENT') {
+        totals.update('DEBT_PAYMENT', (value) => value + link.linkedAmount,
+            ifAbsent: () => link.linkedAmount);
+      }
+    }
+    
     return totals;
   }
 

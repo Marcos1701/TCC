@@ -653,6 +653,7 @@ def profile_snapshot(user) -> Dict[str, int]:
         "target_tps": profile.target_tps,
         "target_rdr": profile.target_rdr,
         "target_ili": profile.target_ili,
+        "is_first_access": profile.is_first_access,  # Incluído para onboarding
     }
 
 
