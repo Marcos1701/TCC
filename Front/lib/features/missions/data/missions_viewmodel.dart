@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/models/mission_progress.dart';
@@ -50,9 +51,27 @@ class MissionsViewModel extends ChangeNotifier {
       _updateMissions(dashboard.activeMissions);
       _state = MissionsViewState.success;
       _errorMessage = null;
+    } on DioException catch (e) {
+      _state = MissionsViewState.error;
+      
+      // Mensagens de erro mais amigáveis
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        _errorMessage = 'Tempo de conexão esgotado. Verifique sua internet.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        _errorMessage = 'Sem conexão com o servidor. Verifique sua internet.';
+      } else if (e.response?.statusCode == 500) {
+        _errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+      } else if (e.response?.statusCode == 401) {
+        _errorMessage = 'Sessão expirada. Faça login novamente.';
+      } else {
+        _errorMessage = 'Erro ao carregar missões. Tente novamente.';
+      }
+      
+      debugPrint('Erro ao carregar missões: ${e.toString()}');
     } catch (e) {
       _state = MissionsViewState.error;
-      _errorMessage = 'Erro ao carregar missões: ${e.toString()}';
+      _errorMessage = 'Erro inesperado ao carregar missões.';
       debugPrint('Erro ao carregar missões: $e');
     } finally {
       notifyListeners();

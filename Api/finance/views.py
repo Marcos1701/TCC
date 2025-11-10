@@ -1424,72 +1424,84 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         results = {}
+        total_created = 0
         
-        # Caso 1: Cenário específico
-        if scenario:
-            tiers = [tier] if tier else ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
-            result = generate_missions_by_scenario(scenario, tiers)
-            results = result.get('results', {})
-            total_created = result.get('total_created', 0)
-        
-        # Caso 2: Tier específica, auto-detectar cenário
-        elif tier:
-            # Tentar usar contexto de usuário representativo do tier
-            from .services import get_comprehensive_mission_context
-            from .models import User, UserProfile
+        try:
+            # Caso 1: Cenário específico
+            if scenario:
+                tiers = [tier] if tier else ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+                result = generate_missions_by_scenario(scenario, tiers)
+                results = result.get('results', {})
+                total_created = result.get('total_created', 0)
             
-            user_context = None
-            try:
-                # Buscar usuário representativo do tier para personalização
-                tier_level_range = self._get_tier_level_range(tier)
-                representative_profile = UserProfile.objects.filter(
-                    level__range=tier_level_range
-                ).select_related('user').order_by('-user__last_login').first()
+            # Caso 2: Tier específica, auto-detectar cenário
+            elif tier:
+                # Tentar usar contexto de usuário representativo do tier
+                from .services import get_comprehensive_mission_context
                 
-                if representative_profile and representative_profile.user:
-                    user_context = get_comprehensive_mission_context(representative_profile.user)
-                    logger.info(f"Usando contexto do usuário {representative_profile.user.username} (nível {representative_profile.level}) para tier {tier}")
-            except Exception as e:
-                logger.warning(f"Não foi possível obter contexto de usuário para {tier}: {e}")
+                user_context = None
+                try:
+                    # Buscar usuário representativo do tier para personalização
+                    tier_level_range = self._get_tier_level_range(tier)
+                    representative_profile = UserProfile.objects.filter(
+                        level__range=tier_level_range
+                    ).select_related('user').order_by('-user__last_login').first()
+                    
+                    if representative_profile and representative_profile.user:
+                        user_context = get_comprehensive_mission_context(representative_profile.user)
+                        logger.info(f"Usando contexto do usuário {representative_profile.user.username} (nível {representative_profile.level}) para tier {tier}")
+                except Exception as e:
+                    logger.warning(f"Não foi possível obter contexto de usuário para {tier}: {e}")
+                
+                batch = generate_batch_missions_for_tier(tier, user_context=user_context)
+                if batch:
+                    created = create_missions_from_batch(tier, batch)
+                    results[tier] = {
+                        'generated': len(batch),
+                        'created': len(created),
+                        'personalized': user_context is not None,
+                        'missions': [
+                            {
+                                'id': str(m.id),
+                                'title': m.title,
+                                'type': m.mission_type,
+                                'difficulty': m.priority,
+                                'xp': m.xp_reward
+                            }
+                            for m in created[:5]  # Primeiras 5 como exemplo
+                        ]
+                    }
+                    total_created = len(created)
+                else:
+                    results[tier] = {
+                        'generated': 0,
+                        'created': 0,
+                        'error': 'Falha ao gerar batch'
+                    }
             
-            batch = generate_batch_missions_for_tier(tier, user_context=user_context)
-            if batch:
-                created = create_missions_from_batch(tier, batch)
-                results[tier] = {
-                    'generated': len(batch),
-                    'created': len(created),
-                    'personalized': user_context is not None,
-                    'missions': [
-                        {
-                            'id': str(m.id),
-                            'title': m.title,
-                            'type': m.mission_type,
-                            'difficulty': m.priority,
-                            'xp': m.xp_reward
-                        }
-                        for m in created[:5]  # Primeiras 5 como exemplo
-                    ]
-                }
-                total_created = len(created)
+            # Caso 3: Auto-detectar tudo
             else:
-                results[tier] = {
-                    'generated': 0,
-                    'created': 0,
-                    'error': 'Falha ao gerar batch'
-                }
-                total_created = 0
-        
-        # Caso 3: Auto-detectar tudo
-        else:
-            result = generate_all_monthly_missions()
-            results = result.get('results', {})
-            total_created = result.get('total_created', 0)
-        
-        return Response({
-            'success': True,
-            'total_created': total_created,
-            'results': results
-        })
+                result = generate_all_monthly_missions()
+                results = result.get('results', {})
+                total_created = result.get('total_created', 0)
+            
+            return Response({
+                'success': True,
+                'total_created': total_created,
+                'results': results,
+                'message': f'{total_created} missões geradas com sucesso via IA'
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar missões via IA: {e}", exc_info=True)
+            return Response(
+                {
+                    'success': False,
+                    'error': 'Erro ao gerar missões',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class MissionProgressViewSet(viewsets.ModelViewSet):

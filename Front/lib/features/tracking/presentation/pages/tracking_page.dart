@@ -246,24 +246,14 @@ class _TrackingPageState extends State<TrackingPage> {
       return const SizedBox.shrink();
     }
 
-    // Separar dados reais de projeções mantendo índices originais
-    final realDataIndices = <int, CashflowPoint>{};
-    final projectionDataIndices = <int, CashflowPoint>{};
-    
-    for (var i = 0; i < cashflow.length; i++) {
-      final point = cashflow[i];
-      if (point.isProjection) {
-        projectionDataIndices[i] = point;
-      } else {
-        realDataIndices[i] = point;
-      }
-    }
-
     // Calcular valores máximos para ajustar intervalos dinamicamente
     final maxValue = cashflow
         .expand((e) => [e.income, e.expense])
         .reduce((a, b) => a > b ? a : b);
     final interval = _calculateInterval(maxValue);
+    
+    // Verificar se há projeções
+    final hasProjections = cashflow.any((p) => p.isProjection);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -365,7 +355,7 @@ class _TrackingPageState extends State<TrackingPage> {
                 AppColors.alert,
                 isDashed: false,
               ),
-              if (projectionDataIndices.isNotEmpty)
+              if (hasProjections)
                 _buildLegendItem(
                   '🔮 Projeção',
                   Colors.grey[400]!,
@@ -466,144 +456,97 @@ class _TrackingPageState extends State<TrackingPage> {
                   ),
                 ),
                 lineBarsData: [
-                  // Linha de Receitas Reais
-                  if (realDataIndices.isNotEmpty)
-                    LineChartBarData(
-                      spots: realDataIndices.entries
-                          .map((e) => FlSpot(
-                                e.key.toDouble(),
-                                e.value.income,
-                              ))
-                          .toList(),
-                      isCurved: true,
-                      curveSmoothness: 0.35,
-                      color: AppColors.success,
-                      barWidth: 3.5,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 4,
-                            color: AppColors.success,
-                            strokeWidth: 2,
-                            strokeColor: const Color(0xFF1E1E1E),
-                          );
-                        },
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.success.withOpacity(0.3),
-                            AppColors.success.withOpacity(0.05),
-                          ],
-                        ),
-                      ),
-                      shadow: Shadow(
-                        color: AppColors.success.withOpacity(0.3),
-                        blurRadius: 8,
+                  // Linha de Receitas (toda a série)
+                  LineChartBarData(
+                    spots: cashflow
+                        .asMap()
+                        .entries
+                        .map((e) => FlSpot(
+                              e.key.toDouble(),
+                              e.value.income,
+                            ))
+                        .toList(),
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    color: AppColors.success,
+                    barWidth: 3.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        final isProjection = index < cashflow.length && cashflow[index].isProjection;
+                        return FlDotCirclePainter(
+                          radius: isProjection ? 3 : 4,
+                          color: isProjection ? AppColors.success.withOpacity(0.6) : AppColors.success,
+                          strokeWidth: 2,
+                          strokeColor: const Color(0xFF1E1E1E),
+                        );
+                      },
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.success.withOpacity(0.3),
+                          AppColors.success.withOpacity(0.05),
+                        ],
                       ),
                     ),
-                  // Linha de Receitas Projetadas
-                  if (projectionDataIndices.isNotEmpty)
-                    LineChartBarData(
-                      spots: projectionDataIndices.entries
-                          .map((e) => FlSpot(
-                                e.key.toDouble(),
-                                e.value.income,
-                              ))
-                          .toList(),
-                      isCurved: true,
-                      curveSmoothness: 0.35,
-                      color: AppColors.success.withOpacity(0.6),
-                      barWidth: 2.5,
-                      isStrokeCapRound: true,
-                      dashArray: [8, 4],
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 3,
-                            color: AppColors.success.withOpacity(0.6),
-                            strokeWidth: 1.5,
-                            strokeColor: const Color(0xFF1E1E1E),
-                          );
-                        },
-                      ),
-                      belowBarData: BarAreaData(show: false),
+                    shadow: Shadow(
+                      color: AppColors.success.withOpacity(0.3),
+                      blurRadius: 8,
                     ),
-                  // Linha de Despesas Reais
-                  if (realDataIndices.isNotEmpty)
-                    LineChartBarData(
-                      spots: realDataIndices.entries
-                          .map((e) => FlSpot(
-                                e.key.toDouble(),
-                                e.value.expense,
-                              ))
-                          .toList(),
-                      isCurved: true,
-                      curveSmoothness: 0.35,
-                      color: AppColors.alert,
-                      barWidth: 3.5,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 4,
-                            color: AppColors.alert,
-                            strokeWidth: 2,
-                            strokeColor: const Color(0xFF1E1E1E),
-                          );
-                        },
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            AppColors.alert.withOpacity(0.3),
-                            AppColors.alert.withOpacity(0.05),
-                          ],
-                        ),
-                      ),
-                      shadow: Shadow(
-                        color: AppColors.alert.withOpacity(0.3),
-                        blurRadius: 8,
+                  ),
+                  // Linha tracejada de Receitas (apenas parte de projeção)
+                  if (hasProjections) ..._buildProjectionLines(cashflow, true),
+                  
+                  // Linha de Despesas (toda a série)
+                  LineChartBarData(
+                    spots: cashflow
+                        .asMap()
+                        .entries
+                        .map((e) => FlSpot(
+                              e.key.toDouble(),
+                              e.value.expense,
+                            ))
+                        .toList(),
+                    isCurved: true,
+                    curveSmoothness: 0.35,
+                    color: AppColors.alert,
+                    barWidth: 3.5,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        final isProjection = index < cashflow.length && cashflow[index].isProjection;
+                        return FlDotCirclePainter(
+                          radius: isProjection ? 3 : 4,
+                          color: isProjection ? AppColors.alert.withOpacity(0.6) : AppColors.alert,
+                          strokeWidth: 2,
+                          strokeColor: const Color(0xFF1E1E1E),
+                        );
+                      },
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.alert.withOpacity(0.3),
+                          AppColors.alert.withOpacity(0.05),
+                        ],
                       ),
                     ),
-                  // Linha de Despesas Projetadas
-                  if (projectionDataIndices.isNotEmpty)
-                    LineChartBarData(
-                      spots: projectionDataIndices.entries
-                          .map((e) => FlSpot(
-                                e.key.toDouble(),
-                                e.value.expense,
-                              ))
-                          .toList(),
-                      isCurved: true,
-                      curveSmoothness: 0.35,
-                      color: AppColors.alert.withOpacity(0.6),
-                      barWidth: 2.5,
-                      isStrokeCapRound: true,
-                      dashArray: [8, 4],
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 3,
-                            color: AppColors.alert.withOpacity(0.6),
-                            strokeWidth: 1.5,
-                            strokeColor: const Color(0xFF1E1E1E),
-                          );
-                        },
-                      ),
-                      belowBarData: BarAreaData(show: false),
+                    shadow: Shadow(
+                      color: AppColors.alert.withOpacity(0.3),
+                      blurRadius: 8,
                     ),
+                  ),
+                  // Linha tracejada de Despesas (apenas parte de projeção)
+                  if (hasProjections) ..._buildProjectionLines(cashflow, false),
                 ],
                 lineTouchData: LineTouchData(
                   enabled: true,
@@ -655,10 +598,11 @@ class _TrackingPageState extends State<TrackingPage> {
                       final balance = income - expense;
                       final isProjection = point.isProjection;
                       
-                      // Retorna um tooltip para cada linha tocada
-                      return touchedSpots.map((spot) {
-                        if (spot.barIndex == 0 || spot.barIndex == 2) {
-                          // Primeira linha (Receitas Reais ou Despesas Reais) - mostra todas as informações
+                      // Retorna apenas um tooltip consolidado (na primeira linha tocada)
+                      return touchedSpots.asMap().entries.map((entry) {
+                        final spotIndex = entry.key;
+                        // Mostrar tooltip apenas no primeiro spot (evita duplicação)
+                        if (spotIndex == 0) {
                           return LineTooltipItem(
                             '${isProjection ? '🔮 ' : ''}$monthName${isProjection ? ' (Projeção)' : ''}\n',
                             TextStyle(
@@ -719,7 +663,7 @@ class _TrackingPageState extends State<TrackingPage> {
                             ],
                           );
                         } else {
-                          // Segunda linha (Despesas) - retorna null para não duplicar tooltip
+                          // Retorna null para as outras linhas (evita duplicação)
                           return null;
                         }
                       }).toList();
@@ -1641,6 +1585,62 @@ class _TrackingPageState extends State<TrackingPage> {
     } catch (e) {
       return monthStr;
     }
+  }
+
+  /// Constrói linhas tracejadas para a parte de projeção do gráfico
+  List<LineChartBarData> _buildProjectionLines(List<CashflowPoint> cashflow, bool isIncome) {
+    final projectionLines = <LineChartBarData>[];
+    
+    // Encontrar o primeiro índice de projeção
+    int? firstProjectionIndex;
+    for (var i = 0; i < cashflow.length; i++) {
+      if (cashflow[i].isProjection) {
+        firstProjectionIndex = i;
+        break;
+      }
+    }
+    
+    if (firstProjectionIndex == null || firstProjectionIndex == 0) {
+      return projectionLines;
+    }
+    
+    // Criar linha tracejada conectando último ponto real ao primeiro de projeção
+    // e continuando por todos os pontos de projeção
+    final projectionSpots = <FlSpot>[];
+    
+    // Adicionar último ponto real para criar transição suave
+    projectionSpots.add(FlSpot(
+      (firstProjectionIndex - 1).toDouble(),
+      isIncome ? cashflow[firstProjectionIndex - 1].income : cashflow[firstProjectionIndex - 1].expense,
+    ));
+    
+    // Adicionar todos os pontos de projeção
+    for (var i = firstProjectionIndex; i < cashflow.length; i++) {
+      if (cashflow[i].isProjection) {
+        projectionSpots.add(FlSpot(
+          i.toDouble(),
+          isIncome ? cashflow[i].income : cashflow[i].expense,
+        ));
+      }
+    }
+    
+    final baseColor = isIncome ? AppColors.success : AppColors.alert;
+    
+    projectionLines.add(
+      LineChartBarData(
+        spots: projectionSpots,
+        isCurved: true,
+        curveSmoothness: 0.35,
+        color: baseColor.withOpacity(0.5),
+        barWidth: 2.5,
+        isStrokeCapRound: true,
+        dashArray: [8, 4],
+        dotData: FlDotData(show: false), // Dots já são mostrados na linha principal
+        belowBarData: BarAreaData(show: false),
+      ),
+    );
+    
+    return projectionLines;
   }
 
   Widget _buildErrorState(ThemeData theme) {

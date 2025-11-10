@@ -109,15 +109,42 @@ class _MissionsPageState extends State<MissionsPage> {
                 return ListView(
                   padding: const EdgeInsets.all(24),
                   children: [
-                    Text(
-                      'Sem conexão com as missões agora.',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(color: Colors.white),
+                    Icon(
+                      Icons.cloud_off_outlined,
+                      size: 64,
+                      color: Colors.grey[600],
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
+                    const SizedBox(height: 16),
+                    Text(
+                      'Ops! Algo deu errado',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _viewModel.errorMessage ?? 
+                          'Não foi possível carregar as missões.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
                       onPressed: () => _viewModel.loadMissions(),
-                      child: const Text('Tentar novamente'),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Tentar Novamente'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                      ),
                     ),
                   ],
                 );
