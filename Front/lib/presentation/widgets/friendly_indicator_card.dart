@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/user_friendly_strings.dart';
-import '../../core/theme/app_colors.dart';
 
 /// Widget reutilizável para exibir indicadores financeiros de forma visual e amigável.
 /// 
