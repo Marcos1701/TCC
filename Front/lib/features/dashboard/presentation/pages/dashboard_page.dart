@@ -132,7 +132,7 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 12),
           _IndicatorCard(
-            title: 'Razão Dívida-Renda',
+            title: 'Razão Despesas Recorrentes/Renda',
             value: '${data.summary.rdr.toStringAsFixed(1)}%',
             subtitle: data.insights['rdr']?.message ?? 'Calculando...',
             icon: Icons.account_balance_outlined,
@@ -514,12 +514,12 @@ class _IndicatorsEvolutionChart extends StatelessWidget {
             children: [
               _ChartLegendItem(
                 color: AppColors.support,
-                label: 'TPS',
+                label: 'TPS (Poupança)',
                 theme: theme,
               ),
               _ChartLegendItem(
                 color: AppColors.primary,
-                label: 'RDR',
+                label: 'RDR (Desp. Recorrentes)',
                 theme: theme,
               ),
             ],

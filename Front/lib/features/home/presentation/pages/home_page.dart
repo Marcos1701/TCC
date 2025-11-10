@@ -6,6 +6,7 @@ import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
 import '../../../../core/models/transaction.dart';
+import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
@@ -1530,12 +1531,12 @@ class _TransactionHistorySection extends StatefulWidget {
 class _TransactionHistorySectionState
     extends State<_TransactionHistorySection> {
   final _cacheManager = CacheManager();
-  late Future<List<TransactionModel>> _transactionsFuture;
+  late Future<Map<String, dynamic>> _dataFuture;
 
   @override
   void initState() {
     super.initState();
-    _transactionsFuture = widget.repository.fetchTransactions();
+    _dataFuture = _loadData();
     _cacheManager.addListener(_onCacheInvalidated);
   }
 
@@ -1545,10 +1546,19 @@ class _TransactionHistorySectionState
     super.dispose();
   }
 
+  Future<Map<String, dynamic>> _loadData() async {
+    final transactions = await widget.repository.fetchTransactions();
+    final links = await widget.repository.fetchTransactionLinks();
+    return {
+      'transactions': transactions,
+      'links': links,
+    };
+  }
+
   void _onCacheInvalidated() {
     if (_cacheManager.isInvalidated(CacheType.transactions) && mounted) {
       setState(() {
-        _transactionsFuture = widget.repository.fetchTransactions();
+        _dataFuture = _loadData();
       });
     }
   }
@@ -1582,8 +1592,8 @@ class _TransactionHistorySectionState
           ],
         ),
         const SizedBox(height: 12),
-        FutureBuilder<List<TransactionModel>>(
-          future: _transactionsFuture,
+        FutureBuilder<Map<String, dynamic>>(
+          future: _dataFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -1612,8 +1622,35 @@ class _TransactionHistorySectionState
               );
             }
 
-            final transactions = snapshot.data ?? [];
-            if (transactions.isEmpty) {
+            final data = snapshot.data ?? {};
+            final transactions = (data['transactions'] as List<TransactionModel>?) ?? [];
+            final links = (data['links'] as List<TransactionLinkModel>?) ?? [];
+            
+            // Criar lista combinada de transações e links
+            final allItems = <Map<String, dynamic>>[];
+            
+            // Adicionar transações
+            for (final transaction in transactions) {
+              allItems.add({
+                'type': 'transaction',
+                'data': transaction,
+                'date': transaction.date,
+              });
+            }
+            
+            // Adicionar links (pagamentos de despesas)
+            for (final link in links) {
+              allItems.add({
+                'type': 'link',
+                'data': link,
+                'date': link.createdAt,
+              });
+            }
+            
+            // Ordenar por data (mais recente primeiro)
+            allItems.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+            
+            if (allItems.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
@@ -1649,8 +1686,8 @@ class _TransactionHistorySectionState
               );
             }
 
-            // Pegar as 5 transações mais recentes
-            final recentTransactions = transactions.take(5).toList();
+            // Pegar os 5 itens mais recentes
+            final recentItems = allItems.take(5).toList();
 
             return Container(
               decoration: BoxDecoration(
@@ -1661,7 +1698,7 @@ class _TransactionHistorySectionState
               child: ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: recentTransactions.length,
+                itemCount: recentItems.length,
                 separatorBuilder: (context, index) => Divider(
                   color: Colors.grey[800],
                   height: 1,
@@ -1669,29 +1706,41 @@ class _TransactionHistorySectionState
                   endIndent: 16,
                 ),
                 itemBuilder: (context, index) {
-                  final transaction = recentTransactions[index];
-                  return GestureDetector(
-                    onTap: () async {
-                      await showModalBottomSheet(
-                        context: context,
-                        backgroundColor: Colors.transparent,
-                        isScrollControlled: true,
-                        builder: (context) => TransactionDetailsSheet(
-                          transaction: transaction,
-                          repository: widget.repository,
-                          onUpdate: () {
-                            setState(() {
-                              _transactionsFuture = widget.repository.fetchTransactions();
-                            });
-                          },
-                        ),
-                      );
-                    },
-                    child: _TransactionTile(
-                      transaction: transaction,
+                  final item = recentItems[index];
+                  final itemType = item['type'] as String;
+                  
+                  if (itemType == 'transaction') {
+                    final transaction = item['data'] as TransactionModel;
+                    return GestureDetector(
+                      onTap: () async {
+                        await showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          isScrollControlled: true,
+                          builder: (context) => TransactionDetailsSheet(
+                            transaction: transaction,
+                            repository: widget.repository,
+                            onUpdate: () {
+                              setState(() {
+                                _dataFuture = _loadData();
+                              });
+                            },
+                          ),
+                        );
+                      },
+                      child: _TransactionTile(
+                        transaction: transaction,
+                        currency: widget.currency,
+                      ),
+                    );
+                  } else {
+                    // É um link de pagamento
+                    final link = item['data'] as TransactionLinkModel;
+                    return _PaymentLinkTile(
+                      link: link,
                       currency: widget.currency,
-                    ),
-                  );
+                    );
+                  }
                 },
               ),
             );
@@ -1885,5 +1934,85 @@ class _TransactionTile extends StatelessWidget {
       // Retorna null se falhar ao parsear
     }
     return null;
+  }
+}
+
+/// Widget para exibir um pagamento de despesa (link) na lista
+class _PaymentLinkTile extends StatelessWidget {
+  const _PaymentLinkTile({
+    required this.link,
+    required this.currency,
+  });
+
+  final TransactionLinkModel link;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Icon(
+          Icons.payment,
+          color: AppColors.primary,
+          size: 24,
+        ),
+      ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pagamento de Despesa',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                if (link.targetTransaction != null)
+                  Text(
+                    link.targetTransaction!.description,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                currency.format(link.linkedAmount),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                DateFormat('dd/MM').format(link.createdAt),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

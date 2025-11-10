@@ -425,6 +425,25 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             savings = income - expense
             tps = (savings / income) * Decimal("100")
         
+        # Calcular RDR (despesas recorrentes / renda)
+        rdr = Decimal("0")
+        if income > 0:
+            # Para meses futuros, usar as projeções de recorrências
+            # Para meses passados, calcular despesas recorrentes reais
+            if is_future:
+                recurring_expenses = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+            else:
+                # Buscar despesas recorrentes do mês
+                recurring_expenses = Transaction.objects.filter(
+                    user=user,
+                    type=Transaction.TransactionType.EXPENSE,
+                    is_recurring=True,
+                    date__year=current.year,
+                    date__month=current.month
+                ).aggregate(total=Sum('amount'))['total'] or Decimal("0")
+            
+            rdr = (recurring_expenses / income) * Decimal("100")
+        
         # Filtrar meses sem dados
         if income > 0 or expense > 0:
             series.append(
@@ -433,6 +452,7 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
                     "income": income.quantize(Decimal("0.01")),
                     "expense": expense.quantize(Decimal("0.01")),
                     "tps": tps.quantize(Decimal("0.01")),
+                    "rdr": rdr.quantize(Decimal("0.01")),
                     "is_projection": is_future,
                 }
             )

@@ -1237,7 +1237,7 @@ class _TargetBadge extends StatelessWidget {
           'Faixa ideal: $idealRange';
       color = const Color(0xFF4CAF50);
     } else if (label == 'RDR') {
-      title = 'Razão Dívida/Renda (RDR)';
+      title = 'Razão Despesas Recorrentes/Renda (RDR)';
       formula = 'RDR = Pagamentos Mensais Despesas / Receitas × 100';
       explanation = 'A RDR indica quanto % da sua renda está comprometida com pagamentos mensais de despesas. '
           'É calculada dividindo o total de pagamentos de despesas (financiamentos, cartão, empréstimos) '

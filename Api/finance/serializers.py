@@ -600,6 +600,7 @@ class CashflowPointSerializer(serializers.Serializer):
     income = serializers.DecimalField(max_digits=12, decimal_places=2)
     expense = serializers.DecimalField(max_digits=12, decimal_places=2)
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
+    rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
     is_projection = serializers.BooleanField(default=False)
 
 

@@ -65,6 +65,7 @@ class CashflowPoint {
     required this.income,
     required this.expense,
     required this.tps,
+    required this.rdr,
     this.isProjection = false,
   });
 
@@ -72,6 +73,7 @@ class CashflowPoint {
   final double income;
   final double expense;
   final double tps;
+  final double rdr;
   final bool isProjection;
 
   factory CashflowPoint.fromMap(Map<String, dynamic> map) {
@@ -80,6 +82,7 @@ class CashflowPoint {
       income: double.parse(map['income']?.toString() ?? '0'),
       expense: double.parse(map['expense']?.toString() ?? '0'),
       tps: double.parse(map['tps']?.toString() ?? '0'),
+      rdr: double.parse(map['rdr']?.toString() ?? '0'),
       isProjection: map['is_projection'] == true || map['isProjection'] == true,
     );
   }

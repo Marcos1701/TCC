@@ -941,7 +941,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     
     // Determinar explicação baseada no indicador e tipo de impacto
     final explanation = _getImpactExplanation(indicator, isPositive);
-    final indicatorFullName = indicator == 'TPS' ? 'Taxa de Poupança' : 'Relação Dívida-Renda';
+    final indicatorFullName = indicator == 'TPS' ? 'Taxa de Poupança' : 'Despesas Recorrentes/Renda';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1125,9 +1125,9 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       }
     } else { // RDR
       if (isPositive) {
-        return 'Esta transação aumentou o comprometimento da sua renda com dívidas e parcelas. Valores altos podem indicar sobrecarga financeira.';
+        return 'Esta transação aumentou o comprometimento da sua renda com despesas recorrentes (assinaturas, parcelas, contas fixas). Valores altos podem indicar sobrecarga financeira.';
       } else {
-        return 'Esta transação reduziu o comprometimento da sua renda com dívidas, melhorando sua capacidade de assumir novos compromissos financeiros.';
+        return 'Esta transação reduziu o comprometimento da sua renda com despesas recorrentes, melhorando sua flexibilidade financeira.';
       }
     }
   }

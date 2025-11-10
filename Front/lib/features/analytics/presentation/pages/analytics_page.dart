@@ -260,7 +260,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               const Divider(height: 24),
             ],
             if (evolution.rdr != null) ...[
-              _buildIndicatorRow('RDR - Razão de Dívida', evolution.rdr!),
+              _buildIndicatorRow('RDR - Despesas Recorrentes/Renda', evolution.rdr!),
               const Divider(height: 24),
             ],
             if (evolution.ili != null) ...[
