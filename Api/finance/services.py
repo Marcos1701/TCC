@@ -519,14 +519,15 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
     # Calcular projeções de recorrências para os próximos 3 meses
     recurrence_projections: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     
-    # Buscar todas as transações recorrentes ativas
-    from .models import TransactionRecurrence
-    active_recurrences = TransactionRecurrence.objects.filter(
-        transaction__user=user,
-        is_active=True,
-    ).select_related('transaction', 'transaction__category')
+    # Buscar todas as transações recorrentes ativas (que não tem data final ou data final está no futuro)
+    active_recurrences = Transaction.objects.filter(
+        user=user,
+        is_recurring=True,
+    ).filter(
+        Q(recurrence_end_date__isnull=True) | Q(recurrence_end_date__gte=now)
+    )
     
-    for recurrence in active_recurrences:
+    for transaction in active_recurrences:
         # Projetar para os próximos 3 meses
         projection_month = current_month
         for _ in range(3):
@@ -534,15 +535,19 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             projection_month = projection_month.replace(day=1)
             
             # Verificar se deve gerar para este mês
-            if recurrence.frequency == TransactionRecurrence.RecurrenceFrequency.MONTHLY:
-                recurrence_projections[projection_month][recurrence.transaction.type] += recurrence.transaction.amount
-            elif recurrence.frequency == TransactionRecurrence.RecurrenceFrequency.WEEKLY:
-                # Estimar ~4 ocorrências por mês
-                recurrence_projections[projection_month][recurrence.transaction.type] += recurrence.transaction.amount * 4
-            elif recurrence.frequency == TransactionRecurrence.RecurrenceFrequency.YEARLY:
-                # Verificar se o mês corresponde
-                if recurrence.transaction.date.month == projection_month.month:
-                    recurrence_projections[projection_month][recurrence.transaction.type] += recurrence.transaction.amount
+            if transaction.recurrence_unit == Transaction.RecurrenceUnit.MONTHS:
+                # Mensal - adiciona o valor completo
+                recurrence_projections[projection_month][transaction.type] += transaction.amount
+            elif transaction.recurrence_unit == Transaction.RecurrenceUnit.WEEKS:
+                # Semanal - estimar ~4 ocorrências por mês
+                recurrence_projections[projection_month][transaction.type] += transaction.amount * 4
+            elif transaction.recurrence_unit == Transaction.RecurrenceUnit.DAYS:
+                # Diário - estimar ~30 ocorrências por mês (ou usar recurrence_value)
+                if transaction.recurrence_value:
+                    occurrences_per_month = 30 // transaction.recurrence_value
+                    recurrence_projections[projection_month][transaction.type] += transaction.amount * occurrences_per_month
+                else:
+                    recurrence_projections[projection_month][transaction.type] += transaction.amount * 30
 
     series: List[Dict[str, str]] = []
     current = first_day

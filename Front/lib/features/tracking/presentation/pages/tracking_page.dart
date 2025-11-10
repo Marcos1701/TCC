@@ -257,10 +257,6 @@ class _TrackingPageState extends State<TrackingPage> {
       }
     }
 
-    final hasProjections = projectionData.isNotEmpty;
-    final totalMonths = cashflow.length;
-    final realMonthsCount = realData.length;
-
     // Calcular valores máximos para ajustar intervalos dinamicamente
     final maxValue = cashflow
         .expand((e) => [e.income, e.expense])
@@ -351,7 +347,31 @@ class _TrackingPageState extends State<TrackingPage> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          // Legenda
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              _buildLegendItem(
+                '💰 Receita',
+                AppColors.success,
+                isDashed: false,
+              ),
+              _buildLegendItem(
+                '💸 Despesa',
+                AppColors.alert,
+                isDashed: false,
+              ),
+              if (projectionData.isNotEmpty)
+                _buildLegendItem(
+                  '🔮 Projeção',
+                  Colors.grey[400]!,
+                  isDashed: true,
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             height: 250,
             child: LineChart(
@@ -444,84 +464,152 @@ class _TrackingPageState extends State<TrackingPage> {
                   ),
                 ),
                 lineBarsData: [
-                  // Linha de Receitas
-                  LineChartBarData(
-                    spots: cashflow
-                        .asMap()
-                        .entries
-                        .map((e) => FlSpot(e.key.toDouble(), e.value.income))
-                        .toList(),
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: AppColors.success,
-                    barWidth: 3.5,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: AppColors.success,
-                          strokeWidth: 2,
-                          strokeColor: const Color(0xFF1E1E1E),
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.success.withOpacity(0.3),
-                          AppColors.success.withOpacity(0.05),
-                        ],
+                  // Linha de Receitas Reais
+                  if (realData.isNotEmpty)
+                    LineChartBarData(
+                      spots: realData
+                          .asMap()
+                          .entries
+                          .map((e) => FlSpot(
+                                cashflow.indexOf(e.value).toDouble(),
+                                e.value.income,
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      curveSmoothness: 0.35,
+                      color: AppColors.success,
+                      barWidth: 3.5,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 4,
+                            color: AppColors.success,
+                            strokeWidth: 2,
+                            strokeColor: const Color(0xFF1E1E1E),
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.success.withOpacity(0.3),
+                            AppColors.success.withOpacity(0.05),
+                          ],
+                        ),
+                      ),
+                      shadow: Shadow(
+                        color: AppColors.success.withOpacity(0.3),
+                        blurRadius: 8,
                       ),
                     ),
-                    shadow: Shadow(
-                      color: AppColors.success.withOpacity(0.3),
-                      blurRadius: 8,
+                  // Linha de Receitas Projetadas
+                  if (projectionData.isNotEmpty)
+                    LineChartBarData(
+                      spots: projectionData
+                          .asMap()
+                          .entries
+                          .map((e) => FlSpot(
+                                cashflow.indexOf(e.value).toDouble(),
+                                e.value.income,
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      curveSmoothness: 0.35,
+                      color: AppColors.success.withOpacity(0.6),
+                      barWidth: 2.5,
+                      isStrokeCapRound: true,
+                      dashArray: [8, 4],
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 3,
+                            color: AppColors.success.withOpacity(0.6),
+                            strokeWidth: 1.5,
+                            strokeColor: const Color(0xFF1E1E1E),
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(show: false),
                     ),
-                  ),
-                  // Linha de Despesas
-                  LineChartBarData(
-                    spots: cashflow
-                        .asMap()
-                        .entries
-                        .map((e) => FlSpot(e.key.toDouble(), e.value.expense))
-                        .toList(),
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: AppColors.alert,
-                    barWidth: 3.5,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: AppColors.alert,
-                          strokeWidth: 2,
-                          strokeColor: const Color(0xFF1E1E1E),
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          AppColors.alert.withOpacity(0.3),
-                          AppColors.alert.withOpacity(0.05),
-                        ],
+                  // Linha de Despesas Reais
+                  if (realData.isNotEmpty)
+                    LineChartBarData(
+                      spots: realData
+                          .asMap()
+                          .entries
+                          .map((e) => FlSpot(
+                                cashflow.indexOf(e.value).toDouble(),
+                                e.value.expense,
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      curveSmoothness: 0.35,
+                      color: AppColors.alert,
+                      barWidth: 3.5,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 4,
+                            color: AppColors.alert,
+                            strokeWidth: 2,
+                            strokeColor: const Color(0xFF1E1E1E),
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.alert.withOpacity(0.3),
+                            AppColors.alert.withOpacity(0.05),
+                          ],
+                        ),
+                      ),
+                      shadow: Shadow(
+                        color: AppColors.alert.withOpacity(0.3),
+                        blurRadius: 8,
                       ),
                     ),
-                    shadow: Shadow(
-                      color: AppColors.alert.withOpacity(0.3),
-                      blurRadius: 8,
+                  // Linha de Despesas Projetadas
+                  if (projectionData.isNotEmpty)
+                    LineChartBarData(
+                      spots: projectionData
+                          .asMap()
+                          .entries
+                          .map((e) => FlSpot(
+                                cashflow.indexOf(e.value).toDouble(),
+                                e.value.expense,
+                              ))
+                          .toList(),
+                      isCurved: true,
+                      curveSmoothness: 0.35,
+                      color: AppColors.alert.withOpacity(0.6),
+                      barWidth: 2.5,
+                      isStrokeCapRound: true,
+                      dashArray: [8, 4],
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 3,
+                            color: AppColors.alert.withOpacity(0.6),
+                            strokeWidth: 1.5,
+                            strokeColor: const Color(0xFF1E1E1E),
+                          );
+                        },
+                      ),
+                      belowBarData: BarAreaData(show: false),
                     ),
-                  ),
                 ],
                 lineTouchData: LineTouchData(
                   enabled: true,
@@ -571,17 +659,19 @@ class _TrackingPageState extends State<TrackingPage> {
                       final income = point.income;
                       final expense = point.expense;
                       final balance = income - expense;
+                      final isProjection = point.isProjection;
                       
                       // Retorna um tooltip para cada linha tocada
                       return touchedSpots.map((spot) {
-                        if (spot.barIndex == 0) {
-                          // Primeira linha (Receitas) - mostra todas as informações
+                        if (spot.barIndex == 0 || spot.barIndex == 2) {
+                          // Primeira linha (Receitas Reais ou Despesas Reais) - mostra todas as informações
                           return LineTooltipItem(
-                            '$monthName\n',
-                            const TextStyle(
+                            '${isProjection ? '🔮 ' : ''}$monthName${isProjection ? ' (Projeção)' : ''}\n',
+                            TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
+                              fontStyle: isProjection ? FontStyle.italic : FontStyle.normal,
                             ),
                             children: [
                               const TextSpan(
@@ -1485,6 +1575,37 @@ class _TrackingPageState extends State<TrackingPage> {
     return niceInterval < 100 ? 100 : niceInterval;
   }
 
+  /// Cria um item de legenda para o gráfico
+  Widget _buildLegendItem(String label, Color color, {bool isDashed = false}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 3,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+          child: isDashed
+              ? CustomPaint(
+                  painter: _DashedLinePainter(color: color),
+                )
+              : null,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Formata o mês para exibição nas labels do gráfico (ex: "2025-01" -> "JAN")
   String _formatMonthLabel(String monthStr) {
     try {
@@ -1688,4 +1809,35 @@ class _LegendItem extends StatelessWidget {
       ],
     );
   }
+}
+
+/// CustomPainter para desenhar uma linha tracejada
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 4.0;
+    const dashSpace = 3.0;
+    double startX = 0;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, size.height / 2),
+        Offset(startX + dashWidth, size.height / 2),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
