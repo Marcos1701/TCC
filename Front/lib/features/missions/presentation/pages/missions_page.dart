@@ -156,7 +156,7 @@ class _MissionsPageState extends State<MissionsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
                   Text(
-                    'Acompanhe seu progresso nas missões ativas. O sistema atualiza automaticamente conforme você realiza transações.',
+                    'Acompanhe seu progresso nos desafios ativos. O sistema atualiza automaticamente conforme você realiza transações.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[400],
                       height: 1.4,
@@ -426,7 +426,7 @@ class _ActiveMissionCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '+${mission.mission.rewardPoints} XP',
+                      '+${mission.mission.rewardPoints} pontos',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w700,
@@ -461,7 +461,7 @@ class _ActiveMissionCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Missão concluída! Você ganhou ${mission.mission.rewardPoints} XP',
+                      'Desafio concluído! Você ganhou ${mission.mission.rewardPoints} pontos',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: AppColors.support,
                         fontWeight: FontWeight.w600,

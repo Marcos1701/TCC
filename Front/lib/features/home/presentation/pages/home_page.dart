@@ -669,18 +669,18 @@ class _HomeSummaryCard extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.lightbulb_outline,
                     color: AppColors.primary,
                     size: 20,
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       'Saldo = Receitas - Despesas. Use "Pagar Despesa" para vincular receitas a despesas pendentes.',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white70,
                         fontSize: 12,
                       ),
@@ -802,7 +802,7 @@ class _MissionSection extends StatelessWidget {
   Widget build(BuildContext context) {
     if (active.isEmpty) {
       return const _EmptySection(
-        message: 'Sem missões ativas no momento.\nContinue registrando transações para receber novas missões!',
+        message: 'Sem desafios ativos no momento.\nContinue registrando transações para receber novos desafios!',
       );
     }
 
@@ -995,7 +995,7 @@ class _MissionTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Missão concluída! +${mission.mission.rewardPoints} XP',
+                  'Desafio concluído! +${mission.mission.rewardPoints} pontos',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.support,
                     fontWeight: FontWeight.w600,

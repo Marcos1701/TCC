@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
@@ -233,7 +234,7 @@ class _FriendsTab extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              'Nível ${friend.level} • ${friend.xp} XP',
+                              'Nível ${friend.level} • ${friend.xp} pontos',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: Colors.grey[400],
                                 fontSize: 12,
@@ -378,7 +379,7 @@ class _RequestsTab extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Nível ${sender.level} • ${sender.xp} XP',
+                                  'Nível ${sender.level} • ${sender.xp} pontos',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: Colors.grey[400],
                                     fontSize: 12,
@@ -594,7 +595,7 @@ class _SearchTab extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Nível ${user.level} • ${user.xp} XP',
+                                  'Nível ${user.level} • ${user.xp} pontos',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: Colors.grey[400],
                                     fontSize: 12,

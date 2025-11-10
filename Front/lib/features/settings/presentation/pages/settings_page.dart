@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -202,7 +203,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           color: Colors.white30,
                         ),
                         _ProfileStatItem(
-                          label: 'XP',
+                          label: UxStrings.points,
                           value: '${profile.experiencePoints}',
                           icon: Icons.star_rounded,
                         ),
@@ -233,7 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Faltam ${profile.nextLevelThreshold - profile.experiencePoints} XP para o próximo nível',
+                      'Faltam ${profile.nextLevelThreshold - profile.experiencePoints} pontos para o próximo nível',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white70,
                       ),
