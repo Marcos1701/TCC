@@ -17,7 +17,6 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
-import '../../../missions/presentation/pages/missions_page.dart';
 import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
@@ -25,6 +24,7 @@ import '../../../transactions/presentation/pages/transactions_page.dart';
 import '../../../transactions/presentation/pages/bulk_payment_page.dart';
 import '../../../transactions/presentation/widgets/register_transaction_sheet.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
+import '../widgets/day4_5_widgets.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -159,10 +159,21 @@ class _HomePageState extends State<HomePage> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 
+  Future<void> _showMissionDetails(MissionProgressModel mission) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => MissionDetailsSheet(
+        missionProgress: mission,
+        repository: _repository,
+        onUpdate: _refresh,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final session = SessionScope.of(context);
-    final user = session.session?.user;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -244,57 +255,35 @@ class _HomePageState extends State<HomePage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
                 children: [
-                  _HomeSummaryCard(
-                    userName: user?.name ?? 'Bem-vindo',
-                    profile: data.profile,
+                  // 1. Resumo do Mês (destaque)
+                  MonthSummaryCard(
                     summary: data.summary,
                     currency: _currency,
-                    onProfileTap: () => _openPage(const SettingsPage()),
-                    onProgressTap: () => _openPage(const ProgressPage()),
-                    onTransactionsTap: () =>
-                        _openPage(const TransactionsPage()),
                   ),
-                  const SizedBox(height: 24),
-                  // Gráfico de Evolução do Saldo
-                  _BalanceEvolutionCard(
-                    profile: data.profile,
-                    summary: data.summary,
-                    currency: _currency,
-                    repository: _repository,
+                  const SizedBox(height: 16),
+                  
+                  // 2. Desafio da Semana (motivação)
+                  if (data.activeMissions.isNotEmpty)
+                    WeeklyChallengeCard(
+                      mission: data.activeMissions.first,
+                      onTap: () => _showMissionDetails(data.activeMissions.first),
+                    ),
+                  if (data.activeMissions.isNotEmpty)
+                    const SizedBox(height: 16),
+                  
+                  // 3. Quick Actions
+                  QuickActionsCard(
+                    onAddTransaction: _openTransactionSheet,
+                    onViewGoals: () => _openPage(const ProgressPage()),
+                    onViewAnalysis: () => _openPage(const TransactionsPage()),
                   ),
-                  const SizedBox(height: 24),
-                  // Histórico de Transações
-                  _TransactionHistorySection(
+                  const SizedBox(height: 16),
+                  
+                  // 4. Últimas Transações (5 mais recentes)
+                  RecentTransactionsSection(
                     repository: _repository,
                     currency: _currency,
                     onViewAll: () => _openPage(const TransactionsPage()),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        UxStrings.activeChallenges,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 20,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => _openPage(const MissionsPage()),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                        child: const Text(UxStrings.viewMore),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _MissionSection(
-                    active: data.activeMissions,
-                    repository: _repository,
-                    onRefresh: _refresh,
                   ),
                 ],
               ),
