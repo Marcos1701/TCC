@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
+import '../constants/user_friendly_strings.dart';
 
 /// Tipos de feedback disponíveis
 enum FeedbackType {
@@ -515,6 +517,311 @@ class FeedbackService {
       '⏰ $missionName expira em $daysRemaining ${daysRemaining == 1 ? 'dia' : 'dias'}!',
       type: FeedbackType.warning,
       duration: const Duration(seconds: 5),
+    );
+  }
+
+  // ========== DIA 3: NOVOS MÉTODOS COM EMOJIS E CONTEXTO ==========
+
+  /// Formata valor monetário para exibição
+  static String _formatCurrency(double value) {
+    return NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    ).format(value);
+  }
+
+  /// Exibe feedback específico de transação de receita
+  static void showIncomeAdded(
+    BuildContext context, {
+    required double amount,
+    int? pointsEarned,
+  }) {
+    String message = '💰 Você recebeu ${_formatCurrency(amount)}';
+    
+    if (pointsEarned != null && pointsEarned > 0) {
+      message += '\n⭐ +$pointsEarned ${UxStrings.points}!';
+    }
+
+    show(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  /// Exibe feedback específico de transação de despesa
+  static void showExpenseAdded(
+    BuildContext context, {
+    required double amount,
+    String? category,
+    int? pointsEarned,
+  }) {
+    String message = '💸 Você gastou ${_formatCurrency(amount)}';
+    
+    if (category != null) {
+      message += ' em $category';
+    }
+    
+    if (pointsEarned != null && pointsEarned > 0) {
+      message += '\n⭐ +$pointsEarned ${UxStrings.points} por registrar!';
+    }
+
+    show(
+      context,
+      message,
+      type: FeedbackType.info,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  /// Exibe feedback de progresso de meta
+  static void showGoalProgress(
+    BuildContext context, {
+    required String goalName,
+    required double progress,
+    bool isCompleted = false,
+  }) {
+    if (isCompleted) {
+      showBanner(
+        context,
+        '🎉 Meta "$goalName" alcançada!\nParabéns pela conquista!',
+        type: FeedbackType.success,
+        duration: const Duration(seconds: 5),
+      );
+    } else {
+      final percentage = (progress * 100).toStringAsFixed(0);
+      final emoji = progress >= 0.75 ? '🔥' : progress >= 0.5 ? '📊' : '💪';
+      
+      showBanner(
+        context,
+        '$emoji "$goalName": $percentage% completa',
+        type: FeedbackType.info,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  /// Exibe feedback de economia/poupança
+  static void showSavingsAchievement(
+    BuildContext context, {
+    required double amount,
+    required double target,
+  }) {
+    final progress = (amount / target * 100).toStringAsFixed(0);
+    final emoji = amount >= target ? '🎯' : amount >= (target * 0.7) ? '💪' : '🌱';
+    
+    showBanner(
+      context,
+      '$emoji Você já guardou ${_formatCurrency(amount)} ($progress% da meta)!',
+      type: amount >= target ? FeedbackType.success : FeedbackType.info,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  /// Exibe dica financeira contextual
+  static void showFinancialTip(
+    BuildContext context, {
+    required String tip,
+  }) {
+    showBanner(
+      context,
+      '💡 Dica: $tip',
+      type: FeedbackType.info,
+      duration: const Duration(seconds: 6),
+    );
+  }
+
+  /// Exibe celebração de conquista
+  static void showAchievementUnlocked(
+    BuildContext context, {
+    required String achievementName,
+    String? description,
+    int? pointsEarned,
+  }) {
+    String message = '🏆 Conquista desbloqueada!\n$achievementName';
+    
+    if (description != null) {
+      message += '\n$description';
+    }
+    
+    if (pointsEarned != null && pointsEarned > 0) {
+      message += '\n⭐ +$pointsEarned ${UxStrings.points}';
+    }
+
+    showBanner(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 6),
+    );
+  }
+
+  /// Exibe feedback de sequência (streak)
+  static void showStreak(
+    BuildContext context, {
+    required int days,
+    String action = 'registrando transações',
+  }) {
+    final emoji = days >= 30 ? '🔥' : days >= 7 ? '⚡' : '✨';
+    
+    showBanner(
+      context,
+      '$emoji $days ${days == 1 ? 'dia' : 'dias'} consecutivos $action!',
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  /// Exibe alerta de gasto alto
+  static void showHighExpenseAlert(
+    BuildContext context, {
+    required double amount,
+    required String category,
+    double? monthlyAverage,
+  }) {
+    String message = '⚠️ Gasto alto detectado!\n${_formatCurrency(amount)} em $category';
+    
+    if (monthlyAverage != null && amount > monthlyAverage * 1.5) {
+      final percentageOver = ((amount / monthlyAverage - 1) * 100).toStringAsFixed(0);
+      message += '\n$percentageOver% acima da média mensal';
+    }
+
+    showBanner(
+      context,
+      message,
+      type: FeedbackType.warning,
+      duration: const Duration(seconds: 5),
+    );
+  }
+
+  /// Exibe feedback de economia bem-sucedida
+  static void showSavingSuccess(
+    BuildContext context, {
+    required double amountSaved,
+    required String comparedTo,
+  }) {
+    showBanner(
+      context,
+      '🎊 Você economizou ${_formatCurrency(amountSaved)} comparado $comparedTo!',
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  /// Exibe lembrete gentil
+  static void showGentleReminder(
+    BuildContext context, {
+    required String message,
+    VoidCallback? onTap,
+  }) {
+    showBanner(
+      context,
+      '🔔 $message',
+      type: FeedbackType.info,
+      duration: const Duration(seconds: 5),
+      onTap: onTap,
+    );
+  }
+
+  /// Exibe feedback de desafio em andamento
+  static void showChallengeProgress(
+    BuildContext context, {
+    required String challengeName,
+    required int current,
+    required int target,
+  }) {
+    final percentage = ((current / target) * 100).toStringAsFixed(0);
+    final emoji = current >= target ? '🎯' : current >= (target * 0.8) ? '🔥' : '💪';
+    
+    showBanner(
+      context,
+      '$emoji $challengeName: $current/$target ($percentage%)',
+      type: current >= target ? FeedbackType.success : FeedbackType.info,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  /// Exibe mensagem motivacional baseada no status financeiro
+  static void showMotivationalMessage(
+    BuildContext context, {
+    required String message,
+    bool isPositive = true,
+  }) {
+    final emoji = isPositive ? '💪' : '🌱';
+    
+    showBanner(
+      context,
+      '$emoji $message',
+      type: isPositive ? FeedbackType.success : FeedbackType.info,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  /// Exibe feedback de amigo adicionado
+  static void showFriendAdded(
+    BuildContext context, {
+    required String friendName,
+    int? pointsEarned,
+  }) {
+    String message = '👋 Você adicionou $friendName como amigo!';
+    
+    if (pointsEarned != null && pointsEarned > 0) {
+      message += '\n⭐ +$pointsEarned ${UxStrings.points}';
+    }
+
+    show(
+      context,
+      message,
+      type: FeedbackType.success,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  /// Exibe feedback de posição no ranking
+  static void showRankingUpdate(
+    BuildContext context, {
+    required int newRank,
+    required int oldRank,
+    int? totalFriends,
+  }) {
+    final isImprovement = newRank < oldRank;
+    final emoji = isImprovement ? '📈' : '📊';
+    
+    String message = '$emoji Você está em $newRankº lugar';
+    
+    if (totalFriends != null) {
+      message += ' entre $totalFriends amigos';
+    }
+    
+    if (isImprovement && oldRank > 0) {
+      final positionsUp = oldRank - newRank;
+      message += '\n🎉 Subiu $positionsUp ${positionsUp == 1 ? 'posição' : 'posições'}!';
+    }
+
+    show(
+      context,
+      message,
+      type: isImprovement ? FeedbackType.success : FeedbackType.info,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  /// Exibe feedback de categoria de gasto
+  static void showCategoryInsight(
+    BuildContext context, {
+    required String category,
+    required double amount,
+    required double percentage,
+  }) {
+    final emoji = percentage >= 40 ? '⚠️' : percentage >= 25 ? '📊' : '✅';
+    
+    showBanner(
+      context,
+      '$emoji $category: ${_formatCurrency(amount)} (${percentage.toStringAsFixed(0)}% dos gastos)',
+      type: percentage >= 40 ? FeedbackType.warning : FeedbackType.info,
+      duration: const Duration(seconds: 4),
     );
   }
 }
