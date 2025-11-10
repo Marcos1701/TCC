@@ -73,6 +73,103 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return f"Perfil {self.user}"  # pragma: no cover
+    
+    def clean(self):
+        """Validações de modelo para UserProfile."""
+        from django.core.exceptions import ValidationError
+        from decimal import Decimal
+        
+        # 1. Validar level positivo
+        if self.level < 1:
+            raise ValidationError({
+                'level': 'O nível deve ser no mínimo 1.'
+            })
+        
+        # 2. Validar level máximo razoável
+        if self.level > 1000:
+            raise ValidationError({
+                'level': 'O nível não pode exceder 1000.'
+            })
+        
+        # 3. Validar experience_points não negativo
+        if self.experience_points < 0:
+            raise ValidationError({
+                'experience_points': 'Os pontos de experiência não podem ser negativos.'
+            })
+        
+        # 4. Validar target_tps entre 0 e 100
+        if self.target_tps < 0 or self.target_tps > 100:
+            raise ValidationError({
+                'target_tps': 'A meta de TPS deve estar entre 0 e 100%.'
+            })
+        
+        # 5. Validar target_rdr entre 0 e 100
+        if self.target_rdr < 0 or self.target_rdr > 100:
+            raise ValidationError({
+                'target_rdr': 'A meta de RDR deve estar entre 0 e 100%.'
+            })
+        
+        # 6. Validar target_ili não negativo e razoável
+        if self.target_ili < Decimal('0'):
+            raise ValidationError({
+                'target_ili': 'A meta de ILI não pode ser negativa.'
+            })
+        
+        if self.target_ili > Decimal('100'):
+            raise ValidationError({
+                'target_ili': 'A meta de ILI não deve exceder 100 meses.'
+            })
+        
+        # 7. Validar cached indicators não negativos
+        if self.cached_tps is not None and self.cached_tps < Decimal('0'):
+            raise ValidationError({
+                'cached_tps': 'TPS em cache não pode ser negativo.'
+            })
+        
+        if self.cached_rdr is not None and self.cached_rdr < Decimal('0'):
+            raise ValidationError({
+                'cached_rdr': 'RDR em cache não pode ser negativo.'
+            })
+        
+        if self.cached_ili is not None and self.cached_ili < Decimal('0'):
+            raise ValidationError({
+                'cached_ili': 'ILI em cache não pode ser negativo.'
+            })
+        
+        # 8. Validar cached totals não negativos
+        if self.cached_total_income is not None and self.cached_total_income < Decimal('0'):
+            raise ValidationError({
+                'cached_total_income': 'Total de receitas em cache não pode ser negativo.'
+            })
+        
+        if self.cached_total_expense is not None and self.cached_total_expense < Decimal('0'):
+            raise ValidationError({
+                'cached_total_expense': 'Total de despesas em cache não pode ser negativo.'
+            })
+        
+        if self.cached_total_debt is not None and self.cached_total_debt < Decimal('0'):
+            raise ValidationError({
+                'cached_total_debt': 'Total de dívidas em cache não pode ser negativo.'
+            })
+        
+        # 9. Validar que indicators_updated_at não é no futuro
+        if self.indicators_updated_at:
+            from django.utils import timezone
+            if self.indicators_updated_at > timezone.now():
+                raise ValidationError({
+                    'indicators_updated_at': 'Data de atualização dos indicadores não pode ser no futuro.'
+                })
+        
+        # 10. Validar coerência entre level e experience_points
+        # Cada nível requer 150 + (level-1) * 50 XP
+        expected_min_xp = 0
+        for lvl in range(1, self.level):
+            expected_min_xp += 150 + (lvl - 1) * 50
+        
+        if self.experience_points < expected_min_xp:
+            raise ValidationError({
+                'experience_points': f'XP insuficiente para o nível {self.level}. Mínimo necessário: {expected_min_xp}.'
+            })
 
     @property
     def next_level_threshold(self) -> int:
@@ -137,6 +234,85 @@ class Category(models.Model):
     def __str__(self) -> str:
         owner = self.user or "padrão"
         return f"{self.name} ({owner})"  # pragma: no cover
+    
+    def clean(self):
+        """Validações de modelo para Category."""
+        from django.core.exceptions import ValidationError
+        import re
+        
+        # 1. Validar nome não vazio
+        if not self.name or len(self.name.strip()) == 0:
+            raise ValidationError({
+                'name': 'O nome da categoria não pode ser vazio.'
+            })
+        
+        # 2. Validar comprimento máximo do nome
+        if len(self.name) > 100:
+            raise ValidationError({
+                'name': 'O nome da categoria não pode exceder 100 caracteres.'
+            })
+        
+        # 3. Validar formato de cor (hex)
+        if self.color:
+            if not re.match(r'^#[0-9A-Fa-f]{6}$', self.color):
+                raise ValidationError({
+                    'color': 'A cor deve estar no formato hexadecimal (#RRGGBB).'
+                })
+        
+        # 4. Validar coerência entre type e group
+        type_group_map = {
+            self.CategoryType.INCOME: [
+                self.CategoryGroup.REGULAR_INCOME,
+                self.CategoryGroup.EXTRA_INCOME,
+                self.CategoryGroup.OTHER,
+            ],
+            self.CategoryType.EXPENSE: [
+                self.CategoryGroup.ESSENTIAL_EXPENSE,
+                self.CategoryGroup.LIFESTYLE_EXPENSE,
+                self.CategoryGroup.SAVINGS,
+                self.CategoryGroup.INVESTMENT,
+                self.CategoryGroup.GOAL,
+                self.CategoryGroup.OTHER,
+            ],
+            self.CategoryType.DEBT: [
+                self.CategoryGroup.DEBT,
+                self.CategoryGroup.OTHER,
+            ],
+        }
+        
+        if self.type in type_group_map:
+            valid_groups = type_group_map[self.type]
+            if self.group not in valid_groups:
+                raise ValidationError({
+                    'group': f'O grupo "{self.get_group_display()}" não é compatível com o tipo "{self.get_type_display()}".'
+                })
+        
+        # 5. Validar que categoria de sistema não pode ser modificada pelo usuário
+        if self.pk and self.is_system_default:
+            try:
+                old_instance = Category.objects.get(pk=self.pk)
+                # Permitir apenas mudanças em color e group para categorias de sistema
+                if (old_instance.name != self.name or 
+                    old_instance.type != self.type or
+                    old_instance.user != self.user):
+                    raise ValidationError({
+                        'is_system_default': 'Categorias padrão do sistema não podem ter nome, tipo ou proprietário alterados.'
+                    })
+            except Category.DoesNotExist:
+                pass
+        
+        # 6. Validar unicidade case-insensitive do nome para o mesmo usuário
+        if self.user:
+            existing = Category.objects.filter(
+                user=self.user,
+                name__iexact=self.name.strip(),
+                type=self.type
+            ).exclude(pk=self.pk)
+            
+            if existing.exists():
+                raise ValidationError({
+                    'name': f'Já existe uma categoria "{self.name}" do tipo {self.get_type_display()} para este usuário.'
+                })
 
 
 class Transaction(models.Model):
@@ -188,6 +364,86 @@ class Transaction(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.description} ({self.amount})"
+    
+    def clean(self):
+        """Validações de modelo para Transaction."""
+        from django.core.exceptions import ValidationError
+        
+        # 1. Validar amount positivo
+        if self.amount is not None and self.amount <= 0:
+            raise ValidationError({
+                'amount': 'O valor da transação deve ser maior que zero.'
+            })
+        
+        # 2. Validar amount máximo
+        if self.amount is not None and self.amount > Decimal('999999999.99'):
+            raise ValidationError({
+                'amount': 'O valor da transação excede o limite máximo (R$ 999.999.999,99).'
+            })
+        
+        # 3. Validar descrição não vazia
+        if self.description and len(self.description.strip()) == 0:
+            raise ValidationError({
+                'description': 'A descrição não pode ser vazia.'
+            })
+        
+        # 4. Validar tamanho máximo da descrição
+        if self.description and len(self.description) > 255:
+            raise ValidationError({
+                'description': 'A descrição não pode ter mais de 255 caracteres.'
+            })
+        
+        # 5. Validar recorrência
+        if self.is_recurring:
+            if not self.recurrence_value:
+                raise ValidationError({
+                    'recurrence_value': 'Valor de recorrência é obrigatório para transações recorrentes.'
+                })
+            if not self.recurrence_unit:
+                raise ValidationError({
+                    'recurrence_unit': 'Unidade de recorrência é obrigatória para transações recorrentes.'
+                })
+            if self.recurrence_value < 1:
+                raise ValidationError({
+                    'recurrence_value': 'Valor de recorrência deve ser maior que zero.'
+                })
+            if self.recurrence_value > 365:
+                raise ValidationError({
+                    'recurrence_value': 'Valor de recorrência não pode exceder 365.'
+                })
+        
+        # 6. Validar data de fim de recorrência
+        if self.recurrence_end_date and self.date:
+            if self.recurrence_end_date < self.date:
+                raise ValidationError({
+                    'recurrence_end_date': 'Data de fim da recorrência não pode ser anterior à data da transação.'
+                })
+        
+        # 7. Validar categoria pertence ao usuário
+        if self.category and self.category.user != self.user:
+            raise ValidationError({
+                'category': 'A categoria deve pertencer ao mesmo usuário da transação.'
+            })
+        
+        # 8. Validar tipo de categoria compatível
+        if self.category:
+            if self.type == self.TransactionType.INCOME and self.category.type != Category.CategoryType.INCOME:
+                raise ValidationError({
+                    'category': 'Receitas devem usar categorias do tipo INCOME.'
+                })
+            if self.type == self.TransactionType.EXPENSE and self.category.type == Category.CategoryType.INCOME:
+                raise ValidationError({
+                    'category': 'Despesas não podem usar categorias do tipo INCOME.'
+                })
+        
+        # 9. Validar data não muito no futuro (máximo 5 anos)
+        if self.date:
+            from datetime import timedelta
+            max_future_date = timezone.now().date() + timedelta(days=5*365)
+            if self.date > max_future_date:
+                raise ValidationError({
+                    'date': 'A data não pode ser mais de 5 anos no futuro.'
+                })
     
     @property
     def linked_amount(self) -> Decimal:
@@ -572,6 +828,101 @@ class Goal(models.Model):
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.title} ({self.user})"
     
+    def clean(self):
+        """Validações de modelo para Goal."""
+        from django.core.exceptions import ValidationError
+        
+        # 1. Validar target_amount positivo
+        if self.target_amount is not None and self.target_amount <= 0:
+            raise ValidationError({
+                'target_amount': 'O valor alvo da meta deve ser maior que zero.'
+            })
+        
+        # 2. Validar target_amount máximo
+        if self.target_amount is not None and self.target_amount > Decimal('999999999.99'):
+            raise ValidationError({
+                'target_amount': 'O valor alvo excede o limite máximo (R$ 999.999.999,99).'
+            })
+        
+        # 3. Validar current_amount não negativo
+        if self.current_amount is not None and self.current_amount < 0:
+            raise ValidationError({
+                'current_amount': 'O valor atual não pode ser negativo.'
+            })
+        
+        # 4. Validar initial_amount não negativo
+        if self.initial_amount is not None and self.initial_amount < 0:
+            raise ValidationError({
+                'initial_amount': 'O valor inicial não pode ser negativo.'
+            })
+        
+        # 5. Validar título não vazio
+        if self.title and len(self.title.strip()) == 0:
+            raise ValidationError({
+                'title': 'O título não pode ser vazio.'
+            })
+        
+        # 6. Validar tamanho do título
+        if self.title and len(self.title) > 150:
+            raise ValidationError({
+                'title': 'O título não pode ter mais de 150 caracteres.'
+            })
+        
+        # 7. Validar deadline no futuro
+        if self.deadline:
+            if self.deadline < timezone.now().date():
+                raise ValidationError({
+                    'deadline': 'A data limite deve ser no futuro.'
+                })
+            # Limite máximo de 10 anos no futuro
+            from datetime import timedelta
+            max_deadline = timezone.now().date() + timedelta(days=10*365)
+            if self.deadline > max_deadline:
+                raise ValidationError({
+                    'deadline': 'A data limite não pode ser mais de 10 anos no futuro.'
+                })
+        
+        # 8. Validar target_category pertence ao usuário
+        if self.target_category and self.target_category.user != self.user:
+            raise ValidationError({
+                'target_category': 'A categoria alvo deve pertencer ao mesmo usuário.'
+            })
+        
+        # 9. Validar goal_type com target_category
+        if self.goal_type in [self.GoalType.CATEGORY_EXPENSE, self.GoalType.CATEGORY_INCOME]:
+            if not self.target_category:
+                raise ValidationError({
+                    'target_category': f'Meta do tipo {self.get_goal_type_display()} requer uma categoria alvo.'
+                })
+        
+        # 10. Validar tipo de categoria compatível com goal_type
+        if self.target_category and self.goal_type == self.GoalType.CATEGORY_EXPENSE:
+            if self.target_category.type != Category.CategoryType.EXPENSE:
+                raise ValidationError({
+                    'target_category': 'Meta de redução de gastos requer categoria do tipo EXPENSE.'
+                })
+        
+        if self.target_category and self.goal_type == self.GoalType.CATEGORY_INCOME:
+            if self.target_category.type != Category.CategoryType.INCOME:
+                raise ValidationError({
+                    'target_category': 'Meta de aumento de receita requer categoria do tipo INCOME.'
+                })
+        
+        # 11. Validar is_reduction_goal coerente
+        if self.goal_type in [self.GoalType.CATEGORY_EXPENSE, self.GoalType.DEBT_REDUCTION]:
+            if not self.is_reduction_goal:
+                raise ValidationError({
+                    'is_reduction_goal': 'Metas de redução devem ter is_reduction_goal=True.'
+                })
+        
+        # 12. Validar current_amount não excede target em metas não-redução
+        if not self.is_reduction_goal:
+            if self.current_amount is not None and self.target_amount is not None:
+                if self.current_amount > self.target_amount * Decimal('1.5'):  # Tolera 50% a mais
+                    raise ValidationError({
+                        'current_amount': 'O valor atual excede significativamente o valor alvo.'
+                    })
+    
     @property
     def progress_percentage(self) -> float:
         """Calcula a porcentagem de progresso da meta."""
@@ -794,6 +1145,120 @@ class Mission(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return self.title
+    
+    def clean(self):
+        """Validações de modelo para Mission."""
+        from django.core.exceptions import ValidationError
+        
+        # 1. Validar reward_points positivo
+        if self.reward_points is not None and self.reward_points <= 0:
+            raise ValidationError({
+                'reward_points': 'A recompensa de pontos deve ser maior que zero.'
+            })
+        
+        # 2. Validar reward_points máximo
+        if self.reward_points is not None and self.reward_points > 10000:
+            raise ValidationError({
+                'reward_points': 'A recompensa não pode exceder 10.000 pontos.'
+            })
+        
+        # 3. Validar duration_days positivo
+        if self.duration_days is not None and self.duration_days <= 0:
+            raise ValidationError({
+                'duration_days': 'A duração deve ser maior que zero dias.'
+            })
+        
+        # 4. Validar duration_days máximo
+        if self.duration_days is not None and self.duration_days > 365:
+            raise ValidationError({
+                'duration_days': 'A duração não pode exceder 365 dias.'
+            })
+        
+        # 5. Validar título não vazio
+        if self.title and len(self.title.strip()) == 0:
+            raise ValidationError({
+                'title': 'O título não pode ser vazio.'
+            })
+        
+        # 6. Validar descrição não vazia
+        if self.description and len(self.description.strip()) == 0:
+            raise ValidationError({
+                'description': 'A descrição não pode ser vazia.'
+            })
+        
+        # 7. Validar ranges de indicadores
+        if self.target_tps is not None and (self.target_tps < 0 or self.target_tps > 100):
+            raise ValidationError({
+                'target_tps': 'TPS deve estar entre 0 e 100%.'
+            })
+        
+        if self.target_rdr is not None and (self.target_rdr < 0 or self.target_rdr > 100):
+            raise ValidationError({
+                'target_rdr': 'RDR deve estar entre 0 e 100%.'
+            })
+        
+        if self.min_ili is not None and self.min_ili < 0:
+            raise ValidationError({
+                'min_ili': 'ILI mínimo não pode ser negativo.'
+            })
+        
+        if self.max_ili is not None and self.max_ili < 0:
+            raise ValidationError({
+                'max_ili': 'ILI máximo não pode ser negativo.'
+            })
+        
+        # 8. Validar min < max para ILI
+        if self.min_ili is not None and self.max_ili is not None:
+            if self.min_ili > self.max_ili:
+                raise ValidationError({
+                    'min_ili': 'ILI mínimo não pode ser maior que ILI máximo.'
+                })
+        
+        # 9. Validar priority positiva
+        if self.priority is not None and self.priority < 1:
+            raise ValidationError({
+                'priority': 'Prioridade deve ser maior ou igual a 1.'
+            })
+        
+        # 10. Validar campos de validação temporal
+        if self.requires_consecutive_days:
+            if not self.min_consecutive_days or self.min_consecutive_days < 1:
+                raise ValidationError({
+                    'min_consecutive_days': 'Número mínimo de dias consecutivos é obrigatório.'
+                })
+            if self.min_consecutive_days > self.duration_days:
+                raise ValidationError({
+                    'min_consecutive_days': 'Dias consecutivos não pode exceder duração da missão.'
+                })
+        
+        # 11. Validar valores de categoria
+        if self.target_category_amount is not None and self.target_category_amount < 0:
+            raise ValidationError({
+                'target_category_amount': 'Valor alvo não pode ser negativo.'
+            })
+        
+        if self.savings_increase_amount is not None and self.savings_increase_amount <= 0:
+            raise ValidationError({
+                'savings_increase_amount': 'Aumento de poupança deve ser positivo.'
+            })
+        
+        # 12. Validar validação temporal
+        if self.validation_type == self.ValidationType.TEMPORAL:
+            if self.duration_days < 7:
+                raise ValidationError({
+                    'duration_days': 'Missões temporais devem ter pelo menos 7 dias de duração.'
+                })
+        
+        # 13. Validar missões de consistência
+        if self.requires_daily_action:
+            if not self.min_daily_actions or self.min_daily_actions < 1:
+                raise ValidationError({
+                    'min_daily_actions': 'Número mínimo de ações diárias é obrigatório.'
+                })
+            if self.min_daily_actions > 100:
+                raise ValidationError({
+                    'min_daily_actions': 'Número de ações diárias não pode exceder 100.'
+                })
 
 
 class MissionProgress(models.Model):
@@ -883,6 +1348,126 @@ class MissionProgress(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} - {self.mission}"
+    
+    def clean(self):
+        """Validações de modelo para MissionProgress."""
+        from django.core.exceptions import ValidationError
+        from decimal import Decimal
+        
+        # 1. Validar que progress está entre 0 e 100
+        if self.progress < Decimal('0'):
+            raise ValidationError({
+                'progress': 'O progresso não pode ser negativo.'
+            })
+        
+        if self.progress > Decimal('100'):
+            raise ValidationError({
+                'progress': 'O progresso não pode exceder 100%.'
+            })
+        
+        # 2. Validar transitions de status válidas
+        if self.pk:  # Se é update
+            try:
+                old_instance = MissionProgress.objects.get(pk=self.pk)
+                # Se estava COMPLETED, não pode voltar para IN_PROGRESS
+                if old_instance.status == self.MissionStatus.COMPLETED and \
+                   self.status == self.MissionStatus.IN_PROGRESS:
+                    raise ValidationError({
+                        'status': 'Uma missão concluída não pode voltar para em progresso.'
+                    })
+                
+                # Se estava FAILED, não pode ir para COMPLETED
+                if old_instance.status == self.MissionStatus.FAILED and \
+                   self.status == self.MissionStatus.COMPLETED:
+                    raise ValidationError({
+                        'status': 'Uma missão falha não pode ser marcada como concluída.'
+                    })
+            except MissionProgress.DoesNotExist:
+                pass
+        
+        # 3. Validar que se status é COMPLETED, progress deve ser 100
+        if self.status == self.MissionStatus.COMPLETED and self.progress < Decimal('100'):
+            raise ValidationError({
+                'status': 'Missão só pode ser concluída quando progresso atingir 100%.'
+            })
+        
+        # 4. Validar que completed_at é set apenas se status é COMPLETED
+        if self.completed_at and self.status != self.MissionStatus.COMPLETED:
+            raise ValidationError({
+                'completed_at': 'Data de conclusão só deve ser definida para missões concluídas.'
+            })
+        
+        # 5. Validar que completed_at não é no futuro
+        if self.completed_at:
+            from django.utils import timezone
+            if self.completed_at > timezone.now():
+                raise ValidationError({
+                    'completed_at': 'Data de conclusão não pode ser no futuro.'
+                })
+        
+        # 6. Validar que started_at < completed_at
+        if self.started_at and self.completed_at:
+            if self.started_at >= self.completed_at:
+                raise ValidationError({
+                    'completed_at': 'Data de conclusão deve ser posterior ao início.'
+                })
+        
+        # 7. Validar indicadores não negativos
+        if self.current_tps is not None and self.current_tps < Decimal('0'):
+            raise ValidationError({
+                'current_tps': 'TPS não pode ser negativo.'
+            })
+        
+        if self.current_rdr is not None and self.current_rdr < Decimal('0'):
+            raise ValidationError({
+                'current_rdr': 'RDR não pode ser negativo.'
+            })
+        
+        if self.current_ili is not None and self.current_ili < Decimal('0'):
+            raise ValidationError({
+                'current_ili': 'ILI não pode ser negativo.'
+            })
+        
+        # 8. Validar streaks
+        if self.current_streak < 0:
+            raise ValidationError({
+                'current_streak': 'Streak atual não pode ser negativo.'
+            })
+        
+        if self.max_streak < self.current_streak:
+            raise ValidationError({
+                'max_streak': 'Streak máximo deve ser maior ou igual ao streak atual.'
+            })
+        
+        # 9. Validar days_met_criteria e days_violated_criteria
+        if self.days_met_criteria < 0:
+            raise ValidationError({
+                'days_met_criteria': 'Dias que atendeu critério não pode ser negativo.'
+            })
+        
+        if self.days_violated_criteria < 0:
+            raise ValidationError({
+                'days_violated_criteria': 'Dias que violou critério não pode ser negativo.'
+            })
+        
+        # 10. Validar initial_goal_progress entre 0 e 100
+        if self.initial_goal_progress is not None:
+            if self.initial_goal_progress < Decimal('0') or self.initial_goal_progress > Decimal('100'):
+                raise ValidationError({
+                    'initial_goal_progress': 'Progresso inicial da meta deve estar entre 0 e 100%.'
+                })
+        
+        # 11. Validar initial_savings_amount não negativo
+        if self.initial_savings_amount is not None and self.initial_savings_amount < Decimal('0'):
+            raise ValidationError({
+                'initial_savings_amount': 'Valor inicial de poupança não pode ser negativo.'
+            })
+        
+        # 12. Validar baseline_period_days razoável
+        if self.baseline_period_days < 1 or self.baseline_period_days > 365:
+            raise ValidationError({
+                'baseline_period_days': 'Período de baseline deve estar entre 1 e 365 dias.'
+            })
 
 
 class XPTransaction(models.Model):

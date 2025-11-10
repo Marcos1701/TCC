@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.db.models import Q
+from django.db.models import Q, Sum
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -117,10 +117,98 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """
-        Sempre associa categoria ao usuário atual.
-        Categorias personalizadas não são marcadas como system_default.
+        Criar categoria com validações adicionais.
         """
-        serializer.save(user=self.request.user, is_system_default=False)
+        from rest_framework.exceptions import ValidationError
+        
+        user = self.request.user
+        data = serializer.validated_data
+        
+        # 1. Limitar número de categorias personalizadas por usuário
+        custom_categories = Category.objects.filter(user=user, is_system_default=False).count()
+        if custom_categories >= 100:  # Limite razoável
+            raise ValidationError({
+                'non_field_errors': 'Você atingiu o limite de 100 categorias personalizadas.'
+            })
+        
+        # 2. Validar unicidade case-insensitive
+        name = data.get('name', '').strip()
+        category_type = data.get('type')
+        
+        existing = Category.objects.filter(
+            user=user,
+            name__iexact=name,
+            type=category_type
+        ).exists()
+        
+        if existing:
+            raise ValidationError({
+                'name': f'Já existe uma categoria "{name}" do tipo {category_type} para você.'
+            })
+        
+        # 3. Validar que não está tentando criar categoria de sistema
+        if data.get('is_system_default', False):
+            raise ValidationError({
+                'is_system_default': 'Você não pode criar categorias de sistema.'
+            })
+        
+        serializer.save(user=user, is_system_default=False)
+    
+    def perform_update(self, serializer):
+        """
+        Atualizar categoria com validações adicionais.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        instance = self.get_object()
+        
+        # 1. Validar que categorias de sistema não podem ser editadas
+        if instance.is_system_default:
+            raise ValidationError({
+                'is_system_default': 'Categorias padrão do sistema não podem ser editadas.'
+            })
+        
+        # 2. Validar que categoria pertence ao usuário
+        if instance.user != self.request.user:
+            raise ValidationError({
+                'non_field_errors': 'Você não pode editar categorias de outros usuários.'
+            })
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """
+        Deletar categoria com validações de segurança.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        # 1. Validar que categorias de sistema não podem ser deletadas
+        if instance.is_system_default:
+            raise ValidationError({
+                'non_field_errors': 'Categorias padrão do sistema não podem ser excluídas.'
+            })
+        
+        # 2. Validar que categoria pertence ao usuário
+        if instance.user != self.request.user:
+            raise ValidationError({
+                'non_field_errors': 'Você não pode excluir categorias de outros usuários.'
+            })
+        
+        # 3. Verificar se categoria tem transações vinculadas
+        transaction_count = Transaction.objects.filter(category=instance).count()
+        if transaction_count > 0:
+            raise ValidationError({
+                'non_field_errors': f'Esta categoria possui {transaction_count} transação(ões) vinculada(s). Reatribua as transações antes de excluir.'
+            })
+        
+        # 4. Verificar se categoria tem metas vinculadas
+        goal_count = Goal.objects.filter(target_category=instance).count()
+        if goal_count > 0:
+            raise ValidationError({
+                'non_field_errors': f'Esta categoria possui {goal_count} meta(s) vinculada(s). Reatribua as metas antes de excluir.'
+            })
+        
+        instance.delete()
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -182,16 +270,123 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return qs.order_by("-date", "-created_at")
     
     def perform_create(self, serializer):
+        """
+        Criar transação com validações adicionais.
+        """
+        from rest_framework.exceptions import ValidationError
+        from decimal import Decimal
+        
+        # Validações extras antes de salvar
+        user = self.request.user
+        data = serializer.validated_data
+        
+        # 1. Verificar se categoria pertence ao usuário
+        category = data.get('category')
+        if category and category.user != user:
+            raise ValidationError({
+                'category': 'A categoria selecionada não pertence a você.'
+            })
+        
+        # 2. Verificar limites de transações por dia (anti-spam)
+        from django.utils import timezone
+        today = timezone.now().date()
+        today_transactions = Transaction.objects.filter(
+            user=user,
+            created_at__date=today
+        ).count()
+        
+        if today_transactions >= 500:  # Limite razoável
+            raise ValidationError({
+                'non_field_errors': 'Limite de 500 transações por dia atingido.'
+            })
+        
+        # 3. Validar valor não excede limite diário de criação
+        total_today = Transaction.objects.filter(
+            user=user,
+            created_at__date=today
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        
+        amount = data.get('amount', Decimal('0'))
+        if total_today + amount > Decimal('100000000'):  # 100 milhões por dia
+            raise ValidationError({
+                'amount': 'Limite de valor total diário atingido (100 milhões).'
+            })
+        
         serializer.save()
         # Invalidar todos os caches após criar transação
         invalidate_user_dashboard_cache(self.request.user)
     
     def perform_update(self, serializer):
+        """
+        Atualizar transação com validações adicionais.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        instance = self.get_object()
+        data = serializer.validated_data
+        
+        # 1. Verificar se nova categoria pertence ao usuário
+        category = data.get('category')
+        if category and category.user != self.request.user:
+            raise ValidationError({
+                'category': 'A categoria selecionada não pertence a você.'
+            })
+        
+        # 2. Verificar se transação tem vínculos ativos que seriam invalidados
+        if 'amount' in data or 'type' in data:
+            links_as_source = TransactionLink.objects.filter(source_transaction=instance).count()
+            links_as_target = TransactionLink.objects.filter(target_transaction=instance).count()
+            
+            if links_as_source > 0 or links_as_target > 0:
+                # Avisar mas permitir (validações de TransactionLink.clean() vão prevenir inconsistências)
+                pass
+        
+        # 3. Validar que transação paga (com links) não pode mudar para valor menor que já pago
+        if 'amount' in data:
+            new_amount = data['amount']
+            paid_amount = TransactionLink.objects.filter(
+                target_transaction=instance
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            
+            if new_amount < paid_amount:
+                raise ValidationError({
+                    'amount': f'O novo valor ({new_amount}) não pode ser menor que o já pago ({paid_amount}).'
+                })
+        
         serializer.save()
         # Invalidar todos os caches após atualizar transação
         invalidate_user_dashboard_cache(self.request.user)
     
     def perform_destroy(self, instance):
+        """
+        Deletar transação com validações de segurança.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        # 1. Verificar se transação tem vínculos ativos
+        links_as_source = TransactionLink.objects.filter(source_transaction=instance).count()
+        links_as_target = TransactionLink.objects.filter(target_transaction=instance).count()
+        
+        if links_as_source > 0:
+            raise ValidationError({
+                'non_field_errors': f'Esta transação possui {links_as_source} pagamento(s) vinculado(s). Remova os vínculos antes de excluir.'
+            })
+        
+        if links_as_target > 0:
+            raise ValidationError({
+                'non_field_errors': f'Esta transação recebeu {links_as_target} pagamento(s). Remova os vínculos antes de excluir.'
+            })
+        
+        # 2. Verificar se transação está vinculada a metas
+        goal_links = Goal.objects.filter(target_category=instance.category, user=instance.user).count()
+        if goal_links > 0:
+            # Permitir mas avisar via log
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Transação {instance.uuid} excluída mas tinha categoria vinculada a {goal_links} meta(s)."
+            )
+        
         instance.delete()
         # Invalidar todos os caches após deletar transação
         invalidate_user_dashboard_cache(self.request.user)
@@ -992,6 +1187,114 @@ class GoalViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             'tracked_categories'
         ).order_by("-created_at")
+    
+    def perform_create(self, serializer):
+        """
+        Criar meta com validações adicionais.
+        """
+        from rest_framework.exceptions import ValidationError
+        from decimal import Decimal
+        
+        user = self.request.user
+        data = serializer.validated_data
+        
+        # 1. Limitar número de metas ativas por usuário
+        active_goals = Goal.objects.filter(user=user, is_completed=False).count()
+        if active_goals >= 50:  # Limite razoável
+            raise ValidationError({
+                'non_field_errors': 'Você atingiu o limite de 50 metas ativas. Complete ou exclua metas antigas.'
+            })
+        
+        # 2. Validar categoria pertence ao usuário
+        target_category = data.get('target_category')
+        if target_category and target_category.user != user:
+            raise ValidationError({
+                'target_category': 'A categoria selecionada não pertence a você.'
+            })
+        
+        # 3. Validar que não existe meta duplicada (mesmo título e tipo)
+        title = data.get('title', '').strip()
+        goal_type = data.get('goal_type')
+        existing = Goal.objects.filter(
+            user=user,
+            title__iexact=title,
+            goal_type=goal_type,
+            is_completed=False
+        ).exists()
+        
+        if existing:
+            raise ValidationError({
+                'title': f'Já existe uma meta ativa com o título "{title}" e mesmo tipo.'
+            })
+        
+        serializer.save()
+    
+    def perform_update(self, serializer):
+        """
+        Atualizar meta com validações adicionais.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        instance = self.get_object()
+        data = serializer.validated_data
+        
+        # 1. Validar que meta concluída não pode ser reaberta
+        if instance.is_completed and not data.get('is_completed', True):
+            raise ValidationError({
+                'is_completed': 'Uma meta concluída não pode ser reaberta. Crie uma nova meta.'
+            })
+        
+        # 2. Validar nova categoria pertence ao usuário
+        target_category = data.get('target_category')
+        if target_category and target_category.user != self.request.user:
+            raise ValidationError({
+                'target_category': 'A categoria selecionada não pertence a você.'
+            })
+        
+        # 3. Validar que se marcar como concluída, progresso deve ser >= 95%
+        if data.get('is_completed') and not instance.is_completed:
+            current_amount = data.get('current_amount', instance.current_amount)
+            target_amount = data.get('target_amount', instance.target_amount)
+            
+            if target_amount > 0:
+                progress_percent = (float(current_amount) / float(target_amount)) * 100
+                if progress_percent < 95:
+                    raise ValidationError({
+                        'is_completed': f'Meta só pode ser concluída com pelo menos 95% de progresso. Atual: {progress_percent:.1f}%'
+                    })
+        
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """
+        Deletar meta com validações de segurança.
+        """
+        from rest_framework.exceptions import ValidationError
+        
+        # 1. Avisar se meta está próxima da conclusão
+        if instance.target_amount > 0:
+            progress_percent = (float(instance.current_amount) / float(instance.target_amount)) * 100
+            if progress_percent >= 80:
+                # Permitir mas logar aviso
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(
+                    f"Meta {instance.uuid} excluída com {progress_percent:.1f}% de progresso (próxima da conclusão)."
+                )
+        
+        # 2. Verificar se está vinculada a missões ativas
+        active_mission_links = MissionProgress.objects.filter(
+            user=instance.user,
+            mission__target_goal=instance,
+            status=MissionProgress.MissionStatus.IN_PROGRESS
+        ).count()
+        
+        if active_mission_links > 0:
+            raise ValidationError({
+                'non_field_errors': f'Esta meta está vinculada a {active_mission_links} missão(ões) ativa(s). Complete ou cancele as missões primeiro.'
+            })
+        
+        instance.delete()
     
     @action(detail=True, methods=['get'])
     def transactions(self, request, pk=None):

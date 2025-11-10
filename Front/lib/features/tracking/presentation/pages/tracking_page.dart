@@ -246,15 +246,16 @@ class _TrackingPageState extends State<TrackingPage> {
       return const SizedBox.shrink();
     }
 
-    // Separar dados reais de projeções
-    final realData = <CashflowPoint>[];
-    final projectionData = <CashflowPoint>[];
+    // Separar dados reais de projeções mantendo índices originais
+    final realDataIndices = <int, CashflowPoint>{};
+    final projectionDataIndices = <int, CashflowPoint>{};
     
-    for (var point in cashflow) {
+    for (var i = 0; i < cashflow.length; i++) {
+      final point = cashflow[i];
       if (point.isProjection) {
-        projectionData.add(point);
+        projectionDataIndices[i] = point;
       } else {
-        realData.add(point);
+        realDataIndices[i] = point;
       }
     }
 
@@ -364,7 +365,7 @@ class _TrackingPageState extends State<TrackingPage> {
                 AppColors.alert,
                 isDashed: false,
               ),
-              if (projectionData.isNotEmpty)
+              if (projectionDataIndices.isNotEmpty)
                 _buildLegendItem(
                   '🔮 Projeção',
                   Colors.grey[400]!,
@@ -466,13 +467,11 @@ class _TrackingPageState extends State<TrackingPage> {
                 ),
                 lineBarsData: [
                   // Linha de Receitas Reais
-                  if (realData.isNotEmpty)
+                  if (realDataIndices.isNotEmpty)
                     LineChartBarData(
-                      spots: realData
-                          .asMap()
-                          .entries
+                      spots: realDataIndices.entries
                           .map((e) => FlSpot(
-                                cashflow.indexOf(e.value).toDouble(),
+                                e.key.toDouble(),
                                 e.value.income,
                               ))
                           .toList(),
@@ -509,13 +508,11 @@ class _TrackingPageState extends State<TrackingPage> {
                       ),
                     ),
                   // Linha de Receitas Projetadas
-                  if (projectionData.isNotEmpty)
+                  if (projectionDataIndices.isNotEmpty)
                     LineChartBarData(
-                      spots: projectionData
-                          .asMap()
-                          .entries
+                      spots: projectionDataIndices.entries
                           .map((e) => FlSpot(
-                                cashflow.indexOf(e.value).toDouble(),
+                                e.key.toDouble(),
                                 e.value.income,
                               ))
                           .toList(),
@@ -539,13 +536,11 @@ class _TrackingPageState extends State<TrackingPage> {
                       belowBarData: BarAreaData(show: false),
                     ),
                   // Linha de Despesas Reais
-                  if (realData.isNotEmpty)
+                  if (realDataIndices.isNotEmpty)
                     LineChartBarData(
-                      spots: realData
-                          .asMap()
-                          .entries
+                      spots: realDataIndices.entries
                           .map((e) => FlSpot(
-                                cashflow.indexOf(e.value).toDouble(),
+                                e.key.toDouble(),
                                 e.value.expense,
                               ))
                           .toList(),
@@ -582,13 +577,11 @@ class _TrackingPageState extends State<TrackingPage> {
                       ),
                     ),
                   // Linha de Despesas Projetadas
-                  if (projectionData.isNotEmpty)
+                  if (projectionDataIndices.isNotEmpty)
                     LineChartBarData(
-                      spots: projectionData
-                          .asMap()
-                          .entries
+                      spots: projectionDataIndices.entries
                           .map((e) => FlSpot(
-                                cashflow.indexOf(e.value).toDouble(),
+                                e.key.toDouble(),
                                 e.value.expense,
                               ))
                           .toList(),
