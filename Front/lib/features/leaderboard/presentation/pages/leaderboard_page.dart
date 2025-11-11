@@ -73,16 +73,17 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => const FriendsPage(),
                 ),
-              ).then((_) {
-                // Recarregar após voltar da página de amigos
+              );
+              // Recarregar após voltar da página de amigos
+              if (mounted) {
                 _viewModel.refresh();
-              });
+              }
             },
             tooltip: 'Gerenciar Amigos',
           ),
@@ -90,15 +91,16 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       ),
       body: _FriendsLeaderboardContent(viewModel: _viewModel),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => const FriendsPage(),
             ),
-          ).then((_) {
+          );
+          if (mounted) {
             _viewModel.refresh();
-          });
+          }
         },
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.person_add),
@@ -157,14 +159,19 @@ class _FriendsLeaderboardContent extends StatelessWidget {
                 children: [
                   const Icon(Icons.people_outline, color: Colors.grey, size: 64),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Você ainda não tem amigos.',
-                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Adicione amigos para ver o ranking!',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
@@ -175,11 +182,14 @@ class _FriendsLeaderboardContent extends StatelessWidget {
                           builder: (context) => const FriendsPage(),
                         ),
                       );
-                      viewModel.refresh();
+                      if (context.mounted) {
+                        viewModel.refresh();
+                      }
                     },
                     icon: const Icon(Icons.person_add),
                     label: const Text('Adicionar Amigos'),
                     style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
@@ -235,8 +245,8 @@ class _LeaderboardList extends StatelessWidget {
             ),
           if (entries.any((e) => e.isCurrentUser)) const SizedBox(height: 32),
 
-          // Top 3 Pódio
-          if (topThree.isNotEmpty) ...[
+          // Top 3 Pódio (apenas se houver 3 ou mais pessoas)
+          if (topThree.length >= 3) ...[
             Text(
               'Top 3',
               style: theme.textTheme.titleLarge?.copyWith(
@@ -252,6 +262,59 @@ class _LeaderboardList extends StatelessWidget {
               theme: theme,
             ),
             const SizedBox(height: 32),
+          ],
+
+          // Se houver menos de 3 pessoas, mostrar lista simples
+          if (topThree.length < 3 && topThree.isNotEmpty) ...[
+            Text(
+              'Ranking',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...topThree.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _RankTile(
+                  entry: entry,
+                  tokens: tokens,
+                  theme: theme,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Mensagem incentivando a adicionar mais amigos
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: tokens.cardRadius,
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Adicione mais amigos para ver o pódio completo!',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
 
           // Restante do Ranking

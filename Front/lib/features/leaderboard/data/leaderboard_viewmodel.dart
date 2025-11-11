@@ -76,10 +76,8 @@ class LeaderboardViewModel extends ChangeNotifier {
 
   /// Recarrega ambos os rankings
   Future<void> refresh() async {
-    await Future.wait([
-      loadGeneralLeaderboard(),
-      loadFriendsLeaderboard(),
-    ]);
+    // Recarregar apenas o ranking de amigos (o geral não é mais usado)
+    await loadFriendsLeaderboard();
   }
 
   /// Limpa os dados

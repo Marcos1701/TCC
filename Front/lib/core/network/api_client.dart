@@ -8,8 +8,9 @@ class ApiClient {
   ApiClient._internal() {
     final options = BaseOptions(
       baseUrl: _normaliseBaseUrl(_resolveBaseUrl()),
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 25),
+      connectTimeout: const Duration(seconds: 20),  // Aumentado de 15s para 20s
+      receiveTimeout: const Duration(seconds: 60),  // Aumentado de 25s para 60s (geração de missões com IA)
+      sendTimeout: const Duration(seconds: 30),     // Adicionado timeout de envio
       contentType: 'application/json',
       headers: const {'Accept': 'application/json'},
       responseType: ResponseType.json,

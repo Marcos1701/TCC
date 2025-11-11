@@ -22,6 +22,7 @@ from decimal import Decimal
 import json
 import datetime
 import logging
+import time  # Para adicionar delays entre requisições
 
 logger = logging.getLogger(__name__)
 
@@ -1261,7 +1262,7 @@ def _build_standard_prompt(tier, scenario, stats, period_type, period_name, peri
     return prompt
 
 
-def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, count=20, max_retries=3):
+def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, count=10, max_retries=2):
     """
     Gera e salva missões incrementalmente (uma por vez) com validação robusta.
     
@@ -1275,8 +1276,8 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
         tier: 'BEGINNER', 'INTERMEDIATE' ou 'ADVANCED'
         scenario_key: Chave do cenário específico ou None para auto-detectar
         user_context: Contexto completo de um usuário real (opcional)
-        count: Número de missões a tentar gerar (padrão: 20)
-        max_retries: Tentativas por missão se falhar validação (padrão: 3)
+        count: Número de missões a tentar gerar (padrão: 10, reduzido de 20 para evitar timeout)
+        max_retries: Tentativas por missão se falhar validação (padrão: 2, reduzido de 3)
         
     Returns:
         dict: {
@@ -1343,14 +1344,39 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
     # Injetar missões de referência no prompt
     prompt_base = prompt_base.replace('{reference_missions}', reference_text)
     
-    # Modificar prompt para gerar apenas 1 missão por vez
-    prompt_single = prompt_base.replace(
-        "Crie 20 missões variadas e progressivas",
-        "Crie APENAS 1 missão única e criativa"
-    ).replace(
-        "Retorne APENAS um array JSON válido",
-        "Retorne APENAS um objeto JSON válido (não array)"
-    )
+    # Modificar prompt para gerar apenas 1 missão por vez (versão simplificada)
+    prompt_single = f"""Gere UMA missão de educação financeira gamificada.
+
+TIER: {tier}
+CENÁRIO: {scenario.get('name')}
+NÍVEL MÉDIO: {stats['avg_level']}
+
+INDICADORES ATUAIS:
+- TPS: {stats['avg_tps']:.1f}%
+- RDR: {stats['avg_rdr']:.1f}%
+- ILI: {stats.get('avg_ili', 2.0):.1f} meses
+
+RETORNE APENAS UM OBJETO JSON (SEM ARRAY, SEM MARKDOWN):
+{{
+  "title": "Título curto e motivador",
+  "description": "Descrição clara e objetiva",
+  "mission_type": "ONBOARDING",
+  "duration_days": 7,
+  "xp_reward": 100,
+  "difficulty": "EASY",
+  "target_tps": null,
+  "target_rdr": null,
+  "min_ili": null,
+  "min_transactions": 5
+}}
+
+REGRAS:
+1. JSON válido, sem quebras de linha em strings
+2. Apenas campos necessários (null para opcionais)
+3. duration_days: 7-90
+4. xp_reward: 50-500
+5. difficulty: EASY, MEDIUM ou HARD
+"""
     
     created_missions = []
     failed_missions = []
@@ -1371,19 +1397,21 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
                 # Gerar 1 missão
                 logger.info(f"Gerando missão {i+1}/{count} (tentativa {retry_count+1}/{max_retries})...")
                 
+                # Configuração mais conservadora para evitar erros
                 response = model.generate_content(
                     prompt_single,
                     generation_config={
-                        'temperature': 0.9,
-                        'top_p': 0.95,
-                        'max_output_tokens': 2000,
-                    }
+                        'temperature': 0.7,  # Reduzido de 0.9 para respostas mais consistentes
+                        'top_p': 0.9,  # Reduzido de 0.95
+                        'max_output_tokens': 1500,  # Reduzido de 2000 para evitar timeout
+                    },
+                    request_options={'timeout': 30}  # Timeout de 30 segundos
                 )
                 
-                # Parse resposta
+                # Parse resposta com sanitização robusta
                 response_text = response.text.strip()
                 
-                # Remover markdown
+                # Remover markdown code blocks
                 if response_text.startswith('```json'):
                     response_text = response_text[7:]
                 elif response_text.startswith('```'):
@@ -1391,7 +1419,25 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
                 if response_text.endswith('```'):
                     response_text = response_text[:-3]
                 
-                mission_data = json.loads(response_text.strip())
+                response_text = response_text.strip()
+                
+                # Sanitizar strings com escape incorreto
+                # Remove quebras de linha dentro de strings JSON
+                response_text = response_text.replace('\n"', '"').replace('"\n', '"')
+                
+                # Tentar parsear JSON
+                try:
+                    mission_data = json.loads(response_text)
+                except json.JSONDecodeError as e:
+                    # Se falhar, tentar limpar mais agressivamente
+                    logger.warning(f"Primeira tentativa de parse falhou: {e}, tentando limpeza agressiva...")
+                    
+                    # Remove quebras de linha problemáticas
+                    import re
+                    response_text = re.sub(r'(?<!\\)\\n', ' ', response_text)
+                    response_text = re.sub(r'\s+', ' ', response_text)
+                    
+                    mission_data = json.loads(response_text)
                 
                 # Se retornou array, pegar primeiro
                 if isinstance(mission_data, list):
@@ -1444,6 +1490,9 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
                 
                 mission_created = True
                 logger.info(f"✓ Missão {i+1}/{count} criada: '{mission.title}' (ID: {mission.id})")
+                
+                # Delay de 1 segundo entre requisições para evitar sobrecarga
+                time.sleep(1)
                 
             except json.JSONDecodeError as e:
                 logger.error(f"Erro de JSON na missão {i+1}: {e}")

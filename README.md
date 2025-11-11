@@ -1,438 +1,861 @@
-﻿# GenApp - Gestão Financeira Gamificada com IA
+﻿# GenApp - Gestão Financeira Gamificada com IA# GenApp - Gestão Financeira Gamificada com IA
 
-Sistema completo de gestão de finanças pessoais com gamificação inteligente e geração automática de missões utilizando inteligência artificial.
 
----
 
-## Sobre o Projeto
+Sistema de gestão financeira pessoal com gamificação inteligente e geração automática de missões utilizando IA.Sistema de gestão financeira pessoal com gamificação inteligente e geração automática de missões utilizando IA.
 
-**GenApp** é um Trabalho de Conclusão de Curso (TCC) desenvolvido no Instituto Federal do Piauí que revoluciona a gestão de finanças pessoais ao combinar:
 
-- 📊 **Controle Financeiro Robusto**: Sistema completo de transações, categorias e indicadores
-- 🎮 **Gamificação Inteligente**: XP, níveis e missões que evoluem com o usuário
-- 🤖 **IA Generativa**: Google Gemini 2.0 Flash para missões personalizadas
-- 📈 **Análise Avançada**: Indicadores financeiros baseados em literatura especializada
-- 🔗 **Sistema de Vinculação**: Rastreamento preciso de pagamentos e origens de recursos
 
-O sistema incentiva hábitos financeiros saudáveis através de mecanismos de gamificação adaptativos, onde missões são geradas dinamicamente com base no perfil, comportamento e evolução financeira do usuário.
+## Sobre o Projeto## 📋 Sobre o Projeto
 
----
 
-## Funcionalidades Principais
 
-### 💰 Gestão Financeira Completa
+**GenApp** é um TCC desenvolvido no IFPI que combina:**GenApp** é um TCC desenvolvido no IFPI que combina:
 
-**Transações e Categorização**
-- Registro de receitas, despesas e dívidas com suporte a UUID
-- Sistema de categorias hierárquico com 5 grupos principais:
-  - Receitas: Regulares, Extras
-  - Despesas: Essenciais, Estilo de Vida
+
+
+- 📊 **Controle Financeiro Robusto**: Transações, categorias e indicadores- 📊 **Controle Financeiro Robusto**: Transações, categorias e indicadores
+
+- 🎮 **Gamificação Inteligente**: XP, níveis e missões adaptativas- 🎮 **Gamificação Inteligente**: XP, níveis e missões adaptativas
+
+- 🤖 **IA Generativa**: Google Gemini 2.0 Flash para missões personalizadas- 🤖 **IA Generativa**: Google Gemini 2.0 Flash para missões personalizadas
+
+- 📈 **Análise Avançada**: Indicadores financeiros (TPS, RDR, ILI)- 📈 **Análise Avançada**: Indicadores financeiros (TPS, RDR, ILI)
+
+- 🔗 **Sistema de Vinculação**: Rastreamento de pagamentos e origem de recursos- 🔗 **Sistema de Vinculação**: Rastreamento de pagamentos e origem de recursos
+
+
+
+## Tecnologias Utilizadas## Funcionalidades Principais
+
+
+
+### Backend### 💰 Gestão Financeira Completa
+
+
+
+- Django 4.2 + Django REST Framework 3.14**Transações e Categorização**
+
+- PostgreSQL 14+ com UUID- Registro de receitas, despesas e dívidas com suporte a UUID
+
+- Celery 5.3 + Redis 5.0 (tarefas assíncronas)- Sistema de categorias hierárquico com 5 grupos principais:
+
+- Google Generative AI 0.8 (Gemini)  - Receitas: Regulares, Extras
+
+- JWT Authentication (Simple JWT 5.3)  - Despesas: Essenciais, Estilo de Vida
+
   - Investimentos e Poupança
-  - Dívidas e Metas
-- Transações recorrentes (diárias, semanais, mensais)
-- Descrições detalhadas com sugestões via IA
-- Isolamento total de dados entre usuários
 
-**Sistema de Vinculação de Transações**
+### Frontend  - Dívidas e Metas
+
+- Transações recorrentes (diárias, semanais, mensais)
+
+- Flutter 3.5+ (multiplataforma)- Descrições detalhadas com sugestões via IA
+
+- Dio 5.4 (networking)- Isolamento total de dados entre usuários
+
+- FL Chart 0.68 (gráficos)
+
+- MVVM + Repository Pattern**Sistema de Vinculação de Transações**
+
 - Rastreamento preciso de origem e destino de recursos
-- Pagamento em lote de múltiplas despesas
+
+## Funcionalidades Principais- Pagamento em lote de múltiplas despesas
+
 - Vinculação de receitas a pagamentos de dívidas
-- Prevenção de dupla contagem nos indicadores
+
+### Gestão Financeira- Prevenção de dupla contagem nos indicadores
+
 - Proteção contra race conditions com locks de banco de dados
 
-### 📊 Indicadores Financeiros Científicos
+- Transações (receitas, despesas, dívidas) com UUID
 
-**TPS (Taxa de Poupança Pessoal)**
-- Fórmula: `((Receitas - Despesas - Pagamentos de Dívidas) / Receitas) × 100`
+- Categorias hierárquicas (5 grupos principais)### 📊 Indicadores Financeiros Científicos
+
+- Transações recorrentes (diárias, semanais, mensais)
+
+- Vinculação de transações (pagamentos em lote)**TPS (Taxa de Poupança Pessoal)**
+
+- Isolamento total de dados entre usuários- Fórmula: `((Receitas - Despesas - Pagamentos de Dívidas) / Receitas) × 100`
+
 - Mede percentual efetivamente poupado após todas as obrigações
-- Meta recomendada: ≥15%
 
-**RDR (Razão Dívida/Renda)**
-- Fórmula: `(Pagamentos de Dívidas / Receitas) × 100`
-- Mede comprometimento da renda com dívidas
-- Classificação:
+### Indicadores Financeiros- Meta recomendada: ≥15%
+
+
+
+- **TPS (Taxa de Poupança Pessoal)**: `((Receitas - Despesas - Pagamentos Dívidas) / Receitas) × 100`**RDR (Razão Dívida/Renda)**
+
+- **RDR (Razão Dívida/Renda)**: `(Pagamentos Dívidas / Receitas) × 100`- Fórmula: `(Pagamentos de Dívidas / Receitas) × 100`
+
+- **ILI (Índice de Liquidez Imediata)**: `Reservas / Média Despesas Essenciais (3 meses)`- Mede comprometimento da renda com dívidas
+
+- Cache inteligente com invalidação automática- Classificação:
+
   - ✅ Saudável: ≤35%
-  - ⚠️ Atenção: 35-42%
+
+### Gamificação  - ⚠️ Atenção: 35-42%
+
   - 🚨 Crítico: ≥42%
 
-**ILI (Índice de Liquidez Imediata)**
-- Fórmula: `Reservas Líquidas / Média Despesas Essenciais (3 meses)`
-- Mede quantos meses a reserva cobre despesas essenciais
-- Meta recomendada: ≥6 meses
+- Sistema de XP e níveis (progressão exponencial)
 
-**Cache Inteligente**
+- 5 tipos de missões (ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, ADVANCED)**ILI (Índice de Liquidez Imediata)**
+
+- 7 tipos de validação de missões (SNAPSHOT, TEMPORAL, CATEGORY_REDUCTION, etc.)- Fórmula: `Reservas Líquidas / Média Despesas Essenciais (3 meses)`
+
+- Geração automática via IA baseada no perfil do usuário- Mede quantos meses a reserva cobre despesas essenciais
+
+- Snapshots diários e mensais para rastreamento- Meta recomendada: ≥6 meses
+
+
+
+### Metas Financeiras**Cache Inteligente**
+
 - Indicadores calculados sob demanda e cacheados
-- Invalidação automática em mudanças relevantes
-- Performance otimizada: redução de 60% em queries
+
+- Criação de metas com valores-alvo e prazos- Invalidação automática em mudanças relevantes
+
+- Rastreamento automático por categorias- Performance otimizada: redução de 60% em queries
+
+- Visualização de progresso em tempo real
 
 ### 🎮 Sistema de Gamificação Adaptativo
 
+## Configuração com Docker
+
 **Sistema de XP e Níveis**
-- Progressão exponencial baseada em fórmula: `100 × (nivel²)`
+
+### Pré-requisitos- Progressão exponencial baseada em fórmula: `100 × (nivel²)`
+
 - 1000+ níveis possíveis
-- XP ganho por:
-  - Completar missões (50-500 XP)
-  - Registrar transações diariamente
+
+- Docker 20.10+- XP ganho por:
+
+- Docker Compose 2.0+  - Completar missões (50-500 XP)
+
+- 2GB RAM mínimo disponível  - Registrar transações diariamente
+
   - Atingir metas financeiras
-  - Manter consistência
 
-**Missões Personalizadas por IA**
+### Instalação Rápida  - Manter consistência
+
+
+
+**1. Clone o repositório****Missões Personalizadas por IA**
+
 - Geração via Google Gemini 2.0 Flash
-- 5 tipos de missões:
-  - `ONBOARDING`: Integração inicial (níveis 1-5)
-  - `TPS_IMPROVEMENT`: Melhoria de poupança
-  - `RDR_REDUCTION`: Redução de dívidas
+
+```bash- 5 tipos de missões:
+
+git clone <url-do-repositorio>  - `ONBOARDING`: Integração inicial (níveis 1-5)
+
+cd TCC  - `TPS_IMPROVEMENT`: Melhoria de poupança
+
+```  - `RDR_REDUCTION`: Redução de dívidas
+
   - `ILI_BUILDING`: Construção de reserva
-  - `ADVANCED`: Desafios avançados (nível 16+)
+
+**2. Configure as variáveis de ambiente**  - `ADVANCED`: Desafios avançados (nível 16+)
+
 - Adaptação por faixa de usuário:
-  - **Iniciantes** (1-5): Criação de hábitos básicos
-  - **Intermediários** (6-15): Otimização financeira
-  - **Avançados** (16+): Estratégias complexas
 
-**Tipos de Validação de Missões**
-- `SNAPSHOT`: Comparação pontual (inicial vs atual)
+```bash  - **Iniciantes** (1-5): Criação de hábitos básicos
+
+# Copie o arquivo de exemplo  - **Intermediários** (6-15): Otimização financeira
+
+cp .env.example .env  - **Avançados** (16+): Estratégias complexas
+
+
+
+# Edite as variáveis necessárias (principalmente GEMINI_API_KEY e senhas)**Tipos de Validação de Missões**
+
+```- `SNAPSHOT`: Comparação pontual (inicial vs atual)
+
 - `TEMPORAL`: Manter critério por período
-- `CATEGORY_REDUCTION`: Reduzir gasto em categoria específica
-- `CATEGORY_LIMIT`: Não exceder limite de categoria
-- `GOAL_PROGRESS`: Progredir em meta específica
-- `SAVINGS_INCREASE`: Aumentar poupança
-- `CONSISTENCY`: Manter streaks/consistência
 
-**Sistema de Snapshots**
-- Snapshots diários automáticos (Celery Beat às 23:59)
+**3. Inicie os containers**- `CATEGORY_REDUCTION`: Reduzir gasto em categoria específica
+
+- `CATEGORY_LIMIT`: Não exceder limite de categoria
+
+```bash- `GOAL_PROGRESS`: Progredir em meta específica
+
+# Iniciar todos os serviços- `SAVINGS_INCREASE`: Aumentar poupança
+
+docker-compose up -d- `CONSISTENCY`: Manter streaks/consistência
+
+
+
+# Verificar status**Sistema de Snapshots**
+
+docker-compose ps- Snapshots diários automáticos (Celery Beat às 23:59)
+
 - Snapshots mensais consolidados
-- Rastreamento de progresso histórico
-- Validação temporal de missões
+
+# Ver logs- Rastreamento de progresso histórico
+
+docker-compose logs -f api- Validação temporal de missões
+
+```
 
 ### 🎯 Metas Financeiras
 
+**4. Execute as migrações e crie um superusuário**
+
 **Gestão de Objetivos**
-- Criação de metas com valores-alvo e prazos
-- Categorias rastreadas para cálculo automático de progresso
-- Valor inicial e progresso incremental
+
+```bash- Criação de metas com valores-alvo e prazos
+
+# Aplicar migrações- Categorias rastreadas para cálculo automático de progresso
+
+docker-compose exec api python manage.py migrate- Valor inicial e progresso incremental
+
 - Visualização de progresso percentual
-- Notificações de marcos alcançados
+
+# Criar cache table (para indicadores)- Notificações de marcos alcançados
+
+docker-compose exec api python manage.py createcachetable
 
 **Tipos de Metas Suportadas**
-- Reserva de emergência
-- Compra de bens (casa, carro, equipamentos)
-- Viagens e experiências
+
+# Criar superusuário- Reserva de emergência
+
+docker-compose exec api python manage.py createsuperuser- Compra de bens (casa, carro, equipamentos)
+
+```- Viagens e experiências
+
 - Educação e cursos
-- Investimentos
 
-### 👥 Sistema Social (Opcional)
+**5. Acesse a aplicação**- Investimentos
 
-**Amizades**
-- Sistema de convites e aceitação
-- Comparação de níveis e progresso
+
+
+- **Backend API**: http://localhost:8000### 👥 Sistema Social (Opcional)
+
+- **Admin Django**: http://localhost:8000/admin
+
+- **Frontend Web**: http://localhost:3000**Amizades**
+
+- **PostgreSQL**: localhost:5432- Sistema de convites e aceitação
+
+- **Redis**: localhost:6379- Comparação de níveis e progresso
+
 - Leaderboard entre amigos
-- Privacidade: usuário controla visibilidade
 
-### 📈 Análises e Visualizações
+### Serviços Docker- Privacidade: usuário controla visibilidade
 
-**Dashboards Interativos:**
-- Resumo financeiro mensal e anual
-- Indicadores em tempo real com cache inteligente
-- Gráficos de evolução de indicadores (FL Chart)
-- Breakdown por categoria
-- Séries temporais de cashflow
+
+
+O `docker-compose.yml` inclui:### 📈 Análises e Visualizações
+
+
+
+- **postgres**: Banco de dados PostgreSQL 16**Dashboards Interativos:**
+
+- **redis**: Message broker para Celery- Resumo financeiro mensal e anual
+
+- **api**: Backend Django (porta 8000)- Indicadores em tempo real com cache inteligente
+
+- **celery-worker**: Processamento de tarefas assíncronas- Gráficos de evolução de indicadores (FL Chart)
+
+- **celery-beat**: Agendador de tarefas (snapshots diários às 23:59)- Breakdown por categoria
+
+- **frontend**: Frontend Flutter (porta 3000) - opcional- Séries temporais de cashflow
+
 - Insights automáticos baseados em padrões
 
+### Comandos Úteis
+
 **Relatórios:**
-- Relatório de pagamentos de dívidas por período (endpoint `payment_report`)
-- Histórico completo de transações com filtros avançados
-- Evolução de indicadores ao longo do tempo via snapshots
+
+```bash- Relatório de pagamentos de dívidas por período (endpoint `payment_report`)
+
+# Parar todos os serviços- Histórico completo de transações com filtros avançados
+
+docker-compose down- Evolução de indicadores ao longo do tempo via snapshots
+
 - Estatísticas por categoria e tipo de transação
 
----
+# Parar e remover volumes (CUIDADO: apaga dados do banco)
 
-## Tecnologias Utilizadas
+docker-compose down -v---
+
+
+
+# Rebuild de containers## Tecnologias Utilizadas
+
+docker-compose build
 
 ### Backend (Django)
 
-**Framework e Core**
+# Ver logs de um serviço específico
+
+docker-compose logs -f celery-worker**Framework e Core**
+
 - **Django 4.2**: Framework web robusto e maduro
-- **Django REST Framework 3.14**: API REST completa e documentada
-- **PostgreSQL 14+**: Banco de dados relacional com suporte a UUID
+
+# Acessar shell do Django- **Django REST Framework 3.14**: API REST completa e documentada
+
+docker-compose exec api python manage.py shell- **PostgreSQL 14+**: Banco de dados relacional com suporte a UUID
+
 - **Psycopg 3.2**: Driver PostgreSQL otimizado
 
-**Autenticação e Segurança**
+# Executar testes
+
+docker-compose exec api python manage.py test**Autenticação e Segurança**
+
 - **Simple JWT 5.3**: Autenticação via JSON Web Tokens
-- **Token Blacklist**: Revogação de tokens em logout
-- **CORS Headers 4.4**: Controle de acesso entre origens
+
+# Backup do banco de dados- **Token Blacklist**: Revogação de tokens em logout
+
+docker-compose exec postgres pg_dump -U postgres finance_db > backup.sql- **CORS Headers 4.4**: Controle de acesso entre origens
+
 - **Rate Limiting**: Proteção contra abuso com throttling customizado
 
-**Inteligência Artificial**
-- **Google Generative AI 0.8**: Integração com Gemini 2.0 Flash
+# Restaurar backup
+
+docker-compose exec -T postgres psql -U postgres finance_db < backup.sql**Inteligência Artificial**
+
+```- **Google Generative AI 0.8**: Integração com Gemini 2.0 Flash
+
 - Geração de missões contextualizadas
-- Sugestões de categorias para transações
+
+## Instalação Manual (Desenvolvimento)- Sugestões de categorias para transações
+
 - Custo: ~$0.01/mês (tier gratuito: 1500 req/dia)
 
+### Backend
+
 **Tarefas Assíncronas**
-- **Celery 5.3**: Processamento distribuído de tarefas
+
+**1. Preparar ambiente**- **Celery 5.3**: Processamento distribuído de tarefas
+
 - **Redis 5.0**: Message broker e backend de resultados
-- **Celery Beat 2.5**: Agendamento de tarefas periódicas
-- **Celery Results 2.5**: Armazenamento de resultados no Django DB
 
-**Deploy e Produção**
-- **Gunicorn 21.0**: WSGI HTTP Server
-- **WhiteNoise 6.5**: Servir arquivos estáticos
-- **Python-dotenv 1.0**: Gerenciamento de variáveis de ambiente
+```bash- **Celery Beat 2.5**: Agendamento de tarefas periódicas
 
-### Frontend (Flutter)
+cd Api- **Celery Results 2.5**: Armazenamento de resultados no Django DB
 
-**Framework e UI**
-- **Flutter 3.5+**: Framework multiplataforma (iOS, Android, Web)
-- **Dart 3.5**: Linguagem de programação otimizada
-- **Material Design 3**: Design system moderno
+python -m venv venv
+
+venv\Scripts\activate  # Windows**Deploy e Produção**
+
+# source venv/bin/activate  # Linux/Mac- **Gunicorn 21.0**: WSGI HTTP Server
+
+pip install -r requirements.txt- **WhiteNoise 6.5**: Servir arquivos estáticos
+
+```- **Python-dotenv 1.0**: Gerenciamento de variáveis de ambiente
+
+
+
+**2. Configurar variáveis**### Frontend (Flutter)
+
+
+
+```bash**Framework e UI**
+
+# Copiar .env.example para .env e configurar- **Flutter 3.5+**: Framework multiplataforma (iOS, Android, Web)
+
+cp .env.example .env- **Dart 3.5**: Linguagem de programação otimizada
+
+```- **Material Design 3**: Design system moderno
+
 - **Google Fonts 6.2**: Tipografia customizada
 
+**3. Configurar banco de dados**
+
 **Networking e Estado**
-- **Dio 5.4**: Cliente HTTP com interceptors
-- **Flutter Secure Storage 9.2**: Armazenamento seguro de tokens
-- **Shared Preferences 2.2**: Preferências do usuário
+
+```bash- **Dio 5.4**: Cliente HTTP com interceptors
+
+# Com PostgreSQL instalado localmente ou use Docker:- **Flutter Secure Storage 9.2**: Armazenamento seguro de tokens
+
+docker run --name genapp-postgres -e POSTGRES_PASSWORD=postgres123 -e POSTGRES_DB=finance_db -p 5432:5432 -d postgres:16-alpine- **Shared Preferences 2.2**: Preferências do usuário
+
 - **ChangeNotifier**: Gerenciamento de estado (MVVM)
 
-**Visualização**
-- **FL Chart 0.68**: Gráficos interativos e animados
-- **Confetti 0.7**: Efeitos de celebração em conquistas
-- **Intl 0.19**: Internacionalização e formatação
+# Com Redis:
 
-**Arquitetura**
-- **Clean Architecture**: Separação clara de responsabilidades
-- **MVVM Pattern**: ViewModels e Views
-- **Repository Pattern**: Abstração de fontes de dados
+docker run --name genapp-redis -p 6379:6379 -d redis:7-alpine**Visualização**
+
+```- **FL Chart 0.68**: Gráficos interativos e animados
+
+- **Confetti 0.7**: Efeitos de celebração em conquistas
+
+**4. Executar migrações**- **Intl 0.19**: Internacionalização e formatação
+
+
+
+```bash**Arquitetura**
+
+python manage.py migrate- **Clean Architecture**: Separação clara de responsabilidades
+
+python manage.py createcachetable- **MVVM Pattern**: ViewModels e Views
+
+python manage.py createsuperuser- **Repository Pattern**: Abstração de fontes de dados
+
+```
 
 ---
+
+**5. Iniciar servidor**
 
 ## Arquitetura do Sistema
 
-### Backend: MVVM + Repository Pattern
+```bash
+
+python manage.py runserver### Backend: MVVM + Repository Pattern
 
 ```
-┌─────────────────────────────────────────────────────────────┐
+
+```
+
+**6. Iniciar Celery (terminais separados)**┌─────────────────────────────────────────────────────────────┐
+
 │                         API REST                            │
-│                  (Django REST Framework)                    │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────────┐
+
+```bash│                  (Django REST Framework)                    │
+
+# Worker└─────────────────┬───────────────────────────────────────────┘
+
+celery -A config worker -l info --pool=solo  # Windows                  │
+
+# celery -A config worker -l info  # Linux/Mac┌─────────────────▼───────────────────────────────────────────┐
+
 │                    VIEWS (ViewSets)                         │
-│  • CategoryViewSet     • MissionViewSet                     │
-│  • TransactionViewSet  • GoalViewSet                        │
-│  • DashboardView       • UserProfileViewSet                 │
+
+# Beat│  • CategoryViewSet     • MissionViewSet                     │
+
+celery -A config beat -l info│  • TransactionViewSet  • GoalViewSet                        │
+
+```│  • DashboardView       • UserProfileViewSet                 │
+
 └─────────────────┬───────────────────────────────────────────┘
-                  │
+
+### Frontend                  │
+
 ┌─────────────────▼───────────────────────────────────────────┐
-│               SERIALIZERS (Validação)                       │
+
+**1. Instalar dependências**│               SERIALIZERS (Validação)                       │
+
 │  • Transformação de dados                                   │
-│  • Validação de entrada                                     │
-│  • Nested serialization                                     │
-└─────────────────┬───────────────────────────────────────────┘
-                  │
+
+```bash│  • Validação de entrada                                     │
+
+cd Front│  • Nested serialization                                     │
+
+flutter pub get└─────────────────┬───────────────────────────────────────────┘
+
+```                  │
+
 ┌─────────────────▼───────────────────────────────────────────┐
-│                 SERVICES (Lógica de Negócio)                │
+
+**2. Executar aplicativo**│                 SERVICES (Lógica de Negócio)                │
+
 │  • calculate_summary()    • update_mission_progress()       │
-│  • cashflow_series()      • apply_mission_reward()          │
-│  • category_breakdown()   • assign_missions_automatically() │
-└─────────────────┬───────────────────────────────────────────┘
+
+```bash│  • cashflow_series()      • apply_mission_reward()          │
+
+# Web│  • category_breakdown()   • assign_missions_automatically() │
+
+flutter run -d chrome└─────────────────┬───────────────────────────────────────────┘
+
                   │
-┌─────────────────▼───────────────────────────────────────────┐
-│                    MODELS (ORM)                             │
+
+# Mobile (com emulador/device conectado)┌─────────────────▼───────────────────────────────────────────┐
+
+flutter run│                    MODELS (ORM)                             │
+
 │  • UserProfile    • Transaction    • Mission                │
-│  • Category       • TransactionLink                         │
-│  • Goal           • MissionProgress                         │
-│  • Friendship     • Snapshots (Daily/Monthly)               │
+
+# Build para produção│  • Category       • TransactionLink                         │
+
+flutter build web --release│  • Goal           • MissionProgress                         │
+
+```│  • Friendship     • Snapshots (Daily/Monthly)               │
+
 └─────────────────┬───────────────────────────────────────────┘
-                  │
+
+## Estrutura do Projeto                  │
+
 ┌─────────────────▼───────────────────────────────────────────┐
-│                    PostgreSQL                               │
-│  • UUID Primary Keys  • Indexes otimizados                  │
-│  • Constraints       • Isolamento de dados                  │
-└─────────────────────────────────────────────────────────────┘
-```
 
-**Tarefas Assíncronas (Celery)**
-```
-┌──────────────────────────────────────────────────────────┐
-│                    CELERY BEAT                           │
-│              (Agendador de Tarefas)                      │
-└──────────────────┬───────────────────────────────────────┘
-                   │
-       ┌───────────┼───────────┐
-       │           │           │
-       ▼           ▼           ▼
-  Daily User   Daily      Monthly
-  Snapshots   Mission    Snapshots
-  (23:59)     Snapshots  (Último dia)
-              (23:59)
-```
+```│                    PostgreSQL                               │
 
-### Frontend: Clean Architecture + MVVM
+TCC/│  • UUID Primary Keys  • Indexes otimizados                  │
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                  Flutter App (UI)                        │
-├──────────────────────────────────────────────────────────┤
-│  Presentation Layer                                      │
-│    ├── Pages/Screens                                     │
-│    └── Widgets                                           │
-├──────────────────────────────────────────────────────────┤
+├── Api/                          # Backend Django│  • Constraints       • Isolamento de dados                  │
+
+│   ├── config/                   # Configurações└─────────────────────────────────────────────────────────────┘
+
+│   │   ├── settings.py          # Settings com env vars```
+
+│   │   ├── celery.py            # Celery config
+
+│   │   └── urls.py              # Rotas**Tarefas Assíncronas (Celery)**
+
+│   ├── finance/                  # App principal```
+
+│   │   ├── models.py            # 12 modelos de dados┌──────────────────────────────────────────────────────────┐
+
+│   │   ├── views.py             # 15+ ViewSets│                    CELERY BEAT                           │
+
+│   │   ├── serializers.py       # DTOs e validação│              (Agendador de Tarefas)                      │
+
+│   │   ├── services.py          # Lógica de negócio└──────────────────┬───────────────────────────────────────┘
+
+│   │   ├── ai_services.py       # Integração Gemini                   │
+
+│   │   ├── tasks.py             # Celery tasks       ┌───────────┼───────────┐
+
+│   │   ├── permissions.py       # Controle de acesso       │           │           │
+
+│   │   ├── throttling.py        # Rate limiting       ▼           ▼           ▼
+
+│   │   └── migrations/          # 39 migrações  Daily User   Daily      Monthly
+
+│   ├── Dockerfile               # Imagem produção  Snapshots   Mission    Snapshots
+
+│   ├── Dockerfile.dev           # Imagem desenvolvimento  (23:59)     Snapshots  (Último dia)
+
+│   └── requirements.txt         # Dependências Python              (23:59)
+
+│```
+
+├── Front/                        # Frontend Flutter
+
+│   ├── lib/### Frontend: Clean Architecture + MVVM
+
+│   │   ├── core/                # Shared core (models, network, storage)
+
+│   │   └── features/            # Módulos funcionais```
+
+│   ├── Dockerfile               # Build web┌──────────────────────────────────────────────────────────┐
+
+│   └── pubspec.yaml             # Dependências Flutter│                  Flutter App (UI)                        │
+
+│├──────────────────────────────────────────────────────────┤
+
+├── docker-compose.yml            # Orquestração completa│  Presentation Layer                                      │
+
+├── .env.example                  # Template de configuração│    ├── Pages/Screens                                     │
+
+└── README.md                     # Este arquivo│    └── Widgets                                           │
+
+```├──────────────────────────────────────────────────────────┤
+
 │  Feature Layer (Domain Logic)                            │
-│    ├── ViewModels (ChangeNotifier)                       │
+
+## Segurança│    ├── ViewModels (ChangeNotifier)                       │
+
 │    └── Commands (User Actions)                           │
-├──────────────────────────────────────────────────────────┤
+
+### Medidas Implementadas├──────────────────────────────────────────────────────────┤
+
 │  Core Layer                                              │
-│    ├── Repositories (Data abstraction)                   │
-│    ├── Services (API Client, Storage)                    │
-│    ├── Models (DTOs)                                     │
-│    └── Network (Dio + Interceptors)                      │
-└──────────────────────────────────────────────────────────┘
-```
 
-### Fluxo de Dados Completo
+- JWT com refresh token rotation│    ├── Repositories (Data abstraction)                   │
 
-```
+- Token blacklist em logout│    ├── Services (API Client, Storage)                    │
+
+- Rate limiting por endpoint│    ├── Models (DTOs)                                     │
+
+- CORS configurado│    └── Network (Dio + Interceptors)                      │
+
+- Isolamento de dados por usuário└──────────────────────────────────────────────────────────┘
+
+- Validação em múltiplas camadas```
+
+- SELECT FOR UPDATE em operações críticas
+
+- Secure storage para tokens (frontend)### Fluxo de Dados Completo
+
+
+
+## Testes```
+
 User Action (UI)
-      │
+
+```bash      │
+
+# Backend      ▼
+
+cd Api  ViewModel (Command)
+
+python manage.py test      │
+
       ▼
-  ViewModel (Command)
-      │
-      ▼
-  Repository
-      │
-      ▼
-  API Client (Dio) ──────────► Django REST API
+
+# Com cobertura  Repository
+
+pip install coverage      │
+
+coverage run --source='finance' manage.py test      ▼
+
+coverage report  API Client (Dio) ──────────► Django REST API
+
       │                              │
-      │                              ▼
-      │                        JWT Authentication
-      │                              │
-      │                              ▼
+
+# Frontend      │                              ▼
+
+cd Front      │                        JWT Authentication
+
+flutter test      │                              │
+
+```      │                              ▼
+
       │                         ViewSet/View
-      │                              │
+
+## Performance      │                              │
+
       │                              ▼
-      │                         Serializer
+
+### Otimizações Implementadas      │                         Serializer
+
       │                              │
+
+- Cache de indicadores (5 min TTL)      │                              ▼
+
+- Indexes otimizados em queries frequentes      │                         Services (Business Logic)
+
+- Select/prefetch related      │                              │
+
+- Aggregation queries otimizadas      │                              ▼
+
+- Connection pooling      │                         Models (ORM)
+
+- Paginação de resultados      │                              │
+
       │                              ▼
-      │                         Services (Business Logic)
+
+## Troubleshooting      │                         PostgreSQL
+
       │                              │
-      │                              ▼
-      │                         Models (ORM)
-      │                              │
-      │                              ▼
-      │                         PostgreSQL
-      │                              │
-      ▼◄────────────────────────────┘
+
+### Backend não conecta ao banco      ▼◄────────────────────────────┘
+
 Response (JSON)
-      │
-      ▼
-  Model Parsing
-      │
-      ▼
-  State Update (notifyListeners)
-      │
-      ▼
-  UI Rebuild (Flutter)
-```
 
-### Integração com IA (Gemini)
+```bash      │
 
-```
-Celery Beat (Agendador)
+# Verificar se PostgreSQL está rodando      ▼
+
+docker-compose ps postgres  Model Parsing
+
       │
+
+# Ver logs do PostgreSQL      ▼
+
+docker-compose logs postgres  State Update (notifyListeners)
+
+      │
+
+# Testar conexão      ▼
+
+docker-compose exec postgres psql -U postgres -d finance_db  UI Rebuild (Flutter)
+
+``````
+
+
+
+### Celery não processa tasks### Integração com IA (Gemini)
+
+
+
+```bash```
+
+# Verificar RedisCelery Beat (Agendador)
+
+docker-compose exec redis redis-cli ping      │
+
       ▼
-Task: Verificar Usuários sem Missões
-      │
+
+# Ver logs do workerTask: Verificar Usuários sem Missões
+
+docker-compose logs -f celery-worker      │
+
       ▼
-AI Service (ai_services.py)
-      │
-      ├──► Analisar Perfil do Usuário
+
+# Listar tasks registradasAI Service (ai_services.py)
+
+docker-compose exec celery-worker celery -A config inspect registered      │
+
+```      ├──► Analisar Perfil do Usuário
+
       │      - Nível atual
-      │      - Indicadores (TPS, RDR, ILI)
+
+### Frontend não conecta ao backend      │      - Indicadores (TPS, RDR, ILI)
+
       │      - Histórico de transações
-      │      - Missões já completadas
-      │
-      ├──► Determinar Cenário
+
+- Verifique se a API está rodando: http://localhost:8000/admin      │      - Missões já completadas
+
+- Android emulador: use `10.0.2.2:8000` ao invés de `localhost`      │
+
+- Configure CORS no `.env` do backend      ├──► Determinar Cenário
+
       │      - BEGINNER / INTERMEDIATE / ADVANCED
-      │      - Focus: TPS / RDR / ILI / MIXED
+
+### Missões não são geradas      │      - Focus: TPS / RDR / ILI / MIXED
+
       │
-      ├──► Chamar Gemini API
-      │      - Prompt contextualizado
-      │      - JSON Schema validation
+
+- Verifique `GEMINI_API_KEY` no `.env`      ├──► Chamar Gemini API
+
+- Verifique logs do Celery Beat: `docker-compose logs -f celery-beat`      │      - Prompt contextualizado
+
+- Teste manualmente no Django shell      │      - JSON Schema validation
+
       │      - Retry logic
-      │
+
+## Variáveis de Ambiente Importantes      │
+
       └──► Criar Missões Personalizadas
-           - Salvar no banco
-           - Atribuir ao usuário
-           - Iniciar MissionProgress
+
+```env           - Salvar no banco
+
+# Backend           - Atribuir ao usuário
+
+DJANGO_SECRET_KEY=<gere com Django: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())">           - Iniciar MissionProgress
+
+GEMINI_API_KEY=<obtenha em https://aistudio.google.com/apikey>```
+
+
+
+# Database---
+
+POSTGRES_DB=finance_db
+
+POSTGRES_USER=postgres## Estrutura do Projeto
+
+POSTGRES_PASSWORD=<senha-segura>
+
 ```
 
----
+# RedisTCC/
 
-## Estrutura do Projeto
+REDIS_URL=redis://redis:6379/0├── Api/                           # Backend Django
 
-```
-TCC/
-├── Api/                           # Backend Django
 │   ├── config/                   # Configurações do projeto
-│   │   ├── settings.py          # Settings com suporte a env vars
-│   │   ├── celery.py            # Configuração Celery Beat
-│   │   ├── urls.py              # Roteamento principal
-│   │   └── wsgi.py / asgi.py    # Entry points
+
+# JWT│   │   ├── settings.py          # Settings com suporte a env vars
+
+JWT_ACCESS_TOKEN_LIFETIME_MINUTES=15│   │   ├── celery.py            # Configuração Celery Beat
+
+JWT_REFRESH_TOKEN_LIFETIME_DAYS=7│   │   ├── urls.py              # Roteamento principal
+
+```│   │   └── wsgi.py / asgi.py    # Entry points
+
 │   │
-│   ├── finance/                  # App principal (core business)
+
+## Arquitetura do Sistema│   ├── finance/                  # App principal (core business)
+
 │   │   ├── models.py            # 12 modelos de dados
-│   │   │   ├── UserProfile
+
+### Backend: MVVM + Repository Pattern│   │   │   ├── UserProfile
+
 │   │   │   ├── Category (5 grupos, isolamento)
-│   │   │   ├── Transaction (UUID PK, recorrência)
-│   │   │   ├── TransactionLink (vinculação)
-│   │   │   ├── Goal (metas financeiras)
-│   │   │   ├── Mission (5 tipos, 7 validações)
-│   │   │   ├── MissionProgress (rastreamento)
-│   │   │   ├── Friendship (social)
-│   │   │   └── Snapshots (Daily/Monthly)
-│   │   │
-│   │   ├── views.py             # 15+ ViewSets e endpoints
-│   │   │   ├── CategoryViewSet
-│   │   │   ├── TransactionViewSet
-│   │   │   ├── TransactionLinkViewSet (bulk_payment)
-│   │   │   ├── MissionViewSet
+
+```│   │   │   ├── Transaction (UUID PK, recorrência)
+
+API REST (Django REST Framework)│   │   │   ├── TransactionLink (vinculação)
+
+      ↓│   │   │   ├── Goal (metas financeiras)
+
+VIEWS (ViewSets) - CategoryViewSet, TransactionViewSet, etc.│   │   │   ├── Mission (5 tipos, 7 validações)
+
+      ↓│   │   │   ├── MissionProgress (rastreamento)
+
+SERIALIZERS (Validação) - Transformação e validação de dados│   │   │   ├── Friendship (social)
+
+      ↓│   │   │   └── Snapshots (Daily/Monthly)
+
+SERVICES (Lógica de Negócio) - calculate_summary(), update_mission_progress()│   │   │
+
+      ↓│   │   ├── views.py             # 15+ ViewSets e endpoints
+
+MODELS (ORM) - UserProfile, Transaction, Mission, etc.│   │   │   ├── CategoryViewSet
+
+      ↓│   │   │   ├── TransactionViewSet
+
+PostgreSQL│   │   │   ├── TransactionLinkViewSet (bulk_payment)
+
+```│   │   │   ├── MissionViewSet
+
 │   │   │   ├── GoalViewSet
-│   │   │   ├── DashboardView
+
+### Frontend: Clean Architecture + MVVM│   │   │   ├── DashboardView
+
 │   │   │   └── UserProfileViewSet
-│   │   │
-│   │   ├── serializers.py       # DTOs e validação
-│   │   │   ├── Nested serialization
-│   │   │   ├── Computed fields
-│   │   │   └── Write-only fields
-│   │   │
-│   │   ├── services.py          # Lógica de negócio (2118 linhas)
-│   │   │   ├── calculate_summary() - Indicadores
-│   │   │   ├── update_mission_progress() - Validação
-│   │   │   ├── apply_mission_reward() - XP
-│   │   │   ├── cashflow_series() - Análises
+
+```│   │   │
+
+UI (Flutter Widgets)│   │   ├── serializers.py       # DTOs e validação
+
+      ↓│   │   │   ├── Nested serialization
+
+ViewModels (ChangeNotifier) + Commands│   │   │   ├── Computed fields
+
+      ↓│   │   │   └── Write-only fields
+
+Repositories (Data abstraction)│   │   │
+
+      ↓│   │   ├── services.py          # Lógica de negócio (2118 linhas)
+
+Services (API Client - Dio)│   │   │   ├── calculate_summary() - Indicadores
+
+      ↓│   │   │   ├── update_mission_progress() - Validação
+
+Django REST API│   │   │   ├── apply_mission_reward() - XP
+
+```│   │   │   ├── cashflow_series() - Análises
+
 │   │   │   ├── category_breakdown() - Relatórios
-│   │   │   └── assign_missions_automatically() - IA
+
+### Tarefas Assíncronas (Celery)│   │   │   └── assign_missions_automatically() - IA
+
 │   │   │
-│   │   ├── ai_services.py       # Integração Gemini (1448 linhas)
-│   │   │   ├── generate_missions_for_user()
-│   │   │   ├── suggest_category()
-│   │   │   ├── 5 cenários de missões
-│   │   │   └── Prompts contextualizados
-│   │   │
-│   │   ├── tasks.py             # Celery tasks (627 linhas)
-│   │   │   ├── create_daily_user_snapshots
-│   │   │   ├── create_daily_mission_snapshots
+
+```│   │   ├── ai_services.py       # Integração Gemini (1448 linhas)
+
+Celery Beat (Agendador)│   │   │   ├── generate_missions_for_user()
+
+      ↓│   │   │   ├── suggest_category()
+
+Daily User Snapshots (23:59)│   │   │   ├── 5 cenários de missões
+
+Daily Mission Snapshots (23:59)│   │   │   └── Prompts contextualizados
+
+Monthly Snapshots (último dia do mês)│   │   │
+
+      ↓│   │   ├── tasks.py             # Celery tasks (627 linhas)
+
+PostgreSQL│   │   │   ├── create_daily_user_snapshots
+
+```│   │   │   ├── create_daily_mission_snapshots
+
 │   │   │   └── create_monthly_snapshots
-│   │   │
+
+## Desenvolvimento│   │   │
+
 │   │   ├── permissions.py       # Controle de acesso
-│   │   ├── throttling.py        # Rate limiting customizado
-│   │   ├── mixins.py            # UUID support
-│   │   ├── authentication.py    # JWT helpers
-│   │   ├── signals.py           # Django signals
+
+**Desenvolvedor**: Marcos Eduardo de Neiva Santos  │   │   ├── throttling.py        # Rate limiting customizado
+
+**Instituição**: Instituto Federal do Piauí (IFPI)  │   │   ├── mixins.py            # UUID support
+
+**Curso**: Tecnologia em Análise e Desenvolvimento de Sistemas  │   │   ├── authentication.py    # JWT helpers
+
+**Ano**: 2024/2025│   │   ├── signals.py           # Django signals
+
 │   │   │
-│   │   ├── migrations/          # 37 migrações
+
+## Contexto Acadêmico│   │   ├── migrations/          # 37 migrações
+
 │   │   │   ├── 0001_initial.py
-│   │   │   ├── 0030_convert_to_uuid_pk_safe.py
+
+Este projeto foi desenvolvido como Trabalho de Conclusão de Curso (TCC) e está disponível para fins educacionais e acadêmicos.│   │   │   ├── 0030_convert_to_uuid_pk_safe.py
+
 │   │   │   ├── 0034_isolate_categories.py
 │   │   │   ├── 0036_performance_indexes.py
 │   │   │   └── 0037_add_snapshot_models.py
