@@ -1,6 +1,9 @@
+from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import transaction as db_transaction
 from django.db.models import Q, Sum
+from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -1947,6 +1950,153 @@ class XPHistoryView(APIView):
             'count': len(data),
             'transactions': data,
         })
+
+
+class SimplifiedOnboardingView(APIView):
+    """
+    Endpoint para onboarding simplificado.
+    Recebe apenas 2 valores: renda mensal e gastos essenciais.
+    Cria transações iniciais e retorna insights básicos.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        from decimal import Decimal, InvalidOperation
+        
+        # Extrair e validar parâmetros
+        try:
+            monthly_income = Decimal(str(request.data.get('monthly_income', 0)))
+        except (InvalidOperation, ValueError, TypeError):
+            return Response(
+                {"error": "Renda mensal inválida. Use um número válido."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            essential_expenses = Decimal(str(request.data.get('essential_expenses', 0)))
+        except (InvalidOperation, ValueError, TypeError):
+            return Response(
+                {"error": "Gastos essenciais inválidos. Use um número válido."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validações de negócio
+        if monthly_income <= 0:
+            return Response(
+                {"error": "Renda mensal deve ser maior que zero."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if essential_expenses < 0:
+            return Response(
+                {"error": "Gastos essenciais não podem ser negativos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if essential_expenses > monthly_income:
+            return Response(
+                {"error": "Gastos essenciais não podem exceder a renda."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        user = request.user
+        
+        # Criar transações iniciais e categorias
+        try:
+            with db_transaction.atomic():
+                # Categoria de renda
+                income_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Salário",
+                    type=Category.CategoryType.INCOME,
+                    defaults={
+                        'group': Category.CategoryGroup.REGULAR_INCOME,
+                        'color': '#4CAF50'
+                    }
+                )
+                
+                # Categoria de despesa
+                expense_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Gastos Essenciais",
+                    type=Category.CategoryType.EXPENSE,
+                    defaults={
+                        'group': Category.CategoryGroup.ESSENTIAL_EXPENSE,
+                        'color': '#F44336'
+                    }
+                )
+                
+                # Transação de renda
+                Transaction.objects.create(
+                    user=user,
+                    description="Salário mensal",
+                    amount=monthly_income,
+                    category=income_cat,
+                    type=Transaction.TransactionType.INCOME,
+                    date=timezone.now().date()
+                )
+                
+                # Transação de despesa (se houver)
+                if essential_expenses > 0:
+                    Transaction.objects.create(
+                        user=user,
+                        description="Gastos essenciais do mês",
+                        amount=essential_expenses,
+                        category=expense_cat,
+                        type=Transaction.TransactionType.EXPENSE,
+                        date=timezone.now().date()
+                    )
+                
+                # Marcar onboarding completo
+                profile = user.userprofile
+                profile.is_first_access = False
+                profile.save()
+                
+                # Atribuir missões automaticamente
+                assign_missions_automatically(user)
+                
+                # Atualizar indicadores em cache
+                from .services import FinancialIndicatorsService
+                FinancialIndicatorsService.update_cached_indicators(user)
+        
+        except Exception as e:
+            logger.error(f"Erro ao processar onboarding simplificado: {e}")
+            return Response(
+                {"error": "Erro ao processar onboarding. Tente novamente."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Calcular insights
+        balance = monthly_income - essential_expenses
+        savings_rate = (balance / monthly_income * 100) if monthly_income > 0 else Decimal('0')
+        
+        recommendation = self._get_recommendation(savings_rate)
+        
+        return Response({
+            "success": True,
+            "insights": {
+                "monthly_balance": float(balance),
+                "savings_rate": float(savings_rate),
+                "can_save": balance > 0,
+                "recommendation": recommendation,
+                "next_steps": [
+                    "Registre suas transações diárias",
+                    "Crie metas de economia",
+                    "Complete desafios para ganhar pontos"
+                ]
+            }
+        }, status=status.HTTP_201_CREATED)
+    
+    def _get_recommendation(self, savings_rate: Decimal) -> str:
+        """Retorna recomendação baseada na taxa de poupança."""
+        if savings_rate >= 20:
+            return "Excelente! Você está no caminho certo para construir patrimônio."
+        elif savings_rate >= 10:
+            return "Bom começo! Tente aumentar gradualmente sua taxa de poupança."
+        elif savings_rate >= 5:
+            return "Você está começando a poupar. Procure oportunidades para economizar mais."
+        else:
+            return "Revise seus gastos e tente encontrar áreas onde pode economizar."
 
 
 class RegisterView(APIView):

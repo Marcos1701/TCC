@@ -9,6 +9,7 @@ from .views import (
     MissionViewSet,
     ProfileView,
     RegisterView,
+    SimplifiedOnboardingView,
     TransactionLinkViewSet,
     TransactionViewSet,
     UserProfileViewSet,
@@ -33,6 +34,7 @@ router.register(r"admin-stats", AdminStatsViewSet, basename="admin-stats")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
+    path("onboarding/simplified/", SimplifiedOnboardingView.as_view(), name="simplified-onboarding"),
     path("profile/", ProfileView.as_view(), name="profile"),
     path("profile/xp-history/", XPHistoryView.as_view(), name="xp-history"),
     path("", include(router.urls)),
