@@ -186,7 +186,7 @@ def check_achievements_on_mission_complete(sender, instance, **kwargs):
     - Contagem de missões completadas (5, 20, 50, etc.)
     - Conclusão de missões específicas
     """
-    if instance.completed and not instance._state.adding:
+    if instance.status == 'COMPLETED' and instance.completed_at and not instance._state.adding:
         from .services import check_achievements_for_user
         check_achievements_for_user(instance.user, event_type='mission')
 

@@ -2110,7 +2110,7 @@ def check_criteria_met(user, criteria):
             # Total de missões completadas
             count = MissionProgress.objects.filter(
                 user=user, 
-                completed=True
+                status='COMPLETED'
             ).count()
             return count >= target
         
@@ -2287,7 +2287,7 @@ def update_achievement_progress(user, achievement_id):
         if metric == 'transactions':
             current_progress = Transaction.objects.filter(user=user).count()
         elif metric == 'missions':
-            current_progress = MissionProgress.objects.filter(user=user, completed=True).count()
+            current_progress = MissionProgress.objects.filter(user=user, status='COMPLETED').count()
         elif metric == 'goals':
             current_progress = Goal.objects.filter(user=user, status=Goal.GoalStatus.COMPLETED).count()
         elif metric == 'friends':
