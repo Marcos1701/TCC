@@ -50,18 +50,20 @@ WORKDIR /app
 # Copiar código da aplicação
 COPY --chown=appuser:appuser . .
 
-# Criar diretório para arquivos estáticos e media
-RUN mkdir -p static media && chown -R appuser:appuser static media
+# Criar diretório para arquivos estáticos e media e tornar script executável
+RUN mkdir -p static media && \
+    chown -R appuser:appuser static media && \
+    chmod +x start.sh
 
 # Mudar para usuário não-root
 USER appuser
 
-# Expor porta (Railway usa PORT variável de ambiente)
-EXPOSE 8080
+# Expor porta
+EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8080}/admin/ || exit 1
+# Health check (desabilitado pois Railway não suporta bem)
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#     CMD curl -f http://localhost:${PORT:-8000}/admin/ || exit 1
 
-# Script de inicialização que usa a variável PORT do Railway
-CMD sh -c "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120"
+# Usar script de inicialização
+CMD ["./start.sh"]
