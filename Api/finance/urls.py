@@ -17,6 +17,7 @@ from .views import (
     FriendshipViewSet,
     LeaderboardViewSet,
     AdminStatsViewSet,
+    AdminUserManagementViewSet,
 )
 
 router = DefaultRouter()
@@ -31,6 +32,7 @@ router.register(r"user", UserProfileViewSet, basename="user")
 router.register(r"friendships", FriendshipViewSet, basename="friendship")
 router.register(r"leaderboard", LeaderboardViewSet, basename="leaderboard")
 router.register(r"admin-stats", AdminStatsViewSet, basename="admin-stats")
+router.register(r"admin/users", AdminUserManagementViewSet, basename="admin-users")
 
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),

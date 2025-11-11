@@ -4,11 +4,13 @@ from django.core.cache import cache
 from django.db import transaction as db_transaction
 from django.db.models import Q, Sum
 from django.utils import timezone
-from rest_framework import mixins, permissions, status, viewsets
+from rest_framework import mixins, permissions, status, viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
+from django_filters.rest_framework import DjangoFilterBackend
 import logging
 
 logger = logging.getLogger(__name__)
@@ -3182,3 +3184,445 @@ class AdminStatsViewSet(viewsets.ViewSet):
         
         data = self._get_cached_or_compute('admin_stats_system_health', compute_system_health)
         return Response(data)
+
+
+class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para gestão administrativa de usuários.
+    
+    APENAS ADMIN/STAFF podem acessar estes endpoints.
+    
+    Funcionalidades:
+    - Listar usuários com filtros avançados
+    - Visualizar detalhes completos de um usuário
+    - Desativar/reativar usuários
+    - Ajustar XP manualmente
+    - Visualizar log de atividades do usuário
+    - Visualizar logs de ações administrativas
+    
+    Endpoints:
+    - GET /api/admin/users/ - Listar usuários (com filtros)
+    - GET /api/admin/users/{id}/ - Detalhes do usuário
+    - POST /api/admin/users/{id}/deactivate/ - Desativar usuário
+    - POST /api/admin/users/{id}/reactivate/ - Reativar usuário
+    - POST /api/admin/users/{id}/adjust_xp/ - Ajustar XP
+    - GET /api/admin/users/{id}/activity_log/ - Log de atividades
+    - GET /api/admin/users/{id}/admin_actions/ - Ações admin no usuário
+    """
+    
+    permission_classes = [IsAdminUser]
+    serializer_class = None  # Será definido por método
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    ordering_fields = ['date_joined', 'last_login', 'userprofile__level', 'userprofile__experience_points']
+    ordering = ['-date_joined']
+    
+    def get_queryset(self):
+        """
+        Retorna queryset de usuários com otimizações.
+        
+        Filtros disponíveis via query params:
+        - tier: BEGINNER|INTERMEDIATE|ADVANCED
+        - is_active: true|false
+        - date_joined_after: YYYY-MM-DD
+        - date_joined_before: YYYY-MM-DD
+        - last_login_after: YYYY-MM-DD
+        - has_recent_activity: true (login nos últimos 7 dias)
+        """
+        queryset = User.objects.select_related('userprofile').prefetch_related(
+            'transactions',
+            'goals',
+            'admin_actions_received'
+        )
+        
+        # Filtro por tier (baseado em level)
+        tier = self.request.query_params.get('tier')
+        if tier:
+            if tier == 'BEGINNER':
+                queryset = queryset.filter(userprofile__level__gte=1, userprofile__level__lte=5)
+            elif tier == 'INTERMEDIATE':
+                queryset = queryset.filter(userprofile__level__gte=6, userprofile__level__lte=15)
+            elif tier == 'ADVANCED':
+                queryset = queryset.filter(userprofile__level__gte=16)
+        
+        # Filtro por status ativo
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        
+        # Filtro por data de registro
+        date_joined_after = self.request.query_params.get('date_joined_after')
+        if date_joined_after:
+            queryset = queryset.filter(date_joined__gte=date_joined_after)
+        
+        date_joined_before = self.request.query_params.get('date_joined_before')
+        if date_joined_before:
+            queryset = queryset.filter(date_joined__lte=date_joined_before)
+        
+        # Filtro por último login
+        last_login_after = self.request.query_params.get('last_login_after')
+        if last_login_after:
+            queryset = queryset.filter(last_login__gte=last_login_after)
+        
+        # Filtro por atividade recente (últimos 7 dias)
+        has_recent_activity = self.request.query_params.get('has_recent_activity')
+        if has_recent_activity and has_recent_activity.lower() == 'true':
+            from datetime import timedelta
+            from django.utils import timezone
+            seven_days_ago = timezone.now() - timedelta(days=7)
+            queryset = queryset.filter(last_login__gte=seven_days_ago)
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        """Retorna serializer apropriado para cada ação"""
+        # Por enquanto, vamos criar um serializer inline simples
+        # Em produção, seria melhor criar serializers separados
+        from rest_framework import serializers
+        
+        class UserAdminListSerializer(serializers.ModelSerializer):
+            tier = serializers.SerializerMethodField()
+            level = serializers.IntegerField(source='userprofile.level', read_only=True)
+            experience_points = serializers.IntegerField(source='userprofile.experience_points', read_only=True)
+            transaction_count = serializers.SerializerMethodField()
+            last_admin_action = serializers.SerializerMethodField()
+            
+            class Meta:
+                model = User
+                fields = [
+                    'id', 'username', 'email', 'first_name', 'last_name',
+                    'is_active', 'date_joined', 'last_login',
+                    'tier', 'level', 'experience_points',
+                    'transaction_count', 'last_admin_action'
+                ]
+            
+            def get_tier(self, obj):
+                level = obj.userprofile.level
+                if level <= 5:
+                    return 'BEGINNER'
+                elif level <= 15:
+                    return 'INTERMEDIATE'
+                else:
+                    return 'ADVANCED'
+            
+            def get_transaction_count(self, obj):
+                return obj.transactions.count()
+            
+            def get_last_admin_action(self, obj):
+                last_action = obj.admin_actions_received.first()
+                if last_action:
+                    return {
+                        'action_type': last_action.action_type,
+                        'timestamp': last_action.timestamp,
+                        'admin': last_action.admin_user.username if last_action.admin_user else 'Sistema'
+                    }
+                return None
+        
+        return UserAdminListSerializer
+    
+    def retrieve(self, request, pk=None):
+        """
+        Retorna detalhes completos de um usuário.
+        
+        Inclui:
+        - Dados básicos do usuário
+        - Perfil completo (level, XP, metas)
+        - Estatísticas (transações, missões, conquistas)
+        - Últimas 10 transações
+        - Missões ativas
+        - Logs de ações administrativas (últimas 20)
+        """
+        user = self.get_object()
+        
+        from .services import calculate_summary
+        summary = calculate_summary(user)
+        
+        # Últimas transações
+        recent_transactions = user.transactions.order_by('-date')[:10].values(
+            'id', 'description', 'amount', 'date', 'type', 'category__name'
+        )
+        
+        # Missões ativas
+        from .models import UserMission
+        active_missions = UserMission.objects.filter(
+            user=user,
+            status='IN_PROGRESS'
+        ).select_related('mission').values(
+            'id', 'mission__title', 'mission__mission_type',
+            'mission__difficulty', 'progress_percentage', 'started_at'
+        )[:5]
+        
+        # Logs de ações admin (últimas 20)
+        from .models import AdminActionLog
+        admin_actions = AdminActionLog.objects.filter(
+            target_user=user
+        ).select_related('admin_user')[:20]
+        
+        admin_actions_data = [{
+            'id': action.id,
+            'action_type': action.action_type,
+            'action_display': action.get_action_type_display(),
+            'admin': action.admin_user.username if action.admin_user else 'Sistema',
+            'old_value': action.old_value,
+            'new_value': action.new_value,
+            'reason': action.reason,
+            'timestamp': action.timestamp,
+        } for action in admin_actions]
+        
+        data = {
+            # Dados básicos
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'is_active': user.is_active,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login,
+            
+            # Perfil
+            'profile': {
+                'level': user.userprofile.level,
+                'experience_points': user.userprofile.experience_points,
+                'target_tps': user.userprofile.target_tps,
+                'target_rdr': user.userprofile.target_rdr,
+                'target_ili': float(user.userprofile.target_ili),
+                'is_first_access': user.userprofile.is_first_access,
+            },
+            
+            # Estatísticas
+            'stats': summary,
+            
+            # Atividades recentes
+            'recent_transactions': list(recent_transactions),
+            'active_missions': list(active_missions),
+            
+            # Logs administrativos
+            'admin_actions': admin_actions_data,
+        }
+        
+        return Response(data)
+    
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        """
+        Desativa um usuário.
+        
+        POST /api/admin/users/{id}/deactivate/
+        {
+            "reason": "Motivo da desativação (obrigatório)"
+        }
+        """
+        user = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        
+        if not reason:
+            return Response(
+                {'error': 'O campo "reason" é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not user.is_active:
+            return Response(
+                {'error': 'Usuário já está desativado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Desativar usuário
+        old_status = user.is_active
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+        
+        # Registrar ação
+        from .models import AdminActionLog
+        AdminActionLog.log_action(
+            admin_user=request.user,
+            target_user=user,
+            action_type=AdminActionLog.ActionType.USER_DEACTIVATED,
+            old_value=str(old_status),
+            new_value='False',
+            reason=reason,
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        return Response({
+            'success': True,
+            'message': f'Usuário {user.username} desativado com sucesso',
+            'user_id': user.id,
+            'is_active': user.is_active
+        })
+    
+    @action(detail=True, methods=['post'])
+    def reactivate(self, request, pk=None):
+        """
+        Reativa um usuário.
+        
+        POST /api/admin/users/{id}/reactivate/
+        {
+            "reason": "Motivo da reativação (obrigatório)"
+        }
+        """
+        user = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        
+        if not reason:
+            return Response(
+                {'error': 'O campo "reason" é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if user.is_active:
+            return Response(
+                {'error': 'Usuário já está ativo'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Reativar usuário
+        old_status = user.is_active
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        
+        # Registrar ação
+        from .models import AdminActionLog
+        AdminActionLog.log_action(
+            admin_user=request.user,
+            target_user=user,
+            action_type=AdminActionLog.ActionType.USER_REACTIVATED,
+            old_value=str(old_status),
+            new_value='True',
+            reason=reason,
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        return Response({
+            'success': True,
+            'message': f'Usuário {user.username} reativado com sucesso',
+            'user_id': user.id,
+            'is_active': user.is_active
+        })
+    
+    @action(detail=True, methods=['post'])
+    def adjust_xp(self, request, pk=None):
+        """
+        Ajusta XP de um usuário manualmente.
+        
+        POST /api/admin/users/{id}/adjust_xp/
+        {
+            "amount": -500 a +500 (int, positivo adiciona, negativo remove),
+            "reason": "Motivo do ajuste (obrigatório)"
+        }
+        
+        O nível é recalculado automaticamente com base no novo XP.
+        """
+        user = self.get_object()
+        
+        try:
+            amount = int(request.data.get('amount', 0))
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'O campo "amount" deve ser um número inteiro'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        reason = request.data.get('reason', '').strip()
+        
+        if not reason:
+            return Response(
+                {'error': 'O campo "reason" é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar limites (-500 a +500)
+        if amount < -500 or amount > 500:
+            return Response(
+                {'error': 'O ajuste de XP deve estar entre -500 e +500'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if amount == 0:
+            return Response(
+                {'error': 'O ajuste de XP deve ser diferente de zero'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Aplicar ajuste
+        profile = user.userprofile
+        old_xp = profile.experience_points
+        old_level = profile.level
+        
+        new_xp = max(0, old_xp + amount)  # Não pode ficar negativo
+        profile.experience_points = new_xp
+        
+        # Recalcular nível (lógica simplificada: 100 XP por nível)
+        new_level = max(1, new_xp // 100 + 1)
+        profile.level = new_level
+        
+        profile.save(update_fields=['experience_points', 'level'])
+        
+        # Registrar ação
+        from .models import AdminActionLog
+        AdminActionLog.log_action(
+            admin_user=request.user,
+            target_user=user,
+            action_type=AdminActionLog.ActionType.XP_ADJUSTED,
+            old_value=f'XP: {old_xp}, Level: {old_level}',
+            new_value=f'XP: {new_xp}, Level: {new_level}',
+            reason=f'{reason} (Ajuste: {amount:+d} XP)',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
+        return Response({
+            'success': True,
+            'message': f'XP ajustado com sucesso',
+            'user_id': user.id,
+            'adjustment': amount,
+            'old_xp': old_xp,
+            'new_xp': new_xp,
+            'old_level': old_level,
+            'new_level': new_level,
+            'level_changed': old_level != new_level
+        })
+    
+    @action(detail=True, methods=['get'])
+    def admin_actions(self, request, pk=None):
+        """
+        Retorna todas as ações administrativas realizadas neste usuário.
+        
+        GET /api/admin/users/{id}/admin_actions/
+        
+        Query params:
+        - action_type: Filtrar por tipo de ação
+        - page: Página (paginação de 50 itens)
+        """
+        user = self.get_object()
+        
+        from .models import AdminActionLog
+        actions = AdminActionLog.objects.filter(target_user=user).select_related('admin_user')
+        
+        # Filtro por tipo de ação
+        action_type = request.query_params.get('action_type')
+        if action_type:
+            actions = actions.filter(action_type=action_type)
+        
+        # Paginação
+        from rest_framework.pagination import PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 50
+        page = paginator.paginate_queryset(actions, request)
+        
+        actions_data = [{
+            'id': action.id,
+            'action_type': action.action_type,
+            'action_display': action.get_action_type_display(),
+            'admin': action.admin_user.username if action.admin_user else 'Sistema',
+            'admin_id': action.admin_user.id if action.admin_user else None,
+            'old_value': action.old_value,
+            'new_value': action.new_value,
+            'reason': action.reason,
+            'timestamp': action.timestamp,
+            'ip_address': action.ip_address,
+        } for action in page]
+        
+        return paginator.get_paginated_response(actions_data)
