@@ -1,4 +1,4 @@
-"""
+﻿"""
 Comando para popular o banco de dados com missões padrão.
 
 Cria 60 missões distribuídas entre os três tiers:
@@ -134,7 +134,7 @@ class Command(BaseCommand):
             # ===== TPS IMPROVEMENT (5 missões) =====
             {
                 'title': '💰 Economizando os Primeiros 5%',
-                'description': 'Alcance uma Taxa de Prosperidade de pelo menos 5%. Pequenos passos fazem diferença!',
+                'description': 'Alcance uma Taxa de Poupança de pelo menos 5%. Pequenos passos fazem diferença!',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'EASY',
                 'priority': 2,
@@ -181,8 +181,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '📊 TPS Acima da Média',
-                'description': 'Mantenha sua Taxa de Prosperidade acima de 15% por 14 dias.',
+                'title': '📊 Poupança Acima da Média',
+                'description': 'Mantenha sua Taxa de Poupança acima de 15% por 14 dias.',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -196,7 +196,7 @@ class Command(BaseCommand):
             # ===== RDR REDUCTION (5 missões) =====
             {
                 'title': '🎯 Controle de Gastos Básico',
-                'description': 'Mantenha sua Taxa de Disciplina abaixo de 80%. Evite gastos impulsivos!',
+                'description': 'Mantenha sua percentual de gastos fixos abaixo de 80%. Evite gastos impulsivos!',
                 'mission_type': 'RDR_REDUCTION',
                 'difficulty': 'EASY',
                 'priority': 2,
@@ -208,7 +208,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '📉 Reduzindo Despesas',
-                'description': 'Diminua sua Taxa de Disciplina para menos de 70%. Você consegue!',
+                'description': 'Diminua sua percentual de gastos fixos para menos de 70%. Você consegue!',
                 'mission_type': 'RDR_REDUCTION',
                 'difficulty': 'MEDIUM',
                 'priority': 2,
@@ -258,7 +258,7 @@ class Command(BaseCommand):
             # ===== ILI BUILDING (5 missões) =====
             {
                 'title': '🚀 Construindo Reserva',
-                'description': 'Alcance um Nível de Impulso (ILI) de pelo menos 10. Segurança primeiro!',
+                'description': 'Alcance um Reserva de Emergência de pelo menos 10. Segurança primeiro!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'EASY',
                 'priority': 2,
@@ -270,7 +270,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '🛡️ Reserva de Emergência Iniciada',
-                'description': 'Atinja ILI de 20 - você está criando seu colchão de segurança!',
+                'description': 'Atinja reserva de 20 - você está criando seu colchão de segurança!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'MEDIUM',
                 'priority': 2,
@@ -281,8 +281,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '💪 ILI Sólido',
-                'description': 'Chegue a um ILI de 30 - você está cada vez mais preparado!',
+                'title': '💪 Reserva Sólida',
+                'description': 'Chegue a uma reserva de 30 - você está cada vez mais preparado!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'MEDIUM',
                 'priority': 2,
@@ -306,7 +306,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '📈 Crescimento Consistente',
-                'description': 'Aumente seu ILI em pelo menos 10 pontos em 30 dias.',
+                'description': 'Aumente sua reserva em pelo menos 10 dias em 30 dias.',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'MEDIUM',
                 'priority': 2,
@@ -325,8 +325,8 @@ class Command(BaseCommand):
         missions = [
             # ===== TPS IMPROVEMENT (6 missões) =====
             {
-                'title': '💰 TPS de 20% - Excelente!',
-                'description': 'Alcance uma Taxa de Prosperidade de 20%. Você está indo muito bem!',
+                'title': '💰 Poupança de 20% - Excelente!',
+                'description': 'Alcance uma Taxa de Poupança de 20%. Você está indo muito bem!',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'MEDIUM',
                 'priority': 2,
@@ -337,7 +337,7 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '🎯 TPS de 25% - Expert',
+                'title': '🎯 Poupança de 25% - Expert',
                 'description': 'Atinja 25% de poupança. Você domina suas finanças!',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'HARD',
@@ -361,8 +361,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '📊 TPS Consistente Alto',
-                'description': 'Mantenha TPS acima de 18% por 30 dias consecutivos.',
+                'title': '📊 Poupança Consistente Alto',
+                'description': 'Mantenha sua poupança acima de 18% por 30 dias consecutivos.',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -399,8 +399,8 @@ class Command(BaseCommand):
             
             # ===== RDR REDUCTION (7 missões) =====
             {
-                'title': '📉 RDR Controlado - 60%',
-                'description': 'Mantenha sua Taxa de Disciplina abaixo de 60%. Controle total!',
+                'title': '📉 Gastos Fixos Controlados - 60%',
+                'description': 'Mantenha sua percentual de gastos fixos abaixo de 60%. Controle total!',
                 'mission_type': 'RDR_REDUCTION',
                 'difficulty': 'MEDIUM',
                 'priority': 2,
@@ -411,8 +411,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '🎯 RDR de Elite - 50%',
-                'description': 'Alcance RDR de 50% ou menos. Você é um mestre em controle!',
+                'title': '🎯 Gastos Fixos Mínimos - 50%',
+                'description': 'Mantenha seus gastos fixos de 50% ou menos. Você é um mestre em controle!',
                 'mission_type': 'RDR_REDUCTION',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -485,7 +485,7 @@ class Command(BaseCommand):
             
             # ===== ILI BUILDING (5 missões) =====
             {
-                'title': '🛡️ ILI de 50 - Segurança Forte',
+                'title': '🛡️ Reserva de 50 dias - Segurança Forte',
                 'description': 'Alcance um Nível de Impulso de 50. Sua reserva está sólida!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'MEDIUM',
@@ -497,8 +497,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '💪 ILI de 75 - Quase Lá!',
-                'description': 'Atinja ILI de 75. Você está construindo riqueza real!',
+                'title': '💪 Reserva de 75 dias - Quase Lá!',
+                'description': 'Atinja Reserva de 75 dias. Você está construindo riqueza real!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -522,7 +522,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '📈 Crescimento Acelerado',
-                'description': 'Aumente seu ILI em pelo menos 20 pontos em 45 dias.',
+                'description': 'Aumente sua reserva em pelo menos 20 dias em 45 dias.',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -560,7 +560,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '📊 Equilíbrio Perfeito',
-                'description': 'Mantenha TPS > 20%, RDR < 60% e ILI > 50 simultaneamente por 14 dias.',
+                'description': 'Mantenha Poupança > 20%, Gastos Fixos < 60% e Reserva > 50 dias simultaneamente por 14 dias.',
                 'mission_type': 'ADVANCED',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -581,8 +581,8 @@ class Command(BaseCommand):
         missions = [
             # ===== TPS IMPROVEMENT (6 missões) =====
             {
-                'title': '💎 TPS de 30% - Elite',
-                'description': 'Alcance uma Taxa de Prosperidade de 30%. Você é exemplo!',
+                'title': '💎 Poupança de 30% - Elite',
+                'description': 'Alcance uma Taxa de Poupança de 30%. Você é exemplo!',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -593,7 +593,7 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '🏆 TPS de 40% - Lendário',
+                'title': '🏆 Poupança de 40% - Lendário',
                 'description': 'Atinja 40% de poupança. Você está no topo!',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'HARD',
@@ -617,8 +617,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '📊 TPS Máximo Sustentado',
-                'description': 'Mantenha TPS acima de 35% por 60 dias consecutivos.',
+                'title': '📊 Poupança Máxima Sustentado',
+                'description': 'Mantenha sua poupança acima de 35% por 60 dias consecutivos.',
                 'mission_type': 'TPS_IMPROVEMENT',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -655,8 +655,8 @@ class Command(BaseCommand):
             
             # ===== RDR REDUCTION (6 missões) =====
             {
-                'title': '🎯 RDR Mínimo - 40%',
-                'description': 'Alcance RDR de 40% ou menos. Controle absoluto!',
+                'title': '🎯 Gastos Fixos Reduzidos - 40%',
+                'description': 'Alcance Gastos Fixos em 40% ou menos. Controle absoluto!',
                 'mission_type': 'RDR_REDUCTION',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -667,8 +667,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '💎 RDR de 30% - Perfeição',
-                'description': 'Atinja RDR de 30%. Você é um mestre absoluto!',
+                'title': '💎 Gastos Fixos em 30% - Perfeição',
+                'description': 'Atinja Gastos Fixos em 30%. Você é um mestre absoluto!',
                 'mission_type': 'RDR_REDUCTION',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -729,7 +729,7 @@ class Command(BaseCommand):
             
             # ===== ILI BUILDING (5 missões) =====
             {
-                'title': '🏆 ILI de 100 - Century Club',
+                'title': '🏆 Reserva de 100 dias - Clube dos 100 Dias',
                 'description': 'Alcance um Nível de Impulso de 100. Você chegou ao topo!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'HARD',
@@ -741,8 +741,8 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             {
-                'title': '💎 ILI de 150 - Além do Esperado',
-                'description': 'Atinja ILI de 150. Sua independência financeira está próxima!',
+                'title': '💎 Reserva de 150 dias - Além do Esperado',
+                'description': 'Atinja Reserva de 150 dias. Sua independência financeira está próxima!',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -766,7 +766,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '📈 Crescimento Explosivo',
-                'description': 'Aumente seu ILI em pelo menos 40 pontos em 60 dias.',
+                'description': 'Aumente sua reserva em pelo menos 40 dias em 60 dias.',
                 'mission_type': 'ILI_BUILDING',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -804,7 +804,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '📊 Equilíbrio Perfeito Sustentado',
-                'description': 'Mantenha TPS > 30%, RDR < 40% e ILI > 100 por 30 dias.',
+                'description': 'Mantenha Poupança > 30%, Gastos Fixos < 40% e Reserva > 100 dias por 30 dias.',
                 'mission_type': 'ADVANCED',
                 'difficulty': 'HARD',
                 'priority': 3,
@@ -818,7 +818,7 @@ class Command(BaseCommand):
             },
             {
                 'title': '💎 Independência Financeira',
-                'description': 'Alcance TPS > 50%, RDR < 30% e ILI > 200 simultaneamente.',
+                'description': 'Alcance Poupança > 50%, Gastos Fixos < 30% e Reserva > 200 dias simultaneamente.',
                 'mission_type': 'ADVANCED',
                 'difficulty': 'HARD',
                 'priority': 3,
