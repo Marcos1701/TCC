@@ -57,11 +57,11 @@ RUN mkdir -p static media && chown -R appuser:appuser static media
 USER appuser
 
 # Expor porta (Railway usa PORT variável de ambiente)
-EXPOSE 8000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/admin/ || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/admin/ || exit 1
 
 # Script de inicialização que usa a variável PORT do Railway
 CMD sh -c "gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120"
