@@ -97,6 +97,30 @@ class FinanceRepository {
     return CategoryModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
+  Future<CategoryModel> updateCategory({
+    required String id,
+    required String name,
+    required String type,
+    String? color,
+    String? group,
+  }) async {
+    final payload = {
+      'name': name,
+      'type': type,
+      if (color != null) 'color': color,
+      if (group != null) 'group': group,
+    };
+    final response = await _client.client.put<Map<String, dynamic>>(
+      '${ApiEndpoints.categories}$id/',
+      data: payload,
+    );
+    return CategoryModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await _client.client.delete('${ApiEndpoints.categories}$id/');
+  }
+
   Future<List<TransactionModel>> fetchTransactions({String? type}) async {
     try {
       debugPrint('🔍 Buscando transações${type != null ? " (tipo: $type)" : ""}...');
