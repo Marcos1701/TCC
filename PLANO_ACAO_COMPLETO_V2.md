@@ -1076,12 +1076,13 @@ Checkpoints: 4/4 (100%) ✅
 #### ✅ Checkpoint 2.4: Gestão de Usuários Admin (3 dias) - **100% COMPLETO** ✅
 
 **Data de Conclusão:** 11 de novembro de 2025
-**Commits:** 65791b8, 6c3051b, 68291dd
-**Linhas Adicionadas:** +1,724 (870 backend + 854 testes)
+**Commits Backend:** 65791b8, 6c3051b, 68291dd
+**Commits Frontend:** [data atual]
+**Linhas Adicionadas:** +3,624 (870 backend + 854 testes + 1,900 frontend)
 
-**Objetivo:** ✅ ALCANÇADO - Sistema completo de gestão administrativa de usuários com auditoria.
+**Objetivo:** ✅ ALCANÇADO - Sistema completo de gestão administrativa de usuários com auditoria (backend + frontend).
 
-**Implementações Realizadas:**
+**Implementações Backend Realizadas:**
 
 1. ✅ **AdminActionLog Model**:
    - 8 tipos de ação rastreados
@@ -1114,10 +1115,41 @@ Checkpoints: 4/4 (100%) ✅
    - Modelo (5 testes)
    - Integração (2 testes)
 
-5. ✅ **Documentação Completa**:
-   - CHECKPOINT_2_4_RELATORIO.md criado
-   - Exemplos de request/response
-   - Instruções de uso
+**Implementações Frontend Realizadas:**
+
+1. ✅ **AdminUserService** (~200 linhas):
+   - 6 métodos assíncronos (listUsers, getUserDetails, deactivate, reactivate, adjustXp, getAdminActions)
+   - Tratamento de erros DioException
+   - Query parameters para filtros
+
+2. ✅ **AdminUsersManagementPage** (~700 linhas):
+   - Listagem paginada de usuários
+   - Filtros: tier (BEGINNER/INTERMEDIATE/ADVANCED), status (ativo/inativo)
+   - Busca por username/email
+   - Ordenação: data, nível, XP
+   - Card customizado por usuário
+   - Navegação para detalhes
+
+3. ✅ **AdminUserDetailsPage** (~1000 linhas):
+   - Header com avatar, status, dados básicos
+   - Seção de perfil e metas
+   - Estatísticas (TPS, RDR, ILI, transações)
+   - Transações recentes (últimas 5)
+   - Missões ativas
+   - Histórico de ações admin (últimas 10)
+   - Botões de ação: Ajustar XP, Desativar, Reativar
+   - Modais com validação
+
+4. ✅ **Integração com Dashboard**:
+   - Nova ação "Gerenciar Usuários" adicionada
+   - Navegação completa implementada
+   - Correção de referências de cores (AppColors.highlight)
+
+5. ✅ **Documentação Frontend**:
+   - CHECKPOINT_2_4_FRONTEND_COMPLETO.md criado
+   - Fluxo de navegação documentado
+   - Testes manuais sugeridos
+
 
 **Critérios de Sucesso:**
 - [x] Backend ViewSet completo

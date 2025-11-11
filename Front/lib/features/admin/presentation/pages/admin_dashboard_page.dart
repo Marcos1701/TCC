@@ -8,6 +8,7 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'admin_missions_management_page.dart';
 import 'admin_categories_management_page.dart';
+import 'admin_users_management_page.dart';
 
 /// Dashboard principal de administração
 /// 
@@ -389,6 +390,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const AdminCategoriesManagementPage(),
+                  ),
+                ),
+              ),
+              Divider(height: 1, color: Colors.grey[800]),
+              _ActionTile(
+                icon: Icons.manage_accounts,
+                title: 'Gerenciar Usuários',
+                subtitle: 'Visualizar, ativar/desativar, ajustar XP',
+                color: Colors.deepPurple,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminUsersManagementPage(),
                   ),
                 ),
               ),
