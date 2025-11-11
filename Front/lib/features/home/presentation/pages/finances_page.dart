@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../tracking/presentation/pages/tracking_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
@@ -21,6 +22,7 @@ class _FinancesPageState extends State<FinancesPage>
   @override
   void initState() {
     super.initState();
+    AnalyticsService.trackScreenView('finances');
     _tabController = TabController(length: 3, vsync: this);
   }
 

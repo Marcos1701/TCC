@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/models/leaderboard.dart';
 import '../../../core/repositories/finance_repository.dart';
+import '../../../core/services/analytics_service.dart';
 
 /// ViewModel para gerenciar o estado do ranking.
 class LeaderboardViewModel extends ChangeNotifier {
@@ -59,6 +60,11 @@ class LeaderboardViewModel extends ChangeNotifier {
     try {
       _friendsLeaderboard = await _repository.fetchFriendsLeaderboard();
       _friendsError = null;
+      
+      // Rastreia visualização do ranking
+      AnalyticsService.trackLeaderboardViewed(
+        friendsCount: _friendsLeaderboard?.leaderboard.length ?? 0,
+      );
     } catch (e) {
       _friendsError = 'Erro ao carregar ranking de amigos: ${e.toString()}';
       debugPrint('Erro ao carregar ranking de amigos: $e');

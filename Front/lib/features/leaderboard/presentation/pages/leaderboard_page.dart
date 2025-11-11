@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/leaderboard.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';

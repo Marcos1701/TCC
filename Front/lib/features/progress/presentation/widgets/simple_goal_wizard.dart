@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/models/goal.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
@@ -105,6 +106,14 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         autoUpdate: true, // Sempre ativo para simplificar
         trackingPeriod: TrackingPeriod.total.value,
         isReductionGoal: _selectedType == GoalType.categoryExpense,
+      );
+
+      // Rastreia criação de meta via wizard
+      AnalyticsService.trackGoalCreated(
+        goalType: _selectedType!.value,
+        targetAmount: _targetAmount,
+        hasDeadline: _deadline != null,
+        creationMethod: 'wizard',
       );
 
       if (mounted) {

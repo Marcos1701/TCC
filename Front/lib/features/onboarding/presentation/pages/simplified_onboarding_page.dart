@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../presentation/shell/root_shell.dart';
 
@@ -27,6 +28,14 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
   double _essentialExpenses = 0;
   bool _isSubmitting = false;
   Map<String, dynamic>? _insights;
+  final DateTime _onboardingStartTime = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Rastreia início do onboarding
+    AnalyticsService.trackOnboardingStarted();
+  }
 
   @override
   void dispose() {
@@ -411,6 +420,13 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
   }
 
   void _completeOnboarding() {
+    // Rastreia conclusão do onboarding
+    final daysToComplete = DateTime.now().difference(_onboardingStartTime).inDays;
+    AnalyticsService.trackOnboardingCompleted(
+      daysToComplete: daysToComplete,
+      stepsCompleted: 3,
+    );
+    
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const RootShell()),
     );

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
+import '../../../analytics/presentation/pages/analytics_dashboard_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
@@ -26,6 +28,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.trackScreenView('profile');
     _loadProfile();
   }
 
@@ -313,6 +316,25 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         const SizedBox(height: 8),
 
+        // Analytics Dashboard
+        Card(
+          color: Colors.blue[900]?.withOpacity(0.3),
+          child: ListTile(
+            leading: const Icon(Icons.analytics, color: Colors.blue),
+            title: const Text(
+              'Analytics',
+              style: TextStyle(color: Colors.white),
+            ),
+            subtitle: const Text(
+              'Visualizar métricas de uso',
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+            onTap: () => _navigateToAnalytics(context),
+          ),
+        ),
+        const SizedBox(height: 8),
+
         // Configurações
         Card(
           color: Colors.grey[900],
@@ -391,6 +413,12 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToLeaderboard(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const LeaderboardPage()),
+    );
+  }
+
+  void _navigateToAnalytics(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AnalyticsDashboardPage()),
     );
   }
 

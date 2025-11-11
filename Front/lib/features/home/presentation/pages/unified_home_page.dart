@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
@@ -32,6 +33,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.trackScreenView('unified_home');
     _loadData();
   }
 
