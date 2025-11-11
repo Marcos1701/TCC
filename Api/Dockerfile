@@ -50,10 +50,9 @@ WORKDIR /app
 # Copiar código da aplicação
 COPY --chown=appuser:appuser . .
 
-# Criar diretório para arquivos estáticos e media e tornar script executável
+# Criar diretório para arquivos estáticos e media
 RUN mkdir -p static media && \
-    chown -R appuser:appuser static media && \
-    chmod +x start.sh
+    chown -R appuser:appuser static media
 
 # Mudar para usuário não-root
 USER appuser
@@ -61,9 +60,6 @@ USER appuser
 # Expor porta
 EXPOSE 8000
 
-# Health check (desabilitado pois Railway não suporta bem)
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-#     CMD curl -f http://localhost:${PORT:-8000}/admin/ || exit 1
-
-# Usar script de inicialização
-CMD ["./start.sh"]
+# Usar ENTRYPOINT + CMD para expansão de variáveis
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["python manage.py migrate --noinput && python manage.py collectstatic --noinput --clear && exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120 --access-logfile - --error-logfile -"]
