@@ -6,6 +6,7 @@ import '../../../../core/theme/app_colors.dart';
 /// Página de administração para gerar missões com IA
 /// 
 /// Acessível apenas para usuários com is_staff ou is_superuser = true
+/// Última atualização: 11/11/2025 - Corrigido para deploy Railway
 class AdminAiMissionsPage extends StatefulWidget {
   const AdminAiMissionsPage({super.key});
 

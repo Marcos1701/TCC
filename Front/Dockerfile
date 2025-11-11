@@ -51,10 +51,15 @@ COPY --chown=builder:builder . .
 ARG API_BASE_URL=https://tcc-production-d286.up.railway.app
 ENV API_BASE_URL=${API_BASE_URL}
 
-# Build the Flutter web application
+# Clean any previous builds to avoid cache issues
+RUN flutter clean
+
+# Build the Flutter web application with verbose output
 RUN flutter build web \
     --release \
-    --dart-define=API_BASE_URL=${API_BASE_URL}
+    --verbose \
+    --dart-define=API_BASE_URL=${API_BASE_URL} \
+    --source-maps
 
 # ==========================================
 # Stage 2: Production Stage (Nginx)
