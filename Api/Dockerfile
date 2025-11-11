@@ -28,7 +28,7 @@ FROM python:3.11-slim
 # Definir variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PATH=/root/.local/bin:$PATH
+    PATH=/home/appuser/.local/bin:$PATH
 
 # Instalar apenas dependências de runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -36,13 +36,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Criar usuário não-root
+# Criar usuário não-root ANTES de copiar arquivos
 RUN useradd -m -u 1000 appuser && \
     mkdir -p /app /app/static /app/media && \
     chown -R appuser:appuser /app
 
-# Copiar dependências instaladas do builder
-COPY --from=builder --chown=appuser:appuser /root/.local /root/.local
+# Copiar dependências instaladas do builder para o diretório do appuser
+COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
 
 # Definir diretório de trabalho
 WORKDIR /app
@@ -51,7 +51,7 @@ WORKDIR /app
 COPY --chown=appuser:appuser . .
 
 # Criar diretório para arquivos estáticos e media
-RUN mkdir -p static media
+RUN mkdir -p static media && chown -R appuser:appuser static media
 
 # Mudar para usuário não-root
 USER appuser
