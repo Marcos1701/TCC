@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/achievement.dart';
 import '../../data/services/achievement_service.dart';
 import '../widgets/achievement_card.dart';
+import '../widgets/achievement_notification.dart';
 
 /// Página de conquistas do usuário
 /// 
@@ -475,11 +476,84 @@ class _AchievementsPageState extends State<AchievementsPage> with SingleTickerPr
                     ),
                   ),
                 ),
+              
+              // Botão de teste para desbloquear (apenas para conquistas não desbloqueadas)
+              if (!userAchievement.isUnlocked)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _unlockAchievement(achievement.id);
+                    },
+                    icon: const Icon(Icons.lock_open),
+                    label: const Text('Desbloquear (Teste)'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                  ),
+                ),
             ],
           );
         },
       ),
     );
+  }
+
+  /// Desbloqueia uma conquista manualmente (para teste)
+  /// Exibe a notificação animada após o desbloqueio
+  Future<void> _unlockAchievement(int achievementId) async {
+    try {
+      final result = await _achievementService.unlockAchievement(achievementId);
+      
+      if (result['status'] == 'unlocked') {
+        // Encontrar a conquista desbloqueada
+        final userAchievement = _achievements.firstWhere(
+          (a) => a.achievement.id == achievementId,
+        );
+        
+        // Exibir notificação de desbloqueio
+        if (mounted) {
+          AchievementNotification.show(
+            context,
+            achievement: userAchievement.achievement,
+            xpAwarded: result['xp_awarded'] ?? userAchievement.achievement.xpReward,
+          );
+        }
+        
+        // Recarregar lista de conquistas
+        await _loadAchievements();
+        
+        // Mostrar snackbar com mensagem de sucesso
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Conquista desbloqueada! +${result['xp_awarded']} XP'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else if (result['status'] == 'already_unlocked') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Esta conquista já foi desbloqueada'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao desbloquear conquista: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showFilterDialog() {
