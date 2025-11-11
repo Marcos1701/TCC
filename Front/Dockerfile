@@ -48,7 +48,7 @@ RUN flutter pub get
 COPY --chown=builder:builder . .
 
 # Build argument for API URL
-ARG API_BASE_URL=https://tcc-production-d286.up.railway.app
+ARG API_BASE_URL=tcc.railway.internal
 ENV API_BASE_URL=${API_BASE_URL}
 
 # Clean any previous builds to avoid cache issues
