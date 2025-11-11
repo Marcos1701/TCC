@@ -378,6 +378,91 @@ class MissionSerializer(serializers.ModelSerializer):
             "requires_daily_action",
             "min_daily_actions",
         )
+    
+    def validate_title(self, value):
+        """Valida que o título não está vazio e tem tamanho apropriado."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("O título não pode estar vazio.")
+        if len(value) > 150:
+            raise serializers.ValidationError("O título não pode ter mais de 150 caracteres.")
+        return value.strip()
+    
+    def validate_description(self, value):
+        """Valida que a descrição não está vazia."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("A descrição não pode estar vazia.")
+        return value.strip()
+    
+    def validate_reward_points(self, value):
+        """Valida que os pontos de recompensa estão em um range válido."""
+        if value < 10:
+            raise serializers.ValidationError("A recompensa deve ser no mínimo 10 XP.")
+        if value > 1000:
+            raise serializers.ValidationError("A recompensa não pode exceder 1000 XP.")
+        return value
+    
+    def validate_duration_days(self, value):
+        """Valida que a duração está em um range válido."""
+        if value < 1:
+            raise serializers.ValidationError("A duração deve ser no mínimo 1 dia.")
+        if value > 365:
+            raise serializers.ValidationError("A duração não pode exceder 365 dias.")
+        return value
+    
+    def validate(self, data):
+        """Validações que dependem de múltiplos campos."""
+        validation_type = data.get('validation_type')
+        
+        # Validações específicas por tipo de validação
+        if validation_type == Mission.ValidationType.TEMPORAL:
+            if data.get('requires_consecutive_days') and not data.get('min_consecutive_days'):
+                raise serializers.ValidationError({
+                    'min_consecutive_days': 'Obrigatório quando requires_consecutive_days é True.'
+                })
+        
+        elif validation_type == Mission.ValidationType.CATEGORY_REDUCTION:
+            if not data.get('target_category'):
+                raise serializers.ValidationError({
+                    'target_category': 'Obrigatório para missões de redução de categoria.'
+                })
+            if not data.get('target_reduction_percent'):
+                raise serializers.ValidationError({
+                    'target_reduction_percent': 'Obrigatório para missões de redução de categoria.'
+                })
+        
+        elif validation_type == Mission.ValidationType.CATEGORY_LIMIT:
+            if not data.get('target_category'):
+                raise serializers.ValidationError({
+                    'target_category': 'Obrigatório para missões de limite de categoria.'
+                })
+            if not data.get('category_spending_limit'):
+                raise serializers.ValidationError({
+                    'category_spending_limit': 'Obrigatório para missões de limite de categoria.'
+                })
+        
+        elif validation_type == Mission.ValidationType.GOAL_PROGRESS:
+            if not data.get('target_goal'):
+                raise serializers.ValidationError({
+                    'target_goal': 'Obrigatório para missões de progresso em meta.'
+                })
+            if not data.get('goal_progress_target'):
+                raise serializers.ValidationError({
+                    'goal_progress_target': 'Obrigatório para missões de progresso em meta.'
+                })
+        
+        elif validation_type == Mission.ValidationType.SAVINGS_INCREASE:
+            if not data.get('savings_increase_amount'):
+                raise serializers.ValidationError({
+                    'savings_increase_amount': 'Obrigatório para missões de aumento de poupança.'
+                })
+        
+        elif validation_type == Mission.ValidationType.CONSISTENCY:
+            if data.get('requires_daily_action') and not data.get('min_daily_actions'):
+                raise serializers.ValidationError({
+                    'min_daily_actions': 'Obrigatório quando requires_daily_action é True.'
+                })
+        
+        return data
 
 
 class MissionProgressSerializer(serializers.ModelSerializer):

@@ -1334,9 +1334,26 @@ class GoalViewSet(viewsets.ModelViewSet):
         return Response(insights)
 
 
-class MissionViewSet(viewsets.ReadOnlyModelViewSet):
+class MissionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para CRUD completo de missões.
+    
+    - LIST/RETRIEVE: Qualquer usuário autenticado (apenas missões ativas)
+    - CREATE/UPDATE/DELETE: Apenas admins (is_staff ou is_superuser)
+    
+    Filtros disponíveis:
+    - tier: BEGINNER, INTERMEDIATE, ADVANCED
+    - mission_type: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, etc.
+    - difficulty: EASY, MEDIUM, HARD
+    - is_active: true/false
+    - search: busca por título ou descrição
+    """
     serializer_class = MissionSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['mission_type', 'difficulty', 'is_active']
+    search_fields = ['title', 'description']
+    ordering_fields = ['created_at', 'priority', 'reward_points']
+    ordering = ['priority', '-created_at']
 
     def _get_tier_level_range(self, tier):
         """Retorna o range de níveis para um tier específico."""
@@ -1346,9 +1363,151 @@ class MissionViewSet(viewsets.ReadOnlyModelViewSet):
             'ADVANCED': (16, 100)
         }
         return tier_ranges.get(tier, (1, 100))
+    
+    def get_permissions(self):
+        """
+        Define permissões baseadas na ação:
+        - create, update, partial_update, destroy: IsAdminUser
+        - list, retrieve, outras actions: IsAuthenticated
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        return Mission.objects.filter(is_active=True)
+        """
+        Retorna missões:
+        - Para admin: todas as missões
+        - Para usuário comum: apenas missões ativas
+        
+        Suporta filtro por tier via query param.
+        """
+        queryset = Mission.objects.all()
+        
+        # Usuários comuns veem apenas missões ativas
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        
+        # Filtro por tier (custom)
+        tier = self.request.query_params.get('tier', None)
+        if tier:
+            tier_level_range = self._get_tier_level_range(tier)
+            # Missões que se aplicam ao tier
+            queryset = queryset.filter(
+                Q(min_transactions__isnull=True) | 
+                Q(min_transactions__lte=tier_level_range[1])
+            )
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """
+        Valida e cria nova missão.
+        Apenas admins podem criar missões.
+        """
+        # Validações adicionais podem ser adicionadas aqui
+        mission = serializer.save()
+        logger.info(f"Missão '{mission.title}' criada por admin {self.request.user.username}")
+        return mission
+    
+    def perform_update(self, serializer):
+        """
+        Valida e atualiza missão existente.
+        Apenas admins podem atualizar missões.
+        """
+        mission = serializer.save()
+        logger.info(f"Missão '{mission.title}' atualizada por admin {self.request.user.username}")
+        return mission
+    
+    def perform_destroy(self, instance):
+        """
+        Desativa missão ao invés de deletar (soft delete).
+        Apenas admins podem desativar missões.
+        """
+        instance.is_active = False
+        instance.save()
+        logger.info(f"Missão '{instance.title}' desativada por admin {self.request.user.username}")
+        # Não chama super().perform_destroy() para não deletar do banco
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def duplicate(self, request, pk=None):
+        """
+        Duplica uma missão existente.
+        
+        POST /api/missions/{id}/duplicate/
+        {
+            "title_suffix": " (Cópia)" (opcional, padrão: " - Cópia")
+        }
+        
+        Retorna a missão duplicada.
+        Apenas admins podem duplicar missões.
+        """
+        original_mission = self.get_object()
+        title_suffix = request.data.get('title_suffix', ' - Cópia')
+        
+        # Criar cópia da missão
+        duplicated = Mission.objects.create(
+            title=f"{original_mission.title}{title_suffix}",
+            description=original_mission.description,
+            reward_points=original_mission.reward_points,
+            difficulty=original_mission.difficulty,
+            mission_type=original_mission.mission_type,
+            priority=original_mission.priority + 1,  # Incrementa prioridade
+            target_tps=original_mission.target_tps,
+            target_rdr=original_mission.target_rdr,
+            min_ili=original_mission.min_ili,
+            max_ili=original_mission.max_ili,
+            min_transactions=original_mission.min_transactions,
+            duration_days=original_mission.duration_days,
+            is_active=False,  # Criar desativada para admin revisar
+            validation_type=original_mission.validation_type,
+            requires_consecutive_days=original_mission.requires_consecutive_days,
+            min_consecutive_days=original_mission.min_consecutive_days,
+            target_category=original_mission.target_category,
+            target_reduction_percent=original_mission.target_reduction_percent,
+            category_spending_limit=original_mission.category_spending_limit,
+            target_goal=original_mission.target_goal,
+            goal_progress_target=original_mission.goal_progress_target,
+            savings_increase_amount=original_mission.savings_increase_amount,
+        )
+        
+        logger.info(f"Missão '{original_mission.title}' duplicada como '{duplicated.title}' por admin {request.user.username}")
+        
+        serializer = self.get_serializer(duplicated)
+        return Response(
+            {
+                'success': True,
+                'message': f'Missão duplicada com sucesso',
+                'original_id': str(original_mission.id),
+                'duplicated': serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def toggle_active(self, request, pk=None):
+        """
+        Ativa/desativa uma missão.
+        
+        POST /api/missions/{id}/toggle_active/
+        
+        Apenas admins podem ativar/desativar missões.
+        """
+        mission = self.get_object()
+        mission.is_active = not mission.is_active
+        mission.save()
+        
+        status_text = 'ativada' if mission.is_active else 'desativada'
+        logger.info(f"Missão '{mission.title}' {status_text} por admin {request.user.username}")
+        
+        serializer = self.get_serializer(mission)
+        return Response(
+            {
+                'success': True,
+                'message': f'Missão {status_text} com sucesso',
+                'mission': serializer.data
+            }
+        )
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_ai_missions(self, request):
