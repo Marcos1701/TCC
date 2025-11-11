@@ -108,9 +108,9 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Erro ao carregar dados',
-              style: const TextStyle(fontSize: 18, color: Colors.white),
+              style: TextStyle(fontSize: 18, color: Colors.white),
             ),
             const SizedBox(height: 8),
             Text(
