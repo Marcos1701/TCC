@@ -13,7 +13,12 @@ String _getFirstName(String fullName) {
   return fullName.trim().split(' ').first;
 }
 
-/// Página de ranking com suporte para ranking geral e de amigos.
+/// Página de ranking focada apenas em amigos.
+/// 
+/// Dia 11-14: Removido ranking geral para:
+/// - Reduzir comparação social negativa
+/// - Focar em competição saudável entre amigos
+/// - Aumentar engajamento com amigos próximos
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
 
@@ -21,29 +26,24 @@ class LeaderboardPage extends StatefulWidget {
   State<LeaderboardPage> createState() => _LeaderboardPageState();
 }
 
-class _LeaderboardPageState extends State<LeaderboardPage>
-    with SingleTickerProviderStateMixin {
+class _LeaderboardPageState extends State<LeaderboardPage> {
   final _cacheManager = CacheManager();
-  late TabController _tabController;
   late LeaderboardViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _viewModel = LeaderboardViewModel();
     _cacheManager.addListener(_onCacheInvalidated);
     
-    // Carregar dados iniciais
+    // Carregar apenas ranking de amigos
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _viewModel.loadGeneralLeaderboard();
       _viewModel.loadFriendsLeaderboard();
     });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     _cacheManager.removeListener(_onCacheInvalidated);
     _viewModel.dispose();
     super.dispose();
@@ -64,7 +64,7 @@ class _LeaderboardPageState extends State<LeaderboardPage>
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text(
-          'Ranking',
+          'Ranking de Amigos',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
@@ -87,118 +87,30 @@ class _LeaderboardPageState extends State<LeaderboardPage>
             tooltip: 'Gerenciar Amigos',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey[400],
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          tabs: const [
-            Tab(text: 'Ranking Geral'),
-            Tab(text: UxStrings.friends),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _GeneralLeaderboardTab(viewModel: _viewModel),
-          _FriendsLeaderboardTab(viewModel: _viewModel),
-        ],
-      ),
-      floatingActionButton: ListenableBuilder(
-        listenable: _tabController,
-        builder: (context, child) {
-          // Mostrar FAB apenas na tab de amigos
-          if (_tabController.index == 1) {
-            return FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const FriendsPage(),
-                  ),
-                ).then((_) {
-                  // Recarregar após voltar da página de amigos
-                  _viewModel.refresh();
-                });
-              },
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.person_add),
-              label: const Text('Adicionar Amigos'),
-            );
-          }
-          return const SizedBox.shrink();
+      body: _FriendsLeaderboardContent(viewModel: _viewModel),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FriendsPage(),
+            ),
+          ).then((_) {
+            _viewModel.refresh();
+          });
         },
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.person_add),
+        label: const Text('Adicionar Amigos'),
       ),
     );
   }
 }
 
-/// Tab do ranking geral.
-class _GeneralLeaderboardTab extends StatelessWidget {
-  const _GeneralLeaderboardTab({required this.viewModel});
-
-  final LeaderboardViewModel viewModel;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: viewModel,
-      builder: (context, child) {
-        if (viewModel.isLoadingGeneral) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
-        }
-
-        if (viewModel.generalError != null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  viewModel.generalError!,
-                  style: const TextStyle(color: Colors.white),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => viewModel.loadGeneralLeaderboard(),
-                  child: const Text('Tentar novamente'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final leaderboard = viewModel.generalLeaderboard;
-        if (leaderboard == null || leaderboard.leaderboard.isEmpty) {
-          return const Center(
-            child: Text(
-              'Nenhum usuário no ranking ainda.',
-              style: TextStyle(color: Colors.white),
-            ),
-          );
-        }
-
-        return _LeaderboardList(
-          entries: leaderboard.leaderboard,
-          onRefresh: () => viewModel.loadGeneralLeaderboard(),
-        );
-      },
-    );
-  }
-}
-
-/// Tab do ranking de amigos.
-class _FriendsLeaderboardTab extends StatelessWidget {
-  const _FriendsLeaderboardTab({required this.viewModel});
+/// Conteúdo principal da página de ranking de amigos.
+class _FriendsLeaderboardContent extends StatelessWidget {
+  const _FriendsLeaderboardContent({required this.viewModel});
 
   final LeaderboardViewModel viewModel;
 
