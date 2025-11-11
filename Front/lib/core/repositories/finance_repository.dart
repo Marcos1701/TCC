@@ -662,4 +662,19 @@ class FinanceRepository {
         .map((e) => UserSearchModel.fromMap(e as Map<String, dynamic>))
         .toList();
   }
+
+  /// Completa o onboarding simplificado (Dia 6-7)
+  Future<Map<String, dynamic>> completeSimplifiedOnboarding({
+    required double monthlyIncome,
+    required double essentialExpenses,
+  }) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      ApiEndpoints.simplifiedOnboarding,
+      data: {
+        'monthly_income': monthlyIncome,
+        'essential_expenses': essentialExpenses,
+      },
+    );
+    return response.data ?? {};
+  }
 }

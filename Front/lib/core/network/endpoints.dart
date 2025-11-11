@@ -16,4 +16,5 @@ class ApiEndpoints {
   static const String user = '/api/user/';
   static const String friendships = '/api/friendships/';
   static const String leaderboard = '/api/leaderboard/';
+  static const String simplifiedOnboarding = '/api/onboarding/simplified/';
 }

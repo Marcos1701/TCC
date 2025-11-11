@@ -1,0 +1,424 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/utils/currency_input_formatter.dart';
+import '../../../../presentation/shell/root_shell.dart';
+
+/// Página de onboarding simplificado (3 passos)
+/// Dia 6-7: Reduzido de 8 transações para 2 inputs básicos
+class SimplifiedOnboardingPage extends StatefulWidget {
+  const SimplifiedOnboardingPage({super.key});
+
+  @override
+  State<SimplifiedOnboardingPage> createState() => _SimplifiedOnboardingPageState();
+}
+
+class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
+  final PageController _pageController = PageController();
+  final FinanceRepository _repository = FinanceRepository();
+  final NumberFormat _currency = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: 'R\$',
+  );
+
+  int _currentPage = 0;
+  double _monthlyIncome = 0;
+  double _essentialExpenses = 0;
+  bool _isSubmitting = false;
+  Map<String, dynamic>? _insights;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Indicador de progresso
+            LinearProgressIndicator(
+              value: (_currentPage + 1) / 3,
+              backgroundColor: Colors.grey[800],
+              valueColor: const AlwaysStoppedAnimation(Colors.purple),
+            ),
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (page) => setState(() => _currentPage = page),
+                children: [
+                  _buildWelcomeStep(),
+                  _buildBasicInfoStep(),
+                  _buildCompletionStep(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeStep() {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.account_balance_wallet,
+            size: 100,
+            color: Colors.purple,
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Bem-vindo!',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Vamos começar sua jornada financeira.\nSó precisamos de 2 informações básicas.',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[400],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => _pageController.nextPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.purple,
+              ),
+              child: const Text(
+                'Começar',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: _skipOnboarding,
+            child: const Text('Pular por enquanto'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBasicInfoStep() {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Informações básicas',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Isso nos ajuda a personalizar sua experiência',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[400],
+            ),
+          ),
+          const SizedBox(height: 32),
+          
+          const Text(
+            '💵 Quanto você ganha por mês?',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            keyboardType: TextInputType.number,
+            inputFormatters: [CurrencyInputFormatter()],
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Ex: 3.500,00',
+              hintStyle: TextStyle(color: Colors.grey[600]),
+              prefixText: 'R\$ ',
+              prefixStyle: const TextStyle(color: Colors.white),
+              filled: true,
+              fillColor: Colors.grey[900],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _monthlyIncome = CurrencyInputFormatter.parse(value);
+              });
+            },
+          ),
+          
+          const SizedBox(height: 24),
+          
+          const Text(
+            '🏠 Quanto você gasta com o básico?',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Aluguel, mercado, contas de água/luz, etc.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            keyboardType: TextInputType.number,
+            inputFormatters: [CurrencyInputFormatter()],
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Ex: 2.000,00',
+              hintStyle: TextStyle(color: Colors.grey[600]),
+              prefixText: 'R\$ ',
+              prefixStyle: const TextStyle(color: Colors.white),
+              filled: true,
+              fillColor: Colors.grey[900],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _essentialExpenses = CurrencyInputFormatter.parse(value);
+              });
+            },
+          ),
+          
+          const Spacer(),
+          
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _monthlyIncome > 0 && _essentialExpenses >= 0
+                  ? _submitOnboarding
+                  : null,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.purple,
+              ),
+              child: _isSubmitting
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      'Continuar',
+                      style: TextStyle(fontSize: 16),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletionStep() {
+    if (_insights == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final insights = _insights!['insights'] as Map<String, dynamic>;
+    final balance = insights['monthly_balance'] as double;
+    final savingsRate = insights['savings_rate'] as double;
+    final recommendation = insights['recommendation'] as String;
+
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.check_circle,
+            size: 100,
+            color: Colors.green,
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Tudo pronto!',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Com base nas suas informações:',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[400],
+            ),
+          ),
+          const SizedBox(height: 32),
+          
+          _buildInsightCard(
+            icon: Icons.trending_up,
+            title: 'Você pode guardar',
+            value: _currency.format(balance),
+            subtitle: '${savingsRate.toStringAsFixed(0)}% da sua renda',
+            color: Colors.green,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          _buildInsightCard(
+            icon: Icons.lightbulb_outline,
+            title: 'Dica',
+            value: recommendation,
+            subtitle: '',
+            color: Colors.amber,
+          ),
+          
+          const Spacer(),
+          
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _completeOnboarding,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: Colors.purple,
+              ),
+              child: const Text(
+                'Começar a usar',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 40),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[400],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitOnboarding() async {
+    setState(() => _isSubmitting = true);
+    
+    try {
+      final result = await _repository.completeSimplifiedOnboarding(
+        monthlyIncome: _monthlyIncome,
+        essentialExpenses: _essentialExpenses,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _insights = result;
+          _isSubmitting = false;
+        });
+        
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _completeOnboarding() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const RootShell()),
+    );
+  }
+
+  void _skipOnboarding() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const RootShell()),
+    );
+  }
+}
