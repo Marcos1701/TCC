@@ -4,6 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .models import (
+    Achievement,
     Category,
     Friendship,
     Goal,
@@ -12,6 +13,7 @@ from .models import (
     MissionProgressSnapshot,
     Transaction,
     TransactionLink,
+    UserAchievement,
     UserDailySnapshot,
     UserMonthlySnapshot,
     UserProfile,
@@ -983,3 +985,35 @@ class LeaderboardEntrySerializer(serializers.Serializer):
     level = serializers.IntegerField()
     xp = serializers.IntegerField()
     is_current_user = serializers.BooleanField()
+
+
+class AchievementSerializer(serializers.ModelSerializer):
+    """Serializer para conquistas do sistema."""
+    
+    class Meta:
+        model = Achievement
+        fields = [
+            'id', 'title', 'description', 'category', 'tier',
+            'xp_reward', 'icon', 'criteria', 'is_active',
+            'is_ai_generated', 'priority', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+
+
+class UserAchievementSerializer(serializers.ModelSerializer):
+    """Serializer para conquistas do usuário com progresso."""
+    achievement = AchievementSerializer(read_only=True)
+    progress_percentage = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserAchievement
+        fields = [
+            'id', 'achievement', 'is_unlocked', 'progress',
+            'progress_max', 'progress_percentage', 'unlocked_at',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_progress_percentage(self, obj):
+        """Retorna progresso em porcentagem."""
+        return obj.progress_percentage()

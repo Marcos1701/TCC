@@ -2030,3 +2030,160 @@ class AdminActionLog(models.Model):
             reason=reason,
             ip_address=ip_address
         )
+
+
+class Achievement(models.Model):
+    """
+    Model para conquistas (achievements) do sistema.
+    Conquistas podem ser geradas por IA ou criadas manualmente.
+    """
+    
+    CATEGORY_CHOICES = [
+        ('FINANCIAL', 'Financeiro'),
+        ('SOCIAL', 'Social'),
+        ('MISSION', 'Missões'),
+        ('STREAK', 'Sequência'),
+        ('GENERAL', 'Geral'),
+    ]
+    
+    TIER_CHOICES = [
+        ('BEGINNER', 'Iniciante'),
+        ('INTERMEDIATE', 'Intermediário'),
+        ('ADVANCED', 'Avançado'),
+    ]
+    
+    title = models.CharField(
+        max_length=200,
+        help_text="Título da conquista"
+    )
+    description = models.TextField(
+        help_text="Descrição detalhada da conquista"
+    )
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='GENERAL',
+        help_text="Categoria da conquista"
+    )
+    tier = models.CharField(
+        max_length=20,
+        choices=TIER_CHOICES,
+        default='BEGINNER',
+        help_text="Nível de dificuldade"
+    )
+    xp_reward = models.PositiveIntegerField(
+        default=50,
+        help_text="Recompensa em XP ao desbloquear"
+    )
+    icon = models.CharField(
+        max_length=50,
+        default='🏆',
+        help_text="Emoji ou ícone da conquista"
+    )
+    
+    # Critérios de desbloqueio (JSON)
+    criteria = models.JSONField(
+        default=dict,
+        help_text="Critérios para desbloquear (ex: {'transactions': 10, 'type': 'count'})"
+    )
+    
+    # Metadados
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Conquista ativa no sistema"
+    )
+    is_ai_generated = models.BooleanField(
+        default=False,
+        help_text="Conquista gerada por IA"
+    )
+    priority = models.PositiveIntegerField(
+        default=50,
+        help_text="Prioridade de exibição (1-100, menor = maior prioridade)"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['priority', '-xp_reward', 'title']
+        indexes = [
+            models.Index(fields=['category', 'tier']),
+            models.Index(fields=['is_active', 'priority']),
+        ]
+    
+    def __str__(self):
+        return f"{self.icon} {self.title} ({self.tier})"
+
+
+class UserAchievement(models.Model):
+    """
+    Relacionamento entre usuário e conquistas desbloqueadas.
+    Rastreia progresso e data de desbloqueio.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='achievements'
+    )
+    achievement = models.ForeignKey(
+        Achievement,
+        on_delete=models.CASCADE,
+        related_name='user_achievements'
+    )
+    
+    # Progresso e status
+    is_unlocked = models.BooleanField(
+        default=False,
+        help_text="Conquista desbloqueada"
+    )
+    progress = models.PositiveIntegerField(
+        default=0,
+        help_text="Progresso atual (ex: 5 de 10 transações)"
+    )
+    progress_max = models.PositiveIntegerField(
+        default=100,
+        help_text="Progresso máximo necessário"
+    )
+    
+    # Datas
+    unlocked_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Data e hora do desbloqueio"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'achievement']
+        ordering = ['-unlocked_at', '-updated_at']
+        indexes = [
+            models.Index(fields=['user', 'is_unlocked']),
+            models.Index(fields=['achievement', 'is_unlocked']),
+        ]
+    
+    def __str__(self):
+        status = "✓" if self.is_unlocked else f"{self.progress}/{self.progress_max}"
+        return f"{self.user.username} - {self.achievement.title} [{status}]"
+    
+    def progress_percentage(self):
+        """Retorna progresso em porcentagem"""
+        if self.progress_max == 0:
+            return 0
+        return min(100, int((self.progress / self.progress_max) * 100))
+    
+    def unlock(self):
+        """Desbloqueia a conquista e atribui XP ao usuário"""
+        if not self.is_unlocked:
+            self.is_unlocked = True
+            self.unlocked_at = timezone.now()
+            self.progress = self.progress_max
+            self.save()
+            
+            # Adicionar XP ao usuário
+            profile = self.user.userprofile
+            profile.experience_points += self.achievement.xp_reward
+            profile.save()
+            
+            return True
+        return False

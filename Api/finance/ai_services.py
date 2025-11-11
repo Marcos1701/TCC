@@ -1871,3 +1871,185 @@ Não adicione explicações.
         logger.error(f"Erro ao sugerir categoria via IA: {e}")
     
     return None
+
+
+# ==================== GERAÇÃO DE CONQUISTAS COM IA ====================
+
+def generate_achievements_with_ai(category='ALL', tier='ALL'):
+    """
+    Gera conquistas personalizadas usando Google Gemini 2.5 Flash.
+    
+    Args:
+        category: Categoria ('FINANCIAL', 'SOCIAL', 'MISSION', 'STREAK', 'GENERAL', 'ALL')
+        tier: Nível de dificuldade ('BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL')
+    
+    Returns:
+        list: Lista de dicts com conquistas geradas
+    
+    Exemplos de conquistas:
+    
+    FINANCIAL:
+    - "Primeira Economia" - Registre sua primeira transação de receita
+    - "Mestre da Poupança" - Atinja TPS de 30% por 3 meses consecutivos
+    - "Caçador de Descontos" - Economize R$ 500 em um mês
+    
+    SOCIAL:
+    - "Amigo Financeiro" - Adicione seu primeiro amigo
+    - "Influenciador" - Tenha 10 amigos ativos
+    - "Top 10" - Entre no top 10 do ranking global
+    
+    MISSION:
+    - "Aventureiro" - Complete sua primeira missão
+    - "Mestre das Missões" - Complete 50 missões
+    - "Sequência de Ouro" - Complete missões 7 dias seguidos
+    
+    STREAK:
+    - "Consistência" - Faça login 7 dias consecutivos
+    - "Dedicação Total" - Mantenha streak de 30 dias
+    - "Inabalável" - Atinja streak de 100 dias
+    """
+    from .models import Achievement
+    
+    if not model:
+        logger.error("Modelo Gemini não configurado")
+        return []
+    
+    # Verificar cache (30 dias)
+    cache_key = f'ai_achievements_{category}_{tier}'
+    cached_achievements = cache.get(cache_key)
+    if cached_achievements:
+        logger.info(f"Conquistas carregadas do cache: {cache_key}")
+        return cached_achievements
+    
+    # Determinar quantas conquistas gerar
+    categories_to_generate = []
+    if category == 'ALL':
+        categories_to_generate = ['FINANCIAL', 'SOCIAL', 'MISSION', 'STREAK', 'GENERAL']
+    else:
+        categories_to_generate = [category]
+    
+    tiers_to_generate = []
+    if tier == 'ALL':
+        tiers_to_generate = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+    else:
+        tiers_to_generate = [tier]
+    
+    total_achievements = len(categories_to_generate) * len(tiers_to_generate) * 2  # 2 por combinação
+    
+    # Construir prompt para Gemini
+    prompt = f"""Você é um especialista em gamificação e educação financeira. 
+Gere {total_achievements} conquistas (achievements) para um aplicativo de gestão financeira gamificada.
+
+**CATEGORIAS DE CONQUISTAS:**
+
+1. FINANCIAL (Financeiro):
+   - Relacionadas a transações, economias, metas financeiras
+   - Ex: "Primeira Economia", "Mestre da Poupança", "Caçador de Descontos"
+
+2. SOCIAL (Social):
+   - Relacionadas a amigos, ranking, comparações
+   - Ex: "Amigo Financeiro", "Top 10", "Influenciador"
+
+3. MISSION (Missões):
+   - Relacionadas a completar missões do app
+   - Ex: "Aventureiro", "Mestre das Missões", "Sequência de Ouro"
+
+4. STREAK (Sequência):
+   - Relacionadas a dias consecutivos de ações
+   - Ex: "Consistência", "Dedicação Total", "Inabalável"
+
+5. GENERAL (Geral):
+   - Conquistas variadas, onboarding, uso do app
+   - Ex: "Primeiro Passo", "Explorador", "Veterano"
+
+**NÍVEIS DE DIFICULDADE:**
+
+- BEGINNER (Iniciante): Fácil de alcançar, incentiva primeiros passos
+  - XP: 25-50
+  - Critérios simples (1-5 ações)
+
+- INTERMEDIATE (Intermediário): Requer consistência e esforço moderado
+  - XP: 75-150
+  - Critérios moderados (10-30 ações)
+
+- ADVANCED (Avançado): Conquistas épicas, long-term
+  - XP: 200-500
+  - Critérios desafiadores (50+ ações ou metas ambiciosas)
+
+**REQUISITOS:**
+
+1. Cada conquista deve ter:
+   - title: Nome criativo e motivador (máx 50 caracteres)
+   - description: Descrição clara do objetivo (máx 200 caracteres)
+   - category: Uma das 5 categorias acima
+   - tier: Um dos 3 níveis
+   - xp_reward: Pontos de XP apropriados ao tier
+   - icon: Um emoji relevante (🏆, 💰, 👥, 🔥, ⭐, 💎, 🎯, etc)
+   - criteria: JSON com tipo e valor
+     - Para contadores: {{"type": "count", "target": X, "metric": "transactions|missions|friends|days"}}
+     - Para valores: {{"type": "value", "target": X, "metric": "tps|rdr|ili|savings"}}
+     - Para streaks: {{"type": "streak", "target": X, "activity": "login|transaction|mission"}}
+
+2. Distribua igualmente entre:
+   - Categorias: {', '.join(categories_to_generate)}
+   - Tiers: {', '.join(tiers_to_generate)}
+
+3. Seja criativo com nomes e emojis
+4. Critérios devem ser mensuráveis e alcançáveis
+5. Evite duplicação de conceitos
+
+**FORMATO DE RESPOSTA (JSON Array):**
+
+```json
+[
+  {{
+    "title": "Primeira Economia",
+    "description": "Registre sua primeira transação de receita",
+    "category": "FINANCIAL",
+    "tier": "BEGINNER",
+    "xp_reward": 25,
+    "icon": "💰",
+    "criteria": {{"type": "count", "target": 1, "metric": "income_transactions"}}
+  }},
+  {{
+    "title": "Mestre da Poupança",
+    "description": "Mantenha TPS acima de 30% por 3 meses consecutivos",
+    "category": "FINANCIAL",
+    "tier": "ADVANCED",
+    "xp_reward": 300,
+    "icon": "💎",
+    "criteria": {{"type": "value", "target": 30, "metric": "tps_3months", "duration": 90}}
+  }}
+]
+```
+
+**IMPORTANTE:** Retorne APENAS o JSON array, sem texto adicional antes ou depois."""
+
+    try:
+        logger.info(f"Gerando {total_achievements} conquistas via IA ({category}, {tier})")
+        
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        # Limpar markdown code blocks se houver
+        if response_text.startswith('```'):
+            response_text = response_text.split('```')[1]
+            if response_text.startswith('json'):
+                response_text = response_text[4:]
+        
+        achievements_data = json.loads(response_text)
+        
+        logger.info(f"IA gerou {len(achievements_data)} conquistas com sucesso")
+        
+        # Cachear por 30 dias
+        cache.set(cache_key, achievements_data, timeout=2592000)
+        
+        return achievements_data
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"Erro ao parsear JSON da IA: {e}")
+        logger.error(f"Resposta recebida: {response_text[:500]}")
+        return []
+    except Exception as e:
+        logger.error(f"Erro ao gerar conquistas via IA: {e}")
+        return []

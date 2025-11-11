@@ -1983,3 +1983,335 @@ def get_comprehensive_mission_context(user):
     return context
 
 
+# ============================================================================
+# ACHIEVEMENT VALIDATION SYSTEM
+# ============================================================================
+
+def check_achievements_for_user(user, event_type='generic'):
+    """
+    Valida e desbloqueia conquistas automaticamente para o usuário.
+    
+    Chamada de:
+    - Signals: transaction_created, mission_completed, goal_completed
+    - Celery tasks: daily_streak_check
+    
+    Args:
+        user: Usuário para validar conquistas
+        event_type: Tipo de evento que disparou a validação
+                   ('transaction', 'mission', 'goal', 'streak', 'generic')
+    
+    Returns:
+        list: Lista de conquistas desbloqueadas nesta validação
+    """
+    from .models import Achievement, UserAchievement
+    
+    # Buscar conquistas já desbloqueadas para excluir
+    unlocked_ids = UserAchievement.objects.filter(
+        user=user, 
+        is_unlocked=True
+    ).values_list('achievement_id', flat=True)
+    
+    # Buscar conquistas ativas que ainda não foram desbloqueadas
+    achievements = Achievement.objects.filter(
+        is_active=True
+    ).exclude(id__in=unlocked_ids)
+    
+    # Filtrar por categoria relevante ao evento (otimização)
+    if event_type == 'transaction':
+        achievements = achievements.filter(category='FINANCIAL')
+    elif event_type == 'mission':
+        achievements = achievements.filter(category='MISSION')
+    elif event_type == 'streak':
+        achievements = achievements.filter(category='STREAK')
+    
+    newly_unlocked = []
+    
+    for achievement in achievements:
+        criteria = achievement.criteria
+        
+        # Verificar se critérios foram atendidos
+        if check_criteria_met(user, criteria):
+            # Buscar ou criar UserAchievement
+            user_achievement, created = UserAchievement.objects.get_or_create(
+                user=user,
+                achievement=achievement,
+                defaults={
+                    'progress': criteria.get('target', 100),
+                    'progress_max': criteria.get('target', 100),
+                }
+            )
+            
+            # Desbloquear conquista
+            if user_achievement.unlock():
+                newly_unlocked.append(achievement)
+                logger.info(
+                    f"Conquista '{achievement.title}' desbloqueada para {user.username} "
+                    f"(XP: +{achievement.xp_reward}, event: {event_type})"
+                )
+    
+    return newly_unlocked
+
+
+def check_criteria_met(user, criteria):
+    """
+    Verifica se o usuário atende os critérios de uma conquista.
+    
+    Tipos de critérios suportados:
+    1. count: Contagem de elementos (transações, missões, amigos, etc.)
+       Exemplo: {"type": "count", "target": 10, "metric": "transactions"}
+    
+    2. value: Valor numérico de indicadores (TPS, RDR, ILI, savings, etc.)
+       Exemplo: {"type": "value", "target": 30, "metric": "tps", "duration": 90}
+    
+    3. streak: Dias consecutivos de atividade
+       Exemplo: {"type": "streak", "target": 7, "metric": "login"}
+    
+    Args:
+        user: Usuário para validar
+        criteria: Dict com type, target, metric, duration (opcional)
+    
+    Returns:
+        bool: True se critérios atendidos, False caso contrário
+    """
+    if not criteria or not isinstance(criteria, dict):
+        return False
+    
+    ctype = criteria.get('type')
+    target = criteria.get('target', 0)
+    metric = criteria.get('metric', '')
+    duration = criteria.get('duration')  # Opcional: dias de duração
+    
+    # ========================================================================
+    # TYPE: COUNT - Contagem de elementos
+    # ========================================================================
+    if ctype == 'count':
+        if metric == 'transactions':
+            # Total de transações do usuário
+            count = Transaction.objects.filter(user=user).count()
+            return count >= target
+        
+        elif metric == 'income_transactions':
+            # Total de transações de receita
+            count = Transaction.objects.filter(
+                user=user, 
+                type=Transaction.TransactionType.INCOME
+            ).count()
+            return count >= target
+        
+        elif metric == 'expense_transactions':
+            # Total de transações de despesa
+            count = Transaction.objects.filter(
+                user=user, 
+                type=Transaction.TransactionType.EXPENSE
+            ).count()
+            return count >= target
+        
+        elif metric == 'missions':
+            # Total de missões completadas
+            count = MissionProgress.objects.filter(
+                user=user, 
+                completed=True
+            ).count()
+            return count >= target
+        
+        elif metric == 'goals':
+            # Total de metas concluídas
+            count = Goal.objects.filter(
+                user=user, 
+                status=Goal.GoalStatus.COMPLETED
+            ).count()
+            return count >= target
+        
+        elif metric == 'friends':
+            # Total de amigos
+            from .models import Friendship
+            count = Friendship.objects.filter(
+                Q(from_user=user, status=Friendship.FriendshipStatus.ACCEPTED) |
+                Q(to_user=user, status=Friendship.FriendshipStatus.ACCEPTED)
+            ).count()
+            return count >= target
+        
+        elif metric == 'categories':
+            # Total de categorias criadas pelo usuário
+            count = Category.objects.filter(
+                user=user,
+                is_default=False
+            ).count()
+            return count >= target
+    
+    # ========================================================================
+    # TYPE: VALUE - Valores numéricos (indicadores, totais, etc.)
+    # ========================================================================
+    elif ctype == 'value':
+        if metric == 'tps':
+            # Taxa de Poupança Pessoal
+            summary = calculate_summary(user)
+            tps = summary.get('tps', Decimal('0'))
+            
+            # Se duration especificado, validar período
+            if duration:
+                # TODO: Implementar validação de TPS em período específico
+                # Por enquanto, usar TPS atual
+                pass
+            
+            return tps >= target
+        
+        elif metric == 'ili':
+            # Índice de Liquidez Imediata
+            summary = calculate_summary(user)
+            ili = summary.get('ili', Decimal('0'))
+            return ili >= target
+        
+        elif metric == 'rdr':
+            # Razão de Despesas Recorrentes
+            summary = calculate_summary(user)
+            rdr = summary.get('rdr', Decimal('0'))
+            # RDR: menor é melhor (meta é manter abaixo de target)
+            return rdr <= target
+        
+        elif metric == 'total_income':
+            # Total de receitas
+            total = Transaction.objects.filter(
+                user=user,
+                type=Transaction.TransactionType.INCOME
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            return total >= target
+        
+        elif metric == 'total_expense':
+            # Total de despesas
+            total = Transaction.objects.filter(
+                user=user,
+                type=Transaction.TransactionType.EXPENSE
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+            return total >= target
+        
+        elif metric == 'savings':
+            # Saldo da reserva de emergência
+            reserve_transactions = Transaction.objects.filter(
+                user=user, 
+                category__group=Category.CategoryGroup.SAVINGS
+            ).values("type").annotate(total=Sum("amount"))
+            
+            reserve_deposits = Decimal("0")
+            reserve_withdrawals = Decimal("0")
+            
+            for item in reserve_transactions:
+                tx_type = item["type"]
+                total = _decimal(item["total"])
+                if tx_type == Transaction.TransactionType.INCOME:
+                    reserve_deposits = total
+                else:
+                    reserve_withdrawals = total
+            
+            net_reserve = reserve_deposits - reserve_withdrawals
+            return net_reserve >= target
+        
+        elif metric == 'xp':
+            # Experiência total
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            return profile.experience_points >= target
+        
+        elif metric == 'level':
+            # Nível do usuário
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            return profile.level >= target
+    
+    # ========================================================================
+    # TYPE: STREAK - Dias consecutivos de atividade
+    # ========================================================================
+    elif ctype == 'streak':
+        # TODO: Implementar sistema de streak tracking
+        # Por enquanto, retornar False (será implementado com Celery task)
+        
+        # Exemplo de implementação futura:
+        # if metric == 'login':
+        #     streak = get_login_streak(user)
+        #     return streak >= target
+        # elif metric == 'transaction':
+        #     streak = get_transaction_streak(user)
+        #     return streak >= target
+        # elif metric == 'mission':
+        #     streak = get_mission_streak(user)
+        #     return streak >= target
+        
+        return False
+    
+    # Tipo de critério não reconhecido
+    return False
+
+
+def update_achievement_progress(user, achievement_id):
+    """
+    Atualiza o progresso de uma conquista específica para o usuário.
+    
+    Útil para mostrar progresso parcial antes do unlock completo.
+    
+    Args:
+        user: Usuário
+        achievement_id: ID da conquista
+    
+    Returns:
+        UserAchievement atualizado ou None
+    """
+    from .models import Achievement, UserAchievement
+    
+    try:
+        achievement = Achievement.objects.get(id=achievement_id, is_active=True)
+    except Achievement.DoesNotExist:
+        return None
+    
+    # Buscar ou criar UserAchievement
+    user_achievement, created = UserAchievement.objects.get_or_create(
+        user=user,
+        achievement=achievement,
+        defaults={
+            'progress': 0,
+            'progress_max': achievement.criteria.get('target', 100),
+        }
+    )
+    
+    # Se já desbloqueada, não atualizar
+    if user_achievement.is_unlocked:
+        return user_achievement
+    
+    # Calcular progresso atual baseado nos critérios
+    criteria = achievement.criteria
+    ctype = criteria.get('type')
+    metric = criteria.get('metric')
+    target = criteria.get('target', 100)
+    
+    current_progress = 0
+    
+    # COUNT types
+    if ctype == 'count':
+        if metric == 'transactions':
+            current_progress = Transaction.objects.filter(user=user).count()
+        elif metric == 'missions':
+            current_progress = MissionProgress.objects.filter(user=user, completed=True).count()
+        elif metric == 'goals':
+            current_progress = Goal.objects.filter(user=user, status=Goal.GoalStatus.COMPLETED).count()
+        elif metric == 'friends':
+            from .models import Friendship
+            current_progress = Friendship.objects.filter(
+                Q(from_user=user, status=Friendship.FriendshipStatus.ACCEPTED) |
+                Q(to_user=user, status=Friendship.FriendshipStatus.ACCEPTED)
+            ).count()
+    
+    # VALUE types
+    elif ctype == 'value':
+        if metric in ['tps', 'ili', 'rdr']:
+            summary = calculate_summary(user)
+            current_progress = int(summary.get(metric, Decimal('0')))
+        elif metric == 'xp':
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            current_progress = profile.experience_points
+        elif metric == 'level':
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            current_progress = profile.level
+    
+    # Atualizar progresso
+    user_achievement.progress = min(current_progress, target)
+    user_achievement.progress_max = target
+    user_achievement.save(update_fields=['progress', 'progress_max'])
+    
+    return user_achievement

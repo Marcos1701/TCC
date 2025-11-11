@@ -158,3 +158,64 @@ def ensure_friendship_uuid(sender, instance, **kwargs):
     """Garante que toda amizade tenha UUID antes de salvar."""
     if not instance.id:
         instance.id = uuid.uuid4()
+
+
+# ======= Signals para validação automática de conquistas =======
+
+@receiver(post_save, sender=Transaction)
+def check_achievements_on_transaction(sender, instance, created, **kwargs):
+    """
+    Valida conquistas quando uma transação é criada.
+    
+    Conquistas verificadas:
+    - Contagem de transações (10, 50, 100, etc.)
+    - Totais de receita/despesa
+    - Indicadores financeiros (TPS, ILI, RDR)
+    """
+    if created:
+        from .services import check_achievements_for_user
+        check_achievements_for_user(instance.user, event_type='transaction')
+
+
+@receiver(post_save, sender='finance.MissionProgress')
+def check_achievements_on_mission_complete(sender, instance, **kwargs):
+    """
+    Valida conquistas quando uma missão é completada.
+    
+    Conquistas verificadas:
+    - Contagem de missões completadas (5, 20, 50, etc.)
+    - Conclusão de missões específicas
+    """
+    if instance.completed and not instance._state.adding:
+        from .services import check_achievements_for_user
+        check_achievements_for_user(instance.user, event_type='mission')
+
+
+@receiver(post_save, sender=Goal)
+def check_achievements_on_goal_complete(sender, instance, **kwargs):
+    """
+    Valida conquistas quando uma meta é concluída.
+    
+    Conquistas verificadas:
+    - Contagem de metas concluídas (3, 10, 25, etc.)
+    - Conclusão de metas específicas
+    """
+    if instance.status == Goal.GoalStatus.COMPLETED and not instance._state.adding:
+        from .services import check_achievements_for_user
+        check_achievements_for_user(instance.user, event_type='goal')
+
+
+@receiver(post_save, sender=Friendship)
+def check_achievements_on_friendship(sender, instance, created, **kwargs):
+    """
+    Valida conquistas quando uma amizade é aceita.
+    
+    Conquistas verificadas:
+    - Contagem de amigos (1, 5, 10, 20, etc.)
+    - Interações sociais
+    """
+    if instance.status == Friendship.FriendshipStatus.ACCEPTED:
+        from .services import check_achievements_for_user
+        # Verificar para ambos os usuários
+        check_achievements_for_user(instance.from_user, event_type='social')
+        check_achievements_for_user(instance.to_user, event_type='social')

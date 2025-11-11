@@ -15,7 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship, Achievement, UserAchievement
 from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
 from .mixins import UUIDLookupMixin, UUIDResponseMixin
 from .throttling import (
@@ -36,6 +36,8 @@ from .serializers import (
     TransactionLinkSerializer,
     UserProfileSerializer,
     FriendshipSerializer,
+    AchievementSerializer,
+    UserAchievementSerializer,
 )
 from .services import (
     apply_mission_reward,
@@ -3625,3 +3627,231 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         } for action in page]
         
         return paginator.get_paginated_response(actions_data)
+
+
+class AchievementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para CRUD completo de conquistas.
+    
+    - LIST/RETRIEVE: Qualquer usuário autenticado (apenas conquistas ativas)
+    - CREATE/UPDATE/DELETE: Apenas admins
+    
+    Filtros disponíveis:
+    - category: FINANCIAL, SOCIAL, MISSION, STREAK, GENERAL
+    - tier: BEGINNER, INTERMEDIATE, ADVANCED
+    - is_ai_generated: true/false
+    - is_active: true/false
+    - search: busca por título ou descrição
+    
+    Actions customizadas:
+    - generate_ai_achievements: Gera conquistas com IA (admin only)
+    - my_achievements: Retorna progresso do usuário em todas as conquistas
+    - unlock: Desbloqueia manualmente uma conquista (para testes)
+    """
+    serializer_class = AchievementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['category', 'tier', 'is_ai_generated', 'is_active']
+    search_fields = ['title', 'description']
+    ordering_fields = ['priority', 'xp_reward', 'created_at']
+    ordering = ['priority', '-xp_reward']
+    
+    def get_permissions(self):
+        """
+        Define permissões baseadas na ação:
+        - create, update, partial_update, destroy, generate_ai_achievements: IsAdminUser
+        - list, retrieve, my_achievements, unlock: IsAuthenticated
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'generate_ai_achievements']:
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
+    
+    def get_queryset(self):
+        """
+        Retorna conquistas:
+        - Para admin: todas as conquistas
+        - Para usuário comum: apenas conquistas ativas
+        """
+        queryset = Achievement.objects.all()
+        
+        # Usuários comuns veem apenas conquistas ativas
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Cria nova conquista (admin only)."""
+        achievement = serializer.save()
+        logger.info(f"Conquista '{achievement.title}' criada por admin {self.request.user.username}")
+        return achievement
+    
+    def perform_update(self, serializer):
+        """Atualiza conquista existente (admin only)."""
+        achievement = serializer.save()
+        logger.info(f"Conquista '{achievement.title}' atualizada por admin {self.request.user.username}")
+        return achievement
+    
+    def perform_destroy(self, instance):
+        """Desativa conquista ao invés de deletar (soft delete)."""
+        instance.is_active = False
+        instance.save()
+        logger.info(f"Conquista '{instance.title}' desativada por admin {self.request.user.username}")
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def generate_ai_achievements(self, request):
+        """
+        Gera conquistas usando IA (Google Gemini).
+        
+        POST /api/achievements/generate_ai_achievements/
+        {
+            "category": "ALL" | "FINANCIAL" | "SOCIAL" | "MISSION" | "STREAK" | "GENERAL",
+            "tier": "ALL" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED"
+        }
+        
+        Retorna:
+        {
+            "created": <número de conquistas criadas>,
+            "total": <total de conquistas geradas>,
+            "cached": <true se usou cache>
+        }
+        """
+        from .ai_services import generate_achievements_with_ai
+        
+        category = request.data.get('category', 'ALL')
+        tier = request.data.get('tier', 'ALL')
+        
+        # Validar category
+        valid_categories = ['ALL', 'FINANCIAL', 'SOCIAL', 'MISSION', 'STREAK', 'GENERAL']
+        if category not in valid_categories:
+            return Response(
+                {'error': f'Categoria inválida. Use: {", ".join(valid_categories)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar tier
+        valid_tiers = ['ALL', 'BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+        if tier not in valid_tiers:
+            return Response(
+                {'error': f'Tier inválido. Use: {", ".join(valid_tiers)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar se vai usar cache
+        cache_key = f'ai_achievements_{category}_{tier}'
+        is_cached = cache.get(cache_key) is not None
+        
+        # Gerar conquistas com IA
+        try:
+            achievements_data = generate_achievements_with_ai(category, tier)
+        except Exception as e:
+            logger.error(f"Erro ao gerar conquistas com IA: {str(e)}")
+            return Response(
+                {'error': 'Erro ao gerar conquistas. Tente novamente.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Criar conquistas no banco (get_or_create para evitar duplicatas)
+        created_count = 0
+        for data in achievements_data:
+            achievement, created = Achievement.objects.get_or_create(
+                title=data['title'],
+                defaults={
+                    'description': data['description'],
+                    'category': data['category'],
+                    'tier': data['tier'],
+                    'xp_reward': data['xp_reward'],
+                    'icon': data.get('icon', '🏆'),
+                    'criteria': data.get('criteria', {}),
+                    'is_ai_generated': True,
+                    'is_active': True,
+                }
+            )
+            if created:
+                created_count += 1
+        
+        logger.info(
+            f"Admin {request.user.username} gerou {created_count} conquistas "
+            f"(category={category}, tier={tier}, cached={is_cached})"
+        )
+        
+        return Response({
+            'created': created_count,
+            'total': len(achievements_data),
+            'cached': is_cached,
+        })
+    
+    @action(detail=False, methods=['get'])
+    def my_achievements(self, request):
+        """
+        Retorna progresso do usuário em todas as conquistas ativas.
+        
+        GET /api/achievements/my_achievements/
+        
+        Retorna lista de UserAchievement com progresso, ordenada por:
+        1. Conquistas desbloqueadas (is_unlocked=False primeiro)
+        2. Progresso descendente (mais próximas de desbloquear primeiro)
+        """
+        # Criar UserAchievement para conquistas que o usuário ainda não tem
+        active_achievements = Achievement.objects.filter(is_active=True)
+        for achievement in active_achievements:
+            UserAchievement.objects.get_or_create(
+                user=request.user,
+                achievement=achievement,
+                defaults={
+                    'progress': 0,
+                    'progress_max': achievement.criteria.get('target', 100),
+                }
+            )
+        
+        # Buscar todas as conquistas do usuário
+        user_achievements = UserAchievement.objects.filter(
+            user=request.user,
+            achievement__is_active=True
+        ).select_related('achievement').order_by('is_unlocked', '-progress')
+        
+        serializer = UserAchievementSerializer(user_achievements, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def unlock(self, request, pk=None):
+        """
+        Desbloqueia manualmente uma conquista para o usuário.
+        Útil para testes e awards manuais por admins.
+        
+        POST /api/achievements/{id}/unlock/
+        
+        Retorna:
+        {
+            "status": "unlocked" | "already_unlocked",
+            "xp_awarded": <XP ganho (se desbloqueado agora)>
+        }
+        """
+        achievement = self.get_object()
+        
+        # Buscar ou criar UserAchievement
+        user_achievement, created = UserAchievement.objects.get_or_create(
+            user=request.user,
+            achievement=achievement,
+            defaults={
+                'progress': 0,
+                'progress_max': achievement.criteria.get('target', 100),
+            }
+        )
+        
+        # Tentar desbloquear
+        if user_achievement.unlock():
+            logger.info(
+                f"Conquista '{achievement.title}' desbloqueada para {request.user.username} "
+                f"(XP: +{achievement.xp_reward})"
+            )
+            return Response({
+                'status': 'unlocked',
+                'xp_awarded': achievement.xp_reward,
+            })
+        else:
+            return Response(
+                {'status': 'already_unlocked'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
