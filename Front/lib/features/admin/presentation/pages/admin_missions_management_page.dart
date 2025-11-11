@@ -406,6 +406,320 @@ class _AdminMissionsManagementPageState
     });
   }
 
+  /// Abre o dialog para criar nova missão
+  Future<void> _showCreateMissionDialog() async {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final xpController = TextEditingController(text: '100');
+    final durationController = TextEditingController(text: '30');
+    String selectedType = 'ONBOARDING';
+    String selectedDifficulty = 'EASY';
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: AppColors.primary.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.add_task, color: AppColors.primary),
+                SizedBox(width: 12),
+                Text(
+                  'Nova Missão',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTextField('Título', titleController),
+                  const SizedBox(height: 16),
+                  _buildTextField('Descrição', descriptionController, maxLines: 3),
+                  const SizedBox(height: 16),
+                  _buildTextField('XP Reward', xpController, keyboardType: TextInputType.number),
+                  const SizedBox(height: 16),
+                  _buildTextField('Duração (dias)', durationController, keyboardType: TextInputType.number),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tipo',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    dropdownColor: const Color(0xFF2A2A2A),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF2A2A2A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
+                      DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
+                      DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
+                      DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
+                      DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          selectedType = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Dificuldade',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: selectedDifficulty,
+                    dropdownColor: const Color(0xFF2A2A2A),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF2A2A2A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                      DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
+                      DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          selectedDifficulty = value;
+                        });
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  titleController.dispose();
+                  descriptionController.dispose();
+                  xpController.dispose();
+                  durationController.dispose();
+                },
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final xpValue = int.tryParse(xpController.text) ?? 100;
+                  final durationValue = int.tryParse(durationController.text) ?? 30;
+
+                  if (titleController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('O título não pode estar vazio'),
+                        backgroundColor: AppColors.alert,
+                      ),
+                    );
+                    return;
+                  }
+
+                  final navigator = Navigator.of(context);
+                  final messenger = ScaffoldMessenger.of(context);
+
+                  try {
+                    await _apiClient.client.post(
+                      '/api/missions/',
+                      data: {
+                        'title': titleController.text.trim(),
+                        'description': descriptionController.text.trim(),
+                        'reward_points': xpValue,
+                        'duration_days': durationValue,
+                        'mission_type': selectedType,
+                        'difficulty': selectedDifficulty,
+                        'is_active': true,
+                        'priority': 99, // Baixa prioridade para missões manuais
+                        'validation_type': 'SNAPSHOT', // Validação padrão
+                      },
+                    );
+
+                    if (!mounted) return;
+
+                    navigator.pop();
+
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Missão criada com sucesso!'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+
+                    await _loadMissions();
+                  } catch (e) {
+                    if (!mounted) return;
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('Erro ao criar missão: ${e.toString()}'),
+                        backgroundColor: AppColors.alert,
+                      ),
+                    );
+                  }
+
+                  titleController.dispose();
+                  descriptionController.dispose();
+                  xpController.dispose();
+                  durationController.dispose();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
+                child: const Text('Criar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// Duplica uma missão existente
+  Future<void> _duplicateMission(String missionId, String missionTitle) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: AppColors.primary.withOpacity(0.3),
+            width: 1,
+          ),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.content_copy, color: AppColors.primary),
+            SizedBox(width: 12),
+            Text(
+              'Duplicar Missão',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Deseja duplicar a missão:',
+              style: TextStyle(color: Colors.grey[400]),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0D0D0D),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                ),
+              ),
+              child: Text(
+                missionTitle,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'A missão duplicada será criada como DESATIVADA para que você possa revisar antes de ativar.',
+              style: TextStyle(
+                color: Colors.grey[500],
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+            ),
+            child: const Text('Duplicar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _apiClient.client.post(
+        '/api/missions/$missionId/duplicate/',
+        data: {},
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Missão duplicada com sucesso! (Status: Desativada)'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+
+      await _loadMissions();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao duplicar: ${e.toString()}'),
+          backgroundColor: AppColors.alert,
+        ),
+      );
+    }
+  }
+
   /// Deleta uma missão com confirmação
   Future<void> _deleteMission(String missionId, String missionTitle) async {
     final confirmed = await showDialog<bool>(
@@ -1063,18 +1377,40 @@ class _AdminMissionsManagementPageState
           ),
         ],
       ),
-      // FAB para acesso rápido à carga IA (apenas em telas menores)
+      // FAB com menu para criar missão manual ou via IA
       floatingActionButton: !isLargeScreen
-          ? FloatingActionButton.extended(
-              onPressed: _showAIGenerationDialog,
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 4,
-              icon: const Icon(Icons.auto_awesome),
-              label: const Text(
-                'Carga IA',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Botão Criar Missão Manual
+                FloatingActionButton.extended(
+                  onPressed: _showCreateMissionDialog,
+                  heroTag: 'create_mission',
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  icon: const Icon(Icons.add_task),
+                  label: const Text(
+                    'Nova Missão',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Botão Carga IA
+                FloatingActionButton.extended(
+                  onPressed: _showAIGenerationDialog,
+                  heroTag: 'ai_generation',
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  elevation: 4,
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text(
+                    'Carga IA',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
             )
           : null,
     );
@@ -1600,6 +1936,10 @@ class _AdminMissionsManagementPageState
                   mission: mission,
                   onToggleStatus: () => _toggleMissionStatus(missionId, isActive),
                   onEdit: () => _showEditMissionDialog(mission),
+                  onDuplicate: () => _duplicateMission(
+                    missionId,
+                    mission['title']?.toString() ?? 'Missão sem título',
+                  ),
                   onDelete: () => _deleteMission(
                     missionId,
                     mission['title']?.toString() ?? 'Missão sem título',
@@ -1619,12 +1959,14 @@ class _MissionCard extends StatelessWidget {
     required this.mission,
     required this.onToggleStatus,
     required this.onEdit,
+    required this.onDuplicate,
     required this.onDelete,
   });
 
   final Map<String, dynamic> mission;
   final VoidCallback onToggleStatus;
   final VoidCallback onEdit;
+  final VoidCallback onDuplicate;
   final VoidCallback onDelete;
 
   @override
@@ -1798,20 +2140,38 @@ class _MissionCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                // Botão de excluir
+                // Botões de ação
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Excluir Missão'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.alert,
-                      side: BorderSide(color: AppColors.alert.withOpacity(0.3)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                Row(
+                  children: [
+                    // Botão de duplicar
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onDuplicate,
+                        icon: const Icon(Icons.content_copy, size: 18),
+                        label: const Text('Duplicar'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    // Botão de excluir
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onDelete,
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('Excluir'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.alert,
+                          side: BorderSide(color: AppColors.alert.withOpacity(0.3)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
