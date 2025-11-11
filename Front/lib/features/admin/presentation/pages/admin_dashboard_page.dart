@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/state/session_controller.dart';
@@ -25,7 +26,9 @@ class AdminDashboardPage extends StatefulWidget {
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   final _apiClient = ApiClient();
   bool _isLoading = true;
-  Map<String, dynamic>? _stats;
+  Map<String, dynamic>? _overviewStats;
+  Map<String, dynamic>? _userAnalytics;
+  Map<String, dynamic>? _systemHealth;
   String? _error;
 
   @override
@@ -41,26 +44,19 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     });
 
     try {
-      final response = await _apiClient.client.get(
-        '/api/admin-stats/overview/',
-      );
+      // Carregar todos os 3 endpoints em paralelo
+      final results = await Future.wait([
+        _apiClient.client.get('/api/admin-stats/overview/'),
+        _apiClient.client.get('/api/admin-stats/user_analytics/'),
+        _apiClient.client.get('/api/admin-stats/system_health/'),
+      ]);
 
-      if (response.data != null) {
-        Map<String, dynamic> data;
-        
-        if (response.data is Map<String, dynamic>) {
-          data = response.data as Map<String, dynamic>;
-        } else if (response.data is String) {
-          data = json.decode(response.data.toString()) as Map<String, dynamic>;
-        } else {
-          throw Exception('Formato de resposta inesperado: ${response.data.runtimeType}');
-        }
-        
-        setState(() {
-          _stats = data;
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _overviewStats = _parseResponse(results[0]);
+        _userAnalytics = _parseResponse(results[1]);
+        _systemHealth = _parseResponse(results[2]);
+        _isLoading = false;
+      });
     } on DioException catch (e) {
       String errorMsg = 'Erro desconhecido';
       
@@ -91,6 +87,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _isLoading = false;
       });
     }
+  }
+
+  Map<String, dynamic> _parseResponse(Response response) {
+    if (response.data == null) return {};
+    
+    if (response.data is Map<String, dynamic>) {
+      return response.data as Map<String, dynamic>;
+    } else if (response.data is String) {
+      return json.decode(response.data.toString()) as Map<String, dynamic>;
+    }
+    
+    throw Exception('Formato de resposta inesperado: ${response.data.runtimeType}');
   }
 
   @override
@@ -240,6 +248,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             _buildMissionStats(),
             const SizedBox(height: 24),
 
+            // Top Usuários
+            _buildTopUsers(),
+            const SizedBox(height: 24),
+
+            // Distribuição de Níveis
+            _buildLevelDistribution(),
+            const SizedBox(height: 24),
+
+            // Saúde do Sistema
+            _buildSystemHealth(),
+            const SizedBox(height: 24),
+
             // Atividade recente
             _buildRecentActivity(),
           ],
@@ -249,10 +269,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildMetricsGrid() {
-    final users = _stats?['total_users'] ?? 0;
-    final completedMissions = _stats?['completed_missions'] ?? 0;
-    final activeMissions = _stats?['active_missions'] ?? 0;
-    final avgLevel = _stats?['avg_user_level'] ?? 0.0;
+    final users = _overviewStats?['total_users'] ?? 0;
+    final completedMissions = _overviewStats?['completed_missions'] ?? 0;
+    final activeMissions = _overviewStats?['active_missions'] ?? 0;
+    final avgLevel = _overviewStats?['avg_user_level'] ?? 0.0;
+    
+    final activeUsers7d = _userAnalytics?['active_users_7d'] ?? 0;
+    final newUsers7d = _userAnalytics?['new_users_7d'] ?? 0;
+    final totalTransactions = _systemHealth?['total_transactions'] ?? 0;
+    final activeGoals = _systemHealth?['active_goals'] ?? 0;
 
     return GridView.count(
       shrinkWrap: true,
@@ -270,10 +295,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           subtitle: 'Total cadastrados',
         ),
         _MetricCard(
+          title: 'Ativos (7d)',
+          value: activeUsers7d.toString(),
+          icon: Icons.trending_up,
+          color: Colors.green,
+          subtitle: 'Usuários ativos',
+        ),
+        _MetricCard(
           title: 'Completas',
           value: completedMissions.toString(),
           icon: Icons.check_circle,
-          color: Colors.green,
+          color: Colors.purple,
           subtitle: 'Todas as faixas',
         ),
         _MetricCard(
@@ -286,9 +318,30 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         _MetricCard(
           title: 'Nível Médio',
           value: avgLevel.toStringAsFixed(1),
-          icon: Icons.trending_up,
-          color: Colors.purple,
+          icon: Icons.bar_chart,
+          color: AppColors.primary,
           subtitle: 'Dos usuários',
+        ),
+        _MetricCard(
+          title: 'Novos (7d)',
+          value: newUsers7d.toString(),
+          icon: Icons.person_add,
+          color: Colors.teal,
+          subtitle: 'Cadastros recentes',
+        ),
+        _MetricCard(
+          title: 'Transações',
+          value: totalTransactions.toString(),
+          icon: Icons.attach_money,
+          color: Colors.amber,
+          subtitle: 'Total registradas',
+        ),
+        _MetricCard(
+          title: 'Metas Ativas',
+          value: activeGoals.toString(),
+          icon: Icons.flag,
+          color: Colors.red,
+          subtitle: 'Em progresso',
         ),
       ],
     );
@@ -347,8 +400,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildMissionStats() {
-    final missionsByDifficulty = _stats?['missions_by_difficulty'] as Map<String, dynamic>?;
-    final missionsByType = _stats?['missions_by_type'] as Map<String, dynamic>?;
+    final missionsByDifficulty = _overviewStats?['missions_by_difficulty'] as Map<String, dynamic>?;
+    final missionsByType = _overviewStats?['missions_by_type'] as Map<String, dynamic>?;
 
     if (missionsByDifficulty == null && missionsByType == null) {
       return const SizedBox.shrink();
@@ -430,7 +483,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildRecentActivity() {
-    final recentActivity = _stats?['recent_activity'] as List<dynamic>?;
+    final recentActivity = _overviewStats?['recent_activity'] as List<dynamic>?;
 
     if (recentActivity == null || recentActivity.isEmpty) {
       return const SizedBox.shrink();
@@ -513,6 +566,323 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildTopUsers() {
+    final topUsers = _userAnalytics?['top_users'] as List<dynamic>?;
+
+    if (topUsers == null || topUsers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Top 10 Usuários',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: topUsers.length > 10 ? 10 : topUsers.length,
+            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[800]),
+            itemBuilder: (context, index) {
+              final user = topUsers[index] as Map<String, dynamic>;
+              final username = user['username'] as String? ?? '';
+              final level = user['level'] as int? ?? 0;
+              final totalXp = user['total_xp'] as int? ?? 0;
+              final xpToNext = user['xp_to_next_level'] as int? ?? 0;
+
+              return ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, AppColors.primary.withOpacity(0.5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                title: Row(
+                  children: [
+                    Text(
+                      username,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Nv $level',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text(
+                  '$totalXp XP • Faltam $xpToNext XP',
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                ),
+                trailing: Icon(
+                  index < 3 ? Icons.emoji_events : Icons.star,
+                  color: index == 0 ? Colors.amber : (index == 1 ? Colors.grey[400] : (index == 2 ? Colors.brown[300] : Colors.grey[700])),
+                  size: 24,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLevelDistribution() {
+    final levelDistribution = _overviewStats?['level_distribution'] as Map<String, dynamic>?;
+
+    if (levelDistribution == null || levelDistribution.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Preparar dados para o gráfico
+    final List<MapEntry<String, int>> sortedData = levelDistribution.entries
+        .map((e) => MapEntry(e.key, (e.value as num).toInt()))
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final maxValue = sortedData.map((e) => e.value).reduce((a, b) => a > b ? a : b).toDouble();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Distribuição de Níveis',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 200,
+                child: BarChart(
+                  BarChartData(
+                    alignment: BarChartAlignment.spaceAround,
+                    maxY: maxValue + (maxValue * 0.2),
+                    minY: 0,
+                    barTouchData: BarTouchData(enabled: false),
+                    titlesData: FlTitlesData(
+                      show: true,
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            if (value.toInt() >= sortedData.length) return const Text('');
+                            return Text(
+                              sortedData[value.toInt()].key,
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 10,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 35,
+                          getTitlesWidget: (value, meta) {
+                            return Text(
+                              value.toInt().toString(),
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 10,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      getDrawingHorizontalLine: (value) => FlLine(
+                        color: Colors.grey[800]!,
+                        strokeWidth: 1,
+                      ),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    barGroups: List.generate(
+                      sortedData.length,
+                      (index) => BarChartGroupData(
+                        x: index,
+                        barRods: [
+                          BarChartRodData(
+                            toY: sortedData[index].value.toDouble(),
+                            gradient: LinearGradient(
+                              colors: [AppColors.primary, AppColors.primary.withOpacity(0.5)],
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                            ),
+                            width: 16,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSystemHealth() {
+    if (_systemHealth == null) {
+      return const SizedBox.shrink();
+    }
+
+    final totalTransactions = _systemHealth?['total_transactions'] ?? 0;
+    final transactions7d = _systemHealth?['transactions_7d'] ?? 0;
+    final totalGoals = _systemHealth?['total_goals'] ?? 0;
+    final activeGoals = _systemHealth?['active_goals'] ?? 0;
+    final completedGoals = _systemHealth?['completed_goals'] ?? 0;
+    final categoriesCount = _systemHealth?['categories_count'] ?? 0;
+    final globalCategories = _systemHealth?['global_categories'] ?? 0;
+    final userCategories = _systemHealth?['user_categories'] ?? 0;
+    final totalMissions = _systemHealth?['total_missions'] ?? 0;
+    final aiMissions = _systemHealth?['ai_generated_missions'] ?? 0;
+    final defaultMissions = _systemHealth?['default_missions'] ?? 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Saúde do Sistema',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              _buildHealthRow('Transações Totais', totalTransactions, Icons.attach_money, Colors.green),
+              _buildHealthRow('Transações (7d)', transactions7d, Icons.trending_up, Colors.teal),
+              Divider(height: 24, color: Colors.grey[800]),
+              _buildHealthRow('Metas Totais', totalGoals, Icons.flag, Colors.orange),
+              _buildHealthRow('Metas Ativas', activeGoals, Icons.play_circle, Colors.amber),
+              _buildHealthRow('Metas Completas', completedGoals, Icons.check_circle, Colors.green),
+              Divider(height: 24, color: Colors.grey[800]),
+              _buildHealthRow('Categorias Totais', categoriesCount, Icons.category, Colors.purple),
+              _buildHealthRow('Categorias Globais', globalCategories, Icons.public, Colors.blue),
+              _buildHealthRow('Categorias Usuários', userCategories, Icons.person, Colors.cyan),
+              Divider(height: 24, color: Colors.grey[800]),
+              _buildHealthRow('Missões Totais', totalMissions, Icons.assignment, Colors.indigo),
+              _buildHealthRow('Missões IA', aiMissions, Icons.auto_awesome, AppColors.primary),
+              _buildHealthRow('Missões Padrão', defaultMissions, Icons.star, Colors.amber),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHealthRow(String label, int value, IconData icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, color: color.withOpacity(0.7), size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              value.toString(),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: color,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
