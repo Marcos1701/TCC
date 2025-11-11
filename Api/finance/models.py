@@ -2180,8 +2180,8 @@ class UserAchievement(models.Model):
             self.progress = self.progress_max
             self.save()
             
-            # Adicionar XP ao usuário
-            profile = self.user.userprofile
+            # Adicionar XP ao usuário (criar profile se não existir)
+            profile, created = UserProfile.objects.get_or_create(user=self.user)
             profile.experience_points += self.achievement.xp_reward
             profile.save()
             
