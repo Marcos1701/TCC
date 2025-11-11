@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme_extension.dart';
-import '../../features/home/presentation/pages/home_page.dart';
-import '../../features/missions/presentation/pages/missions_page.dart';
-import '../../features/progress/presentation/pages/progress_page.dart';
-import '../../features/tracking/presentation/pages/tracking_page.dart';
-import '../../features/transactions/presentation/pages/transactions_page.dart';
+import '../../features/home/presentation/pages/unified_home_page.dart';
+import '../../features/home/presentation/pages/finances_page.dart';
+import '../../features/home/presentation/pages/profile_page.dart';
 
 class _NavigationItem {
   const _NavigationItem({
@@ -35,27 +33,17 @@ class _RootShellState extends State<RootShell> {
     const _NavigationItem(
       label: 'Início',
       icon: Icons.home_rounded,
-      builder: HomePage.new,
+      builder: UnifiedHomePage.new,
     ),
     const _NavigationItem(
-      label: 'Transações',
-      icon: Icons.swap_vert_rounded,
-      builder: TransactionsPage.new,
+      label: 'Finanças',
+      icon: Icons.account_balance_wallet_rounded,
+      builder: FinancesPage.new,
     ),
     const _NavigationItem(
-      label: 'Desafios',
-      icon: Icons.videogame_asset_rounded,
-      builder: MissionsPage.new,
-    ),
-    const _NavigationItem(
-      label: 'Progresso',
-      icon: Icons.flag_rounded,
-      builder: ProgressPage.new,
-    ),
-    const _NavigationItem(
-      label: 'Análise',
-      icon: Icons.analytics_rounded,
-      builder: TrackingPage.new,
+      label: 'Perfil',
+      icon: Icons.person_rounded,
+      builder: ProfilePage.new,
     ),
   ];
 
