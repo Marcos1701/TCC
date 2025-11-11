@@ -1,0 +1,189 @@
+import 'package:flutter/material.dart';
+import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../domain/models/category_form_model.dart';
+import 'color_picker_dialog.dart';
+
+class CategoryFormPage extends StatefulWidget {
+  final Map<String, dynamic>? category; // null = criar nova
+  final String initialType; // 'INCOME' ou 'EXPENSE'
+
+  const CategoryFormPage({
+    super.key,
+    this.category,
+    this.initialType = 'EXPENSE',
+  });
+
+  @override
+  State<CategoryFormPage> createState() => _CategoryFormPageState();
+}
+
+class _CategoryFormPageState extends State<CategoryFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _repository = FinanceRepository();
+  
+  late CategoryFormModel _formData;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _formData = widget.category != null
+        ? CategoryFormModel.fromCategory(widget.category!)
+        : CategoryFormModel.empty(widget.initialType);
+    
+    _nameController.text = _formData.name;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final updatedForm = _formData.copyWith(name: _nameController.text);
+
+      if (widget.category == null) {
+        // Criar nova
+        await _repository.createCategory(
+          name: updatedForm.name,
+          type: updatedForm.type,
+          color: updatedForm.color,
+          group: updatedForm.group,
+        );
+      } else {
+        // Atualizar existente
+        await _repository.updateCategory(
+          id: updatedForm.id!,
+          name: updatedForm.name,
+          type: updatedForm.type,
+          color: updatedForm.color,
+          group: updatedForm.group,
+        );
+      }
+
+      if (mounted) {
+        Navigator.pop(context, true); // Retorna true para indicar sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.category == null
+                ? 'Categoria criada com sucesso!'
+                : 'Categoria atualizada com sucesso!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: ${e.toString()}'),
+            backgroundColor: AppColors.alert,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.category == null ? 'Nova Categoria' : 'Editar Categoria'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Nome
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Nome',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) => _formData.copyWith(name: value).validateName(),
+            ),
+            const SizedBox(height: 16),
+            
+            // Tipo
+            DropdownButtonFormField<String>(
+              value: _formData.type,
+              decoration: const InputDecoration(
+                labelText: 'Tipo',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
+                DropdownMenuItem(value: 'EXPENSE', child: Text('Despesa')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _formData = _formData.copyWith(type: value);
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            // Cor
+            ListTile(
+              title: const Text('Cor'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Color(int.parse(_formData.color.substring(1), radix: 16) + 0xFF000000),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => ColorPickerDialog(
+                    initialColor: _formData.color,
+                    onColorSelected: (color) {
+                      setState(() {
+                        _formData = _formData.copyWith(color: color);
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            
+            // Botão Salvar
+            ElevatedButton(
+              onPressed: _isLoading ? null : _save,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : Text(widget.category == null ? 'Criar' : 'Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
