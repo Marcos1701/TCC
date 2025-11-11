@@ -565,44 +565,49 @@ python manage.py seed_default_missions
 
 ---
 
-#### ✅ Checkpoint 1.2: Categorias Padrão (2 dias)
+#### ✅ Checkpoint 1.2: Categorias Padrão (2 dias) - **CONCLUÍDO** ✅
 
 **Backend:**
 ```bash
-# 1. Criar comando de seed
+# 1. Criar comando de seed ✅
 python manage.py create seed_default_categories.py
 
-# 2. Implementar 28 categorias padrão
-# - 8 INCOME
-# - 20 EXPENSE
-# - Cores e ícones definidos
+# 2. Implementar 28 categorias padrão ✅
+# - 8 INCOME (Renda Principal, Renda Extra, Outros)
+# - 20 EXPENSE (Essenciais, Estilo de Vida, Outros)
+# - Cores e emojis definidos
 
-# 3. Executar seed
+# 3. Executar seed ✅
 python manage.py seed_default_categories
 
-# 4. Atualizar endpoint de categorias
-# - Retornar globais (user=None) + usuário
-# - Filtro por tipo (INCOME/EXPENSE)
+# 4. Modificar modelo Category ✅
+# - Permitir user=null para categorias globais
+# - Migration 0040_category_allow_null_user aplicada
 ```
 
 **Frontend:**
 ```dart
-// 1. Atualizar category_repository
+// 1. Atualizar category_repository ⏳
 // - Fetch categorias globais + personalizadas
 // - Cache local (5 min)
 
-// 2. Atualizar forms de transação
+// 2. Atualizar forms de transação ⏳
 // - Dropdown com categorias padrão
 // - Opção "Criar nova categoria"
 ```
 
 **Critérios de Sucesso:**
-- [x] 28 categorias criadas
-- [x] Aparecendo em dropdowns
-- [x] Cores/ícones funcionando
-- [x] Usuário pode criar transação sem criar categoria
+- [x] 28 categorias criadas ✅
+- [x] Modelo Category permite user=null ✅
+- [x] Migration aplicada ✅
+- [x] Seed executado com sucesso ✅
+- [ ] Endpoint retornando categorias globais ⏳
+- [ ] Frontend atualizado ⏳
 
 **Prioridade:** 🔴 CRÍTICA
+
+**Data de Conclusão (Backend):** 11 de novembro de 2025  
+**Commit:** 9da061d - ✅ Checkpoint 1.2: Categorias Padrão completo
 
 ---
 
