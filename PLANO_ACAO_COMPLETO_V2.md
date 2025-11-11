@@ -1033,55 +1033,82 @@ Checkpoints: 2/4 (50%)
 
 ---
 
-#### ⏳ Checkpoint 2.3: Integração IA com Padrões (2 dias)
+#### ⏳ Checkpoint 2.3: Melhoria da Geração de Missões IA (2 dias)
 
-**Backend:**
-```python
-# Api/finance/views.py
+**Objetivo:** Refatorar e melhorar o sistema de geração de missões por IA para seguir **exatamente** os padrões das 60 missões default, eliminando inconsistências e melhorando a qualidade.
 
-class UserManagementViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAdminUser]
-    
-    def list(self, request):
-        """Lista usuários com filtros e busca."""
-        
-    def retrieve(self, request, pk=None):
-        """Detalhes completos de um usuário."""
-        
-    @action(detail=True, methods=['post'])
-    def deactivate(self, request, pk=None):
-        """Desativa usuário."""
-        
-    @action(detail=True, methods=['post'])
-    def adjust_xp(self, request, pk=None):
-        """Ajusta XP/nível manualmente."""
-```
+**Problemas Atuais Identificados:**
 
-**Frontend:**
-```dart
-// Front/lib/features/admin/presentation/pages/users_management_page.dart
+1. **Prompt desatualizado** (ai_services.py linha 332-434):
+   - Usa nomenclaturas antigas: `SAVINGS`, `EXPENSE_CONTROL`, `DEBT_PAYMENT`
+   - Deveria usar: `TPS_IMPROVEMENT`, `RDR_REDUCTION`, `ILI_BUILDING`, `ONBOARDING`, `ADVANCED`
+   - Não reflete os tipos reais do modelo Mission
 
-// Features:
-// - Listagem com busca e filtros
-// - Cards de usuário (avatar, nome, nível, XP)
-// - Tap para ver detalhes
-// - Ações: Desativar, Ajustar XP
+2. **Validações inconsistentes**:
+   - Campos `target_category` e `target_reduction_percent` no prompt, mas não validados no backend
+   - Falta validação de ranges (TPS 0-100, RDR 0-200, ILI 0-24)
+   - Não verifica se `mission_type` bate com campos target (ex: TPS_IMPROVEMENT deve ter `target_tps`)
 
-// Front/lib/features/admin/presentation/pages/user_details_page.dart
-// - Informações completas
-// - Histórico de transações
-// - Metas ativas
-// - Missões completadas
-// - Gráfico de XP ao longo do tempo
-```
+3. **Falta de referência aos padrões**:
+   - IA não recebe exemplos das 60 missões default como referência
+   - Pode gerar missões muito diferentes do estilo/tom das missões padrão
+
+4. **Duplicação não detectada adequadamente**:
+   - Compara apenas títulos exatos, mas missões similares passam
+   - Falta busca por similaridade semântica
+
+5. **Fluxo de geração não otimizado**:
+   - Gera todas as 20 missões de uma vez (falha = perde tudo)
+   - Não salva parcialmente em caso de erro
+   - Não permite regenerar missões individuais que falharam
+
+**Backend - Melhorias Planejadas:**
+
+1. **Atualizar Prompt** (ai_services.py):
+   - Corrigir tipos para ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, ADVANCED
+   - Adicionar exemplos das 60 missões padrão como referência de tom/estilo
+   - Especificar regras de validação claras (ranges, campos obrigatórios)
+   - Remover campos não utilizados (target_category, target_reduction_percent)
+
+2. **Implementar Validação Robusta**:
+   - Função `validate_generated_mission()` que valida ANTES de salvar
+   - Validar mission_type vs campos target (TPS_IMPROVEMENT → target_tps obrigatório)
+   - Validar ranges: TPS 0-100, RDR 0-200, ILI 0-24, min_transactions 5-50
+   - Validar difficulty vs XP (EASY: 50-150, MEDIUM: 100-250, HARD: 200-500)
+   - Validar duration_days in [7, 14, 21, 30]
+
+3. **Detecção de Duplicação Semântica**:
+   - Função `check_mission_similarity()` com threshold configurável
+   - Comparar títulos e descrições usando SequenceMatcher
+   - Threshold: 85% para título, 75% para descrição
+   - Retornar missão similar encontrada para debug
+
+4. **Geração Incremental**:
+   - Função `generate_and_save_incrementally()` que gera 1 por vez
+   - Salvar cada missão que passar na validação
+   - Continuar mesmo se algumas falharem
+   - Retornar listas separadas: created + failed (com motivos)
+
+5. **Melhorar Response do Endpoint**:
+   - Incluir total_created + total_failed
+   - Listar primeiras 5 missões criadas (preview)
+   - Listar primeiros 5 erros com motivos
+   - Summary: passed, failed_validation, failed_duplicate, failed_api
 
 **Critérios de Sucesso:**
-- [x] Admin vê lista de usuários
-- [x] Admin pode desativar usuário
-- [x] Admin pode ajustar XP
-- [x] Ações logadas (auditoria)
+- [ ] Prompt atualizado com tipos corretos (ONBOARDING, TPS_IMPROVEMENT, etc)
+- [ ] Validações implementadas para todos os campos obrigatórios
+- [ ] Detecção de duplicação semântica funcionando
+- [ ] Geração incremental (salva parcialmente)
+- [ ] Missões geradas seguem exatamente o padrão das 60 default
+- [ ] Response do endpoint inclui missões criadas + falhas + motivos
+- [ ] Teste manual: gerar 20 missões e verificar qualidade
 
 **Prioridade:** 🟡 ALTA
+
+---
+
+#### ⏳ Checkpoint 2.4: Gestão de Usuários Admin (3 dias)
 
 ---
 
