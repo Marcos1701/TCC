@@ -31,6 +31,28 @@ class CategorySerializer(serializers.ModelSerializer):
             return obj.user is not None
         except Category.user.RelatedObjectDoesNotExist:
             return False
+    
+    def validate_color(self, value):
+        """Valida que a cor está no formato hexadecimal correto."""
+        import re
+        if not value:
+            return '#808080'  # Cor padrão (cinza)
+        
+        # Permitir tanto #RGB quanto #RRGGBB
+        if not re.match(r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$', value):
+            raise serializers.ValidationError(
+                'Cor deve estar no formato hexadecimal (#RRGGBB ou #RGB). Exemplo: #FF5733'
+            )
+        
+        return value.upper()  # Padronizar para maiúsculas
+    
+    def validate_name(self, value):
+        """Valida que o nome não está vazio e tem tamanho apropriado."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("O nome da categoria não pode estar vazio.")
+        if len(value) > 100:
+            raise serializers.ValidationError("O nome não pode ter mais de 100 caracteres.")
+        return value.strip()
 
 
 class TransactionSerializer(serializers.ModelSerializer):
