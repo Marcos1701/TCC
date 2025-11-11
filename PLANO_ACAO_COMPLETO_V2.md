@@ -737,7 +737,149 @@ python manage.py seed_default_categories
 
 ### FASE 2: Gestão e Admin (Semana 3-4)
 
-#### ⏳ Checkpoint 2.1: CRUD de Categorias (3 dias)
+#### ✅ Checkpoint 2.1: CRUD de Categorias (3 dias) - **100% COMPLETO** ✅
+
+**Backend:**
+```python
+# Api/finance/serializers.py - CategorySerializer
+
+# Validações implementadas:
+# - validate_color(): regex ^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$
+# - validate_name(): not empty, max 100 chars
+# - Auto-uppercase colors para consistência
+# - Default color #808080 (gray) se vazio
+
+# Api/finance/views.py - CategoryViewSet já completo
+# - ModelViewSet com CRUD completo
+# - Permissões: IsAuthenticated
+# - Validação de ownership (user só edita suas categorias)
+# - Proteção de categorias globais (user=None)
+# - Filtros: type (INCOME/EXPENSE), group
+```
+
+**Frontend:**
+```dart
+// Front/lib/features/categories/
+
+// Estrutura completa criada:
+// ✅ domain/models/category_form_model.dart
+//    - Validations (validateName, validateColor, isValid)
+//    - Factories (empty, fromCategory)
+//    - toJson() serialization
+//    - copyWith() immutable updates
+//
+// ✅ presentation/pages/color_picker_dialog.dart
+//    - 19 Material Design colors
+//    - 4x4 grid layout
+//    - Visual selection (border + check + glow)
+//
+// ✅ presentation/pages/icon_picker_dialog.dart
+//    - 52+ financial category icons
+//    - 5x5 scrollable grid
+//    - Organized by category (money, food, transport, etc.)
+//    - Stores IconData.codePoint
+//
+// ✅ presentation/pages/category_form_page.dart
+//    - Create/Edit modes (based on category parameter)
+//    - 3 fields: name (TextFormField), type (Dropdown), color (Picker)
+//    - Form validation with GlobalKey
+//    - Save logic: create vs update based on id
+//    - Loading state during API call
+//    - SnackBar feedback (success/error)
+//
+// ✅ presentation/pages/categories_page.dart
+//    - Listagem completa (globais + personalizadas)
+//    - Filtros: Todas, Receitas, Despesas (FilterChips)
+//    - Busca em tempo real por nome
+//    - Separação visual: 'Categorias do Sistema' vs 'Minhas Categorias'
+//    - Cards: color circle, icon, name, tipo, badge GLOBAL
+//    - Proteção: categorias globais não editáveis/deletáveis
+//    - FAB 'Nova Categoria'
+//    - Tap to edit (se personalizada)
+//    - Context menu: Edit + Delete (com confirmação)
+//    - Pull-to-refresh
+//    - Error handling com SnackBars
+
+// ✅ core/repositories/finance_repository.dart
+//    - updateCategory(): PUT /api/categories/{id}/
+//    - deleteCategory(): DELETE /api/categories/{id}/
+```
+
+**Integração:**
+```dart
+// Front/lib/features/settings/presentation/pages/settings_page.dart
+// - Adicionado menu item "Minhas Categorias"
+// - Posicionado entre "Editar Perfil" e "Alterar Senha"
+// - Ícone: category_outlined
+// - Navegação para CategoriesPage
+```
+
+**Critérios de Sucesso:**
+- [x] Backend: Validações de cor hex e nome ✅
+- [x] Backend: Proteção de categorias globais ✅
+- [x] Backend: Validação de ownership ✅
+- [x] Repository: updateCategory + deleteCategory ✅
+- [x] Models: CategoryFormModel com validations ✅
+- [x] Pickers: ColorPickerDialog (19 cores) ✅
+- [x] Pickers: IconPickerDialog (52+ ícones) ✅
+- [x] Form: CategoryFormPage (criar/editar) ✅
+- [x] Listagem: CategoriesPage (filtros, busca, CRUD) ✅
+- [x] Integração: Menu Settings ✅
+- [x] Usuário pode criar categoria ✅
+- [x] Usuário pode editar/deletar suas categorias ✅
+- [x] Categorias globais protegidas ✅
+- [x] Color/Icon picker funcionando ✅
+
+**Prioridade:** 🟡 ALTA
+
+**Data de Conclusão:** 11 de novembro de 2025  
+**Commits:**
+- `32c920b` - ✅ Checkpoint 2.1: Backend CRUD Categorias (Parte 1/3)
+- `8d91983` - ✅ Checkpoint 2.1: Frontend Estrutura + Pickers (Parte 2/3)
+- `d639610` - ✅ Checkpoint 2.1: Frontend Formulário Completo (Parte 3/3)
+- `52be3c3` - ✅ Checkpoint 2.1: Página de Listagem + Integração (Parte 4/4) - FINALIZADO
+
+**Verificação Final:**
+```
+✅ BACKEND:
+  - CategorySerializer com validate_color() e validate_name()
+  - CategoryViewSet já completo (ModelViewSet)
+  - Proteção de categorias globais (user=None)
+  - Validação de ownership
+  - Filtros funcionando (type, group)
+
+✅ FRONTEND:
+  - CategoryFormModel: validations, factories, toJson
+  - ColorPickerDialog: 19 cores Material
+  - IconPickerDialog: 52+ ícones financeiros
+  - CategoryFormPage: create/edit completo
+  - CategoriesPage: listagem + filtros + busca + CRUD
+  - Integração no menu Settings
+
+✅ REPOSITORY:
+  - updateCategory() implementado
+  - deleteCategory() implementado
+
+✅ FUNCIONALIDADES:
+  - Criar categoria personalizada ✅
+  - Editar categoria personalizada ✅
+  - Deletar categoria (com confirmação) ✅
+  - Proteção de categorias globais ✅
+  - Validação de cores hex ✅
+  - Validação de nomes ✅
+  - Filtros e busca operacionais ✅
+  - Estados de loading/erro tratados ✅
+
+✅ CÓDIGO:
+  - Zero erros de compilação
+  - Flutter analyze passou
+  - Imports corretos
+  - Navegação funcionando
+```
+
+---
+
+#### ⏳ Checkpoint 2.2: Admin - Estatísticas Gerais (3 dias)
 
 **Backend:**
 ```python
@@ -765,59 +907,16 @@ python manage.py seed_default_categories
 ```
 
 **Critérios de Sucesso:**
-- [x] Estatísticas carregando corretamente
-- [x] Gráficos renderizando
-- [x] Performance aceitável (<2s)
-- [x] Cache funcionando
+- [ ] Estatísticas carregando corretamente
+- [ ] Gráficos renderizando
+- [ ] Performance aceitável (<2s)
+- [ ] Cache funcionando
 
 **Prioridade:** 🟡 ALTA
 
 ---
 
-#### ✅ Checkpoint 2.2: CRUD de Categorias (3 dias)
-
-**Frontend:**
-```dart
-// Front/lib/features/categories/
-
-// Estrutura:
-// - data/repositories/category_repository.dart
-// - domain/models/category_form_model.dart
-// - presentation/pages/categories_page.dart
-// - presentation/pages/category_form_page.dart
-// - presentation/viewmodels/categories_viewmodel.dart
-
-// Features:
-// - Listar categorias (globais + personalizadas)
-// - Filtrar por tipo (INCOME/EXPENSE)
-// - Buscar por nome
-// - Criar nova categoria
-// - Editar categoria personalizada (não global)
-// - Deletar categoria personalizada
-// - Color picker (material colors)
-// - Icon picker (50+ ícones predefinidos)
-```
-
-**Backend:**
-```python
-# CategoryViewSet
-# - Adicionar create/update/delete
-# - Validar user só pode editar suas próprias
-# - Impedir edição de categorias globais (user=None)
-# - Validar cor (hex válido)
-```
-
-**Critérios de Sucesso:**
-- [x] Usuário pode criar categoria
-- [x] Usuário pode editar/deletar suas categorias
-- [x] Categorias globais protegidas
-- [x] Color/Icon picker funcionando
-
-**Prioridade:** 🟡 ALTA
-
----
-
-#### ✅ Checkpoint 2.3: Gestão de Usuários Admin (4 dias)
+#### ⏳ Checkpoint 2.3: Integração IA com Padrões (2 dias)
 
 **Backend:**
 ```python
@@ -1188,10 +1287,10 @@ class UserManagementViewSet(viewsets.ViewSet):
 - ✅ Checkpoint 1.2: Categorias Padrão (2 dias) - **COMPLETO** (11/11/2025)
 - ✅ Checkpoint 1.3: CRUD de Missões Admin (3 dias) - **COMPLETO** (11/11/2025)
 
-#### Fase 2: Gestão e Admin (11 dias)
+#### Fase 2: Gestão e Admin (11 dias) - **3/11 dias completos (27%)**
 
-- ⏳ Checkpoint 2.1: Admin - Categorias CRUD (3 dias) - **PRÓXIMO**
-- ⏳ Checkpoint 2.2: Admin - Estatísticas Gerais (3 dias)
+- ✅ Checkpoint 2.1: CRUD de Categorias (3 dias) - **COMPLETO** (11/11/2025)
+- ⏳ Checkpoint 2.2: Admin - Estatísticas Gerais (3 dias) - **PRÓXIMO**
 - ⏳ Checkpoint 2.3: Integração IA com Padrões (2 dias)
 - ⏳ Checkpoint 2.4: Admin - Gestão de Usuários (3 dias)
 
