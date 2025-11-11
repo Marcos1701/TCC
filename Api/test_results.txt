@@ -1,0 +1,92 @@
+﻿
+============================================================
+INICIANDO TESTES DE INTEGRAÃ├O - SISTEMA DE CONQUISTAS
+============================================================
+
+[INFO] Iniciando setup de testes...
+python : [INFO] finance.signals: Created 15 default categories for user 19
+No linha:1 caractere:1
++ python test_achievements_integration.py 2>&1 | Out-File -Encoding UTF ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([INFO] finance....ies for user 19:String) [], R 
+   emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[INFO] finance.services: MissÒo \U0001f3af Primeira Meta inicializada para 
+test_achievements_user
+[INFO] finance.services: MissÒo \U0001f465 Conecte-se inicializada para 
+test_achievements_user
+[INFO] finance.services: MissÒo \U0001f4c8 Uma Semana Consistente inicializada para 
+test_achievements_user
+[INFO] finance.signals: New user profile created: User 19 (test_achievements_user) - 
+is_first_access=True (onboarding enabled)
+[OK] Usußrio de teste criado: test_achievements_user
+[INFO] XP inicial: 0
+[INFO] 
+=== TESTE 1: CriaþÒo Manual de Conquista ===
+[OK] Conquista criada: Primeira TransaþÒo
+[INFO]   Categoria: FINANCIAL
+[INFO]   Tier: BEGINNER
+[INFO]   XP: 25
+[INFO]   CritÚrio: {'type': 'count', 'target': 1, 'metric': 'transactions'}
+[INFO] 
+=== TESTE 2: ValidaþÒo de CritÚrios ===
+[OK] CritÚrio '1 transaþÒo' atendido? False (esperado: False)
+[INFO] finance.services: Conquista 'Primeira TransaþÒo' desbloqueada para 
+test_achievements_user (XP: +25, event: transaction)
+[INFO] finance.services: Conquista 'Primeira TransaþÒo' desbloqueada para 
+test_achievements_user (XP: +25, event: transaction)
+[INFO] finance.services: Conquista 'Primeira TransaþÒo' desbloqueada para 
+test_achievements_user (XP: +25, event: transaction)
+[INFO] finance.services: Conquista 'Primeira TransaþÒo' desbloqueada para 
+test_achievements_user (XP: +25, event: transaction)
+[INFO] TransaþÒo criada: TransaþÒo de teste
+[OK] CritÚrio '1 transaþÒo' atendido? True (esperado: True)
+[INFO] 
+=== TESTE 3: Desbloqueio Automßtico ===
+[INFO] XP antes: 100
+[INFO] finance.services: Conquista '5 Transaþ§es' desbloqueada para test_achievements_user 
+(XP: +50, event: transaction)
+[INFO] finance.services: Conquista '5 Transaþ§es' desbloqueada para test_achievements_user 
+(XP: +50, event: transaction)
+[INFO] 5 transaþ§es criadas
+[OK] Conquista desbloqueada automaticamente!
+[ERRO] XP ganho: 100 (esperado: 50)
+[INFO] XP total: 200
+[INFO] 
+=== TESTE 4: Rastreamento de Progresso ===
+[INFO] Transaþ§es atuais: 5
+[OK] Progresso atualizado: 5/10
+[INFO] Porcentagem: 50%
+[OK] Progresso correto!
+[INFO] 
+=== TESTE 5: Desbloqueio Manual ===
+[OK] Conquista desbloqueada manualmente!
+[OK] XP ganho: 200 (esperado: 200)
+[INFO] Data de desbloqueio: 2025-11-11 14:43:57.407175+00:00
+[INFO] 
+=== TESTE 6: GeraþÒo com IA ===
+[INFO] finance.ai_services: Gerando 2 conquistas via IA (FINANCIAL, BEGINNER)
+[ERROR] finance.ai_services: Erro ao gerar conquistas via IA: 
+  No API_KEY or ADC found. Please either:
+    - Set the `GOOGLE_API_KEY` environment variable.
+    - Manually pass the key with `genai.configure(api_key=my_api_key)`.
+    - Or set up Application Default Credentials, see 
+https://ai.google.dev/gemini-api/docs/oauth for more information.
+[OK] IA gerou 0 conquistas
+[INFO] 
+=== TESTE 7: PrevenþÒo de Duplicatas ===
+[OK] PrevenþÒo de duplicatas funcionando!
+[OK] XP ganho apenas uma vez: 30
+[INFO] 
+============================================================
+[INFO] RESUMO DOS TESTES
+[INFO] ============================================================
+[OK] 
+Total de Sucessos: 12
+[ERRO] Total de Erros: 1
+[INFO] Total de Avisos: 0
+[INFO] 
+XP Final: 430
+[INFO] Conquistas Desbloqueadas: 8
+[INFO] Usußrio de teste removido
