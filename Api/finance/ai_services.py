@@ -349,6 +349,32 @@ O sistema usa gamificação para ensinar educação financeira através de miss�
   * Meta saudável: 6-12 meses
   * Cálculo: Saldo Disponível / Despesas Mensais Médias
 
+## TIPOS DE MISSÃO (use EXATAMENTE estes valores)
+
+1. **ONBOARDING** - Integração inicial, criar hábitos básicos
+   - Campo OBRIGATÓRIO: `min_transactions` (int, 5-50)
+   - Exemplos: Registrar primeiras transações, criar categorias, explorar app
+
+2. **TPS_IMPROVEMENT** - Melhoria de taxa de poupança
+   - Campo OBRIGATÓRIO: `target_tps` (float, 0-100)
+   - Exemplos: Aumentar poupança para X%, reduzir gastos supérfluos
+
+3. **RDR_REDUCTION** - Redução de dívidas
+   - Campo OBRIGATÓRIO: `target_rdr` (float, 0-200)
+   - Exemplos: Baixar RDR para X%, quitar dívidas específicas
+
+4. **ILI_BUILDING** - Construção de reserva de emergência
+   - Campo OBRIGATÓRIO: `min_ili` (float, 0-24)
+   - Exemplos: Construir reserva de X meses, aumentar liquidez
+
+5. **ADVANCED** - Desafios complexos, múltiplos objetivos
+   - Pode combinar: target_tps, target_rdr, min_ili
+   - Exemplos: Otimizar finanças completas, desafios avançados
+
+## EXEMPLOS DE MISSÕES PADRÃO (siga este tom e estilo):
+
+{reference_missions}
+
 ## CENÁRIO: {scenario_name}
 
 {scenario_description}
@@ -388,10 +414,10 @@ Crie 20 missões variadas e progressivas para este cenário específico.
 - Missões médias: 14-21 dias (formação de hábito)
 - Missões longas: 30 dias (transformação mensal)
 
-**Progressão de Recompensa:**
-- EASY: 50-100 XP
-- MEDIUM: 100-200 XP
-- HARD: 200-350 XP
+**Progressão de Recompensa XP:**
+- EASY: 50-150 XP
+- MEDIUM: 100-250 XP
+- HARD: 200-500 XP
 
 **Diretrizes Específicas do Cenário:**
 {scenario_guidelines}
@@ -402,35 +428,51 @@ Crie 20 missões variadas e progressivas para este cenário específico.
 - Adapte metas ao perfil da faixa e cenário
 - Seja específico sobre valores alvo (TPS, RDR, ILI)
 
-**Formato de Resposta (JSON):**
+## REGRAS DE VALIDAÇÃO (CRÍTICAS - MISSÕES QUE NÃO SEGUIREM SERÃO REJEITADAS)
+
+1. **mission_type**: DEVE ser exatamente um de: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, ADVANCED
+2. **Campos por tipo**:
+   - ONBOARDING → DEVE ter `min_transactions` (int, 5-50)
+   - TPS_IMPROVEMENT → DEVE ter `target_tps` (float, 0-100)
+   - RDR_REDUCTION → DEVE ter `target_rdr` (float, 0-200)
+   - ILI_BUILDING → DEVE ter `min_ili` (float, 0-24)
+   - ADVANCED → PODE ter combinação dos campos acima
+3. **difficulty**: DEVE ser exatamente EASY, MEDIUM ou HARD (maiúsculas)
+4. **duration_days**: DEVE ser exatamente 7, 14, 21 ou 30 (números)
+5. **xp_reward**: DEVE respeitar ranges por dificuldade (EASY: 50-150, MEDIUM: 100-250, HARD: 200-500)
+6. **title**: Máximo 150 caracteres, SEM emojis
+7. **description**: Obrigatório, claro e educacional
+
+## FORMATO DE RESPOSTA (JSON)
+
 Retorne APENAS um array JSON válido, sem texto adicional antes ou depois.
+REMOVA campos não utilizados (target_category, target_reduction_percent, tags).
 
 [
     {{
-        "title": "Título criativo e motivador (max 150 caracteres)",
+        "title": "Título criativo e motivador (max 150 chars)",
         "description": "Descrição clara do desafio e benefício educacional",
         "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
-        "target_tps": float ou null (use para TPS_IMPROVEMENT, ex: 25.0 significa meta de 25% TPS),
-        "target_rdr": float ou null (use para RDR_REDUCTION, ex: 30.0 significa meta de 30% RDR),
-        "min_ili": float ou null (use para ILI_BUILDING, ex: 6.0 significa 6 meses),
-        "target_category": "nome_categoria" ou null (para missões de categoria específica),
-        "target_reduction_percent": float ou null (ex: 15.0 significa reduzir 15%),
-        "min_transactions": int ou null (use para ONBOARDING, ex: 10 transações),
-        "duration_days": int (7, 14, 21 ou 30),
-        "xp_reward": int (50-500),
-        "difficulty": "EASY|MEDIUM|HARD",
-        "tags": ["tag1", "tag2"]
+        "target_tps": null ou float (0-100, OBRIGATÓRIO se TPS_IMPROVEMENT),
+        "target_rdr": null ou float (0-200, OBRIGATÓRIO se RDR_REDUCTION),
+        "min_ili": null ou float (0-24, OBRIGATÓRIO se ILI_BUILDING),
+        "min_transactions": null ou int (5-50, OBRIGATÓRIO se ONBOARDING),
+        "duration_days": 7|14|21|30,
+        "xp_reward": int (50-500, seguir ranges por difficulty),
+        "difficulty": "EASY|MEDIUM|HARD"
     }}
 ]
 
 **IMPORTANTE:**
 - Seja específico e mensurável
-- Use linguagem motivadora, não punitiva
+- Use linguagem motivadora, não punitiva (ex: "Organize" ao invés de "Pare de gastar")
 - Varie os títulos e descrições (evite repetição)
 - Adapte as metas ao nível da faixa E ao cenário específico
 - Para cenários com range (ex: TPS 0-15% → 15-25%), crie metas progressivas dentro do range
 - Mantenha consistência JSON válido
-- NÃO repita missões já existentes no banco de dados
+- Siga EXATAMENTE o tom e estilo dos exemplos fornecidos
+- NÃO use jargão técnico excessivo
+- NÃO repita missões já existentes
 """
 
 
@@ -513,6 +555,179 @@ def determine_best_scenario(tier_stats):
         return 'ILI_MEDIUM'
     else:
         return 'ILI_HIGH'
+
+
+# ==================== NOVAS FUNÇÕES DE VALIDAÇÃO E QUALIDADE ====================
+
+def get_reference_missions(mission_type=None, limit=3):
+    """
+    Busca missões padrão (priority>=90) como referência para a IA.
+    
+    Args:
+        mission_type: Tipo específico de missão (ONBOARDING, TPS_IMPROVEMENT, etc)
+        limit: Número máximo de exemplos a retornar
+        
+    Returns:
+        list: Lista de dicionários com exemplos de missões padrão
+    """
+    from .models import Mission
+    
+    qs = Mission.objects.filter(
+        is_active=True,
+        priority__gte=90  # Missões padrão/default têm priority alta
+    )
+    
+    if mission_type:
+        qs = qs.filter(mission_type=mission_type)
+    
+    missions = list(qs.order_by('?')[:limit].values(
+        'title', 'description', 'mission_type', 
+        'target_tps', 'target_rdr', 'min_ili',
+        'min_transactions', 'duration_days', 
+        'reward_points', 'difficulty'
+    ))
+    
+    # Padronizar nome do campo para compatibilidade com IA
+    for mission in missions:
+        mission['xp_reward'] = mission.pop('reward_points')
+    
+    return missions
+
+
+def validate_generated_mission(mission_data):
+    """
+    Valida missão gerada pela IA ANTES de salvar no banco.
+    
+    Verifica:
+    - mission_type válido
+    - Campos obrigatórios por tipo
+    - Ranges de valores (TPS 0-100, RDR 0-200, ILI 0-24)
+    - Difficulty vs XP coerente
+    - duration_days válido
+    
+    Args:
+        mission_data: Dicionário com dados da missão gerada
+        
+    Returns:
+        tuple: (is_valid: bool, errors: list)
+    """
+    errors = []
+    mission_type = mission_data.get('mission_type')
+    
+    # 1. Validar mission_type
+    valid_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
+    if mission_type not in valid_types:
+        errors.append(f"mission_type inválido: '{mission_type}'. Deve ser um de: {', '.join(valid_types)}")
+        return (False, errors)  # Retorna imediatamente se tipo inválido
+    
+    # 2. Validar campos obrigatórios por tipo
+    if mission_type == 'TPS_IMPROVEMENT':
+        if not mission_data.get('target_tps'):
+            errors.append("TPS_IMPROVEMENT requer campo 'target_tps' (float, 0-100)")
+        elif not (0 <= float(mission_data['target_tps']) <= 100):
+            errors.append(f"target_tps deve estar entre 0 e 100, recebeu: {mission_data['target_tps']}")
+    
+    if mission_type == 'RDR_REDUCTION':
+        if not mission_data.get('target_rdr'):
+            errors.append("RDR_REDUCTION requer campo 'target_rdr' (float, 0-200)")
+        elif not (0 <= float(mission_data['target_rdr']) <= 200):
+            errors.append(f"target_rdr deve estar entre 0 e 200, recebeu: {mission_data['target_rdr']}")
+    
+    if mission_type == 'ILI_BUILDING':
+        if not mission_data.get('min_ili'):
+            errors.append("ILI_BUILDING requer campo 'min_ili' (float, 0-24)")
+        elif not (0 <= float(mission_data['min_ili']) <= 24):
+            errors.append(f"min_ili deve estar entre 0 e 24 meses, recebeu: {mission_data['min_ili']}")
+    
+    if mission_type == 'ONBOARDING':
+        if not mission_data.get('min_transactions'):
+            errors.append("ONBOARDING requer campo 'min_transactions' (int, 5-50)")
+        elif not (5 <= int(mission_data['min_transactions']) <= 50):
+            errors.append(f"min_transactions deve estar entre 5 e 50, recebeu: {mission_data['min_transactions']}")
+    
+    # 3. Validar difficulty
+    if mission_data.get('difficulty') not in ['EASY', 'MEDIUM', 'HARD']:
+        errors.append(f"difficulty inválida: '{mission_data.get('difficulty')}'. Deve ser EASY, MEDIUM ou HARD")
+    
+    # 4. Validar duration_days
+    duration = mission_data.get('duration_days')
+    if duration not in [7, 14, 21, 30]:
+        errors.append(f"duration_days deve ser 7, 14, 21 ou 30, recebeu: {duration}")
+    
+    # 5. Validar XP por dificuldade
+    xp = mission_data.get('xp_reward', 0)
+    difficulty = mission_data.get('difficulty')
+    
+    if difficulty == 'EASY' and not (50 <= xp <= 150):
+        errors.append(f"XP para dificuldade EASY deve ser 50-150, recebeu: {xp}")
+    elif difficulty == 'MEDIUM' and not (100 <= xp <= 250):
+        errors.append(f"XP para dificuldade MEDIUM deve ser 100-250, recebeu: {xp}")
+    elif difficulty == 'HARD' and not (200 <= xp <= 500):
+        errors.append(f"XP para dificuldade HARD deve ser 200-500, recebeu: {xp}")
+    
+    # 6. Validar campos obrigatórios básicos
+    if not mission_data.get('title') or len(mission_data.get('title', '')) > 150:
+        errors.append("title é obrigatório e deve ter no máximo 150 caracteres")
+    
+    if not mission_data.get('description'):
+        errors.append("description é obrigatório")
+    
+    return (len(errors) == 0, errors)
+
+
+def check_mission_similarity(title, description, threshold_title=0.85, threshold_desc=0.75):
+    """
+    Verifica se já existe missão similar no banco (evita duplicação semântica).
+    
+    Usa SequenceMatcher para comparar similaridade de strings.
+    - Títulos: threshold padrão 85%
+    - Descrições: threshold padrão 75%
+    
+    Args:
+        title: Título da missão a verificar
+        description: Descrição da missão a verificar
+        threshold_title: Threshold de similaridade para títulos (0-1)
+        threshold_desc: Threshold de similaridade para descrições (0-1)
+        
+    Returns:
+        tuple: (is_duplicate: bool, message: str or None)
+    """
+    from .models import Mission
+    from difflib import SequenceMatcher
+    
+    existing = Mission.objects.filter(is_active=True)
+    
+    for mission in existing:
+        # Similaridade de título (normalizado: lowercase, sem acentos)
+        title_normalized = title.lower().strip()
+        existing_title_normalized = mission.title.lower().strip()
+        
+        title_similarity = SequenceMatcher(
+            None, 
+            title_normalized, 
+            existing_title_normalized
+        ).ratio()
+        
+        if title_similarity > threshold_title:
+            return True, f"Título muito similar a missão existente: '{mission.title}' (similaridade: {title_similarity:.0%})"
+        
+        # Similaridade de descrição
+        desc_normalized = description.lower().strip()
+        existing_desc_normalized = mission.description.lower().strip()
+        
+        desc_similarity = SequenceMatcher(
+            None, 
+            desc_normalized, 
+            existing_desc_normalized
+        ).ratio()
+        
+        if desc_similarity > threshold_desc:
+            return True, f"Descrição muito similar a missão existente: '{mission.title}' (similaridade: {desc_similarity:.0%})"
+    
+    return False, None
+
+
+# ==================== FIM DAS NOVAS FUNÇÕES ====================
 
 
 def get_scenario_guidelines(scenario_key, tier_stats):
@@ -1044,6 +1259,227 @@ def _build_standard_prompt(tier, scenario, stats, period_type, period_name, peri
     )
     
     return prompt
+
+
+def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, count=20, max_retries=3):
+    """
+    Gera e salva missões incrementalmente (uma por vez) com validação robusta.
+    
+    Esta função substitui a geração em lote, oferecendo:
+    - Validação antes de salvar cada missão
+    - Detecção de duplicatas semânticas
+    - Salvamento parcial (não perde tudo se houver erro)
+    - Relatório detalhado de sucessos e falhas
+    
+    Args:
+        tier: 'BEGINNER', 'INTERMEDIATE' ou 'ADVANCED'
+        scenario_key: Chave do cenário específico ou None para auto-detectar
+        user_context: Contexto completo de um usuário real (opcional)
+        count: Número de missões a tentar gerar (padrão: 20)
+        max_retries: Tentativas por missão se falhar validação (padrão: 3)
+        
+    Returns:
+        dict: {
+            'created': [lista de missões criadas],
+            'failed': [lista de erros com detalhes],
+            'summary': {
+                'total_created': int,
+                'total_failed': int,
+                'failed_validation': int,
+                'failed_duplicate': int,
+                'failed_api': int
+            }
+        }
+    """
+    from .models import Mission
+    
+    if not model:
+        logger.error("Gemini API não configurada")
+        return {
+            'created': [],
+            'failed': [{'error': 'Gemini API não configurada', 'type': 'config_error'}],
+            'summary': {'total_created': 0, 'total_failed': 1, 'failed_validation': 0, 'failed_duplicate': 0, 'failed_api': 1}
+        }
+    
+    # Preparar contexto (igual à função antiga)
+    if user_context:
+        stats = _extract_stats_from_user_context(user_context)
+        if not scenario_key:
+            scenario_key = _determine_scenario_from_context(user_context)
+    else:
+        stats = get_user_tier_stats(tier)
+        if not scenario_key:
+            scenario_key = determine_best_scenario(stats)
+    
+    scenario = MISSION_SCENARIOS.get(scenario_key)
+    if not scenario:
+        logger.error(f"Cenário inválido: {scenario_key}")
+        return {
+            'created': [],
+            'failed': [{'error': f'Cenário inválido: {scenario_key}', 'type': 'config_error'}],
+            'summary': {'total_created': 0, 'total_failed': 1, 'failed_validation': 0, 'failed_duplicate': 0, 'failed_api': 1}
+        }
+    
+    # Buscar missões de referência (exemplos para IA)
+    reference_missions = get_reference_missions(limit=3)
+    if reference_missions:
+        reference_text = "\n".join([
+            f"**{i+1}. [{ref['mission_type']}] {ref['title']}**\n"
+            f"Descrição: {ref['description']}\n"
+            f"Duração: {ref['duration_days']} dias | XP: {ref['xp_reward']} | Dificuldade: {ref['difficulty']}\n"
+            for i, ref in enumerate(reference_missions)
+        ])
+    else:
+        reference_text = "(Nenhuma missão de referência disponível - crie baseado nas diretrizes)"
+    
+    # Preparar prompt base (similar à função antiga, mas com reference_missions)
+    period_type, period_name, period_context = get_period_context()
+    
+    if user_context:
+        prompt_base = _build_personalized_prompt(tier, scenario, stats, user_context, period_type, period_name, period_context)
+    else:
+        prompt_base = _build_standard_prompt(tier, scenario, stats, period_type, period_name, period_context)
+    
+    # Injetar missões de referência no prompt
+    prompt_base = prompt_base.replace('{reference_missions}', reference_text)
+    
+    # Modificar prompt para gerar apenas 1 missão por vez
+    prompt_single = prompt_base.replace(
+        "Crie 20 missões variadas e progressivas",
+        "Crie APENAS 1 missão única e criativa"
+    ).replace(
+        "Retorne APENAS um array JSON válido",
+        "Retorne APENAS um objeto JSON válido (não array)"
+    )
+    
+    created_missions = []
+    failed_missions = []
+    
+    # Contadores para summary
+    failed_validation_count = 0
+    failed_duplicate_count = 0
+    failed_api_count = 0
+    
+    logger.info(f"Iniciando geração incremental de {count} missões para {tier}/{scenario_key}")
+    
+    for i in range(count):
+        retry_count = 0
+        mission_created = False
+        
+        while retry_count < max_retries and not mission_created:
+            try:
+                # Gerar 1 missão
+                logger.info(f"Gerando missão {i+1}/{count} (tentativa {retry_count+1}/{max_retries})...")
+                
+                response = model.generate_content(
+                    prompt_single,
+                    generation_config={
+                        'temperature': 0.9,
+                        'top_p': 0.95,
+                        'max_output_tokens': 2000,
+                    }
+                )
+                
+                # Parse resposta
+                response_text = response.text.strip()
+                
+                # Remover markdown
+                if response_text.startswith('```json'):
+                    response_text = response_text[7:]
+                elif response_text.startswith('```'):
+                    response_text = response_text[3:]
+                if response_text.endswith('```'):
+                    response_text = response_text[:-3]
+                
+                mission_data = json.loads(response_text.strip())
+                
+                # Se retornou array, pegar primeiro
+                if isinstance(mission_data, list):
+                    if len(mission_data) == 0:
+                        raise ValueError("IA retornou array vazio")
+                    mission_data = mission_data[0]
+                
+                # 1. Validar estrutura
+                is_valid, validation_errors = validate_generated_mission(mission_data)
+                if not is_valid:
+                    logger.warning(f"Missão {i+1} falhou validação: {validation_errors}")
+                    failed_validation_count += 1
+                    retry_count += 1
+                    continue
+                
+                # 2. Verificar duplicação semântica
+                is_duplicate, dup_message = check_mission_similarity(
+                    mission_data['title'],
+                    mission_data['description']
+                )
+                if is_duplicate:
+                    logger.warning(f"Missão {i+1} é duplicata: {dup_message}")
+                    failed_duplicate_count += 1
+                    retry_count += 1
+                    continue
+                
+                # 3. Salvar no banco
+                mission = Mission.objects.create(
+                    title=mission_data['title'],
+                    description=mission_data['description'],
+                    mission_type=mission_data['mission_type'],
+                    target_tps=mission_data.get('target_tps'),
+                    target_rdr=mission_data.get('target_rdr'),
+                    min_ili=mission_data.get('min_ili'),
+                    min_transactions=mission_data.get('min_transactions'),
+                    duration_days=mission_data['duration_days'],
+                    reward_points=mission_data['xp_reward'],
+                    difficulty=mission_data['difficulty'],
+                    is_active=True,
+                    priority=1  # IA missions têm prioridade baixa
+                )
+                
+                created_missions.append({
+                    'id': mission.id,
+                    'title': mission.title,
+                    'mission_type': mission.mission_type,
+                    'difficulty': mission.difficulty,
+                    'xp_reward': mission.reward_points
+                })
+                
+                mission_created = True
+                logger.info(f"✓ Missão {i+1}/{count} criada: '{mission.title}' (ID: {mission.id})")
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Erro de JSON na missão {i+1}: {e}")
+                failed_api_count += 1
+                retry_count += 1
+                
+            except Exception as e:
+                logger.error(f"Erro ao gerar missão {i+1}: {e}")
+                failed_api_count += 1
+                retry_count += 1
+        
+        # Se esgotou tentativas
+        if not mission_created:
+            failed_missions.append({
+                'index': i + 1,
+                'error': 'Máximo de tentativas excedido',
+                'retries': max_retries
+            })
+            logger.error(f"✗ Missão {i+1}/{count} falhou após {max_retries} tentativas")
+    
+    # Retornar resultado
+    summary = {
+        'total_created': len(created_missions),
+        'total_failed': len(failed_missions),
+        'failed_validation': failed_validation_count,
+        'failed_duplicate': failed_duplicate_count,
+        'failed_api': failed_api_count
+    }
+    
+    logger.info(f"Geração incremental finalizada: {summary['total_created']} criadas, {summary['total_failed']} falharam")
+    
+    return {
+        'created': created_missions,
+        'failed': failed_missions,
+        'summary': summary
+    }
 
 
 def generate_batch_missions_for_tier(tier, scenario_key=None, user_context=None):

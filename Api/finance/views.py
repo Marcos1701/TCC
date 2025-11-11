@@ -1512,14 +1512,15 @@ class MissionViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_ai_missions(self, request):
         """
-        Gera missões usando IA (Gemini) - ADMIN/STAFF ONLY
+        Gera missões usando IA (Gemini) com validação incremental - ADMIN/STAFF ONLY
         
         Requer: is_staff=True ou is_superuser=True
         
         POST /api/missions/generate_ai_missions/
         {
             "tier": "BEGINNER|INTERMEDIATE|ADVANCED" (opcional),
-            "scenario": "TPS_LOW|RDR_HIGH|MIXED_BALANCED|..." (opcional)
+            "scenario": "TPS_LOW|RDR_HIGH|MIXED_BALANCED|..." (opcional),
+            "count": 20 (opcional, número de missões a gerar)
         }
         
         Cenários disponíveis:
@@ -1534,32 +1535,62 @@ class MissionViewSet(viewsets.ModelViewSet):
         Se tier e scenario não forem fornecidos: gera automaticamente
         baseado nas estatísticas dos usuários.
         
+        NOVO: Geração incremental (1 por vez) com:
+        - Validação antes de salvar
+        - Detecção de duplicatas semânticas
+        - Salvamento parcial (não perde tudo se houver erro)
+        
         Exemplo de resposta:
         {
             "success": true,
-            "total_created": 60,
-            "results": {
-                "BEGINNER": {
-                    "scenario": "BEGINNER_ONBOARDING",
-                    "scenario_name": "Primeiros Passos",
-                    "generated": 20,
-                    "created": 20,
-                    "missions": [...]
+            "total_created": 18,
+            "total_failed": 2,
+            "validation_summary": {
+                "failed_validation": 1,
+                "failed_duplicate": 1,
+                "failed_api": 0
+            },
+            "created_missions": [
+                {
+                    "id": "uuid",
+                    "title": "...",
+                    "mission_type": "TPS_IMPROVEMENT",
+                    "difficulty": "MEDIUM",
+                    "xp_reward": 150
                 },
                 ...
-            }
+            ],
+            "failed_missions": [
+                {
+                    "index": 15,
+                    "error": "Máximo de tentativas excedido",
+                    "retries": 3
+                }
+            ]
         }
         """
         from .ai_services import (
-            generate_batch_missions_for_tier,
-            create_missions_from_batch,
-            generate_all_monthly_missions,
-            generate_missions_by_scenario,
+            generate_and_save_incrementally,
             MISSION_SCENARIOS
         )
         
         tier = request.data.get('tier')
         scenario = request.data.get('scenario')
+        count = request.data.get('count', 20)
+        
+        # Validar count
+        try:
+            count = int(count)
+            if count < 1 or count > 100:
+                return Response(
+                    {'error': 'count deve estar entre 1 e 100'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'count deve ser um número inteiro'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Validar tier se fornecido
         if tier and tier not in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
@@ -1581,73 +1612,58 @@ class MissionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        results = {}
-        total_created = 0
+        # Se tier não fornecido, usar BEGINNER como padrão
+        if not tier:
+            tier = 'BEGINNER'
+            logger.info(f"Tier não especificado, usando padrão: {tier}")
         
         try:
-            # Caso 1: Cenário específico
-            if scenario:
-                tiers = [tier] if tier else ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
-                result = generate_missions_by_scenario(scenario, tiers)
-                results = result.get('results', {})
-                total_created = result.get('total_created', 0)
+            # Tentar obter contexto de usuário representativo do tier para personalização
+            from .services import get_comprehensive_mission_context
             
-            # Caso 2: Tier específica, auto-detectar cenário
-            elif tier:
-                # Tentar usar contexto de usuário representativo do tier
-                from .services import get_comprehensive_mission_context
+            user_context = None
+            try:
+                tier_level_range = self._get_tier_level_range(tier)
+                representative_profile = UserProfile.objects.filter(
+                    level__range=tier_level_range
+                ).select_related('user').order_by('-user__last_login').first()
                 
-                user_context = None
-                try:
-                    # Buscar usuário representativo do tier para personalização
-                    tier_level_range = self._get_tier_level_range(tier)
-                    representative_profile = UserProfile.objects.filter(
-                        level__range=tier_level_range
-                    ).select_related('user').order_by('-user__last_login').first()
-                    
-                    if representative_profile and representative_profile.user:
-                        user_context = get_comprehensive_mission_context(representative_profile.user)
-                        logger.info(f"Usando contexto do usuário {representative_profile.user.username} (nível {representative_profile.level}) para tier {tier}")
-                except Exception as e:
-                    logger.warning(f"Não foi possível obter contexto de usuário para {tier}: {e}")
-                
-                batch = generate_batch_missions_for_tier(tier, user_context=user_context)
-                if batch:
-                    created = create_missions_from_batch(tier, batch)
-                    results[tier] = {
-                        'generated': len(batch),
-                        'created': len(created),
-                        'personalized': user_context is not None,
-                        'missions': [
-                            {
-                                'id': str(m.id),
-                                'title': m.title,
-                                'type': m.mission_type,
-                                'difficulty': m.priority,
-                                'xp': m.xp_reward
-                            }
-                            for m in created[:5]  # Primeiras 5 como exemplo
-                        ]
-                    }
-                    total_created = len(created)
-                else:
-                    results[tier] = {
-                        'generated': 0,
-                        'created': 0,
-                        'error': 'Falha ao gerar batch'
-                    }
+                if representative_profile and representative_profile.user:
+                    user_context = get_comprehensive_mission_context(representative_profile.user)
+                    logger.info(f"Usando contexto do usuário {representative_profile.user.username} (nível {representative_profile.level}) para tier {tier}")
+            except Exception as e:
+                logger.warning(f"Não foi possível obter contexto de usuário para {tier}: {e}")
             
-            # Caso 3: Auto-detectar tudo
-            else:
-                result = generate_all_monthly_missions()
-                results = result.get('results', {})
-                total_created = result.get('total_created', 0)
+            # Gerar missões incrementalmente (NOVA FUNÇÃO)
+            result = generate_and_save_incrementally(
+                tier=tier,
+                scenario_key=scenario,
+                user_context=user_context,
+                count=count,
+                max_retries=3
+            )
             
+            # Extrair resultados
+            created_missions = result['created']
+            failed_missions = result['failed']
+            summary = result['summary']
+            
+            # Preparar resposta
             return Response({
-                'success': True,
-                'total_created': total_created,
-                'results': results,
-                'message': f'{total_created} missões geradas com sucesso via IA'
+                'success': summary['total_created'] > 0,
+                'total_created': summary['total_created'],
+                'total_failed': summary['total_failed'],
+                'validation_summary': {
+                    'failed_validation': summary['failed_validation'],
+                    'failed_duplicate': summary['failed_duplicate'],
+                    'failed_api': summary['failed_api']
+                },
+                'created_missions': created_missions[:10],  # Primeiras 10 como preview
+                'failed_missions': failed_missions[:5],  # Primeiras 5 falhas
+                'tier': tier,
+                'scenario': scenario or 'auto-detectado',
+                'personalized': user_context is not None,
+                'message': f'{summary["total_created"]} missões criadas com sucesso via IA (validação incremental)'
             })
             
         except Exception as e:
