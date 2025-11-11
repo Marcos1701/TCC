@@ -2866,13 +2866,33 @@ class AdminStatsViewSet(viewsets.ViewSet):
     """
     ViewSet for admin statistics and dashboard data.
     Only accessible by staff users.
+    Implements caching with 10-minute TTL for performance.
     """
     permission_classes = [permissions.IsAdminUser]
+    
+    def _get_cached_or_compute(self, cache_key, compute_func, timeout=600):
+        """
+        Helper to get data from cache or compute and cache it.
+        
+        Args:
+            cache_key: Unique key for this data
+            compute_func: Function to call if cache miss
+            timeout: Cache TTL in seconds (default 600 = 10 minutes)
+        """
+        data = cache.get(cache_key)
+        if data is None:
+            data = compute_func()
+            cache.set(cache_key, data, timeout)
+            logger.info(f"Cache miss for {cache_key}, computed and cached")
+        else:
+            logger.info(f"Cache hit for {cache_key}")
+        return data
     
     @action(detail=False, methods=['get'])
     def overview(self, request):
         """
         Get overview statistics for admin dashboard.
+        Cached for 10 minutes.
         
         Returns:
         - total_users: Total number of users in the system
@@ -2883,86 +2903,266 @@ class AdminStatsViewSet(viewsets.ViewSet):
         - missions_by_type: Mission distribution by type
         - recent_activity: Recent mission completions
         """
-        from django.db.models import Avg, Count, Q
-        from datetime import timedelta
-        from django.utils import timezone
-        
-        # Total users
-        total_users = User.objects.count()
-        
-        # Mission statistics
-        completed_missions = MissionProgress.objects.filter(
-            status='COMPLETED'
-        ).count()
-        
-        active_missions = Mission.objects.filter(
-            is_active=True
-        ).count()
-        
-        # Average user level
-        avg_level_data = UserProfile.objects.aggregate(
-            avg_level=Avg('level')
-        )
-        avg_user_level = round(avg_level_data['avg_level'] or 0, 1)
-        
-        # Missions by difficulty (ao invés de tier)
-        missions_by_difficulty = {}
-        for difficulty in ['EASY', 'MEDIUM', 'HARD']:
-            missions_by_difficulty[difficulty] = Mission.objects.filter(
-                difficulty=difficulty,
+        def compute_overview():
+            from django.db.models import Avg, Count, Q
+            from datetime import timedelta
+            from django.utils import timezone
+            
+            # Total users
+            total_users = User.objects.count()
+            
+            # Mission statistics
+            completed_missions = MissionProgress.objects.filter(
+                status='COMPLETED'
+            ).count()
+            
+            active_missions = Mission.objects.filter(
                 is_active=True
             ).count()
-        
-        # Missions by type
-        missions_by_type = {}
-        mission_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
-        for mission_type in mission_types:
-            missions_by_type[mission_type] = Mission.objects.filter(
-                mission_type=mission_type,
-                is_active=True
-            ).count()
-        
-        # Recent activity (last 10 completed missions)
-        recent_completions = MissionProgress.objects.filter(
-            status='COMPLETED'
-        ).select_related(
-            'mission', 'user__userprofile'
-        ).order_by('-updated_at')[:10]
-        
-        recent_activity = []
-        for progress in recent_completions:
-            recent_activity.append({
-                'user': progress.user.username,
-                'mission': progress.mission.title,
-                'completed_at': progress.updated_at.isoformat(),
-                'xp_earned': progress.mission.reward_points,
-            })
-        
-        # User level distribution
-        level_distribution = {
-            '1-5': UserProfile.objects.filter(level__gte=1, level__lte=5).count(),
-            '6-10': UserProfile.objects.filter(level__gte=6, level__lte=10).count(),
-            '11-20': UserProfile.objects.filter(level__gte=11, level__lte=20).count(),
-            '21+': UserProfile.objects.filter(level__gte=21).count(),
-        }
-        
-        # Mission completion rate
-        total_mission_assignments = MissionProgress.objects.count()
-        completion_rate = 0
-        if total_mission_assignments > 0:
-            completion_rate = round(
-                (completed_missions / total_mission_assignments) * 100,
-                1
+            
+            # Average user level
+            avg_level_data = UserProfile.objects.aggregate(
+                avg_level=Avg('level')
             )
+            avg_user_level = round(avg_level_data['avg_level'] or 0, 1)
+            
+            # Missions by difficulty (ao invés de tier)
+            missions_by_difficulty = {}
+            for difficulty in ['EASY', 'MEDIUM', 'HARD']:
+                missions_by_difficulty[difficulty] = Mission.objects.filter(
+                    difficulty=difficulty,
+                    is_active=True
+                ).count()
+            
+            # Missions by type
+            missions_by_type = {}
+            mission_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
+            for mission_type in mission_types:
+                missions_by_type[mission_type] = Mission.objects.filter(
+                    mission_type=mission_type,
+                    is_active=True
+                ).count()
+            
+            # Recent activity (last 10 completed missions)
+            recent_completions = MissionProgress.objects.filter(
+                status='COMPLETED'
+            ).select_related(
+                'mission', 'user__userprofile'
+            ).order_by('-updated_at')[:10]
+            
+            recent_activity = []
+            for progress in recent_completions:
+                recent_activity.append({
+                    'user': progress.user.username,
+                    'mission': progress.mission.title,
+                    'completed_at': progress.updated_at.isoformat(),
+                    'xp_earned': progress.mission.reward_points,
+                })
+            
+            # User level distribution
+            level_distribution = {
+                '1-5': UserProfile.objects.filter(level__gte=1, level__lte=5).count(),
+                '6-10': UserProfile.objects.filter(level__gte=6, level__lte=10).count(),
+                '11-20': UserProfile.objects.filter(level__gte=11, level__lte=20).count(),
+                '21+': UserProfile.objects.filter(level__gte=21).count(),
+            }
+            
+            # Mission completion rate
+            total_mission_assignments = MissionProgress.objects.count()
+            completion_rate = 0
+            if total_mission_assignments > 0:
+                completion_rate = round(
+                    (completed_missions / total_mission_assignments) * 100,
+                    1
+                )
+            
+            return {
+                'total_users': total_users,
+                'completed_missions': completed_missions,
+                'active_missions': active_missions,
+                'avg_user_level': avg_user_level,
+                'missions_by_difficulty': missions_by_difficulty,
+                'missions_by_type': missions_by_type,
+                'recent_activity': recent_activity,
+                'level_distribution': level_distribution,
+                'mission_completion_rate': completion_rate,
+            }
         
-        return Response({
-            'total_users': total_users,
-            'completed_missions': completed_missions,
-            'active_missions': active_missions,
-            'avg_user_level': avg_user_level,
-            'missions_by_difficulty': missions_by_difficulty,
-            'missions_by_type': missions_by_type,
-            'recent_activity': recent_activity,
-            'level_distribution': level_distribution,
-            'mission_completion_rate': completion_rate,
-        })
+        data = self._get_cached_or_compute('admin_stats_overview', compute_overview)
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def user_analytics(self, request):
+        """
+        Get detailed user analytics.
+        Cached for 10 minutes.
+        
+        Returns:
+        - total_users: Total registered users
+        - active_users_7d: Users active in last 7 days
+        - active_users_30d: Users active in last 30 days
+        - new_users_7d: New registrations in last 7 days
+        - users_by_level: Distribution of users by level
+        - top_users: Top 10 users by XP
+        - inactive_users: Users inactive for >30 days
+        """
+        def compute_user_analytics():
+            from django.db.models import Count, Q, F
+            from datetime import timedelta
+            from django.utils import timezone
+            
+            now = timezone.now()
+            seven_days_ago = now - timedelta(days=7)
+            thirty_days_ago = now - timedelta(days=30)
+            
+            # Total users
+            total_users = User.objects.count()
+            
+            # Active users (users with transactions or mission progress in period)
+            active_users_7d = User.objects.filter(
+                Q(transaction__date__gte=seven_days_ago.date()) |
+                Q(missionprogress__updated_at__gte=seven_days_ago)
+            ).distinct().count()
+            
+            active_users_30d = User.objects.filter(
+                Q(transaction__date__gte=thirty_days_ago.date()) |
+                Q(missionprogress__updated_at__gte=thirty_days_ago)
+            ).distinct().count()
+            
+            # New users
+            new_users_7d = User.objects.filter(
+                date_joined__gte=seven_days_ago
+            ).count()
+            
+            # Users by level (detailed)
+            users_by_level = {}
+            for level in range(1, 21):
+                count = UserProfile.objects.filter(level=level).count()
+                if count > 0:
+                    users_by_level[f'Level {level}'] = count
+            users_by_level['Level 21+'] = UserProfile.objects.filter(level__gte=21).count()
+            
+            # Top users by XP
+            top_users = UserProfile.objects.select_related('user').order_by('-total_xp')[:10]
+            top_users_data = []
+            for profile in top_users:
+                top_users_data.append({
+                    'username': profile.user.username,
+                    'level': profile.level,
+                    'total_xp': profile.total_xp,
+                    'xp_to_next_level': profile.xp_to_next_level,
+                })
+            
+            # Inactive users (no activity in last 30 days)
+            inactive_users = User.objects.exclude(
+                Q(transaction__date__gte=thirty_days_ago.date()) |
+                Q(missionprogress__updated_at__gte=thirty_days_ago)
+            ).distinct().count()
+            
+            # Users with goals
+            users_with_goals = User.objects.filter(
+                goal__isnull=False
+            ).distinct().count()
+            
+            # Users with completed goals
+            users_with_completed_goals = User.objects.filter(
+                goal__status='COMPLETED'
+            ).distinct().count()
+            
+            return {
+                'total_users': total_users,
+                'active_users_7d': active_users_7d,
+                'active_users_30d': active_users_30d,
+                'new_users_7d': new_users_7d,
+                'users_by_level': users_by_level,
+                'top_users': top_users_data,
+                'inactive_users': inactive_users,
+                'users_with_goals': users_with_goals,
+                'users_with_completed_goals': users_with_completed_goals,
+            }
+        
+        data = self._get_cached_or_compute('admin_stats_user_analytics', compute_user_analytics)
+        return Response(data)
+    
+    @action(detail=False, methods=['get'])
+    def system_health(self, request):
+        """
+        Get system health metrics.
+        Cached for 10 minutes.
+        
+        Returns:
+        - total_transactions: Total transactions in system
+        - transactions_7d: Transactions in last 7 days
+        - total_goals: Total goals created
+        - active_goals: Currently active goals
+        - completed_goals: Completed goals
+        - categories_count: Total categories (global + user)
+        - avg_transactions_per_user: Average transactions per user
+        - avg_goals_per_user: Average goals per user
+        """
+        def compute_system_health():
+            from django.db.models import Count, Avg
+            from datetime import timedelta
+            from django.utils import timezone
+            
+            now = timezone.now()
+            seven_days_ago = now - timedelta(days=7)
+            
+            # Transaction metrics
+            total_transactions = Transaction.objects.count()
+            transactions_7d = Transaction.objects.filter(
+                date__gte=seven_days_ago.date()
+            ).count()
+            
+            # Goal metrics
+            total_goals = Goal.objects.count()
+            active_goals = Goal.objects.filter(
+                status='ACTIVE'
+            ).count()
+            completed_goals = Goal.objects.filter(
+                status='COMPLETED'
+            ).count()
+            
+            # Category metrics
+            categories_count = Category.objects.count()
+            global_categories = Category.objects.filter(user__isnull=True).count()
+            user_categories = Category.objects.filter(user__isnull=False).count()
+            
+            # Averages
+            total_users = User.objects.count()
+            avg_transactions_per_user = 0
+            avg_goals_per_user = 0
+            
+            if total_users > 0:
+                avg_transactions_per_user = round(total_transactions / total_users, 1)
+                avg_goals_per_user = round(total_goals / total_users, 1)
+            
+            # Mission metrics
+            total_missions = Mission.objects.filter(is_active=True).count()
+            ai_generated_missions = Mission.objects.filter(
+                is_active=True,
+                priority__lt=90  # Missões IA geralmente têm priority < 90
+            ).count()
+            default_missions = Mission.objects.filter(
+                is_active=True,
+                priority__gte=90  # Missões padrão têm priority >= 90
+            ).count()
+            
+            return {
+                'total_transactions': total_transactions,
+                'transactions_7d': transactions_7d,
+                'total_goals': total_goals,
+                'active_goals': active_goals,
+                'completed_goals': completed_goals,
+                'categories_count': categories_count,
+                'global_categories': global_categories,
+                'user_categories': user_categories,
+                'avg_transactions_per_user': avg_transactions_per_user,
+                'avg_goals_per_user': avg_goals_per_user,
+                'total_missions': total_missions,
+                'ai_generated_missions': ai_generated_missions,
+                'default_missions': default_missions,
+            }
+        
+        data = self._get_cached_or_compute('admin_stats_system_health', compute_system_health)
+        return Response(data)
