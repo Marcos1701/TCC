@@ -636,57 +636,108 @@ python manage.py seed_default_categories
 
 ---
 
-#### ✅ Checkpoint 1.3: CRUD de Missões Admin (3 dias)
-
-**Frontend:**
-```dart
-// Front/lib/features/admin/presentation/pages/mission_crud_page.dart
-
-// Features:
-// 1. Listagem com filtros (tier, tipo, ativo)
-// 2. Busca por título
-// 3. Paginação (20 por página)
-// 4. Card de missão (expandable)
-// 5. Ações: Editar, Duplicar, Desativar/Ativar
-// 6. Botão FAB "Nova Missão"
-
-// Front/lib/features/admin/presentation/pages/mission_form_page.dart
-// 
-// Formulário completo:
-// - Título (max 150 chars)
-// - Descrição (multiline)
-// - Tipo (dropdown)
-// - Dificuldade (dropdown)
-// - Tier (chips: BEGINNER, INTERMEDIATE, ADVANCED, ALL)
-// - XP Reward (slider 50-500)
-// - Duration Days (slider 7-90)
-// - Validação (dropdown)
-// - Campos específicos por validação
-// - Botões: Salvar, Cancelar
-```
+#### ✅ Checkpoint 1.3: CRUD de Missões Admin (3 dias) - **100% COMPLETO** ✅
 
 **Backend:**
 ```python
-# Atualizar MissionViewSet
-# - Adicionar permissão create/update/delete (IsAdminUser)
-# - Validar campos obrigatórios
-# - Validar choices (mission_type, difficulty, etc.)
+# MissionViewSet modificado para CRUD completo
+# - ModelViewSet (ao invés de ReadOnlyModelViewSet)
+# - Permissões dinâmicas: IsAdminUser para create/update/delete
+# - Filtros: mission_type, difficulty, is_active, tier (custom)
+# - Busca: title, description
+# - Ordenação: created_at, priority, reward_points
+
+# Actions Admin:
+# - POST /api/missions/ - Criar missão manual
+# - PUT/PATCH /api/missions/{id}/ - Editar missão
+# - DELETE /api/missions/{id}/ - Desativar (soft delete)
+# - POST /api/missions/{id}/duplicate/ - Duplicar missão
+# - POST /api/missions/{id}/toggle_active/ - Ativar/Desativar
+
+# MissionSerializer com validações completas:
+# - Título: não vazio, max 150 chars
+# - Descrição: não vazia
+# - Reward XP: 10-1000
+# - Duração: 1-365 dias
+# - Validações específicas por validation_type (TEMPORAL, CATEGORY_REDUCTION, etc.)
+```
+
+**Frontend:**
+```dart
+// Front/lib/features/admin/presentation/pages/admin_missions_management_page.dart
+
+// Features implementadas:
+// 1. Dialog de criação manual (_showCreateMissionDialog)
+//    - Campos: título, descrição, XP, duração, tipo, dificuldade
+//    - Validação frontend de campos obrigatórios
+//    - Missão criada como ATIVA (priority 99)
+//
+// 2. Dialog de edição (_showEditMissionDialog) - JÁ EXISTIA
+//    - Atualiza título, descrição, XP, tipo, dificuldade
+//    - PATCH /api/missions/{id}/
+//
+// 3. Função duplicar (_duplicateMission)
+//    - Confirmação com preview do título
+//    - POST /api/missions/{id}/duplicate/
+//    - Missão duplicada criada como DESATIVADA
+//
+// 4. UI aprimorada:
+//    - FAB duplo: "Nova Missão" (manual) + "Carga IA"
+//    - Botões no card: "Duplicar" + "Excluir"
+//    - Toggle de ativação/desativação
+//    - Filtros (tipo, dificuldade, status)
+//    - Busca por título
+//    - Ordenação múltipla
 ```
 
 **Critérios de Sucesso:**
-- [x] Admin pode criar missão manual
-- [x] Admin pode editar missão
-- [x] Admin pode desativar/ativar
-- [x] Admin pode duplicar missão
-- [x] Validações funcionando
+- [x] Admin pode criar missão manual ✅
+- [x] Admin pode editar missão ✅
+- [x] Admin pode desativar/ativar ✅
+- [x] Admin pode duplicar missão ✅
+- [x] Validações funcionando (backend + frontend) ✅
+- [x] Filtros implementados (mission_type, difficulty, is_active, tier) ✅
+- [x] Busca funcionando (title, description) ✅
+- [x] Logs de ações admin (create, update, duplicate, toggle) ✅
 
 **Prioridade:** 🟡 ALTA
+
+**Data de Conclusão:** 11 de novembro de 2025  
+**Commits:**
+- `537ef68` - ✅ Checkpoint 1.3 - Backend CRUD Missões (Parte 1/2)
+- `71145c8` - ✅ Checkpoint 1.3 - Frontend CRUD Missões (Parte 2/2)
+
+**Verificação Final:**
+```
+✅ BACKEND:
+  - MissionViewSet é ModelViewSet
+  - Permissões IsAdminUser para create/update/delete
+  - 5 endpoints funcionando (CRUD + duplicate + toggle)
+  - Validações no MissionSerializer (8 checks)
+  - Soft delete (is_active=False)
+  - Logs em todas as ações
+
+✅ FRONTEND:
+  - Dialog "Nova Missão" funcional
+  - Dialog "Editar Missão" funcional
+  - Botão "Duplicar" em cada card
+  - FAB duplo (Nova + IA)
+  - Filtros e busca operacionais
+  - Feedback visual (SnackBars)
+  - Reload automático pós-ações
+
+✅ INTEGRAÇÃO:
+  - Endpoints backend ↔ frontend conectados
+  - Validações consistentes (ambos lados)
+  - Estados de erro tratados
+  - UX fluida e responsiva
+```
 
 ---
 
 ### FASE 2: Gestão e Admin (Semana 3-4)
 
-#### ✅ Checkpoint 2.1: Estatísticas Admin (4 dias)
+#### ⏳ Checkpoint 2.1: CRUD de Categorias (3 dias)
 
 **Backend:**
 ```python
@@ -1131,15 +1182,15 @@ class UserManagementViewSet(viewsets.ViewSet):
 
 ### Status de Checkpoints
 
-#### Fase 1: Fundações (8 dias) - **5/8 dias completos**
+#### Fase 1: Fundações (8 dias) - **8/8 dias completos (100%)** ✅
 
 - ✅ Checkpoint 1.1: Missões Padrão (3 dias) - **COMPLETO** (10/11/2025)
 - ✅ Checkpoint 1.2: Categorias Padrão (2 dias) - **COMPLETO** (11/11/2025)
-- ⏳ Checkpoint 1.3: Painel Admin - Missões CRUD (3 dias) - **PRÓXIMO**
+- ✅ Checkpoint 1.3: CRUD de Missões Admin (3 dias) - **COMPLETO** (11/11/2025)
 
 #### Fase 2: Gestão e Admin (11 dias)
 
-- ⏳ Checkpoint 2.1: Admin - Categorias CRUD (3 dias)
+- ⏳ Checkpoint 2.1: Admin - Categorias CRUD (3 dias) - **PRÓXIMO**
 - ⏳ Checkpoint 2.2: Admin - Estatísticas Gerais (3 dias)
 - ⏳ Checkpoint 2.3: Integração IA com Padrões (2 dias)
 - ⏳ Checkpoint 2.4: Admin - Gestão de Usuários (3 dias)
