@@ -6,6 +6,7 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../admin/presentation/pages/admin_dashboard_page.dart';
+import '../../../categories/presentation/pages/categories_page.dart';
 import '../../../home/presentation/pages/home_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 
@@ -261,6 +262,18 @@ class _SettingsPageState extends State<SettingsPage> {
               title: 'Editar Perfil',
               subtitle: 'Alterar nome e e-mail',
               onTap: () => _showEditProfileSheet(context, user),
+              tokens: tokens,
+              theme: theme,
+            ),
+            const SizedBox(height: 12),
+            
+            _SettingsTile(
+              icon: Icons.category_outlined,
+              title: 'Minhas Categorias',
+              subtitle: 'Gerenciar categorias personalizadas',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CategoriesPage()),
+              ),
               tokens: tokens,
               theme: theme,
             ),
