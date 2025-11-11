@@ -14,6 +14,7 @@ import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 import '../../../../presentation/widgets/friendly_indicator_card.dart';
 import 'goal_details_page.dart';
+import '../widgets/simple_goal_wizard.dart';
 
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
@@ -847,6 +848,21 @@ class _ProgressPageState extends State<ProgressPage> {
     }
   }
 
+  /// Abre o wizard simplificado de criação de metas (Dia 15-20)
+  Future<void> _openSimpleGoalWizard() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SimpleGoalWizard(),
+        fullscreenDialog: true,
+      ),
+    );
+
+    if (result == true && mounted) {
+      _refresh();
+    }
+  }
+
   Future<void> _deleteGoal(GoalModel goal) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -909,7 +925,7 @@ class _ProgressPageState extends State<ProgressPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'progressFab',
-        onPressed: () => _openGoalDialog(),
+        onPressed: () => _openSimpleGoalWizard(),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add_rounded),
         label: const Text('Nova Meta'),
