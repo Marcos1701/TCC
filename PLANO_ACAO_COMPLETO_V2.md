@@ -565,7 +565,7 @@ python manage.py seed_default_missions
 
 ---
 
-#### ✅ Checkpoint 1.2: Categorias Padrão (2 dias) - **CONCLUÍDO** ✅
+#### ✅ Checkpoint 1.2: Categorias Padrão (2 dias) - **100% COMPLETO** ✅
 
 **Backend:**
 ```bash
@@ -573,9 +573,9 @@ python manage.py seed_default_missions
 python manage.py create seed_default_categories.py
 
 # 2. Implementar 28 categorias padrão ✅
-# - 8 INCOME (Renda Principal, Renda Extra, Outros)
-# - 20 EXPENSE (Essenciais, Estilo de Vida, Outros)
-# - Cores e emojis definidos
+# - 8 INCOME (Renda Principal: 3, Renda Extra: 3, Outros: 2)
+# - 20 EXPENSE (Essenciais: 8, Estilo de Vida: 9, Outros: 3)
+# - Cores em hexadecimal e emojis definidos
 
 # 3. Executar seed ✅
 python manage.py seed_default_categories
@@ -583,31 +583,56 @@ python manage.py seed_default_categories
 # 4. Modificar modelo Category ✅
 # - Permitir user=null para categorias globais
 # - Migration 0040_category_allow_null_user aplicada
+
+# 5. Endpoint de categorias ✅
+# - GET /api/categories/ retorna globais + do usuário
+# - Filtro por type (INCOME/EXPENSE)
+# - Filtro por group
 ```
 
 **Frontend:**
 ```dart
-// 1. Atualizar category_repository ⏳
-// - Fetch categorias globais + personalizadas
-// - Cache local (5 min)
+// 1. Repository ✅
+// - fetchCategories() busca globais + personalizadas
+// - CategoryModel suporta categorias sem user
 
-// 2. Atualizar forms de transação ⏳
-// - Dropdown com categorias padrão
-// - Opção "Criar nova categoria"
+// 2. Forms de transação ✅
+// - Dropdown mostra todas as categorias (globais + pessoais)
+// - Botão "+ Categoria" para criar nova
+// - Formulário completo de criação de categoria
 ```
 
 **Critérios de Sucesso:**
-- [x] 28 categorias criadas ✅
+- [x] 28 categorias globais criadas ✅
+- [x] 8 INCOME (3 Renda Principal, 3 Renda Extra, 2 Outros) ✅
+- [x] 20 EXPENSE (8 Essenciais, 9 Estilo de Vida, 3 Outros) ✅
+- [x] Todas com cores hexadecimais ✅
+- [x] Todas com emojis ✅
 - [x] Modelo Category permite user=null ✅
 - [x] Migration aplicada ✅
-- [x] Seed executado com sucesso ✅
-- [ ] Endpoint retornando categorias globais ⏳
-- [ ] Frontend atualizado ⏳
+- [x] Endpoint retornando categorias globais ✅
+- [x] Frontend mostrando categorias em dropdowns ✅
+- [x] Opção "Criar nova categoria" disponível ✅
 
 **Prioridade:** 🔴 CRÍTICA
 
-**Data de Conclusão (Backend):** 11 de novembro de 2025  
-**Commit:** 9da061d - ✅ Checkpoint 1.2: Categorias Padrão completo
+**Data de Conclusão:** 11 de novembro de 2025  
+**Commits:**
+- `9da061d` - ✅ Checkpoint 1.2: Categorias Padrão completo (backend)
+- `889cae9` - 📊 Atualiza plano: Checkpoint 1.2 completo (backend)
+
+**Verificação Final:**
+```
+✅ 28 categorias globais criadas
+✅ 8 categorias de RECEITA
+✅ 20 categorias de DESPESA
+✅ Todas com cores definidas (#RRGGBB)
+✅ Todas com emojis (ranges 0x26xx, 0x27xx, 0x1Fxxx)
+✅ Modelo permite user=null
+✅ Migration aplicada
+✅ Endpoint funcionando corretamente
+✅ Frontend integrado e funcional
+```
 
 ---
 
@@ -1097,20 +1122,20 @@ class UserManagementViewSet(viewsets.ViewSet):
 
 ### Próximos Passos Imediatos
 
-1. **Revisar e aprovar este plano** ✅ (Concluído)
-2. **Criar branch `feature/missions-categories-admin`** ⏳ (Usando feature/ux-improvements)
-3. **Iniciar Checkpoint 1.1 (Missões Padrão)** ✅ (Concluído - 10/11/2025)
-4. **Iniciar Checkpoint 1.2 (Categorias Padrão)** ⏳ (PRÓXIMO)
-5. **Configurar projeto de tracking (GitHub Projects)** ⏳
-6. **Definir sprint de 2 semanas** ⏳
+1. **Revisar e aprovar este plano** ✅ (Concluído - 10/11/2025)
+2. **Criar branch `feature/missions-categories-admin`** ✅ (Usando feature/ux-improvements)
+3. **Checkpoint 1.1: Missões Padrão** ✅ (Concluído - 10/11/2025)
+4. **Checkpoint 1.2: Categorias Padrão** ✅ (Concluído - 11/11/2025)
+5. **Checkpoint 1.3: CRUD de Missões Admin** ⏳ (PRÓXIMO)
+6. **Configurar projeto de tracking (GitHub Projects)** ⏳
 
 ### Status de Checkpoints
 
-#### Fase 1: Fundações (8 dias)
+#### Fase 1: Fundações (8 dias) - **5/8 dias completos**
 
-- ✅ Checkpoint 1.1: Missões Padrão (3 dias) - **COMPLETO**
-- ⏳ Checkpoint 1.2: Categorias Padrão (2 dias) - **PRÓXIMO**
-- ⏳ Checkpoint 1.3: Painel Admin - Missões CRUD (3 dias)
+- ✅ Checkpoint 1.1: Missões Padrão (3 dias) - **COMPLETO** (10/11/2025)
+- ✅ Checkpoint 1.2: Categorias Padrão (2 dias) - **COMPLETO** (11/11/2025)
+- ⏳ Checkpoint 1.3: Painel Admin - Missões CRUD (3 dias) - **PRÓXIMO**
 
 #### Fase 2: Gestão e Admin (11 dias)
 
