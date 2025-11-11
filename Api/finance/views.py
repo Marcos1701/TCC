@@ -3343,8 +3343,8 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         )
         
         # Missões ativas
-        from .models import UserMission
-        active_missions = UserMission.objects.filter(
+        from .models import AdminActionLog, MissionProgress
+        active_missions = MissionProgress.objects.filter(
             user=user,
             status='IN_PROGRESS'
         ).select_related('mission').values(
@@ -3353,7 +3353,6 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         )[:5]
         
         # Logs de ações admin (últimas 20)
-        from .models import AdminActionLog
         admin_actions = AdminActionLog.objects.filter(
             target_user=user
         ).select_related('admin_user')[:20]
