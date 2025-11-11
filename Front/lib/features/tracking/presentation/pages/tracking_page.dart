@@ -1635,7 +1635,7 @@ class _TrackingPageState extends State<TrackingPage> {
         barWidth: 2.5,
         isStrokeCapRound: true,
         dashArray: [8, 4],
-        dotData: FlDotData(show: false), // Dots já são mostrados na linha principal
+        dotData: const FlDotData(show: false), // Dots já são mostrados na linha principal
         belowBarData: BarAreaData(show: false),
       ),
     );

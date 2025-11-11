@@ -137,7 +137,7 @@ class _MissionsPageState extends State<MissionsPage> {
                     ElevatedButton.icon(
                       onPressed: () => _viewModel.loadMissions(),
                       icon: const Icon(Icons.refresh),
-                      label: Text(UxStrings.tryAgain),
+                      label: const Text(UxStrings.tryAgain),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,

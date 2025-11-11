@@ -130,15 +130,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(
                   Icons.bar_chart,
                   color: AppColors.primary,
                   size: 28,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'Resumo',
                   style: TextStyle(
                     color: Colors.white,
@@ -250,15 +250,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(
                   Icons.leaderboard,
                   color: AppColors.support,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'Top Eventos',
                   style: TextStyle(
                     color: Colors.white,
@@ -336,15 +336,15 @@ class _AnalyticsDashboardPageState extends State<AnalyticsDashboardPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.timer,
                   color: Colors.amber,
                   size: 24,
                 ),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'Tempo nas Telas',
                   style: TextStyle(
                     color: Colors.white,

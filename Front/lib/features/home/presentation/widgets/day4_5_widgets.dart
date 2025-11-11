@@ -159,11 +159,11 @@ class WeeklyChallengeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              const Row(
                 children: [
-                  const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
-                  const SizedBox(width: 8),
-                  const Text(
+                  Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                  SizedBox(width: 8),
+                  Text(
                     'Desafio da Semana',
                     style: TextStyle(
                       fontSize: 18,

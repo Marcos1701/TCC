@@ -201,7 +201,9 @@ class Category(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="categories",
-        help_text="Usuário proprietário desta categoria",
+        null=True,
+        blank=True,
+        help_text="Usuário proprietário desta categoria (null = categoria global/padrão)",
     )
     is_system_default = models.BooleanField(
         default=False,
