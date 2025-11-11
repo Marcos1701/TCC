@@ -1421,14 +1421,16 @@ class FriendsLeaderboardView(APIView):
         return Response(data)
 ```
 
-**Checklist Dia 11-14:** ⏳ PENDENTE
-- [ ] Endpoint de ranking geral deprecado
-- [ ] Ranking de amigos otimizado com cache
-- [ ] Frontend atualizado (só amigos)
-- [ ] Sistema de sugestão implementado
-- [ ] Testes de performance
-- [ ] Commit (backend): "feat(api): deprecate general leaderboard, optimize friends ranking"
-- [ ] Commit (frontend): "feat(ux): remove general leaderboard, keep friends only"
+**Checklist Dia 11-14:** ✅ COMPLETO
+- [x] Endpoint de ranking geral deprecado (HTTP 410 Gone)
+- [x] Ranking de amigos otimizado com cache (5min)
+- [x] Endpoint de sugestões de amigos criado
+- [x] Frontend atualizado (apenas ranking de amigos)
+- [x] Sistema de incentivo implementado (<3 amigos = XP)
+- [x] Banner de recompensa no frontend
+- [x] Testes de análise realizados (0 erros)
+- [x] Commit (backend): "feat(api): deprecate general leaderboard, optimize friends ranking"
+- [x] Commit (frontend): "feat(ux): remove general leaderboard, keep friends only"
 
 ---
 
@@ -1669,9 +1671,9 @@ class AnalyticsService {
 - [x] Home reorganizada (Dia 4-5)
 - [x] Onboarding simplificado (Dia 6-7) ✅ CONCLUÍDO
 
-### Fase 2 (Semanas 3-6) ⏳ 33% COMPLETA
+### Fase 2 (Semanas 3-6) ⏳ 67% COMPLETA
 - [x] Navegação com 3 abas (Dia 8-10) ✅ CONCLUÍDO
-- [ ] Ranking apenas entre amigos (Dia 11-14)
+- [x] Ranking apenas entre amigos (Dia 11-14) ✅ CONCLUÍDO
 - [ ] Sistema de metas simplificado (Dia 15-20)
 
 ### Fase 3 (Semanas 7-8) ⏳ PENDENTE
@@ -1904,12 +1906,12 @@ perf(scope): performance improvement
 
 ## ✅ PROGRESSO DA IMPLEMENTAÇÃO
 
-### 📊 Estatísticas Gerais (Dias 1-10)
-- **Commits**: 14 commits realizados
-- **Linhas adicionadas**: ~2.750 linhas
-- **Linhas removidas**: ~470 linhas (cleanup)
+### 📊 Estatísticas Gerais (Dias 1-14)
+- **Commits**: 17 commits realizados
+- **Linhas adicionadas**: ~3.000 linhas
+- **Linhas removidas**: ~600 linhas (cleanup + deprecations)
 - **Arquivos criados**: 7 novos arquivos
-- **Arquivos modificados**: 14+ arquivos
+- **Arquivos modificados**: 16+ arquivos
 - **Erros de compilação**: 0 ✅
 - **Avisos**: 2 (classes preservadas intencionalmente)
 
@@ -1963,13 +1965,25 @@ perf(scope): performance improvement
 - Commits: 1
 - Status: ✅ 100% Completo
 
+#### ✅ Dia 11-14: Ranking Apenas Entre Amigos
+- Backend: Endpoint geral deprecado (HTTP 410 Gone)
+- Backend: `/api/leaderboard/friends/` otimizado (cache 5min)
+- Backend: `/api/leaderboard/suggestions/` criado
+- Frontend: Removida TabBar (era 2 tabs, agora única)
+- Frontend: Removida classe `_GeneralLeaderboardTab`
+- Frontend: Banner de incentivo (<4 amigos)
+- Sistema: Recompensas de 100 XP (0 amigos) e 50 XP (<3 amigos)
+- Performance: Query otimizada com select_related
+- Commits: 2 (backend + frontend)
+- Status: ✅ 100% Completo
+
 ---
 
-## 🚀 PRÓXIMOS PASSOS (SEMANA 4)
+## 🚀 PRÓXIMOS PASSOS (SEMANA 5-6)
 
-### ⏳ Dia 11-14: Ranking Apenas Entre Amigos
+### ⏳ Dia 15-20: Refatoração do Sistema de Metas
 
-**PRIORIDADE: ALTA** - Próxima tarefa (Semana 4)
+**PRIORIDADE: ALTA** - Próxima tarefa (Semana 5-6)
 
 **Backend (Api/finance/views.py):**
 - [ ] Criar `SimplifiedOnboardingView`
