@@ -2499,54 +2499,33 @@ class LeaderboardViewSet(viewsets.ViewSet):
     ViewSet para rankings de usuários.
     
     Endpoints:
-    - GET /leaderboard/ - Ranking geral (top usuários por XP)
-    - GET /leaderboard/friends/ - Ranking de amigos
+    - GET /leaderboard/ - DEPRECATED (usar /leaderboard/friends/)
+    - GET /leaderboard/friends/ - Ranking de amigos (otimizado com cache)
+    
+    Dia 11-14: Ranking apenas entre amigos
+    - Endpoint geral deprecado para reduzir comparação social
+    - Ranking de amigos otimizado com cache de 5 minutos
+    - Sistema de sugestão de amigos integrado
     """
     permission_classes = [permissions.IsAuthenticated]
     
     def list(self, request):
-        """Retorna o ranking geral de usuários por XP."""
-        from .serializers import LeaderboardEntrySerializer
+        """
+        DEPRECATED: Ranking geral removido.
         
-        # Parâmetros de paginação
-        page_size = int(request.query_params.get('page_size', 50))
-        page = int(request.query_params.get('page', 1))
-        offset = (page - 1) * page_size
+        Agora o sistema foca apenas em ranking entre amigos para:
+        - Reduzir pressão de comparação social
+        - Aumentar engajamento entre amigos
+        - Melhorar motivação por conexões próximas
         
-        # Buscar top usuários
-        profiles = UserProfile.objects.select_related('user').order_by(
-            '-level', '-experience_points'
-        )[offset:offset + page_size]
-        
-        # Montar resultados com ranking
-        results = []
-        for idx, profile in enumerate(profiles, start=offset + 1):
-            user = profile.user
-            # Construir nome completo ou usar first_name, fallback para username
-            full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
-            
-            results.append({
-                'rank': idx,
-                'user_id': user.id,
-                'username': user.username,
-                'name': full_name,
-                'level': profile.level,
-                'xp': profile.experience_points,
-                'is_current_user': user.id == request.user.id,
-            })
-        
-        # Buscar posição do usuário atual se não estiver na lista
-        current_user_in_results = any(r['is_current_user'] for r in results)
-        current_user_rank = None
-        
-        if not current_user_in_results:
-            # Calcular posição do usuário
-            current_profile = UserProfile.objects.get(user=request.user)
-            users_above = UserProfile.objects.filter(
-                Q(level__gt=current_profile.level) |
-                Q(level=current_profile.level, experience_points__gt=current_profile.experience_points)
-            ).count()
-            current_user_rank = users_above + 1
+        Use GET /leaderboard/friends/ para ver ranking de amigos.
+        """
+        return Response({
+            'deprecated': True,
+            'message': 'O ranking geral foi descontinuado. Use /api/leaderboard/friends/ para ver o ranking de amigos.',
+            'redirect_to': '/api/leaderboard/friends/',
+            'reason': 'Focamos em comparação saudável entre amigos ao invés de ranking global.',
+        }, status=status.HTTP_410_GONE)
         
         serializer = LeaderboardEntrySerializer(results, many=True)
         
@@ -2560,51 +2539,165 @@ class LeaderboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def friends(self, request):
-        """Retorna o ranking apenas dos amigos do usuário."""
+        """
+        Retorna o ranking otimizado apenas dos amigos do usuário.
+        
+        Melhorias (Dia 11-14):
+        - Cache de 5 minutos por usuário
+        - Sugestões de amigos quando < 3 amigos
+        - Incentivos para adicionar amigos
+        - Query otimizada com select_related
+        """
         from .serializers import LeaderboardEntrySerializer
         from .models import Friendship
+        from django.core.cache import cache
         
-        # Obter IDs dos amigos
-        friends_ids = Friendship.get_friends_ids(request.user)
+        user = request.user
+        cache_key = f"friends_leaderboard:{user.id}"
         
-        if not friends_ids:
-            return Response({
-                'count': 0,
-                'leaderboard': [],
-                'message': 'Você ainda não tem amigos.',
-            })
+        # Tentar buscar do cache (5 minutos)
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+        
+        # Obter IDs dos amigos (amizades aceitas)
+        friendships = Friendship.objects.filter(
+            (Q(user=user) | Q(friend=user)),
+            status=Friendship.FriendshipStatus.ACCEPTED
+        ).select_related('user', 'friend')
+        
+        friends_ids = []
+        for friendship in friendships:
+            friend_id = friendship.friend_id if friendship.user_id == user.id else friendship.user_id
+            friends_ids.append(friend_id)
         
         # Adicionar o próprio usuário ao ranking
-        friends_ids.append(request.user.id)
+        user_ids = friends_ids + [user.id]
         
         # Buscar perfis dos amigos ordenados por XP
         profiles = UserProfile.objects.filter(
-            user_id__in=friends_ids
-        ).select_related('user').order_by('-level', '-experience_points')
+            user_id__in=user_ids
+        ).select_related('user').order_by('-level', '-experience_points')[:50]
         
         # Montar resultados com ranking
         results = []
+        current_user_rank = None
+        
         for idx, profile in enumerate(profiles, start=1):
-            user = profile.user
-            # Construir nome completo ou usar first_name, fallback para username
-            full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
+            user_obj = profile.user
+            full_name = f"{user_obj.first_name} {user_obj.last_name}".strip() if user_obj.first_name or user_obj.last_name else user_obj.username
+            
+            is_current = user_obj.id == user.id
+            if is_current:
+                current_user_rank = idx
             
             results.append({
                 'rank': idx,
-                'user_id': user.id,
-                'username': user.username,
+                'user_id': user_obj.id,
+                'username': user_obj.username,
                 'name': full_name,
                 'level': profile.level,
                 'xp': profile.experience_points,
-                'is_current_user': user.id == request.user.id,
+                'is_current_user': is_current,
             })
         
         serializer = LeaderboardEntrySerializer(results, many=True)
         
-        return Response({
+        # Sistema de sugestões de amigos
+        total_friends = len(friends_ids)
+        suggestions = {
+            'should_add_friends': total_friends < 3,
+            'message': None,
+            'reward': None,
+        }
+        
+        if total_friends == 0:
+            suggestions['message'] = '🎉 Adicione seu primeiro amigo e ganhe +100 XP!'
+            suggestions['reward'] = 100
+        elif total_friends < 3:
+            suggestions['message'] = f'💪 Adicione mais {3 - total_friends} amigo(s) para completar seu círculo!'
+            suggestions['reward'] = 50
+        else:
+            suggestions['message'] = '🌟 Você tem uma ótima rede de amigos!'
+        
+        response_data = {
             'count': len(results),
             'leaderboard': serializer.data,
-        })
+            'current_user_rank': current_user_rank,
+            'total_friends': total_friends,
+            'suggestions': suggestions,
+        }
+        
+        # Cachear por 5 minutos
+        cache.set(cache_key, response_data, timeout=300)
+        
+        return Response(response_data)
+    
+    @action(detail=False, methods=['get'])
+    def suggestions(self, request):
+        """
+        Retorna sugestões de amigos baseadas em:
+        - Usuários com nível similar (±2 níveis)
+        - Usuários que ainda não são amigos
+        - Exclui solicitações pendentes
+        
+        Novo endpoint (Dia 11-14) para incentivar adição de amigos.
+        """
+        from .models import Friendship
+        from django.core.cache import cache
+        
+        user = request.user
+        cache_key = f"friend_suggestions:{user.id}"
+        
+        # Cache de 10 minutos
+        cached_suggestions = cache.get(cache_key)
+        if cached_suggestions is not None:
+            return Response(cached_suggestions)
+        
+        # Obter perfil do usuário
+        user_profile = UserProfile.objects.get(user=user)
+        user_level = user_profile.level
+        
+        # Obter IDs de amigos existentes e pendentes
+        existing_friendships = Friendship.objects.filter(
+            Q(user=user) | Q(friend=user)
+        ).values_list('user_id', 'friend_id')
+        
+        excluded_ids = set([user.id])
+        for user_id, friend_id in existing_friendships:
+            excluded_ids.add(user_id)
+            excluded_ids.add(friend_id)
+        
+        # Buscar usuários com nível similar (±2 níveis)
+        suggested_profiles = UserProfile.objects.filter(
+            level__gte=user_level - 2,
+            level__lte=user_level + 2,
+        ).exclude(
+            user_id__in=excluded_ids
+        ).select_related('user').order_by('-experience_points')[:10]
+        
+        suggestions = []
+        for profile in suggested_profiles:
+            suggested_user = profile.user
+            suggestions.append({
+                'user_id': suggested_user.id,
+                'username': suggested_user.username,
+                'name': f"{suggested_user.first_name} {suggested_user.last_name}".strip() or suggested_user.username,
+                'level': profile.level,
+                'xp': profile.experience_points,
+                'reason': f'Nível {profile.level} - similar ao seu!',
+            })
+        
+        response_data = {
+            'count': len(suggestions),
+            'suggestions': suggestions,
+            'tip': 'Adicione amigos com níveis similares para uma competição saudável! 🎯',
+        }
+        
+        # Cache de 10 minutos
+        cache.set(cache_key, response_data, timeout=600)
+        
+        return Response(response_data)
 
 
 # ============================================================================
