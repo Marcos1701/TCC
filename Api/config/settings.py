@@ -252,17 +252,31 @@ CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 # Railway.app: Adiciona automaticamente os domínios do Railway ao CORS e CSRF
 if railway_static_url:
-    # Adiciona ao CORS_ALLOWED_ORIGINS
-    if railway_static_url not in CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS.append(railway_static_url)
-    
-    # Adiciona ao CSRF_TRUSTED_ORIGINS
-    if railway_static_url not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(railway_static_url)
+    # RAILWAY_STATIC_URL já vem com o esquema completo (https://...)
+    # Garantir que está no formato correto
+    if railway_static_url.startswith(("http://", "https://")):
+        # Adiciona ao CORS_ALLOWED_ORIGINS
+        if railway_static_url not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(railway_static_url)
+        
+        # Adiciona ao CSRF_TRUSTED_ORIGINS
+        if railway_static_url not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(railway_static_url)
+    else:
+        # Se não tiver esquema, assume https
+        full_url = f"https://{railway_static_url}"
+        if full_url not in CORS_ALLOWED_ORIGINS:
+            CORS_ALLOWED_ORIGINS.append(full_url)
+        if full_url not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(full_url)
 
 # Adiciona o domínio do frontend do Railway ao CORS
 frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url:
+    # Garantir que tem esquema
+    if not frontend_url.startswith(("http://", "https://")):
+        frontend_url = f"https://{frontend_url}"
+    
     if frontend_url not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(frontend_url)
     if frontend_url not in CSRF_TRUSTED_ORIGINS:
