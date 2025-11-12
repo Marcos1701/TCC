@@ -151,8 +151,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildLevelCard() {
     final level = (_profile!['level'] as int?) ?? 1;
     final xp = (_profile!['experience_points'] as int?) ?? 0;
-    final xpForNext = _calculateXpForNextLevel(level);
-    final progress = xpForNext > 0 ? (xp % xpForNext) / xpForNext : 0.0;
+    final xpForNext = (_profile!['next_level_threshold'] as int?) ?? 150;
+    final progress = xpForNext > 0 ? xp / xpForNext : 0.0;
 
     return Card(
       color: Colors.deepPurple[900]?.withOpacity(0.5),
@@ -220,7 +220,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Faltam ${NumberFormat('#,###', 'pt_BR').format(xpForNext - (xp % xpForNext))} pontos para o nível ${level + 1}',
+                  'Faltam ${NumberFormat('#,###', 'pt_BR').format(xpForNext - xp)} pontos para o nível ${level + 1}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[400],
@@ -383,11 +383,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
-  }
-
-  int _calculateXpForNextLevel(int level) {
-    // Fórmula simples: 100 * level (pode ser ajustada)
-    return 100 * level;
   }
 
   void _navigateToLeaderboard(BuildContext context) {

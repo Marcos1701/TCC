@@ -404,7 +404,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(
-                f"Transação {instance.uuid} excluída mas tinha categoria vinculada a {goal_links} meta(s)."
+                f"Transação {instance.id} excluída mas tinha categoria vinculada a {goal_links} meta(s)."
             )
         
         instance.delete()
@@ -1308,14 +1308,14 @@ class GoalViewSet(viewsets.ModelViewSet):
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(
-                    f"Meta {instance.uuid} excluída com {progress_percent:.1f}% de progresso (próxima da conclusão)."
+                    f"Meta {instance.id} excluída com {progress_percent:.1f}% de progresso (próxima da conclusão)."
                 )
         
         # 2. Verificar se está vinculada a missões ativas
         active_mission_links = MissionProgress.objects.filter(
             user=instance.user,
             mission__target_goal=instance,
-            status=MissionProgress.MissionStatus.IN_PROGRESS
+            status=MissionProgress.Status.ACTIVE
         ).count()
         
         if active_mission_links > 0:
@@ -2433,8 +2433,12 @@ class UserProfileViewSet(
 
     @action(detail=False, methods=['get'])
     def me(self, request):
-        """Retorna dados do usuário autenticado."""
+        """Retorna dados do usuário autenticado com informações do profile."""
         user = request.user
+        
+        # Buscar ou criar profile do usuário
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        
         return Response({
             'id': user.id,
             'email': user.email,
@@ -2444,6 +2448,14 @@ class UserProfileViewSet(
             'username': user.username,
             'is_staff': user.is_staff,
             'is_superuser': user.is_superuser,
+            # Dados do profile
+            'level': profile.level,
+            'experience_points': profile.experience_points,
+            'next_level_threshold': profile.next_level_threshold,
+            'target_tps': profile.target_tps,
+            'target_rdr': profile.target_rdr,
+            'target_ili': float(profile.target_ili),
+            'is_first_access': profile.is_first_access,
         })
 
     @action(detail=False, methods=['patch'])
@@ -3639,9 +3651,24 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         new_xp = max(0, old_xp + amount)  # Não pode ficar negativo
         profile.experience_points = new_xp
         
-        # Recalcular nível (lógica simplificada: 100 XP por nível)
-        new_level = max(1, new_xp // 100 + 1)
-        profile.level = new_level
+        # Recalcular nível usando a mesma lógica de threshold
+        from .services import _xp_threshold
+        
+        # Se o XP diminuiu muito, pode precisar reduzir o nível
+        if new_xp < old_xp:
+            # Recalcular nível a partir do 1
+            temp_xp = new_xp
+            new_level = 1
+            while temp_xp >= _xp_threshold(new_level):
+                temp_xp -= _xp_threshold(new_level)
+                new_level += 1
+            profile.level = new_level
+            profile.experience_points = temp_xp
+        else:
+            # XP aumentou, processar level ups
+            while profile.experience_points >= _xp_threshold(profile.level):
+                profile.experience_points -= _xp_threshold(profile.level)
+                profile.level += 1
         
         profile.save(update_fields=['experience_points', 'level'])
         
@@ -3652,7 +3679,7 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
             target_user=user,
             action_type=AdminActionLog.ActionType.XP_ADJUSTED,
             old_value=f'XP: {old_xp}, Level: {old_level}',
-            new_value=f'XP: {new_xp}, Level: {new_level}',
+            new_value=f'XP: {profile.experience_points}, Level: {profile.level}',
             reason=f'{reason} (Ajuste: {amount:+d} XP)',
             ip_address=request.META.get('REMOTE_ADDR')
         )
@@ -3663,10 +3690,10 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
             'user_id': user.id,
             'adjustment': amount,
             'old_xp': old_xp,
-            'new_xp': new_xp,
+            'new_xp': profile.experience_points,
             'old_level': old_level,
-            'new_level': new_level,
-            'level_changed': old_level != new_level
+            'new_level': profile.level,
+            'level_changed': old_level != profile.level
         })
     
     @action(detail=True, methods=['get'])

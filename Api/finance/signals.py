@@ -113,10 +113,61 @@ def update_missions_on_transaction(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Transaction)
 def update_goals_on_transaction_change(sender, instance, **kwargs):
     """
-    Atualiza metas com auto_update quando uma transação é criada ou atualizada.
+    Atualiza apenas as metas relevantes quando uma transação é criada ou atualizada.
+    
+    Otimização: Só atualiza metas que podem ser afetadas por esta transação específica:
+    - Metas SAVINGS: se transação é em categoria SAVINGS/INVESTMENT ou está em tracked_categories
+    - Metas CATEGORY_EXPENSE: se transação é EXPENSE na categoria monitorada
+    - Metas CATEGORY_INCOME: se transação é INCOME na categoria monitorada
+    - Metas CUSTOM: se transação está em tracked_categories
     """
-    from .services import update_all_active_goals
-    update_all_active_goals(instance.user)
+    from .services import update_goal_progress
+    from .models import Goal, Category
+    
+    # Buscar apenas metas ativas com auto_update
+    active_goals = Goal.objects.filter(user=instance.user, auto_update=True)
+    
+    for goal in active_goals:
+        should_update = False
+        
+        if goal.goal_type == Goal.GoalType.SAVINGS:
+            # Atualiza se transação é em categoria monitorada ou SAVINGS/INVESTMENT
+            if goal.tracked_categories.exists():
+                if instance.category in goal.tracked_categories.all():
+                    should_update = True
+            elif instance.category and instance.category.group in [
+                Category.CategoryGroup.SAVINGS,
+                Category.CategoryGroup.INVESTMENT
+            ]:
+                should_update = True
+        
+        elif goal.goal_type == Goal.GoalType.CATEGORY_EXPENSE:
+            # Atualiza APENAS se é EXPENSE nas categorias monitoradas
+            if instance.type == Transaction.TransactionType.EXPENSE:
+                if goal.tracked_categories.exists():
+                    if instance.category in goal.tracked_categories.all():
+                        should_update = True
+                elif goal.target_category == instance.category:
+                    should_update = True
+        
+        elif goal.goal_type == Goal.GoalType.CATEGORY_INCOME:
+            # Atualiza APENAS se é INCOME nas categorias monitoradas
+            if instance.type == Transaction.TransactionType.INCOME:
+                if goal.tracked_categories.exists():
+                    if instance.category in goal.tracked_categories.all():
+                        should_update = True
+                elif goal.target_category == instance.category:
+                    should_update = True
+        
+        elif goal.goal_type == Goal.GoalType.CUSTOM:
+            # Atualiza se transação está em tracked_categories
+            if goal.tracked_categories.exists():
+                if instance.category in goal.tracked_categories.all():
+                    should_update = True
+        
+        # Atualizar meta se necessário
+        if should_update:
+            update_goal_progress(goal)
 
 
 from django.db.models.signals import post_delete

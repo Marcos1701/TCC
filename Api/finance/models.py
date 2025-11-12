@@ -950,8 +950,14 @@ class Goal(models.Model):
                     category__group__in=[Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]
                 )
         elif self.goal_type == self.GoalType.CATEGORY_EXPENSE:
-            # Gastos em categoria específica (retrocompatibilidade com target_category)
-            if self.target_category:
+            # Gastos em categorias específicas monitoradas
+            if self.tracked_categories.exists():
+                qs = qs.filter(
+                    category__in=self.tracked_categories.all(),
+                    type=Transaction.TransactionType.EXPENSE
+                )
+            elif self.target_category:
+                # Retrocompatibilidade: se ainda usa target_category
                 qs = qs.filter(
                     category=self.target_category,
                     type=Transaction.TransactionType.EXPENSE
@@ -959,8 +965,14 @@ class Goal(models.Model):
             else:
                 return Transaction.objects.none()
         elif self.goal_type == self.GoalType.CATEGORY_INCOME:
-            # Receitas em categoria específica (retrocompatibilidade com target_category)
-            if self.target_category:
+            # Receitas em categorias específicas monitoradas
+            if self.tracked_categories.exists():
+                qs = qs.filter(
+                    category__in=self.tracked_categories.all(),
+                    type=Transaction.TransactionType.INCOME
+                )
+            elif self.target_category:
+                # Retrocompatibilidade: se ainda usa target_category
                 qs = qs.filter(
                     category=self.target_category,
                     type=Transaction.TransactionType.INCOME
@@ -2186,6 +2198,13 @@ class UserAchievement(models.Model):
             # Adicionar XP ao usuário (criar profile se não existir)
             profile, created = UserProfile.objects.get_or_create(user=self.user)
             profile.experience_points += self.achievement.xp_reward
+            
+            # Processar level ups (importar a função localmente para evitar imports circulares)
+            from .services import _xp_threshold
+            while profile.experience_points >= _xp_threshold(profile.level):
+                profile.experience_points -= _xp_threshold(profile.level)
+                profile.level += 1
+            
             profile.save()
             
             return True
