@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -125,9 +126,18 @@ from django.db.models.signals import post_delete
 def update_goals_on_transaction_delete(sender, instance, **kwargs):
     """
     Atualiza metas com auto_update quando uma transação é deletada.
+    Verifica se o usuário ainda existe antes de atualizar (para evitar erros em deleções em cascata).
     """
     from .services import update_all_active_goals
-    update_all_active_goals(instance.user)
+    
+    # Verifica se o usuário ainda existe antes de tentar atualizar
+    # (evita erro quando transações são deletadas em cascata ao deletar usuário)
+    try:
+        if instance.user_id and instance.user:
+            update_all_active_goals(instance.user)
+    except User.DoesNotExist:
+        # Usuário foi deletado, não há metas para atualizar
+        pass
 
 
 # ======= Signals para garantir UUID em novos registros =======
@@ -192,6 +202,18 @@ def check_achievements_on_mission_complete(sender, instance, **kwargs):
 
 
 @receiver(post_save, sender=Goal)
+def update_missions_on_goal_change(sender, instance, created, **kwargs):
+    """
+    Atualiza progresso das missões quando uma meta é criada ou atualizada.
+    """
+    from .services import update_mission_progress
+    
+    # Atualizar progresso das missões do usuário
+    # Importante para missões como "Criar primeira meta"
+    update_mission_progress(instance.user)
+
+
+@receiver(post_save, sender=Goal)
 def check_achievements_on_goal_complete(sender, instance, **kwargs):
     """
     Valida conquistas quando uma meta é concluída.
@@ -199,10 +221,16 @@ def check_achievements_on_goal_complete(sender, instance, **kwargs):
     Conquistas verificadas:
     - Contagem de metas concluídas (3, 10, 25, etc.)
     - Conclusão de metas específicas
+    
+    Nota: Goal não possui campo 'status'. Uma meta é considerada completa
+    quando current_amount >= target_amount.
     """
-    if instance.status == Goal.GoalStatus.COMPLETED and not instance._state.adding:
-        from .services import check_achievements_for_user
-        check_achievements_for_user(instance.user, event_type='goal')
+    # Verificar se a meta foi recém-concluída (não estava sendo criada)
+    if not instance._state.adding:
+        # Verificar se a meta está completa (atingiu o alvo)
+        if instance.current_amount >= instance.target_amount:
+            from .services import check_achievements_for_user
+            check_achievements_for_user(instance.user, event_type='goal')
 
 
 @receiver(post_save, sender=Friendship)

@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
-import '../../../../presentation/shell/root_shell.dart';
 
 /// Página de onboarding simplificado (3 passos)
 /// Dia 6-7: Reduzido de 8 transações para 2 inputs básicos
@@ -87,7 +86,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 32),
           const Text(
-            'Bem-vindo!',
+            'Bem-vindo ao Sistema',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -97,7 +96,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Vamos começar sua jornada financeira.\nSó precisamos de 2 informações básicas.',
+            'Para personalizar sua experiência, necessitamos de duas informações básicas sobre sua situação financeira.',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[400],
@@ -117,7 +116,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 backgroundColor: Colors.purple,
               ),
               child: const Text(
-                'Começar',
+                'Iniciar Configuração',
                 style: TextStyle(fontSize: 16),
               ),
             ),
@@ -125,7 +124,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           const SizedBox(height: 16),
           TextButton(
             onPressed: _skipOnboarding,
-            child: const Text('Pular por enquanto'),
+            child: const Text('Continuar sem configurar'),
           ),
         ],
       ),
@@ -139,7 +138,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Informações básicas',
+            'Dados de Configuração Inicial',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -148,7 +147,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Isso nos ajuda a personalizar sua experiência',
+            'Informe valores mensais aproximados para configuração inicial do sistema.',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[400],
@@ -157,12 +156,17 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           const SizedBox(height: 32),
           
           const Text(
-            '💵 Quanto você ganha por mês?',
+            '💵 Renda Mensal',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Salário líquido e outras fontes de renda recorrentes',
+            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -191,7 +195,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           const SizedBox(height: 24),
           
           const Text(
-            '🏠 Quanto você gasta com o básico?',
+            '🏠 Despesas Essenciais Mensais',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -200,8 +204,13 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Aluguel, mercado, contas de água/luz, etc.',
+            'Soma de: Habitação + Alimentação + Transporte + Contas básicas',
             style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Ex: Aluguel (R\$ 800) + Supermercado (R\$ 600) + Transporte (R\$ 300) + Contas (R\$ 300) = R\$ 2.000',
+            style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic),
           ),
           const SizedBox(height: 8),
           TextField(
@@ -274,7 +283,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 32),
           const Text(
-            'Tudo pronto!',
+            'Configuração Concluída',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -283,7 +292,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Com base nas suas informações:',
+            'Com base nos dados informados, foram calculados os seguintes indicadores:',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[400],
@@ -293,9 +302,9 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           
           _buildInsightCard(
             icon: Icons.trending_up,
-            title: 'Você pode guardar',
+            title: 'Capacidade de Poupança Mensal',
             value: _currency.format(balance),
-            subtitle: '${savingsRate.toStringAsFixed(0)}% da sua renda',
+            subtitle: '${savingsRate.toStringAsFixed(1)}% da renda mensal',
             color: Colors.green,
           ),
           
@@ -303,7 +312,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           
           _buildInsightCard(
             icon: Icons.lightbulb_outline,
-            title: 'Dica',
+            title: 'Recomendação',
             value: recommendation,
             subtitle: '',
             color: Colors.amber,
@@ -320,7 +329,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 backgroundColor: Colors.purple,
               ),
               child: const Text(
-                'Começar a usar',
+                'Acessar Sistema',
                 style: TextStyle(fontSize: 16),
               ),
             ),
@@ -427,14 +436,12 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
       stepsCompleted: 3,
     );
     
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const RootShell()),
-    );
+    // Fecha a página de onboarding e retorna para o AuthFlow gerenciar a navegação
+    Navigator.of(context).pop();
   }
 
   void _skipOnboarding() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const RootShell()),
-    );
+    // Fecha a página de onboarding sem completar
+    Navigator.of(context).pop();
   }
 }

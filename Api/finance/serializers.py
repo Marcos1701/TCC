@@ -328,28 +328,39 @@ class GoalSerializer(serializers.ModelSerializer):
     
     def validate(self, attrs):
         """Valida que metas por categoria têm uma categoria vinculada."""
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[GOAL SERIALIZER] Validating attrs: {attrs}")
+        
         goal_type = attrs.get('goal_type', Goal.GoalType.CUSTOM)
         target_category = attrs.get('target_category')
         tracked_categories = attrs.get('tracked_categories', [])
         
+        logger.info(f"[GOAL SERIALIZER] goal_type={goal_type}, target_category={target_category}, tracked_categories={len(tracked_categories)}")
+        
         # Metas de categoria EXPENSE/INCOME precisam ter uma categoria vinculada
+        # Pode ser target_category OU tracked_categories
         if goal_type in [Goal.GoalType.CATEGORY_EXPENSE, Goal.GoalType.CATEGORY_INCOME]:
-            if not target_category:
+            if not target_category and not tracked_categories:
+                logger.error(f"[GOAL SERIALIZER] Validation failed: goal_type={goal_type} requires target_category or tracked_categories")
                 raise serializers.ValidationError({
-                    'target_category': 'Metas por categoria precisam de uma categoria vinculada.'
+                    'target_category': 'Metas por categoria precisam de pelo menos uma categoria vinculada (target_category ou tracked_categories).'
                 })
         
         # Validar que as categorias pertencem ao usuário ou são globais
         user = self.context['request'].user
         
         if target_category:
+            logger.info(f"[GOAL SERIALIZER] Validating target_category: user={target_category.user}, current_user={user}")
             if target_category.user and target_category.user != user:
+                logger.error(f"[GOAL SERIALIZER] Validation failed: target_category belongs to different user")
                 raise serializers.ValidationError({
                     'target_category': 'Você não pode usar uma categoria de outro usuário.'
                 })
         
         for cat in tracked_categories:
             if cat.user and cat.user != user:
+                logger.error(f"[GOAL SERIALIZER] Validation failed: tracked_category {cat.name} belongs to different user")
                 raise serializers.ValidationError({
                     'tracked_category_ids': f'A categoria "{cat.name}" não pertence a você.'
                 })
@@ -364,10 +375,12 @@ class GoalSerializer(serializers.ModelSerializer):
                 
                 # Bloqueia se não for CUSTOM E tiver auto_update ativo
                 if goal_type != Goal.GoalType.CUSTOM and auto_update:
+                    logger.error(f"[GOAL SERIALIZER] Validation failed: cannot edit current_amount with auto_update enabled")
                     raise serializers.ValidationError({
                         'current_amount': 'Apenas metas personalizadas ou metas sem atualização automática podem ter o valor atual editado manualmente.'
                     })
         
+        logger.info(f"[GOAL SERIALIZER] Validation passed")
         return attrs
 
 

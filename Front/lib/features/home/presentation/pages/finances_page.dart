@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../tracking/presentation/pages/tracking_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
@@ -37,7 +38,7 @@ class _FinancesPageState extends State<FinancesPage>
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Finanças'),
+        title: const Text(UxStrings.finances),
         backgroundColor: const Color(0xFF1E1E1E),
         bottom: TabBar(
           controller: _tabController,
@@ -47,15 +48,15 @@ class _FinancesPageState extends State<FinancesPage>
           tabs: const [
             Tab(
               icon: Icon(Icons.swap_vert_rounded),
-              text: 'Transações',
+              text: UxStrings.transactions,
             ),
             Tab(
               icon: Icon(Icons.analytics_rounded),
-              text: 'Análises',
+              text: UxStrings.analysis,
             ),
             Tab(
               icon: Icon(Icons.flag_rounded),
-              text: 'Metas',
+              text: UxStrings.goals,
             ),
           ],
         ),

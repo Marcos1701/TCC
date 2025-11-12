@@ -1,7 +1,9 @@
+import '../../../../core/constants/user_friendly_strings.dart';
+
 /// Model para critérios de conquista
 /// 
 /// Tipos suportados:
-/// - count: Contagem de elementos (transações, missões, amigos)
+/// - count: Contagem de elementos (transações, desafios, amigos)
 /// - value: Valores numéricos (TPS, ILI, RDR, savings)
 /// - streak: Dias consecutivos de atividade
 class AchievementCriteria {
@@ -67,11 +69,11 @@ class AchievementCriteria {
   }
 
   String _getMetricName(String metric) {
-    const metricNames = {
+    final metricNames = {
       'transactions': 'transações',
       'income_transactions': 'receitas',
       'expense_transactions': 'despesas',
-      'missions': 'missões',
+      'missions': UxStrings.challenges.toLowerCase(),
       'goals': 'metas',
       'friends': 'amigos',
       'categories': 'categorias',
@@ -81,11 +83,11 @@ class AchievementCriteria {
       'total_income': 'receita total',
       'total_expense': 'despesa total',
       'savings': 'poupança',
-      'xp': 'XP',
+      'xp': UxStrings.point,
       'level': 'nível',
       'login': 'login',
       'transaction': 'transação',
-      'mission': 'missão',
+      'mission': UxStrings.challenge.toLowerCase(),
     };
     return metricNames[metric] ?? metric;
   }
@@ -156,10 +158,10 @@ class Achievement {
   }
 
   String get categoryName {
-    const categoryNames = {
+    final categoryNames = {
       'FINANCIAL': 'Financeiro',
       'SOCIAL': 'Social',
-      'MISSION': 'Missões',
+      'MISSION': UxStrings.challenges,
       'STREAK': 'Sequência',
       'GENERAL': 'Geral',
     };

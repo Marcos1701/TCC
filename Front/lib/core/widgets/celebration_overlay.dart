@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 
 import '../theme/app_colors.dart';
+import '../constants/user_friendly_strings.dart';
 
 /// Widget de overlay para celebrações com confetes e animações
 class CelebrationOverlay extends StatefulWidget {
@@ -26,7 +27,7 @@ class CelebrationOverlay extends StatefulWidget {
   @override
   State<CelebrationOverlay> createState() => _CelebrationOverlayState();
 
-  /// Exibe celebração de missão completada
+  /// Exibe celebração de desafio completado
   static void showMissionComplete({
     required BuildContext context,
     required String missionTitle,
@@ -37,8 +38,8 @@ class CelebrationOverlay extends StatefulWidget {
       barrierDismissible: false,
       barrierColor: Colors.black87,
       builder: (context) => CelebrationOverlay(
-        title: 'Missão Completada!',
-        subtitle: '$missionTitle\n+$coinsEarned xp',
+        title: '${UxStrings.challenge} Completado!',
+        subtitle: '$missionTitle\n+$coinsEarned ${UxStrings.point.toLowerCase()}',
         icon: Icons.emoji_events,
         color: AppColors.support,
         onComplete: () => Navigator.of(context).pop(),
@@ -59,7 +60,7 @@ class CelebrationOverlay extends StatefulWidget {
       barrierColor: Colors.black87,
       builder: (context) => CelebrationOverlay(
         title: 'Nível $newLevel',
-        subtitle: 'Parabéns pelo progresso!\n+$coinsEarned xp de bônus',
+        subtitle: 'Parabéns pelo progresso!\n+$coinsEarned ${UxStrings.point.toLowerCase()} de bônus',
         icon: Icons.workspace_premium,
         color: AppColors.primary,
         onComplete: () => Navigator.of(context).pop(),
@@ -161,7 +162,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Confetes caindo (apenas para missões)
+        // Confetes caindo (apenas para desafios)
         if (widget.showConfetti && _confettiController != null) ...[
           Align(
             alignment: Alignment.topCenter,

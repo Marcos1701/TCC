@@ -23,7 +23,7 @@ class ProfileModel {
       return const ProfileModel(
         level: 1,
         experiencePoints: 0,
-        nextLevelThreshold: 100,
+        nextLevelThreshold: 150,  // Corrigido: nível 1→2 requer 150 XP
         targetTps: 0,
         targetRdr: 0,
         targetIli: 0.0,
@@ -34,7 +34,7 @@ class ProfileModel {
     return ProfileModel(
       level: int.parse(map['level']?.toString() ?? '1'),
       experiencePoints: int.parse(map['experience_points']?.toString() ?? '0'),
-      nextLevelThreshold: int.parse(map['next_level_threshold']?.toString() ?? '100'),
+      nextLevelThreshold: int.parse(map['next_level_threshold']?.toString() ?? '150'),  // Corrigido fallback
       targetTps: int.parse(map['target_tps']?.toString() ?? '0'),
       targetRdr: int.parse(map['target_rdr']?.toString() ?? '0'),
       targetIli: double.parse(map['target_ili']?.toString() ?? '0'),

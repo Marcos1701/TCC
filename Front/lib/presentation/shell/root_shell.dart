@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_theme_extension.dart';
-import '../../features/home/presentation/pages/unified_home_page.dart';
+import '../../core/constants/user_friendly_strings.dart';
+import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/finances_page.dart';
 import '../../features/home/presentation/pages/profile_page.dart';
 
@@ -31,17 +32,17 @@ class _RootShellState extends State<RootShell> {
 
   final List<_NavigationItem> _items = [
     const _NavigationItem(
-      label: 'Início',
+      label: UxStrings.home,
       icon: Icons.home_rounded,
-      builder: UnifiedHomePage.new,
+      builder: HomePage.new,
     ),
     const _NavigationItem(
-      label: 'Finanças',
+      label: UxStrings.finances,
       icon: Icons.account_balance_wallet_rounded,
       builder: FinancesPage.new,
     ),
     const _NavigationItem(
-      label: 'Perfil',
+      label: UxStrings.profile,
       icon: Icons.person_rounded,
       builder: ProfilePage.new,
     ),

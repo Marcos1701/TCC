@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/mission_notification_service.dart';
 import '../theme/app_colors.dart';
+import '../constants/user_friendly_strings.dart';
 
-/// Widget que exibe um badge com alertas de missões urgentes
+/// Widget que exibe um badge com alertas de desafios urgentes
 class MissionAlertBadge extends StatelessWidget {
   final MissionSummary summary;
   final VoidCallback onTap;
@@ -61,8 +62,8 @@ class MissionAlertBadge extends StatelessWidget {
                 children: [
                   Text(
                     summary.hasExpiredMissions
-                        ? 'Missões Expiradas'
-                        : 'Missões Expirando Em Breve',
+                        ? '${UxStrings.challengesLabel(summary.expiredCount)} Expirados'
+                        : '${UxStrings.challengesLabel(summary.expiringSoon)} Expirando Em Breve',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -72,8 +73,8 @@ class MissionAlertBadge extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     summary.hasExpiredMissions
-                        ? '${summary.expiredCount} ${summary.expiredCount == 1 ? "missão expirou" : "missões expiraram"}'
-                        : '${summary.expiringSoon} ${summary.expiringSoon == 1 ? "missão expira" : "missões expiram"} em menos de 24h',
+                        ? '${summary.expiredCount} ${summary.expiredCount == 1 ? "desafio expirou" : "desafios expiraram"}'
+                        : '${summary.expiringSoon} ${summary.expiringSoon == 1 ? "desafio expira" : "desafios expiram"} em menos de 24h',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.7),
                       fontSize: 13,
@@ -93,7 +94,7 @@ class MissionAlertBadge extends StatelessWidget {
   }
 }
 
-/// Widget que exibe um resumo compacto das missões
+/// Widget que exibe um resumo compacto dos desafios
 class MissionStatusCard extends StatelessWidget {
   final MissionSummary summary;
   final VoidCallback onTap;

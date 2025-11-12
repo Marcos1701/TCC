@@ -6,15 +6,23 @@ class UxStrings {
   // ========== Gamificação ==========
   
   /// "Desafios" ao invés de "Missões"
+  static const challenge = 'Desafio'; // Singular
   static const challenges = 'Desafios';
   static const activeChallenges = 'Desafios Ativos';
   static const completedChallenges = 'Desafios Concluídos';
   static const weeklyChallenge = 'Desafio da Semana';
+  static const noActiveChallenges = 'Nenhum desafio ativo';
+  static const challengeRequirements = 'Requisitos do Desafio';
+  static const errorLoadingChallenges = 'Erro ao carregar desafios';
+  static const unlockNewChallenges = 'desbloqueie novos desafios';
   
   /// "Pontos" ao invés de "XP" ou "Experience Points"
   static const points = 'Pontos';
+  static const point = 'Ponto'; // Singular
   static const earnPoints = 'Ganhe pontos';
   static const pointsEarned = 'Pontos ganhos';
+  static const adjustPoints = 'Ajustar Pontos';
+  static const pointsAdjusted = 'Pontos ajustados com sucesso!';
   
   /// Níveis
   static const level = 'Nível';
@@ -78,6 +86,7 @@ class UxStrings {
   static const profile = 'Perfil';
   static const settings = 'Configurações';
   static const analysis = 'Análise';
+  static const myProgress = 'Meu Progresso';
   
   // ========== Ações ==========
   
@@ -108,6 +117,14 @@ class UxStrings {
   /// Mensagens de pontos ganhos
   static String pointsEarnedMessage(int points) =>
       points == 1 ? '1 ponto ganho!' : '$points pontos ganhos!';
+  
+  /// Label dinâmico de pontos
+  static String pointsLabel(int count) => 
+      count == 1 ? '$count ponto' : '$count pontos';
+  
+  /// Label dinâmico de desafios
+  static String challengesLabel(int count) => 
+      count == 1 ? '$count desafio' : '$count desafios';
   
   /// Mensagens de nível alcançado
   static String levelReached(int level) => 'Você alcançou o nível $level!';

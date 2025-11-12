@@ -282,14 +282,20 @@ class TransactionViewSet(viewsets.ModelViewSet):
         """
         from rest_framework.exceptions import ValidationError
         from decimal import Decimal
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"[TRANSACTION CREATE] User: {self.request.user.username}")
+        logger.info(f"[TRANSACTION CREATE] Validated data: {serializer.validated_data}")
         
         # Validações extras antes de salvar
         user = self.request.user
         data = serializer.validated_data
         
-        # 1. Verificar se categoria pertence ao usuário
+        # 1. Verificar se categoria pertence ao usuário (ou é categoria global)
         category = data.get('category')
-        if category and category.user != user:
+        if category and category.user is not None and category.user != user:
+            logger.error(f"[TRANSACTION CREATE] Category validation failed: category.user={category.user}, user={user}")
             raise ValidationError({
                 'category': 'A categoria selecionada não pertence a você.'
             })
@@ -319,7 +325,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'amount': 'Limite de valor total diário atingido (100 milhões).'
             })
         
-        serializer.save()
+        try:
+            logger.info(f"[TRANSACTION CREATE] Attempting to save transaction...")
+            serializer.save()
+            logger.info(f"[TRANSACTION CREATE] Transaction saved successfully with ID: {serializer.instance.id}")
+        except Exception as e:
+            logger.error(f"[TRANSACTION CREATE] Error saving transaction: {type(e).__name__}: {str(e)}")
+            raise
+        
         # Invalidar todos os caches após criar transação
         invalidate_user_dashboard_cache(self.request.user)
     
@@ -332,9 +345,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = serializer.validated_data
         
-        # 1. Verificar se nova categoria pertence ao usuário
+        # 1. Verificar se nova categoria pertence ao usuário (ou é categoria global)
         category = data.get('category')
-        if category and category.user != self.request.user:
+        if category and category.user is not None and category.user != self.request.user:
             raise ValidationError({
                 'category': 'A categoria selecionada não pertence a você.'
             })
@@ -1197,20 +1210,35 @@ class GoalViewSet(viewsets.ModelViewSet):
         """
         from rest_framework.exceptions import ValidationError
         from decimal import Decimal
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"[GOAL CREATE] User: {self.request.user.username}")
+        logger.info(f"[GOAL CREATE] Request data: {self.request.data}")
         
         user = self.request.user
         data = serializer.validated_data
+        logger.info(f"[GOAL CREATE] Validated data: {data}")
         
         # 1. Limitar número de metas ativas por usuário
-        active_goals = Goal.objects.filter(user=user, is_completed=False).count()
+        # Uma meta é considerada "ativa" se progress_percentage < 100
+        from django.db.models import F, Case, When, DecimalField
+        active_goals = Goal.objects.filter(user=user).annotate(
+            progress=Case(
+                When(target_amount=0, then=0),
+                default=(F('current_amount') * 100.0 / F('target_amount')),
+                output_field=DecimalField()
+            )
+        ).filter(progress__lt=100).count()
+        
         if active_goals >= 50:  # Limite razoável
             raise ValidationError({
                 'non_field_errors': 'Você atingiu o limite de 50 metas ativas. Complete ou exclua metas antigas.'
             })
         
-        # 2. Validar categoria pertence ao usuário
+        # 2. Validar categoria pertence ao usuário (ou é global)
         target_category = data.get('target_category')
-        if target_category and target_category.user != user:
+        if target_category and target_category.user is not None and target_category.user != user:
             raise ValidationError({
                 'target_category': 'A categoria selecionada não pertence a você.'
             })
@@ -1218,19 +1246,35 @@ class GoalViewSet(viewsets.ModelViewSet):
         # 3. Validar que não existe meta duplicada (mesmo título e tipo)
         title = data.get('title', '').strip()
         goal_type = data.get('goal_type')
+        
+        # Meta duplicada: mesmo título, tipo e NÃO concluída (progress < 100%)
+        from django.db.models import F, Case, When, DecimalField
         existing = Goal.objects.filter(
             user=user,
             title__iexact=title,
             goal_type=goal_type,
-            is_completed=False
-        ).exists()
+        ).annotate(
+            progress=Case(
+                When(target_amount=0, then=0),
+                default=(F('current_amount') * 100.0 / F('target_amount')),
+                output_field=DecimalField()
+            )
+        ).filter(progress__lt=100).exists()
         
         if existing:
+            logger.warning(f"[GOAL CREATE] Duplicate goal found for user {user.username}")
             raise ValidationError({
                 'title': f'Já existe uma meta ativa com o título "{title}" e mesmo tipo.'
             })
         
-        serializer.save()
+        try:
+            logger.info(f"[GOAL CREATE] Attempting to save goal...")
+            goal = serializer.save()
+            logger.info(f"[GOAL CREATE] Goal saved successfully with ID: {goal.id}")
+            invalidate_user_dashboard_cache(self.request.user)
+        except Exception as e:
+            logger.error(f"[GOAL CREATE] Error saving goal: {type(e).__name__}: {str(e)}")
+            raise
     
     def perform_update(self, serializer):
         """
@@ -1241,30 +1285,12 @@ class GoalViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = serializer.validated_data
         
-        # 1. Validar que meta concluída não pode ser reaberta
-        if instance.is_completed and not data.get('is_completed', True):
-            raise ValidationError({
-                'is_completed': 'Uma meta concluída não pode ser reaberta. Crie uma nova meta.'
-            })
-        
-        # 2. Validar nova categoria pertence ao usuário
+        # 1. Validar nova categoria pertence ao usuário (ou é global)
         target_category = data.get('target_category')
-        if target_category and target_category.user != self.request.user:
+        if target_category and target_category.user is not None and target_category.user != self.request.user:
             raise ValidationError({
                 'target_category': 'A categoria selecionada não pertence a você.'
             })
-        
-        # 3. Validar que se marcar como concluída, progresso deve ser >= 95%
-        if data.get('is_completed') and not instance.is_completed:
-            current_amount = data.get('current_amount', instance.current_amount)
-            target_amount = data.get('target_amount', instance.target_amount)
-            
-            if target_amount > 0:
-                progress_percent = (float(current_amount) / float(target_amount)) * 100
-                if progress_percent < 95:
-                    raise ValidationError({
-                        'is_completed': f'Meta só pode ser concluída com pelo menos 95% de progresso. Atual: {progress_percent:.1f}%'
-                    })
         
         serializer.save()
     
@@ -2180,10 +2206,10 @@ class SimplifiedOnboardingView(APIView):
         
         user = request.user
         
-        # Criar transações iniciais e categorias
+        # Criar categorias úteis e transações iniciais
         try:
             with db_transaction.atomic():
-                # Categoria de renda
+                # ===== CATEGORIA DE RENDA =====
                 income_cat, _ = Category.objects.get_or_create(
                     user=user,
                     name="Salário",
@@ -2194,17 +2220,69 @@ class SimplifiedOnboardingView(APIView):
                     }
                 )
                 
-                # Categoria de despesa
-                expense_cat, _ = Category.objects.get_or_create(
+                # ===== CATEGORIAS DE DESPESAS ESSENCIAIS (específicas) =====
+                housing_cat, _ = Category.objects.get_or_create(
                     user=user,
-                    name="Gastos Essenciais",
+                    name="Habitação",
                     type=Category.CategoryType.EXPENSE,
                     defaults={
                         'group': Category.CategoryGroup.ESSENTIAL_EXPENSE,
-                        'color': '#F44336'
+                        'color': '#FF5722'
                     }
                 )
                 
+                food_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Alimentação",
+                    type=Category.CategoryType.EXPENSE,
+                    defaults={
+                        'group': Category.CategoryGroup.ESSENTIAL_EXPENSE,
+                        'color': '#FF9800'
+                    }
+                )
+                
+                transport_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Transporte",
+                    type=Category.CategoryType.EXPENSE,
+                    defaults={
+                        'group': Category.CategoryGroup.ESSENTIAL_EXPENSE,
+                        'color': '#2196F3'
+                    }
+                )
+                
+                bills_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Contas Básicas",
+                    type=Category.CategoryType.EXPENSE,
+                    defaults={
+                        'group': Category.CategoryGroup.ESSENTIAL_EXPENSE,
+                        'color': '#FFC107'
+                    }
+                )
+                
+                # ===== CATEGORIAS ADICIONAIS ÚTEIS =====
+                leisure_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Lazer",
+                    type=Category.CategoryType.EXPENSE,
+                    defaults={
+                        'group': Category.CategoryGroup.LIFESTYLE_EXPENSE,
+                        'color': '#9C27B0'
+                    }
+                )
+                
+                emergency_cat, _ = Category.objects.get_or_create(
+                    user=user,
+                    name="Reserva de Emergência",
+                    type=Category.CategoryType.INCOME,
+                    defaults={
+                        'group': Category.CategoryGroup.SAVINGS,
+                        'color': '#00BCD4'
+                    }
+                )
+                
+                # ===== TRANSAÇÕES =====
                 # Transação de renda
                 Transaction.objects.create(
                     user=user,
@@ -2215,28 +2293,25 @@ class SimplifiedOnboardingView(APIView):
                     date=timezone.now().date()
                 )
                 
-                # Transação de despesa (se houver)
+                # Transação de despesa essencial (total consolidado)
                 if essential_expenses > 0:
                     Transaction.objects.create(
                         user=user,
-                        description="Gastos essenciais do mês",
+                        description="Despesas essenciais mensais",
                         amount=essential_expenses,
-                        category=expense_cat,
+                        category=housing_cat,  # Usa habitação como categoria principal
                         type=Transaction.TransactionType.EXPENSE,
                         date=timezone.now().date()
                     )
                 
-                # Marcar onboarding completo
+                # Marcar onboarding completo e invalidar cache de indicadores
                 profile = user.userprofile
                 profile.is_first_access = False
+                profile.indicators_updated_at = None  # Forçar recálculo
                 profile.save()
                 
-                # Atribuir missões automaticamente
-                assign_missions_automatically(user)
-                
-                # Atualizar indicadores em cache
-                from .services import FinancialIndicatorsService
-                FinancialIndicatorsService.update_cached_indicators(user)
+                # Nota: assign_missions_automatically será chamado automaticamente
+                # pelos signals quando as transações forem criadas
         
         except Exception as e:
             logger.error(f"Erro ao processar onboarding simplificado: {e}")
@@ -2244,6 +2319,14 @@ class SimplifiedOnboardingView(APIView):
                 {"error": "Erro ao processar onboarding. Tente novamente."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+        # IMPORTANTE: Forçar recálculo de indicadores APÓS commit
+        # Invalidar cache novamente e recalcular com as transações já no banco
+        from .services import calculate_summary, invalidate_indicators_cache
+        invalidate_indicators_cache(user)
+        summary = calculate_summary(user)
+        
+        logger.info(f"Onboarding concluído para {user.username}. Summary: {summary}")
         
         # Calcular insights
         balance = monthly_income - essential_expenses

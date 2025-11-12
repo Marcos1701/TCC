@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/state/session_controller.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
-import '../../features/onboarding/presentation/pages/initial_setup_page.dart';
+import '../../features/onboarding/presentation/pages/simplified_onboarding_page.dart';
 import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../shell/root_shell.dart';
 
@@ -62,22 +62,16 @@ class _AuthFlowState extends State<AuthFlow> {
         _onboardingCheckedThisSession = true;
         _lastUserIdChecked = currentUserId;
         
-        // Primeira vez que o usuário acessa - mostra setup inicial
-        final result = await Navigator.of(context).push<bool>(
+        // Primeira vez que o usuário acessa - mostra setup inicial simplificado
+        await Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => InitialSetupPage(
-              onComplete: () async {
-                // onComplete é chamado ANTES do Navigator.pop
-                // então não fazemos nada aqui, deixamos para depois
-                debugPrint('🎯 onComplete chamado - aguardando pop da tela');
-              },
-            ),
+            builder: (context) => const SimplifiedOnboardingPage(),
             fullscreenDialog: true,
           ),
         );
         
         // APÓS o Navigator.pop, atualiza a sessão e força rebuild
-        if (result == true && mounted) {
+        if (mounted) {
           debugPrint('✅ Onboarding concluído/pulado - atualizando sessão');
           
           // Atualiza a sessão para pegar o novo valor de isFirstAccess

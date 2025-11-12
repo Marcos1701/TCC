@@ -3,6 +3,7 @@ import '../../data/models/achievement.dart';
 import '../../data/services/achievement_service.dart';
 import '../widgets/achievement_card.dart';
 import '../widgets/achievement_notification.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 
 /// Página de conquistas do usuário
 /// 
@@ -517,7 +518,7 @@ class _AchievementsPageState extends State<AchievementsPage> with SingleTickerPr
           AchievementNotification.show(
             context,
             achievement: userAchievement.achievement,
-            xpAwarded: result['xp_awarded'] ?? userAchievement.achievement.xpReward,
+            pointsAwarded: result['xp_awarded'] ?? userAchievement.achievement.xpReward,
           );
         }
         
@@ -645,10 +646,10 @@ class _AchievementsPageState extends State<AchievementsPage> with SingleTickerPr
   }
 
   String _getCategoryName(String category) {
-    const names = {
+    final names = {
       'FINANCIAL': 'Financeiro',
       'SOCIAL': 'Social',
-      'MISSION': 'Missões',
+      'MISSION': UxStrings.challenges,
       'STREAK': 'Sequência',
       'GENERAL': 'Geral',
     };

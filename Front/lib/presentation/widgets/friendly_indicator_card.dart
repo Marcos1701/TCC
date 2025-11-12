@@ -24,6 +24,10 @@ class FriendlyIndicatorCard extends StatelessWidget {
   
   /// Ícone personalizado (opcional, usa ícone do status por padrão)
   final IconData? customIcon;
+  
+  /// Se true, valores BAIXOS são melhores (ex: RDR)
+  /// Se false, valores ALTOS são melhores (ex: TPS, ILI)
+  final bool lowerIsBetter;
 
   const FriendlyIndicatorCard({
     required this.title,
@@ -32,6 +36,7 @@ class FriendlyIndicatorCard extends StatelessWidget {
     required this.type,
     this.subtitle,
     this.customIcon,
+    this.lowerIsBetter = false,
     super.key,
   });
 
@@ -162,7 +167,22 @@ class FriendlyIndicatorCard extends StatelessWidget {
   /// Calcula o progresso (0.0 a 1.0)
   double _calculateProgress() {
     if (target == 0) return 0;
-    return (value / target).clamp(0.0, 1.0);
+    
+    if (lowerIsBetter) {
+      // Para indicadores onde MENOR é melhor (ex: RDR)
+      // Se value <= target → progresso = 100%
+      // Se value > target → progresso decresce
+      if (value <= target) {
+        return 1.0; // Atingiu/superou a meta (está abaixo do limite)
+      } else {
+        // Quanto mais acima do target, pior o progresso
+        // Ex: target=35%, value=70% → progress = 35/70 = 0.5
+        return (target / value).clamp(0.0, 1.0);
+      }
+    } else {
+      // Para indicadores onde MAIOR é melhor (ex: TPS, ILI)
+      return (value / target).clamp(0.0, 1.0);
+    }
   }
 
   /// Formata o valor atual conforme o tipo

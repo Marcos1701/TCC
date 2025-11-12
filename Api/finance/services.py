@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Iterable, List
+from dateutil.relativedelta import relativedelta
 
 from django.db.models import Avg, Case, Count, DecimalField, F, Max, Min, Q, Sum, When, Value
 from django.db.models.functions import Coalesce, TruncMonth
@@ -74,14 +75,32 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
     
-    # Query 3: Buscar despesas recorrentes (para cálculo do RDR)
-    recurring_expenses = _decimal(
-        Transaction.objects.filter(
-            user=user,
-            type=Transaction.TransactionType.EXPENSE,
-            is_recurring=True
-        ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
-    )
+    # Query 3: Calcular despesas médias mensais para RDR
+    # IMPORTANTE: RDR deve considerar TODAS as despesas do mês (fixas + variáveis)
+    # para mostrar o comprometimento REAL da renda
+    today = timezone.now().date()
+    current_month_start = today.replace(day=1)
+    three_months_ago = current_month_start - relativedelta(months=3)
+    
+    # Buscar despesas dos últimos 3 meses completos + mês atual parcial
+    monthly_expenses = Transaction.objects.filter(
+        user=user,
+        type=Transaction.TransactionType.EXPENSE,
+        date__gte=three_months_ago,
+        date__lte=today
+    ).annotate(
+        month=TruncMonth('date')
+    ).values('month').annotate(
+        total=Sum('amount')
+    ).values('month', 'total')
+    
+    # Calcular média mensal de despesas
+    if monthly_expenses.exists():
+        total_expenses_period = sum(Decimal(str(m['total'])) for m in monthly_expenses)
+        months_count = monthly_expenses.count()
+        recurring_expenses = total_expenses_period / Decimal(str(months_count)) if months_count > 0 else Decimal("0")
+    else:
+        recurring_expenses = Decimal("0")
 
     # Calcular reserva de emergência usando o grupo SAVINGS
     # - INCOME em categoria SAVINGS = aporte na reserva (dinheiro guardado)
@@ -104,8 +123,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             reserve_withdrawals += total
 
     # Calcular média de despesas essenciais dos últimos 3 meses para ILI mais estável
-    today = timezone.now().date()
-    three_months_ago = today - timedelta(days=90)
+    # Reutilizar a variável today e three_months_ago já definidas acima
     essential_expense_total = _decimal(
         Transaction.objects.filter(
             user=user,
@@ -135,17 +153,21 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         savings = total_income - total_expense
         tps = (savings / total_income) * Decimal("100")
         
-        # RDR (Razão Despesas Recorrentes/Renda)
-        # Fórmula: (Despesas Recorrentes / Receitas) × 100
-        # Mede quanto % da renda está comprometido com despesas fixas recorrentes
+        # RDR (Razão Despesas/Renda) - RENOMEADO de "Despesas Recorrentes"
+        # Fórmula: (Média Mensal de TODAS as Despesas / Receitas) × 100
+        # Mede quanto % da renda está comprometido com gastos mensais (fixos + variáveis)
         # 
-        # Exemplo: Ganhou R$ 5.000, tem R$ 1.500 de despesas recorrentes
+        # IMPORTANTE: Considera TODAS as despesas do período (últimos 3 meses),
+        # não apenas as marcadas como recorrentes. Isso dá uma visão realista
+        # do comprometimento mensal da renda.
+        # 
+        # Exemplo: Ganhou R$ 5.000, média mensal de gastos é R$ 1.500
         # RDR = 1.500 / 5.000 × 100 = 30%
         # 
         # Referências:
-        # - ≤35%: Saudável
-        # - 36-50%: Atenção
-        # - ≥51%: Crítico (pouca flexibilidade financeira)
+        # - ≤35%: Saudável (sobra boa margem)
+        # - 36-50%: Atenção (pouca flexibilidade)
+        # - ≥51%: Crítico (muito comprometido)
         rdr = (recurring_expenses / total_income) * Decimal("100")
     
     # ILI (Índice de Liquidez Imediata)
@@ -986,6 +1008,37 @@ def update_mission_progress(user) -> List[MissionProgress]:
                 new_progress = sum(progress_components) / len(progress_components)
             else:
                 new_progress = 0.0
+        
+        # === TRATAMENTO ESPECIAL PARA validation_type ===
+        # Algumas missões usam validation_type específico que sobrescreve mission_type
+        
+        if mission.validation_type == Mission.ValidationType.GOAL_PROGRESS:
+            # Missão relacionada a metas
+            if mission.target_goal:
+                # Meta específica - verificar progresso dessa meta
+                goal = mission.target_goal
+                current_goal_progress = float(goal.progress_percentage) if hasattr(goal, 'progress_percentage') else 0.0
+                target_progress = float(mission.goal_progress_target) if mission.goal_progress_target else 100.0
+                initial_progress = float(progress.initial_goal_progress) if progress.initial_goal_progress else 0.0
+                
+                if current_goal_progress >= target_progress:
+                    new_progress = 100.0
+                elif target_progress > initial_progress:
+                    needed = target_progress - initial_progress
+                    achieved = current_goal_progress - initial_progress
+                    new_progress = min(100.0, max(0.0, (achieved / needed) * 100))
+                else:
+                    new_progress = 100.0 if current_goal_progress >= target_progress else 0.0
+            else:
+                # Sem meta específica - contar quantas metas o usuário tem (missão "Criar primeira meta")
+                # goal_progress_target=1 significa "ter pelo menos 1 meta"
+                goals_count = Goal.objects.filter(user=user).count()
+                target_count = int(mission.goal_progress_target) if mission.goal_progress_target else 1
+                
+                if goals_count >= target_count:
+                    new_progress = 100.0
+                else:
+                    new_progress = min(100.0, (goals_count / target_count) * 100)
         
         # Atualizar progresso
         progress.progress = Decimal(str(new_progress))
@@ -2115,10 +2168,10 @@ def check_criteria_met(user, criteria):
             return count >= target
         
         elif metric == 'goals':
-            # Total de metas concluídas
+            # Total de metas concluídas (current_amount >= target_amount)
             count = Goal.objects.filter(
-                user=user, 
-                status=Goal.GoalStatus.COMPLETED
+                user=user,
+                current_amount__gte=F('target_amount')
             ).count()
             return count >= target
         
@@ -2289,7 +2342,11 @@ def update_achievement_progress(user, achievement_id):
         elif metric == 'missions':
             current_progress = MissionProgress.objects.filter(user=user, status='COMPLETED').count()
         elif metric == 'goals':
-            current_progress = Goal.objects.filter(user=user, status=Goal.GoalStatus.COMPLETED).count()
+            # Metas concluídas: current_amount >= target_amount
+            current_progress = Goal.objects.filter(
+                user=user,
+                current_amount__gte=F('target_amount')
+            ).count()
         elif metric == 'friends':
             from .models import Friendship
             current_progress = Friendship.objects.filter(

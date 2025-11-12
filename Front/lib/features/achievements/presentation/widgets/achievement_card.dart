@@ -35,7 +35,7 @@ class AchievementCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Ícone, Título e XP
+              // Header: Ícone, Título e Pontos
               Row(
                 children: [
                   // Ícone
@@ -117,7 +117,7 @@ class AchievementCard extends StatelessWidget {
                     ),
                   ),
                   
-                  // XP Badge
+                  // Badge de Pontos
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(

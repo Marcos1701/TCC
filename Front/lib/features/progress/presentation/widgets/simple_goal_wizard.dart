@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/goal.dart';
+import '../../../../core/models/category.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
@@ -11,17 +12,18 @@ import '../../../../core/utils/currency_input_formatter.dart';
 
 /// Wizard simplificado para criação de metas (Dia 15-20)
 /// 
-/// Fluxo de 4 passos:
-/// 1. Tipo (Juntar dinheiro ou Reduzir gastos)
-/// 2. Título/Objetivo (com templates)
-/// 3. Valor alvo
-/// 4. Prazo (opcional)
+/// Fluxo de 5 passos:
+/// 1. Objetivo: Tipo (Juntar dinheiro ou Reduzir gastos)
+/// 2. Nome: Título com templates ou customizado
+/// 3. Categorias: Seleção de categorias monitoradas (apenas CATEGORY_EXPENSE)
+/// 4. Valor: Meta financeira
+/// 5. Prazo: Data limite (opcional)
 /// 
 /// Simplificações:
 /// - Apenas 2 tipos principais (SAVINGS e CATEGORY_EXPENSE)
 /// - Auto-update sempre ativo
 /// - Tracking period sempre TOTAL
-/// - Templates pré-configurados
+/// - Templates pré-configurados com sugestões de categorias
 class SimpleGoalWizard extends StatefulWidget {
   const SimpleGoalWizard({super.key});
 
@@ -39,6 +41,9 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   String _title = '';
   double _targetAmount = 0;
   DateTime? _deadline;
+  List<CategoryModel> _selectedCategories = []; // Múltiplas categorias
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = false;
   bool _isCreating = false;
 
   // Templates sugeridos por tipo
@@ -61,6 +66,35 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     ],
   };
 
+  // Mapeamento de templates → palavras-chave de categoria
+  final Map<String, List<String>> _templateCategoryKeywords = {
+    '🍕 Reduzir delivery': ['alimentação', 'delivery', 'comida', 'restaurante', 'ifood'],
+    '💡 Economizar energia': ['moradia', 'energia', 'luz', 'conta', 'utilities'],
+    '🚗 Reduzir transporte': ['transporte', 'uber', 'combustível', 'gasolina', 'ônibus'],
+    '🛍️ Controlar compras': ['compras', 'shopping', 'vestuário', 'roupa'],
+    '☕ Menos cafeteria': ['alimentação', 'café', 'cafeteria', 'lanche'],
+    '🎮 Reduzir entretenimento': ['lazer', 'entretenimento', 'streaming', 'diversão'],
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() => _isLoadingCategories = true);
+    try {
+      _categories = await _repository.fetchCategories(type: 'EXPENSE');
+    } catch (e) {
+      // Silently fail - categories are optional
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingCategories = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -68,7 +102,8 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   }
 
   void _nextStep() {
-    if (_currentStep < 3) {
+    if (!mounted) return;
+    if (_currentStep < 4) { // 5 steps: 0-4
       setState(() => _currentStep++);
       _pageController.animateToPage(
         _currentStep,
@@ -79,8 +114,15 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   }
 
   void _previousStep() {
+    if (!mounted) return;
     if (_currentStep > 0) {
       setState(() => _currentStep--);
+      
+      // Se está voltando para o step 3 (categorias) e o tipo é SAVINGS, pula mais um
+      if (_currentStep == 2 && _selectedType == GoalType.savings) {
+        setState(() => _currentStep--);
+      }
+      
       _pageController.animateToPage(
         _currentStep,
         duration: const Duration(milliseconds: 300),
@@ -89,8 +131,41 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     }
   }
 
+  /// Sugere categorias baseadas no template selecionado
+  void _suggestCategoriesForTemplate(String template) {
+    final keywords = _templateCategoryKeywords[template];
+    if (keywords == null || keywords.isEmpty) return;
+
+    final suggested = <CategoryModel>[];
+    for (final category in _categories) {
+      for (final keyword in keywords) {
+        if (category.name.toLowerCase().contains(keyword.toLowerCase())) {
+          if (!suggested.contains(category)) {
+            suggested.add(category);
+          }
+          break;
+        }
+      }
+    }
+
+    setState(() {
+      _selectedCategories = suggested;
+    });
+  }
+
   Future<void> _createGoal() async {
     if (_isCreating) return;
+    
+    // Validação: Categoria é obrigatória para CATEGORY_EXPENSE
+    if (_selectedType == GoalType.categoryExpense && _selectedCategories.isEmpty) {
+      if (mounted) {
+        FeedbackService.showError(
+          context,
+          'Por favor, selecione pelo menos uma categoria para esta meta.',
+        );
+      }
+      return;
+    }
     
     setState(() => _isCreating = true);
 
@@ -103,6 +178,8 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         initialAmount: 0,
         deadline: _deadline,
         goalType: _selectedType!.value,
+        // Usar tracked_category_ids para múltiplas categorias
+        trackedCategoryIds: _selectedCategories.map((c) => c.id).toList(),
         autoUpdate: true, // Sempre ativo para simplificar
         trackingPeriod: TrackingPeriod.total.value,
         isReductionGoal: _selectedType == GoalType.categoryExpense,
@@ -169,10 +246,11 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildStep1GoalType(),
-                _buildStep2Title(),
-                _buildStep3Amount(),
-                _buildStep4Deadline(),
+                _buildStep1GoalType(),      // 1. Objetivo
+                _buildStep2Title(),         // 2. Nome
+                _buildStep3Categories(),    // 3. Categorias
+                _buildStep4Amount(),        // 4. Valor
+                _buildStep5Deadline(),      // 5. Prazo
               ],
             ),
           ),
@@ -185,7 +263,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
-        children: List.generate(4, (index) {
+        children: List.generate(5, (index) {
           final isActive = index <= _currentStep;
           final isCompleted = index < _currentStep;
           
@@ -277,95 +355,102 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Dê um nome para sua meta',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Dê um nome para sua meta',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Escolha um template ou crie o seu próprio',
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 16,
+            const SizedBox(height: 8),
+            Text(
+              'Escolha um template ou crie o seu próprio',
+              style: TextStyle(
+                color: Colors.grey[400],
+                fontSize: 16,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Templates
-          const Text(
-            'Sugestões populares:',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+            const SizedBox(height: 24),
+            
+            // Templates
+            const Text(
+              'Sugestões populares:',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          
-          Expanded(
-            child: ListView.builder(
-              itemCount: templates.length,
-              itemBuilder: (context, index) {
-                final template = templates[index];
-                final isSelected = _title == template;
-                
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Material(
-                    color: isSelected 
-                        ? AppColors.primary.withOpacity(0.2)
-                        : const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
+            const SizedBox(height: 12),
+            
+            // Lista de templates (altura fixa)
+            SizedBox(
+              height: 250, // Altura fixa para os templates
+              child: ListView.builder(
+                itemCount: templates.length,
+                itemBuilder: (context, index) {
+                  final template = templates[index];
+                  final isSelected = _title == template;
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: isSelected 
+                          ? AppColors.primary.withOpacity(0.2)
+                          : const Color(0xFF1E1E1E),
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        setState(() => _title = template);
-                        _nextStep();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.grey[800]!,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              template,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          setState(() => _title = template);
+                          // Sugerir categorias automaticamente se for CATEGORY_EXPENSE
+                          if (_selectedType == GoalType.categoryExpense) {
+                            _suggestCategoriesForTemplate(template);
+                          }
+                          _nextStep();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.grey[800]!,
+                              width: isSelected ? 2 : 1,
                             ),
-                            const Spacer(),
-                            if (isSelected)
-                              const Icon(
-                                Icons.check_circle,
-                                color: AppColors.primary,
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                template,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
                               ),
-                          ],
+                              const Spacer(),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: AppColors.primary,
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-          
-          const SizedBox(height: 16),
+            
+            const SizedBox(height: 16),
           
           // Campo customizado
           TextField(
@@ -403,12 +488,155 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
             },
           ),
         ],
+      ), // Column
+      ), // SingleChildScrollView
+    );
+  }
+
+  // STEP 3: Selecionar categorias (apenas para CATEGORY_EXPENSE)
+  Widget _buildStep3Categories() {
+    // Se for SAVINGS, não mostra seleção de categorias
+    if (_selectedType != GoalType.categoryExpense) {
+      // Pula automaticamente para o próximo passo (com proteção)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _currentStep == 2) {
+          _nextStep();
+        }
+      });
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quais categorias monitorar?',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _selectedCategories.isEmpty
+                ? 'Selecione uma ou mais categorias para acompanhar seus gastos'
+                : '${_selectedCategories.length} categoria${_selectedCategories.length > 1 ? 's' : ''} selecionada${_selectedCategories.length > 1 ? 's' : ''}',
+            style: TextStyle(
+              color: _selectedCategories.isEmpty ? Colors.grey[400] : AppColors.primary,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Loading ou lista de categorias
+          Expanded(
+            child: _isLoadingCategories
+                ? const Center(child: CircularProgressIndicator())
+                : _categories.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Nenhuma categoria de despesa encontrada.',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _categories.map((category) {
+                            final isSelected = _selectedCategories.contains(category);
+                            return FilterChip(
+                              selected: isSelected,
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (category.color != null)
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      margin: const EdgeInsets.only(right: 6),
+                                      decoration: BoxDecoration(
+                                        color: Color(int.parse(
+                                            category.color!.substring(1),
+                                            radix: 16) +
+                                            0xFF000000),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  Text(category.name),
+                                ],
+                              ),
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.white : Colors.grey[300],
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                              backgroundColor: const Color(0xFF1E1E1E),
+                              selectedColor: AppColors.primary.withOpacity(0.3),
+                              checkmarkColor: Colors.white,
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.grey[800]!,
+                                width: isSelected ? 2 : 1,
+                              ),
+                              onSelected: (selected) {
+                                setState(() {
+                                  if (selected) {
+                                    _selectedCategories.add(category);
+                                  } else {
+                                    _selectedCategories.remove(category);
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Botão continuar
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _selectedCategories.isNotEmpty ? _nextStep : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                disabledBackgroundColor: Colors.grey[800],
+              ),
+              child: Text(
+                _selectedCategories.isEmpty
+                    ? 'Selecione pelo menos uma categoria'
+                    : 'Continuar',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: _selectedCategories.isEmpty
+                      ? Colors.grey[600]
+                      : Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // STEP 3: Definir valor alvo
-  Widget _buildStep3Amount() {
+  // STEP 4: Definir valor alvo
+  Widget _buildStep4Amount() {
     final controller = TextEditingController(
       text: _targetAmount > 0 ? CurrencyInputFormatter.format(_targetAmount) : '',
     );
@@ -535,8 +763,8 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     );
   }
 
-  // STEP 4: Definir prazo (opcional)
-  Widget _buildStep4Deadline() {
+  // STEP 5: Definir prazo (opcional)
+  Widget _buildStep5Deadline() {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(

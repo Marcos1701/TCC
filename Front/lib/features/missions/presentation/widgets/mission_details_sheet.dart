@@ -5,8 +5,9 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 
-/// Sheet que exibe detalhes completos de uma missão com breakdown de progresso
+/// Sheet que exibe detalhes completos de um desafio com breakdown de progresso
 class MissionDetailsSheet extends StatefulWidget {
   const MissionDetailsSheet({
     super.key,
@@ -359,7 +360,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildInfoRow(theme, 'Recompensa', '+${mission.rewardPoints} XP',
+          _buildInfoRow(theme, 'Recompensa', '+${mission.rewardPoints} ${UxStrings.points}',
               Icons.star_rounded, AppColors.primary),
           const SizedBox(height: 12),
           _buildInfoRow(
@@ -746,7 +747,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Requisitos da Missão',
+                UxStrings.challengeRequirements,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -881,7 +882,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           {
             'icon': Icons.stars,
             'title': 'Maximiza Recompensas',
-            'description': 'Maior ganho de XP e progressão rápida',
+            'description': 'Maior ganho de ${UxStrings.points.toLowerCase()} e progressão rápida',
             'color': AppColors.primary,
           },
         ]);
@@ -905,11 +906,11 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         break;
     }
 
-    // Adiciona impacto de XP
+    // Adiciona impacto de pontos
     impacts.add({
       'icon': Icons.star_rounded,
-      'title': '+${mission.rewardPoints} XP de Recompensa',
-      'description': 'Avance de nível e desbloqueie novas missões',
+      'title': '+${mission.rewardPoints} ${UxStrings.points} de Recompensa',
+      'description': 'Avance de ${UxStrings.level.toLowerCase()} e ${UxStrings.unlockNewChallenges}',
       'color': AppColors.primary,
     });
 
@@ -952,7 +953,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Veja como esta missão vai melhorar suas finanças',
+            'Veja como este ${UxStrings.challenge.toLowerCase()} vai melhorar suas finanças',
             style: theme.textTheme.bodySmall?.copyWith(
               color: Colors.grey[400],
               fontSize: 12,
@@ -1027,7 +1028,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       recommendations.add({
         'icon': Icons.rocket_launch,
         'title': 'Comece Agora!',
-        'description': 'Quanto antes você começar, mais fácil será completar a missão no prazo.',
+        'description': 'Quanto antes você começar, mais fácil será completar o ${UxStrings.challenge.toLowerCase()} no prazo.',
         'color': AppColors.primary,
         'priority': 'high',
       });
@@ -1043,13 +1044,13 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       recommendations.add({
         'icon': Icons.celebration,
         'title': 'Quase Lá!',
-        'description': 'Falta pouco! Mantenha o foco para completar a missão.',
+        'description': 'Falta pouco! Mantenha o foco para completar o ${UxStrings.challenge.toLowerCase()}.',
         'color': AppColors.support,
         'priority': 'low',
       });
     }
 
-    // Recomendações baseadas no tipo de missão
+    // Recomendações baseadas no tipo de desafio
     switch (mission.missionType) {
       case 'TPS_IMPROVEMENT':
         recommendations.add({
@@ -1106,7 +1107,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         recommendations.add({
           'icon': Icons.analytics,
           'title': 'Analise Padrões',
-          'description': 'Use a aba Analytics para identificar tendências e otimizar seus gastos.',
+          'description': 'Use a aba ${UxStrings.analysis} para identificar tendências e otimizar seus gastos.',
           'color': const Color(0xFFFF9800),
           'priority': 'medium',
         });
@@ -1149,7 +1150,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       recommendations.add({
         'icon': Icons.lightbulb,
         'title': 'Continue Progredindo',
-        'description': 'Mantenha o foco nos requisitos da missão e acompanhe seu progresso diariamente.',
+        'description': 'Mantenha o foco nos requisitos do ${UxStrings.challenge.toLowerCase()} e acompanhe seu progresso diariamente.',
         'color': AppColors.primary,
         'priority': 'medium',
       });

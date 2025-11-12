@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../data/services/admin_user_service.dart';
 import 'admin_user_details_page.dart';
 
@@ -10,7 +11,7 @@ import 'admin_user_details_page.dart';
 /// Recursos:
 /// - Lista paginada de usuários
 /// - Filtros: tier, status, busca
-/// - Ordenação por data, level, XP
+/// - Ordenação por data, nível, pontos
 /// - Navegação para detalhes
 class AdminUsersManagementPage extends StatefulWidget {
   const AdminUsersManagementPage({super.key});
@@ -260,7 +261,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
                 _buildSortChip('Mais recentes', '-date_joined'),
                 _buildSortChip('Mais antigos', 'date_joined'),
                 _buildSortChip('Maior nível', '-level'),
-                _buildSortChip('Maior XP', '-experience_points'),
+                _buildSortChip('Maiores ${UxStrings.points}', '-experience_points'),
               ],
             ),
           ),
@@ -557,8 +558,8 @@ class _UserCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildStat(Icons.military_tech, 'Nível $level', AppColors.highlight),
-                  _buildStat(Icons.stars, '$xp XP', AppColors.primary),
+                  _buildStat(Icons.military_tech, '${UxStrings.level} $level', AppColors.highlight),
+                  _buildStat(Icons.stars, '$xp ${UxStrings.points}', AppColors.primary),
                   _buildStat(Icons.receipt_long, '$transactionCount trans.', AppColors.secondary),
                 ],
               ),

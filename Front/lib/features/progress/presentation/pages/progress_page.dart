@@ -1182,6 +1182,7 @@ class _ProfileTargetsCardState extends State<_ProfileTargetsCard> {
                     type: IndicatorType.percentage,
                     subtitle: 'comprometido da renda',
                     customIcon: Icons.pie_chart_outline,
+                    lowerIsBetter: true, // Quanto MENOR, melhor!
                   ),
                   const SizedBox(height: 12),
                   

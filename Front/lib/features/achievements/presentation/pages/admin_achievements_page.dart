@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/achievement.dart';
 import '../../data/services/achievement_service.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 
 /// Página administrativa para gerenciar conquistas (CRUD + Geração IA)
 /// 
@@ -31,7 +32,7 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
   String _filterOrigin = 'ALL'; // ALL, AI, MANUAL
   String _filterStatus = 'ALL'; // ALL, ACTIVE, INACTIVE
   String _searchQuery = '';
-  String _sortBy = 'priority_asc'; // priority_asc, xp_desc, xp_asc, date_desc, date_asc
+  String _sortBy = 'priority_asc'; // priority_asc, points_desc, points_asc, date_desc, date_asc
   
   // Geração IA
   bool _isGeneratingAI = false;
@@ -114,9 +115,9 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
       switch (_sortBy) {
         case 'priority_asc':
           return a.priority.compareTo(b.priority);
-        case 'xp_desc':
+        case 'points_desc':
           return b.xpReward.compareTo(a.xpReward);
-        case 'xp_asc':
+        case 'points_asc':
           return a.xpReward.compareTo(b.xpReward);
         case 'date_desc':
           return b.createdAt.compareTo(a.createdAt);
@@ -271,7 +272,7 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
                     const PopupMenuItem(value: 'ALL', child: Text('Todas')),
                     const PopupMenuItem(value: 'FINANCIAL', child: Text('Financeiro')),
                     const PopupMenuItem(value: 'SOCIAL', child: Text('Social')),
-                    const PopupMenuItem(value: 'MISSION', child: Text('Missões')),
+                    PopupMenuItem(value: 'MISSION', child: Text(UxStrings.challenges)),
                     const PopupMenuItem(value: 'STREAK', child: Text('Sequência')),
                     const PopupMenuItem(value: 'GENERAL', child: Text('Geral')),
                   ],
@@ -333,8 +334,8 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
                   onSelected: (value) => setState(() => _sortBy = value),
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'priority_asc', child: Text('Prioridade')),
-                    const PopupMenuItem(value: 'xp_desc', child: Text('XP (Maior)')),
-                    const PopupMenuItem(value: 'xp_asc', child: Text('XP (Menor)')),
+                    PopupMenuItem(value: 'points_desc', child: Text('${UxStrings.points} (Maior)')),
+                    PopupMenuItem(value: 'points_asc', child: Text('${UxStrings.points} (Menor)')),
                     const PopupMenuItem(value: 'date_desc', child: Text('Mais Recente')),
                     const PopupMenuItem(value: 'date_asc', child: Text('Mais Antiga')),
                   ],
@@ -444,7 +445,7 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       Chip(
-                        label: Text('+${achievement.xpReward} XP', style: const TextStyle(fontSize: 10)),
+                        label: Text('+${achievement.xpReward} ${UxStrings.points}', style: const TextStyle(fontSize: 10)),
                         padding: EdgeInsets.zero,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -536,7 +537,7 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
                   DropdownMenuItem(value: 'ALL', child: Text('Todas (30 conquistas)')),
                   DropdownMenuItem(value: 'FINANCIAL', child: Text('Financeiro')),
                   DropdownMenuItem(value: 'SOCIAL', child: Text('Social')),
-                  DropdownMenuItem(value: 'MISSION', child: Text('Missões')),
+                  DropdownMenuItem(value: 'MISSION', child: Text(UxStrings.challenges)),
                   DropdownMenuItem(value: 'STREAK', child: Text('Sequência')),
                   DropdownMenuItem(value: 'GENERAL', child: Text('Geral')),
                 ],
@@ -713,10 +714,10 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
   }
 
   String _getCategoryName(String category) {
-    const names = {
+    final names = {
       'FINANCIAL': 'Financeiro',
       'SOCIAL': 'Social',
-      'MISSION': 'Missões',
+      'MISSION': UxStrings.challenges,
       'STREAK': 'Sequência',
       'GENERAL': 'Geral',
     };

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../data/services/admin_user_service.dart';
 
 /// Página de detalhes e ações administrativas de um usuário
@@ -10,12 +11,12 @@ import '../../data/services/admin_user_service.dart';
 /// - Dados básicos e perfil
 /// - Estatísticas (TPS, RDR, ILI)
 /// - Transações recentes
-/// - Missões ativas
+/// - Desafios ativos
 /// - Histórico de ações admin
 /// 
 /// Permite:
 /// - Desativar/Reativar usuário
-/// - Ajustar XP
+/// - Ajustar Pontos
 class AdminUserDetailsPage extends StatefulWidget {
   final int userId;
 
@@ -151,9 +152,9 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         final adjustment = response['adjustment'] as Map<String, dynamic>;
         final levelChanged = adjustment['level_changed'] as bool;
         
-        String message = 'XP ajustado com sucesso!';
+        String message = UxStrings.pointsAdjusted;
         if (levelChanged) {
-          message += '\nNível: ${adjustment['old_level']} → ${adjustment['new_level']}';
+          message += '\n${UxStrings.level}: ${adjustment['old_level']} → ${adjustment['new_level']}';
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -384,7 +385,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
             children: [
               ElevatedButton.icon(
                 icon: const Icon(Icons.stars),
-                label: const Text('Ajustar XP'),
+                label: Text(UxStrings.adjustPoints),
                 onPressed: _adjustXp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -446,7 +447,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.military_tech,
-                  label: 'Nível',
+                  label: UxStrings.level,
                   value: level.toString(),
                   color: AppColors.highlight,
                 ),
@@ -455,7 +456,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
               Expanded(
                 child: _buildStatCard(
                   icon: Icons.stars,
-                  label: 'XP',
+                  label: UxStrings.points,
                   value: xp.toString(),
                   color: AppColors.primary,
                 ),
@@ -708,9 +709,9 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Missões Ativas',
-            style: TextStyle(
+          Text(
+            '${UxStrings.challenges} Ativos',
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -718,12 +719,12 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
           ),
           const SizedBox(height: 12),
           if (missions.isEmpty)
-            const Center(
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Nenhuma missão ativa',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  UxStrings.noActiveChallenges,
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
             )

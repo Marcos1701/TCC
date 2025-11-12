@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import '../../data/models/achievement.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 
 /// Serviço para mostrar notificações de conquistas desbloqueadas
 /// 
@@ -9,7 +10,7 @@ import '../../data/models/achievement.dart';
 /// AchievementNotification.show(
 ///   context,
 ///   achievement: achievement,
-///   xpAwarded: 50,
+///   pointsAwarded: 50,
 /// );
 /// ```
 class AchievementNotification {
@@ -21,13 +22,13 @@ class AchievementNotification {
   /// Parâmetros:
   /// - [context]: BuildContext atual
   /// - [achievement]: Conquista desbloqueada
-  /// - [xpAwarded]: XP concedido
+  /// - [pointsAwarded]: Pontos concedidos
   /// - [duration]: Duração da notificação (padrão: 5 segundos)
   /// - [showConfetti]: Se deve mostrar confetti (padrão: true)
   static void show(
     BuildContext context, {
     required Achievement achievement,
-    required int xpAwarded,
+    required int pointsAwarded,
     Duration duration = const Duration(seconds: 5),
     bool showConfetti = true,
   }) {
@@ -45,7 +46,7 @@ class AchievementNotification {
     _currentOverlay = OverlayEntry(
       builder: (context) => _AchievementNotificationWidget(
         achievement: achievement,
-        xpAwarded: xpAwarded,
+        pointsAwarded: pointsAwarded,
         onDismiss: dismiss,
         confettiController: _confettiController,
       ),
@@ -75,13 +76,13 @@ class AchievementNotification {
 /// Widget interno da notificação
 class _AchievementNotificationWidget extends StatefulWidget {
   final Achievement achievement;
-  final int xpAwarded;
+  final int pointsAwarded;
   final VoidCallback onDismiss;
   final ConfettiController? confettiController;
 
   const _AchievementNotificationWidget({
     required this.achievement,
-    required this.xpAwarded,
+    required this.pointsAwarded,
     required this.onDismiss,
     this.confettiController,
   });
@@ -322,7 +323,7 @@ class _AchievementNotificationWidgetState
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                '+${widget.xpAwarded} XP',
+                                                '+${widget.pointsAwarded} ${UxStrings.points}',
                                                 style: const TextStyle(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,

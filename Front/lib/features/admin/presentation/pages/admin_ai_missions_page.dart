@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/user_friendly_strings.dart';
 
 /// Página de administração para gerar missões com IA
 /// 
@@ -375,7 +376,7 @@ class _AdminAiMissionsPageState extends State<AdminAiMissionsPage> {
                     return Padding(
                       padding: const EdgeInsets.only(left: 16, top: 4),
                       child: Text(
-                        '• ${mission['title']} (${mission['difficulty']}, ${mission['xp']} XP)',
+                        '• ${mission['title']} (${mission['difficulty']}, ${mission['xp']} ${UxStrings.point})',
                         style: TextStyle(fontSize: 13, color: Colors.grey[400]),
                       ),
                     );

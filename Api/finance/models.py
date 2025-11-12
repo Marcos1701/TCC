@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -312,7 +313,7 @@ class Transaction(models.Model):
     # UUID como Primary Key
     id = models.UUIDField(
         primary_key=True,
-        default=None,
+        default=uuid.uuid4,
         editable=False,
         help_text="Identificador único universal (UUID v4)"
     )
@@ -402,11 +403,13 @@ class Transaction(models.Model):
                     'recurrence_end_date': 'Data de fim da recorrência não pode ser anterior à data da transação.'
                 })
         
-        # 7. Validar categoria pertence ao usuário
-        if self.category and self.category.user != self.user:
-            raise ValidationError({
-                'category': 'A categoria deve pertencer ao mesmo usuário da transação.'
-            })
+        # 7. Validar categoria pertence ao usuário (ou é categoria global)
+        if self.category:
+            # Categorias globais (user=None) são permitidas para todos
+            if self.category.user is not None and self.category.user != self.user:
+                raise ValidationError({
+                    'category': 'A categoria deve pertencer ao mesmo usuário da transação.'
+                })
         
         # 8. Validar tipo de categoria compatível
         if self.category:
@@ -503,7 +506,7 @@ class TransactionLink(models.Model):
     # UUID como Primary Key
     id = models.UUIDField(
         primary_key=True,
-        default=None,
+        default=uuid.uuid4,
         editable=False,
         help_text="Identificador único universal (UUID v4)"
     )
@@ -740,7 +743,7 @@ class Goal(models.Model):
     # UUID como Primary Key
     id = models.UUIDField(
         primary_key=True,
-        default=None,
+        default=uuid.uuid4,
         editable=False,
         help_text="Identificador único universal (UUID v4)"
     )
@@ -1337,16 +1340,16 @@ class MissionProgress(models.Model):
         if self.pk:  # Se é update
             try:
                 old_instance = MissionProgress.objects.get(pk=self.pk)
-                # Se estava COMPLETED, não pode voltar para IN_PROGRESS
-                if old_instance.status == self.MissionStatus.COMPLETED and \
-                   self.status == self.MissionStatus.IN_PROGRESS:
+                # Se estava COMPLETED, não pode voltar para ACTIVE
+                if old_instance.status == self.Status.COMPLETED and \
+                   self.status == self.Status.ACTIVE:
                     raise ValidationError({
                         'status': 'Uma missão concluída não pode voltar para em progresso.'
                     })
                 
                 # Se estava FAILED, não pode ir para COMPLETED
-                if old_instance.status == self.MissionStatus.FAILED and \
-                   self.status == self.MissionStatus.COMPLETED:
+                if old_instance.status == self.Status.FAILED and \
+                   self.status == self.Status.COMPLETED:
                     raise ValidationError({
                         'status': 'Uma missão falha não pode ser marcada como concluída.'
                     })
@@ -1354,13 +1357,13 @@ class MissionProgress(models.Model):
                 pass
         
         # 3. Validar que se status é COMPLETED, progress deve ser 100
-        if self.status == self.MissionStatus.COMPLETED and self.progress < Decimal('100'):
+        if self.status == self.Status.COMPLETED and self.progress < Decimal('100'):
             raise ValidationError({
                 'status': 'Missão só pode ser concluída quando progresso atingir 100%.'
             })
         
         # 4. Validar que completed_at é set apenas se status é COMPLETED
-        if self.completed_at and self.status != self.MissionStatus.COMPLETED:
+        if self.completed_at and self.status != self.Status.COMPLETED:
             raise ValidationError({
                 'completed_at': 'Data de conclusão só deve ser definida para missões concluídas.'
             })
@@ -1798,7 +1801,7 @@ class Friendship(models.Model):
     # UUID como Primary Key
     id = models.UUIDField(
         primary_key=True,
-        default=None,
+        default=uuid.uuid4,
         editable=False,
         help_text="Identificador único universal (UUID v4)"
     )

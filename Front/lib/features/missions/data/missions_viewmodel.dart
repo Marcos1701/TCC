@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/models/mission_progress.dart';
 import '../../../core/repositories/finance_repository.dart';
+import '../../../core/constants/user_friendly_strings.dart';
 
 /// Estados do ViewModel
 enum MissionsViewState {
@@ -12,7 +13,7 @@ enum MissionsViewState {
   error,
 }
 
-/// ViewModel para gerenciar missões e celebrações
+/// ViewModel para gerenciar desafios e celebrações
 class MissionsViewModel extends ChangeNotifier {
   MissionsViewModel({FinanceRepository? repository})
       : _repository = repository ?? FinanceRepository();
@@ -65,14 +66,14 @@ class MissionsViewModel extends ChangeNotifier {
       } else if (e.response?.statusCode == 401) {
         _errorMessage = 'Sessão expirada. Faça login novamente.';
       } else {
-        _errorMessage = 'Erro ao carregar missões. Tente novamente.';
+        _errorMessage = UxStrings.errorLoadingChallenges;
       }
       
-      debugPrint('Erro ao carregar missões: ${e.toString()}');
+      debugPrint('${UxStrings.errorLoadingChallenges}: ${e.toString()}');
     } catch (e) {
       _state = MissionsViewState.error;
-      _errorMessage = 'Erro inesperado ao carregar missões.';
-      debugPrint('Erro ao carregar missões: $e');
+      _errorMessage = 'Erro inesperado ao carregar ${UxStrings.challenges.toLowerCase()}.';
+      debugPrint('${UxStrings.errorLoadingChallenges}: $e');
     } finally {
       notifyListeners();
     }
