@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 
 import '../models/dashboard.dart';
 import '../models/goal.dart';
@@ -118,7 +119,30 @@ class FinanceRepository {
   }
 
   Future<void> deleteCategory(String id) async {
-    await _client.client.delete('${ApiEndpoints.categories}$id/');
+    try {
+      await _client.client.delete('${ApiEndpoints.categories}$id/');
+    } on DioException catch (e) {
+      // Extrair mensagem de erro da resposta
+      String errorMessage = 'Nao foi possivel excluir a categoria';
+      
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic>) {
+          if (data.containsKey('non_field_errors')) {
+            final errors = data['non_field_errors'];
+            if (errors is List && errors.isNotEmpty) {
+              errorMessage = errors.first.toString();
+            } else if (errors is String) {
+              errorMessage = errors;
+            }
+          } else if (data.containsKey('detail')) {
+            errorMessage = data['detail'].toString();
+          }
+        }
+      }
+      
+      throw Exception(errorMessage);
+    }
   }
 
   Future<List<TransactionModel>> fetchTransactions({String? type}) async {

@@ -14,7 +14,9 @@ class ApiClient {
       contentType: 'application/json',
       headers: const {'Accept': 'application/json'},
       responseType: ResponseType.json,
-      validateStatus: (status) => status != null && status < 500,
+      // Apenas status 2xx são considerados sucesso
+      // Status 4xx e 5xx vão lançar DioException
+      validateStatus: (status) => status != null && status >= 200 && status < 300,
     );
 
     _dio = Dio(options)
@@ -28,6 +30,44 @@ class ApiClient {
             handler.next(options);
           },
           onError: (error, handler) async {
+            // Tentar extrair mensagem de erro da API
+            if (error.response?.data != null) {
+              try {
+                final data = error.response!.data;
+                String? errorMessage;
+                
+                if (data is Map<String, dynamic>) {
+                  // Tentar extrair mensagem de non_field_errors
+                  if (data.containsKey('non_field_errors')) {
+                    final errors = data['non_field_errors'];
+                    if (errors is List && errors.isNotEmpty) {
+                      errorMessage = errors.first.toString();
+                    } else if (errors is String) {
+                      errorMessage = errors;
+                    }
+                  } else if (data.containsKey('detail')) {
+                    errorMessage = data['detail'].toString();
+                  } else if (data.containsKey('error')) {
+                    errorMessage = data['error'].toString();
+                  }
+                  
+                  if (errorMessage != null) {
+                    debugPrint('🚨 Erro da API: $errorMessage');
+                    // Criar um novo DioException com a mensagem extraída
+                    final newError = DioException(
+                      requestOptions: error.requestOptions,
+                      response: error.response,
+                      type: error.type,
+                      error: errorMessage,
+                    );
+                    return handler.next(newError);
+                  }
+                }
+              } catch (e) {
+                debugPrint('⚠️ Erro ao extrair mensagem de erro: $e');
+              }
+            }
+            
             if (_shouldTryRefresh(error)) {
               final retried = await _refreshAndRetry(error.requestOptions);
               if (retried != null) {

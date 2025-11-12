@@ -189,14 +189,18 @@ class CategoryViewSet(viewsets.ModelViewSet):
         """
         from rest_framework.exceptions import ValidationError
         
+        logger.info(f"Tentando deletar categoria ID={instance.id}, name={instance.name}, user={instance.user}, is_system_default={instance.is_system_default}")
+        
         # 1. Validar que categorias de sistema não podem ser deletadas
         if instance.is_system_default:
+            logger.warning(f"Tentativa de deletar categoria de sistema: {instance.name}")
             raise ValidationError({
                 'non_field_errors': 'Categorias padrão do sistema não podem ser excluídas.'
             })
         
         # 2. Validar que categoria pertence ao usuário
         if instance.user != self.request.user:
+            logger.warning(f"Usuário {self.request.user} tentou deletar categoria de outro usuário: {instance.user}")
             raise ValidationError({
                 'non_field_errors': 'Você não pode excluir categorias de outros usuários.'
             })
@@ -204,6 +208,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         # 3. Verificar se categoria tem transações vinculadas
         transaction_count = Transaction.objects.filter(category=instance).count()
         if transaction_count > 0:
+            logger.warning(f"Categoria {instance.name} possui {transaction_count} transações vinculadas")
             raise ValidationError({
                 'non_field_errors': f'Esta categoria possui {transaction_count} transação(ões) vinculada(s). Reatribua as transações antes de excluir.'
             })
@@ -211,11 +216,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
         # 4. Verificar se categoria tem metas vinculadas
         goal_count = Goal.objects.filter(target_category=instance).count()
         if goal_count > 0:
+            logger.warning(f"Categoria {instance.name} possui {goal_count} metas vinculadas")
             raise ValidationError({
                 'non_field_errors': f'Esta categoria possui {goal_count} meta(s) vinculada(s). Reatribua as metas antes de excluir.'
             })
         
+        logger.info(f"Deletando categoria {instance.name} do usuário {self.request.user}")
         instance.delete()
+        logger.info(f"Categoria {instance.name} deletada com sucesso")
+
 
 
 class TransactionViewSet(viewsets.ModelViewSet):

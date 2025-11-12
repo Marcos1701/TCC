@@ -28,9 +28,14 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ("id", "name", "type", "color", "group", "is_user_created")
     
     def get_is_user_created(self, obj):
-        """Retorna True se a categoria foi criada pelo usuário (não é padrão)."""
+        """
+        Retorna True se a categoria foi criada pelo usuário (não é padrão do sistema).
+        Categoria é considerada do usuário apenas se:
+        - Tem user associado (user is not None) E
+        - NÃO é categoria padrão do sistema (is_system_default=False)
+        """
         try:
-            return obj.user is not None
+            return obj.user is not None and not obj.is_system_default
         except Category.user.RelatedObjectDoesNotExist:
             return False
     
@@ -267,6 +272,19 @@ class GoalSerializer(serializers.ModelSerializer):
         write_only=True
     )
     tracked_categories_data = serializers.SerializerMethodField(read_only=True)
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            # Filtra categorias do usuário + categorias globais (sistema)
+            category_queryset = Category.objects.filter(
+                Q(user=request.user) | Q(user__isnull=True)
+            )
+            # Aplica o queryset filtrado aos campos de categoria
+            self.fields["tracked_category_ids"].queryset = category_queryset
+            if "target_category" in self.fields:
+                self.fields["target_category"].queryset = category_queryset
     
     class Meta:
         model = Goal

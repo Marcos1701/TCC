@@ -38,7 +38,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao carregar categorias: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.alert,
           ),
         );
       }
@@ -96,9 +96,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
     // Verificar se é categoria global (não pode editar)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Categorias globais não podem ser editadas'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('Categorias globais não podem ser editadas'),
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -128,9 +128,9 @@ class _CategoriesPageState extends State<CategoriesPage> {
     // Verificar se é categoria global (não pode deletar)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Categorias globais não podem ser deletadas'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('Categorias globais não podem ser deletadas'),
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -153,7 +153,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.alert),
             child: const Text('Deletar'),
           ),
         ],
@@ -167,19 +167,42 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Categoria deletada com sucesso'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Categoria deletada com sucesso'),
+            backgroundColor: AppColors.success,
           ),
         );
         _loadCategories();
       }
     } catch (e) {
       if (mounted) {
+        // Extrair mensagem de erro mais amigável
+        String errorMessage = 'Erro ao deletar categoria';
+        final errorStr = e.toString().toLowerCase();
+        
+        if (errorStr.contains('transação') || errorStr.contains('transaction')) {
+          errorMessage = 'Esta categoria possui transações vinculadas.\nReatribua as transações antes de excluir.';
+        } else if (errorStr.contains('meta') || errorStr.contains('goal')) {
+          errorMessage = 'Esta categoria possui metas vinculadas.\nReatribua as metas antes de excluir.';
+        } else if (errorStr.contains('sistema') || errorStr.contains('system') || errorStr.contains('padrão')) {
+          errorMessage = 'Categorias do sistema não podem ser excluídas.';
+        } else if (errorStr.contains('vinculada')) {
+          // Capturar qualquer mensagem que mencione algo vinculado
+          errorMessage = 'Esta categoria está em uso e não pode ser excluída.';
+        } else if (errorStr.contains('400') || errorStr.contains('bad request')) {
+          errorMessage = 'Não foi possível excluir esta categoria.\nEla pode estar em uso em transações ou metas.';
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao deletar categoria: $e'),
-            backgroundColor: Colors.red,
+            content: Text(errorMessage),
+            backgroundColor: AppColors.alert,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
           ),
         );
       }
@@ -202,6 +225,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
       appBar: AppBar(
         title: const Text('Categorias'),
         backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
@@ -217,7 +241,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: Colors.grey[100],
               ),
             ),
           ),
@@ -241,8 +264,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
           // Lista de categorias
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  )
                 : RefreshIndicator(
+                    color: AppColors.primary,
                     onRefresh: _loadCategories,
                     child: ListView(
                       padding: const EdgeInsets.all(16),
@@ -285,7 +313,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                                 'Nenhuma categoria encontrada',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey,
                                 ),
                               ),
                             ),
@@ -311,7 +338,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => _onTypeChanged(type),
-      backgroundColor: Colors.grey[200],
       selectedColor: AppColors.primary.withOpacity(0.2),
       checkmarkColor: AppColors.primary,
     );
@@ -325,12 +351,13 @@ class _CategoriesPageState extends State<CategoriesPage> {
         int.parse(colorValue.replaceFirst('#', '0xFF')),
       );
     } catch (e) {
-      categoryColor = Colors.grey;
+      categoryColor = AppColors.textSecondary;
     }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           backgroundColor: categoryColor,
           child: Icon(
@@ -343,24 +370,32 @@ class _CategoriesPageState extends State<CategoriesPage> {
         ),
         title: Row(
           children: [
-            Text(
-              category.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                category.name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
             if (isGlobal) ...[
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue[100],
-                  borderRadius: BorderRadius.circular(4),
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.3),
+                    width: 1,
+                  ),
                 ),
-                child: const Text(
+                child: Text(
                   'GLOBAL',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -370,11 +405,14 @@ class _CategoriesPageState extends State<CategoriesPage> {
         subtitle: Text(
           category.type == 'INCOME' ? 'Receita' : 'Despesa',
           style: TextStyle(
-            color: category.type == 'INCOME' ? Colors.green : Colors.red,
+            color: category.type == 'INCOME' 
+                ? AppColors.support 
+                : AppColors.alert,
+            fontWeight: FontWeight.w500,
           ),
         ),
         trailing: isGlobal
-            ? const Icon(Icons.lock, color: Colors.grey, size: 20)
+            ? const Icon(Icons.lock, size: 20)
             : PopupMenuButton<String>(
                 onSelected: (value) {
                   if (value == 'edit') {
@@ -384,23 +422,23 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'edit',
                     child: Row(
                       children: [
-                        Icon(Icons.edit, size: 20),
-                        SizedBox(width: 8),
+                        Icon(Icons.edit, size: 20, color: AppColors.primary),
+                        const SizedBox(width: 8),
                         Text('Editar'),
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete, size: 20, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Deletar', style: TextStyle(color: Colors.red)),
+                        Icon(Icons.delete, size: 20, color: AppColors.alert),
+                        const SizedBox(width: 8),
+                        Text('Deletar', style: TextStyle(color: AppColors.alert)),
                       ],
                     ),
                   ),
