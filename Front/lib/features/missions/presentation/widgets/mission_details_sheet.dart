@@ -93,6 +93,32 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     }
   }
 
+  /// Verifica se deve exibir a seção de evolução de indicadores
+  /// Apenas para missões que envolvem TPS, RDR ou ILI
+  bool _shouldShowIndicatorsComparison() {
+    final mission = widget.missionProgress.mission;
+    final missionType = mission.missionType;
+    
+    // Missões que envolvem indicadores financeiros
+    if (missionType == 'TPS_IMPROVEMENT' ||
+        missionType == 'RDR_REDUCTION' ||
+        missionType == 'ILI_BUILDING' ||
+        missionType == 'ADVANCED') {
+      return true;
+    }
+    
+    // Verificar se tem metas de indicadores definidas
+    if (mission.targetTps != null ||
+        mission.targetRdr != null ||
+        mission.minIli != null ||
+        mission.maxIli != null) {
+      return true;
+    }
+    
+    // Para outros tipos (ONBOARDING, metas, amigos), não exibir
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -222,7 +248,9 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                                 const SizedBox(height: 24),
                                 _buildTimelineSection(theme, tokens),
                               ],
-                              if (_details?['current_vs_initial'] != null) ...[
+                              // Só exibe evolução de indicadores para missões que envolvem TPS/RDR/ILI
+                              if (_shouldShowIndicatorsComparison() &&
+                                  _details?['current_vs_initial'] != null) ...[
                                 const SizedBox(height: 24),
                                 _buildComparisonSection(theme, tokens),
                               ],

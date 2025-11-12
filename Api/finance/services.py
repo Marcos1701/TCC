@@ -1040,6 +1040,27 @@ def update_mission_progress(user) -> List[MissionProgress]:
                 else:
                     new_progress = min(100.0, (goals_count / target_count) * 100)
         
+        # === TRATAMENTO PARA MISSÕES DE AMIGOS ===
+        # Missão "Adicione seu primeiro amigo" (sem validation_type específico ou SNAPSHOT com título específico)
+        if mission.validation_type == Mission.ValidationType.SNAPSHOT and 'amigo' in mission.title.lower():
+            from .models import Friendship
+            
+            # Contar amigos aceitos (verificar ambas direções: user->friend e friend->user)
+            friends_count = Friendship.objects.filter(
+                Q(user=user, status=Friendship.FriendshipStatus.ACCEPTED) |
+                Q(friend=user, status=Friendship.FriendshipStatus.ACCEPTED)
+            ).count()
+            
+            # Determinar meta (padrão = 1 amigo)
+            # Pode usar goal_progress_target para definir número de amigos necessários
+            target_friends = int(mission.goal_progress_target) if mission.goal_progress_target else 1
+            
+            if friends_count >= target_friends:
+                new_progress = 100.0
+            else:
+                new_progress = min(100.0, (friends_count / target_friends) * 100)
+
+        
         # Atualizar progresso
         progress.progress = Decimal(str(new_progress))
         

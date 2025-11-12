@@ -287,14 +287,18 @@ def check_achievements_on_goal_complete(sender, instance, **kwargs):
 @receiver(post_save, sender=Friendship)
 def check_achievements_on_friendship(sender, instance, created, **kwargs):
     """
-    Valida conquistas quando uma amizade é aceita.
+    Valida conquistas e atualiza missões quando uma amizade é aceita.
     
     Conquistas verificadas:
     - Contagem de amigos (1, 5, 10, 20, etc.)
     - Interações sociais
     """
     if instance.status == Friendship.FriendshipStatus.ACCEPTED:
-        from .services import check_achievements_for_user
-        # Verificar para ambos os usuários
-        check_achievements_for_user(instance.from_user, event_type='social')
-        check_achievements_for_user(instance.to_user, event_type='social')
+        from .services import check_achievements_for_user, update_mission_progress
+        # Verificar para ambos os usuários (user = quem enviou, friend = quem aceitou)
+        check_achievements_for_user(instance.user, event_type='social')
+        check_achievements_for_user(instance.friend, event_type='social')
+        
+        # Atualizar progresso de missões (importante para missão "Adicione seu primeiro amigo")
+        update_mission_progress(instance.user)
+        update_mission_progress(instance.friend)
