@@ -38,6 +38,23 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 if not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
+# Railway.app: Adiciona automaticamente o domínio do Railway
+railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+if railway_domain and railway_domain not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(railway_domain)
+
+# Railway.app: Adiciona domínio interno se disponível
+railway_static_url = os.getenv("RAILWAY_STATIC_URL")
+if railway_static_url:
+    # Extrai o domínio da URL (ex: https://tcc-production-668a.up.railway.app -> tcc-production-668a.up.railway.app)
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(railway_static_url).netloc
+        if domain and domain not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(domain)
+    except Exception:
+        pass
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -232,6 +249,24 @@ CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", True)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+# Railway.app: Adiciona automaticamente os domínios do Railway ao CORS e CSRF
+if railway_static_url:
+    # Adiciona ao CORS_ALLOWED_ORIGINS
+    if railway_static_url not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(railway_static_url)
+    
+    # Adiciona ao CSRF_TRUSTED_ORIGINS
+    if railway_static_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(railway_static_url)
+
+# Adiciona o domínio do frontend do Railway ao CORS
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    if frontend_url not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(frontend_url)
+    if frontend_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(frontend_url)
 
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SESSION_COOKIE_SECURE", not DEBUG)

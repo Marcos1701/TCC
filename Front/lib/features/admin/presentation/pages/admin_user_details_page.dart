@@ -997,7 +997,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
             const SizedBox(height: 8),
             TextField(
               controller: amountController,
-              keyboardType: TextInputType.numberWithOptions(signed: true),
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
               decoration: const InputDecoration(
                 hintText: 'Ex: +100 ou -50',
                 border: OutlineInputBorder(),

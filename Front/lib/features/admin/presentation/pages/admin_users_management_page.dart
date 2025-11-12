@@ -329,7 +329,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
       color: AppColors.surface,
       child: Row(
         children: [
-          Icon(Icons.people, color: AppColors.textSecondary, size: 20),
+          const Icon(Icons.people, color: AppColors.textSecondary, size: 20),
           const SizedBox(width: 8),
           Text(
             '$_totalUsers usuários',
@@ -568,7 +568,7 @@ class _UserCard extends StatelessWidget {
               // Datas
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 12, color: AppColors.textSecondary),
+                  const Icon(Icons.calendar_today, size: 12, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
                     'Desde ${DateFormat('dd/MM/yyyy').format(dateJoined)}',
@@ -576,7 +576,7 @@ class _UserCard extends StatelessWidget {
                   ),
                   if (lastLogin != null) ...[
                     const SizedBox(width: 16),
-                    Icon(Icons.login, size: 12, color: AppColors.textSecondary),
+                    const Icon(Icons.login, size: 12, color: AppColors.textSecondary),
                     const SizedBox(width: 4),
                     Text(
                       'Último acesso: ${_formatLastLogin(lastLogin)}',

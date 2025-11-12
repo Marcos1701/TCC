@@ -203,7 +203,7 @@ class _AchievementNotificationWidgetState
                           // Header: Título
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.emoji_events,
                                 color: Colors.amber,
                                 size: 24,

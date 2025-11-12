@@ -326,9 +326,9 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
                 
                 // Ordenação
                 PopupMenuButton<String>(
-                  child: Chip(
-                    avatar: const Icon(Icons.sort, size: 18),
-                    label: const Text('Ordenar'),
+                  child: const Chip(
+                    avatar: Icon(Icons.sort, size: 18),
+                    label: Text('Ordenar'),
                   ),
                   onSelected: (value) => setState(() => _sortBy = value),
                   itemBuilder: (context) => [
@@ -359,7 +359,7 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
           children: [
             Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text('Erro ao carregar conquistas'),
+            const Text('Erro ao carregar conquistas'),
             const SizedBox(height: 8),
             Text(_error!, style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 16),
