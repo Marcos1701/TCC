@@ -25,6 +25,8 @@ class MissionModel {
     this.savingsIncreaseAmount,
     this.requiresDailyAction,
     this.minDailyActions,
+    this.impacts,
+    this.tips,
   });
 
   final int id;
@@ -53,6 +55,10 @@ class MissionModel {
   final double? savingsIncreaseAmount;
   final bool? requiresDailyAction;
   final int? minDailyActions;
+  
+  // Gamificação contextual
+  final List<Map<String, dynamic>>? impacts;
+  final List<Map<String, dynamic>>? tips;
 
   factory MissionModel.fromMap(Map<String, dynamic> map) {
     return MissionModel(
@@ -93,6 +99,12 @@ class MissionModel {
           : null,
       requiresDailyAction: map['requires_daily_action'] as bool?,
       minDailyActions: map['min_daily_actions'] as int?,
+      impacts: (map['impacts'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+      tips: (map['tips'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
     );
   }
 

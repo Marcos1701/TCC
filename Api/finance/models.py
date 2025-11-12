@@ -1122,6 +1122,22 @@ class Mission(models.Model):
         blank=True,
         help_text="Número mínimo de ações diárias necessárias",
     )
+    
+    # === CAMPOS PARA GAMIFICAÇÃO CONTEXTUAL ===
+    
+    # Impactos ao completar (JSON com lista de impactos)
+    impacts = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Lista de impactos ao completar (título, descrição, ícone, cor)",
+    )
+    
+    # Dicas personalizadas (JSON com lista de dicas)
+    tips = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Lista de dicas contextuais (título, descrição, prioridade)",
+    )
 
     class Meta:
         ordering = ("priority", "title")

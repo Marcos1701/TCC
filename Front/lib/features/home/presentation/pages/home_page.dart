@@ -17,6 +17,7 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
+import '../../../missions/presentation/pages/missions_page.dart';
 import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
@@ -172,6 +173,47 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildViewAllChallengesButton(int count) {
+    final theme = Theme.of(context);
+    
+    return Card(
+      color: Colors.deepPurple[900]?.withOpacity(0.3),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _openPage(const MissionsPage()),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.emoji_events,
+                color: Colors.amber,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Ver todos os desafios ($count)',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white70,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -269,6 +311,12 @@ class _HomePageState extends State<HomePage> {
                       onTap: () => _showMissionDetails(data.activeMissions.first),
                     ),
                   if (data.activeMissions.isNotEmpty)
+                    const SizedBox(height: 16),
+                  
+                  // 2.1. Botão "Ver todos os desafios"
+                  if (data.activeMissions.length > 1)
+                    _buildViewAllChallengesButton(data.activeMissions.length),
+                  if (data.activeMissions.length > 1)
                     const SizedBox(height: 16),
                   
                   // 3. Quick Actions

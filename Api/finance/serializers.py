@@ -432,6 +432,9 @@ class MissionSerializer(serializers.ModelSerializer):
             "savings_increase_amount",
             "requires_daily_action",
             "min_daily_actions",
+            # Campos de gamificação contextual
+            "impacts",
+            "tips",
         )
     
     def validate_title(self, value):

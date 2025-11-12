@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/models/mission.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -117,6 +118,279 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     
     // Para outros tipos (ONBOARDING, metas, amigos), não exibir
     return false;
+  }
+
+  /// Converte nome de ícone string para IconData
+  IconData _getIconFromString(String iconName) {
+    final iconsMap = {
+      'trending_up': Icons.trending_up,
+      'trending_down': Icons.trending_down,
+      'security': Icons.security,
+      'psychology': Icons.psychology,
+      'shield': Icons.shield,
+      'self_improvement': Icons.self_improvement,
+      'rocket_launch': Icons.rocket_launch,
+      'stars': Icons.stars,
+      'lightbulb_outline': Icons.lightbulb_outline,
+      'rocket': Icons.rocket,
+      'star_rounded': Icons.star_rounded,
+      'savings_outlined': Icons.savings_outlined,
+      'cut': Icons.cut,
+      'priority_high': Icons.priority_high,
+      'handshake': Icons.handshake,
+      'account_balance': Icons.account_balance,
+      'shield_moon': Icons.shield_moon,
+      'analytics': Icons.analytics,
+      'calendar_month': Icons.calendar_month,
+      'today': Icons.today,
+    };
+    return iconsMap[iconName] ?? Icons.info_outline;
+  }
+
+  /// Converte string hex de cor para Color
+  Color _getColorFromString(String colorHex) {
+    try {
+      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return AppColors.primary;
+    }
+  }
+
+  /// Fallback para impactos antigos (caso backend não tenha)
+  List<Map<String, dynamic>> _getLegacyImpacts(MissionModel mission) {
+    final impacts = <Map<String, dynamic>>[];
+    
+    switch (mission.missionType) {
+      case 'TPS_IMPROVEMENT':
+        impacts.addAll([
+          {
+            'icon': 'trending_up',
+            'title': 'Aumenta sua Taxa de Poupança',
+            'description': 'Você estará guardando mais dinheiro mensalmente',
+            'color': '#4CAF50',
+          },
+          {
+            'icon': 'security',
+            'title': 'Melhora sua Segurança Financeira',
+            'description': 'Construindo uma reserva para emergências',
+            'color': '#7C4DFF',
+          },
+        ]);
+        break;
+      
+      case 'RDR_REDUCTION':
+        impacts.addAll([
+          {
+            'icon': 'trending_down',
+            'title': 'Reduz Comprometimento da Renda',
+            'description': 'Menos dinheiro comprometido com dívidas',
+            'color': '#00BFA5',
+          },
+          {
+            'icon': 'psychology',
+            'title': 'Menos Estresse Financeiro',
+            'description': 'Dívidas menores significam mais tranquilidade',
+            'color': '#9C27B0',
+          },
+        ]);
+        break;
+      
+      case 'ILI_BUILDING':
+        impacts.addAll([
+          {
+            'icon': 'shield',
+            'title': 'Aumenta sua Liquidez Imediata',
+            'description': 'Mais meses de despesas cobertas em emergências',
+            'color': '#2196F3',
+          },
+          {
+            'icon': 'self_improvement',
+            'title': 'Independência Financeira',
+            'description': 'Maior capacidade de enfrentar imprevistos',
+            'color': '#7C4DFF',
+          },
+        ]);
+        break;
+      
+      case 'ADVANCED':
+        impacts.addAll([
+          {
+            'icon': 'rocket_launch',
+            'title': 'Nível Avançado de Controle',
+            'description': 'Domínio completo das suas finanças',
+            'color': '#FF9800',
+          },
+          {
+            'icon': 'stars',
+            'title': 'Maximiza Recompensas',
+            'description': 'Maior ganho de pontos e progressão rápida',
+            'color': '#7C4DFF',
+          },
+        ]);
+        break;
+      
+      case 'ONBOARDING':
+        impacts.addAll([
+          {
+            'icon': 'lightbulb_outline',
+            'title': 'Aprenda Conceitos Fundamentais',
+            'description': 'Entenda os pilares da saúde financeira',
+            'color': '#9C27B0',
+          },
+          {
+            'icon': 'rocket',
+            'title': 'Comece sua Jornada',
+            'description': 'Primeiros passos para transformar suas finanças',
+            'color': '#7C4DFF',
+          },
+        ]);
+        break;
+    }
+
+    // Adiciona impacto de pontos
+    impacts.add({
+      'icon': 'star_rounded',
+      'title': '+${mission.rewardPoints} Pontos de Recompensa',
+      'description': 'Avance de nível e desbloqueie novos desafios',
+      'color': '#7C4DFF',
+    });
+
+    return impacts;
+  }
+
+  // Fallback para dicas baseadas no tipo de missão e progresso (será usado caso o backend não forneça)
+  List<Map<String, dynamic>> _getLegacyTips(MissionModel mission, MissionProgressModel progress) {
+    final List<Map<String, dynamic>> tips = [];
+
+    // Dicas baseadas no progresso
+    if (progress.progress < 25) {
+      tips.add({
+        'icon': Icons.rocket_launch,
+        'title': 'Comece Agora!',
+        'description': 'Quanto antes você começar, mais fácil será completar o ${UxStrings.challenge.toLowerCase()} no prazo.',
+        'color': AppColors.primary,
+        'priority': 'high',
+      });
+    } else if (progress.progress >= 25 && progress.progress < 50) {
+      tips.add({
+        'icon': Icons.speed,
+        'title': 'Mantenha o Ritmo',
+        'description': 'Você está no caminho certo! Continue assim para garantir o sucesso.',
+        'color': AppColors.support,
+        'priority': 'medium',
+      });
+    } else if (progress.progress >= 75 && progress.progress < 100) {
+      tips.add({
+        'icon': Icons.celebration,
+        'title': 'Quase Lá!',
+        'description': 'Falta pouco! Mantenha o foco para completar o ${UxStrings.challenge.toLowerCase()}.',
+        'color': AppColors.support,
+        'priority': 'low',
+      });
+    }
+
+    // Dicas específicas por tipo de missão
+    switch (mission.missionType) {
+      case 'TPS_IMPROVEMENT':
+        tips.addAll([
+          {
+            'icon': Icons.savings_outlined,
+            'title': 'Automatize sua Poupança',
+            'description': 'Configure transferências automáticas no início do mês para garantir que você poupe antes de gastar.',
+            'color': const Color(0xFF4CAF50),
+            'priority': 'high',
+          },
+          {
+            'icon': Icons.cut,
+            'title': 'Reduza Gastos Supérfluos',
+            'description': 'Identifique e corte despesas não essenciais como assinaturas não utilizadas.',
+            'color': const Color(0xFFFF9800),
+            'priority': 'medium',
+          },
+        ]);
+        break;
+      
+      case 'RDR_REDUCTION':
+        tips.addAll([
+          {
+            'icon': Icons.priority_high,
+            'title': 'Priorize Dívidas Caras',
+            'description': 'Foque em pagar primeiro as dívidas com juros mais altos (cartão de crédito, cheque especial).',
+            'color': AppColors.alert,
+            'priority': 'high',
+          },
+          {
+            'icon': Icons.handshake,
+            'title': 'Negocie suas Dívidas',
+            'description': 'Entre em contato com credores para renegociar taxas e prazos mais favoráveis.',
+            'color': const Color(0xFF9C27B0),
+            'priority': 'medium',
+          },
+        ]);
+        break;
+      
+      case 'ILI_BUILDING':
+        tips.addAll([
+          {
+            'icon': Icons.account_balance,
+            'title': 'Escolha a Conta Certa',
+            'description': 'Mantenha sua reserva de emergência em conta com liquidez imediata e rendimento.',
+            'color': const Color(0xFF2196F3),
+            'priority': 'high',
+          },
+          {
+            'icon': Icons.shield_moon,
+            'title': 'Proteja sua Reserva',
+            'description': 'Use a reserva APENAS para emergências reais. Evite retiradas para gastos planejados.',
+            'color': AppColors.primary,
+            'priority': 'medium',
+          },
+        ]);
+        break;
+      
+      case 'ADVANCED':
+        tips.addAll([
+          {
+            'icon': Icons.analytics,
+            'title': 'Analise Padrões',
+            'description': 'Use a aba ${UxStrings.analysis} para identificar tendências e otimizar seus gastos.',
+            'color': const Color(0xFFFF9800),
+            'priority': 'medium',
+          },
+          {
+            'icon': Icons.calendar_month,
+            'title': 'Planejamento Mensal',
+            'description': 'Revise e ajuste seu orçamento no início de cada mês baseado no mês anterior.',
+            'color': AppColors.primary,
+            'priority': 'medium',
+          },
+        ]);
+        break;
+    }
+
+    // Dicas baseadas em streak
+    if (progress.currentStreak != null && progress.currentStreak! > 0) {
+      tips.add({
+        'icon': Icons.local_fire_department,
+        'title': 'Não Quebre sua Sequência!',
+        'description': 'Você está em uma sequência de ${progress.currentStreak} dias. Continue todos os dias!',
+        'color': const Color(0xFFFF5722),
+        'priority': 'high',
+      });
+    }
+
+    // Dica padrão se não houver outras
+    if (tips.isEmpty) {
+      tips.add({
+        'icon': Icons.lightbulb,
+        'title': 'Continue Progredindo',
+        'description': 'Mantenha o foco nos requisitos do ${UxStrings.challenge.toLowerCase()} e acompanhe seu progresso diariamente.',
+        'color': AppColors.primary,
+        'priority': 'medium',
+      });
+    }
+
+    return tips;
   }
 
   @override
@@ -844,103 +1118,13 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
 
   Widget _buildImpactSection(ThemeData theme, AppDecorations tokens) {
     final mission = widget.missionProgress.mission;
-    final List<Map<String, dynamic>> impacts = [];
+    
+    // Usar impacts do backend se disponível, caso contrário fallback para lógica antiga
+    final List<Map<String, dynamic>> impacts = mission.impacts ?? _getLegacyImpacts(mission);
 
-    // Determina os impactos baseado no tipo de missão
-    switch (mission.missionType) {
-      case 'TPS_IMPROVEMENT':
-        impacts.addAll([
-          {
-            'icon': Icons.trending_up,
-            'title': 'Aumenta sua Taxa de Poupança',
-            'description': 'Você estará guardando mais dinheiro mensalmente',
-            'color': const Color(0xFF4CAF50),
-          },
-          {
-            'icon': Icons.security,
-            'title': 'Melhora sua Segurança Financeira',
-            'description': 'Construindo uma reserva para emergências',
-            'color': AppColors.primary,
-          },
-        ]);
-        break;
-      
-      case 'RDR_REDUCTION':
-        impacts.addAll([
-          {
-            'icon': Icons.trending_down,
-            'title': 'Reduz Comprometimento da Renda',
-            'description': 'Menos dinheiro comprometido com dívidas',
-            'color': AppColors.support,
-          },
-          {
-            'icon': Icons.psychology,
-            'title': 'Menos Estresse Financeiro',
-            'description': 'Dívidas menores significam mais tranquilidade',
-            'color': const Color(0xFF9C27B0),
-          },
-        ]);
-        break;
-      
-      case 'ILI_BUILDING':
-        impacts.addAll([
-          {
-            'icon': Icons.shield,
-            'title': 'Aumenta sua Liquidez Imediata',
-            'description': 'Mais meses de despesas cobertas em emergências',
-            'color': const Color(0xFF2196F3),
-          },
-          {
-            'icon': Icons.self_improvement,
-            'title': 'Independência Financeira',
-            'description': 'Maior capacidade de enfrentar imprevistos',
-            'color': AppColors.primary,
-          },
-        ]);
-        break;
-      
-      case 'ADVANCED':
-        impacts.addAll([
-          {
-            'icon': Icons.rocket_launch,
-            'title': 'Nível Avançado de Controle',
-            'description': 'Domínio completo das suas finanças',
-            'color': const Color(0xFFFF9800),
-          },
-          {
-            'icon': Icons.stars,
-            'title': 'Maximiza Recompensas',
-            'description': 'Maior ganho de ${UxStrings.points.toLowerCase()} e progressão rápida',
-            'color': AppColors.primary,
-          },
-        ]);
-        break;
-      
-      case 'ONBOARDING':
-        impacts.addAll([
-          {
-            'icon': Icons.lightbulb_outline,
-            'title': 'Aprenda Conceitos Fundamentais',
-            'description': 'Entenda os pilares da saúde financeira',
-            'color': const Color(0xFF9C27B0),
-          },
-          {
-            'icon': Icons.rocket,
-            'title': 'Comece sua Jornada',
-            'description': 'Primeiros passos para transformar suas finanças',
-            'color': AppColors.primary,
-          },
-        ]);
-        break;
+    if (impacts.isEmpty) {
+      return const SizedBox.shrink();
     }
-
-    // Adiciona impacto de pontos
-    impacts.add({
-      'icon': Icons.star_rounded,
-      'title': '+${mission.rewardPoints} ${UxStrings.points} de Recompensa',
-      'description': 'Avance de ${UxStrings.level.toLowerCase()} e ${UxStrings.unlockNewChallenges}',
-      'color': AppColors.primary,
-    });
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -998,6 +1182,15 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
   }
 
   Widget _buildImpactItem(ThemeData theme, Map<String, dynamic> impact) {
+    // Converter icon e color se vierem como strings do backend
+    final IconData icon = impact['icon'] is String 
+        ? _getIconFromString(impact['icon'] as String)
+        : impact['icon'] as IconData;
+    
+    final Color color = impact['color'] is String
+        ? _getColorFromString(impact['color'] as String)
+        : impact['color'] as Color;
+    
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1009,12 +1202,12 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (impact['color'] as Color).withOpacity(0.15),
+              color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              impact['icon'] as IconData,
-              color: impact['color'] as Color,
+              icon,
+              color: color,
               size: 18,
             ),
           ),
@@ -1049,122 +1242,17 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
   Widget _buildRecommendationsSection(ThemeData theme, AppDecorations tokens) {
     final mission = widget.missionProgress.mission;
     final progress = widget.missionProgress;
-    final List<Map<String, dynamic>> recommendations = [];
+    
+    // Usa dicas do backend ou fallback para dicas legadas
+    List<Map<String, dynamic>> recommendations = mission.tips != null && mission.tips!.isNotEmpty
+        ? List<Map<String, dynamic>>.from(mission.tips!)
+        : _getLegacyTips(mission, progress);
 
-    // Recomendações baseadas no progresso
-    if (progress.progress < 25) {
-      recommendations.add({
-        'icon': Icons.rocket_launch,
-        'title': 'Comece Agora!',
-        'description': 'Quanto antes você começar, mais fácil será completar o ${UxStrings.challenge.toLowerCase()} no prazo.',
-        'color': AppColors.primary,
-        'priority': 'high',
-      });
-    } else if (progress.progress >= 25 && progress.progress < 50) {
-      recommendations.add({
-        'icon': Icons.speed,
-        'title': 'Mantenha o Ritmo',
-        'description': 'Você está no caminho certo! Continue assim para garantir o sucesso.',
-        'color': AppColors.support,
-        'priority': 'medium',
-      });
-    } else if (progress.progress >= 75 && progress.progress < 100) {
-      recommendations.add({
-        'icon': Icons.celebration,
-        'title': 'Quase Lá!',
-        'description': 'Falta pouco! Mantenha o foco para completar o ${UxStrings.challenge.toLowerCase()}.',
-        'color': AppColors.support,
-        'priority': 'low',
-      });
-    }
-
-    // Recomendações baseadas no tipo de desafio
-    switch (mission.missionType) {
-      case 'TPS_IMPROVEMENT':
-        recommendations.add({
-          'icon': Icons.savings_outlined,
-          'title': 'Automatize sua Poupança',
-          'description': 'Configure transferências automáticas no início do mês para garantir que você poupe antes de gastar.',
-          'color': const Color(0xFF4CAF50),
-          'priority': 'high',
-        });
-        recommendations.add({
-          'icon': Icons.cut,
-          'title': 'Reduza Gastos Supérfluos',
-          'description': 'Identifique e corte despesas não essenciais como assinaturas não utilizadas.',
-          'color': const Color(0xFFFF9800),
-          'priority': 'medium',
-        });
-        break;
-      
-      case 'RDR_REDUCTION':
-        recommendations.add({
-          'icon': Icons.priority_high,
-          'title': 'Priorize Dívidas Caras',
-          'description': 'Foque em pagar primeiro as dívidas com juros mais altos (cartão de crédito, cheque especial).',
-          'color': AppColors.alert,
-          'priority': 'high',
-        });
-        recommendations.add({
-          'icon': Icons.handshake,
-          'title': 'Negocie suas Dívidas',
-          'description': 'Entre em contato com credores para renegociar taxas e prazos mais favoráveis.',
-          'color': const Color(0xFF9C27B0),
-          'priority': 'medium',
-        });
-        break;
-      
-      case 'ILI_BUILDING':
-        recommendations.add({
-          'icon': Icons.account_balance,
-          'title': 'Escolha a Conta Certa',
-          'description': 'Mantenha sua reserva de emergência em conta com liquidez imediata e rendimento.',
-          'color': const Color(0xFF2196F3),
-          'priority': 'high',
-        });
-        recommendations.add({
-          'icon': Icons.shield_moon,
-          'title': 'Proteja sua Reserva',
-          'description': 'Use a reserva APENAS para emergências reais. Evite retiradas para gastos planejados.',
-          'color': AppColors.primary,
-          'priority': 'medium',
-        });
-        break;
-      
-      case 'ADVANCED':
-        recommendations.add({
-          'icon': Icons.analytics,
-          'title': 'Analise Padrões',
-          'description': 'Use a aba ${UxStrings.analysis} para identificar tendências e otimizar seus gastos.',
-          'color': const Color(0xFFFF9800),
-          'priority': 'medium',
-        });
-        recommendations.add({
-          'icon': Icons.calendar_month,
-          'title': 'Planejamento Mensal',
-          'description': 'Revise e ajuste seu orçamento no início de cada mês baseado no mês anterior.',
-          'color': AppColors.primary,
-          'priority': 'medium',
-        });
-        break;
-    }
-
-    // Recomendações baseadas em streak
-    if (progress.currentStreak != null && progress.currentStreak! > 0) {
-      recommendations.add({
-        'icon': Icons.local_fire_department,
-        'title': 'Não Quebre sua Sequência!',
-        'description': 'Você está em uma sequência de ${progress.currentStreak} dias. Continue todos os dias!',
-        'color': const Color(0xFFFF5722),
-        'priority': 'high',
-      });
-    }
-
-    // Recomendações baseadas em dias restantes
+    // Adiciona dicas baseadas em dias restantes (contextuais, sempre do frontend)
     if (_details?['days_remaining'] != null) {
       final daysRemaining = _details!['days_remaining'] as int;
       if (daysRemaining <= 3 && daysRemaining > 0 && progress.progress < 80) {
-        recommendations.add({
+        recommendations.insert(0, {
           'icon': Icons.timer,
           'title': 'Prazo Crítico!',
           'description': 'Apenas $daysRemaining dias restantes. Concentre esforços para completar a tempo.',
@@ -1174,20 +1262,12 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       }
     }
 
-    if (recommendations.isEmpty) {
-      recommendations.add({
-        'icon': Icons.lightbulb,
-        'title': 'Continue Progredindo',
-        'description': 'Mantenha o foco nos requisitos do ${UxStrings.challenge.toLowerCase()} e acompanhe seu progresso diariamente.',
-        'color': AppColors.primary,
-        'priority': 'medium',
-      });
-    }
-
     // Ordena por prioridade
     recommendations.sort((a, b) {
       final priorityOrder = {'high': 0, 'medium': 1, 'low': 2};
-      return priorityOrder[a['priority']]!.compareTo(priorityOrder[b['priority']]!);
+      final priorityA = a['priority'] as String? ?? 'medium';
+      final priorityB = b['priority'] as String? ?? 'medium';
+      return priorityOrder[priorityA]!.compareTo(priorityOrder[priorityB]!);
     });
 
     return Container(
@@ -1246,8 +1326,28 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
   }
 
   Widget _buildRecommendationItem(ThemeData theme, Map<String, dynamic> recommendation) {
-    final priority = recommendation['priority'] as String;
+    final priority = recommendation['priority'] as String? ?? 'medium';
     final isPriority = priority == 'high';
+    
+    // Converter icon e color se vierem como strings do backend
+    final IconData icon = recommendation['icon'] is String 
+        ? _getIconFromString(recommendation['icon'] as String)
+        : (recommendation['icon'] as IconData? ?? Icons.lightbulb);
+    
+    // Definir cor padrão com base na prioridade se não houver color definida
+    Color color;
+    if (recommendation['color'] != null) {
+      color = recommendation['color'] is String
+          ? _getColorFromString(recommendation['color'] as String)
+          : recommendation['color'] as Color;
+    } else {
+      // Cores padrão baseadas na prioridade
+      color = priority == 'high' 
+          ? AppColors.alert
+          : priority == 'medium'
+              ? const Color(0xFFFF9800)
+              : AppColors.support;
+    }
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1255,7 +1355,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(10),
         border: isPriority 
-            ? Border.all(color: (recommendation['color'] as Color).withOpacity(0.3), width: 1.5)
+            ? Border.all(color: color.withOpacity(0.3), width: 1.5)
             : null,
       ),
       child: Row(
@@ -1263,12 +1363,12 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (recommendation['color'] as Color).withOpacity(0.15),
+              color: color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              recommendation['icon'] as IconData,
-              color: recommendation['color'] as Color,
+              icon,
+              color: color,
               size: 18,
             ),
           ),
@@ -1292,13 +1392,13 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: (recommendation['color'] as Color).withOpacity(0.2),
+                          color: color.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           'PRIORITÁRIO',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: recommendation['color'] as Color,
+                            color: color,
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
