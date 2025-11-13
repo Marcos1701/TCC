@@ -26,9 +26,24 @@ class ApiClient {
       ..interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) async {
-            final token = _accessToken ?? await _storage.readToken();
-            if (token != null) {
-              options.headers['Authorization'] = 'Bearer $token';
+            // Lista de endpoints públicos que não devem receber token
+            final publicEndpoints = [
+              '/api/token/',
+              '/api/token/refresh/',
+              '/api/auth/register/',
+            ];
+            
+            // Verifica se o endpoint atual é público
+            final isPublicEndpoint = publicEndpoints.any(
+              (endpoint) => options.path.contains(endpoint),
+            );
+            
+            // Só adiciona o token se NÃO for endpoint público
+            if (!isPublicEndpoint) {
+              final token = _accessToken ?? await _storage.readToken();
+              if (token != null) {
+                options.headers['Authorization'] = 'Bearer $token';
+              }
             }
             handler.next(options);
           },

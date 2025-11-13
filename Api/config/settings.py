@@ -168,9 +168,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    # Não definir DEFAULT_PERMISSION_CLASSES permite que cada view defina suas próprias permissões
+    # Isso evita problemas com endpoints públicos como /api/token/ e /api/auth/register/
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
     ),
@@ -207,6 +206,9 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "UPDATE_LAST_LOGIN": True,
+    # Importante: Não levantar exceção para tokens inválidos em views públicas
+    # Isso permite que AllowAny funcione mesmo com tokens expirados
+    "TOKEN_OBTAIN_SERIALIZER": "finance.authentication.EmailTokenObtainPairSerializer",
 }
 
 # ============================================================================

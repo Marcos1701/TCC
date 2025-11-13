@@ -432,17 +432,71 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.missionProgress.mission.title,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.missionProgress.mission.title,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            // Badge de origem (template/AI)
+                            if (widget.missionProgress.mission.source != null)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: widget.missionProgress.mission.source == 'template'
+                                      ? const Color(0xFF4CAF50).withOpacity(0.2)
+                                      : const Color(0xFF2196F3).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: widget.missionProgress.mission.source == 'template'
+                                        ? const Color(0xFF4CAF50)
+                                        : const Color(0xFF2196F3),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      widget.missionProgress.mission.source == 'template'
+                                          ? Icons.bolt
+                                          : Icons.auto_awesome,
+                                      size: 12,
+                                      color: widget.missionProgress.mission.source == 'template'
+                                          ? const Color(0xFF4CAF50)
+                                          : const Color(0xFF2196F3),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.missionProgress.mission.source == 'template'
+                                          ? 'Template'
+                                          : 'IA',
+                                      style: theme.textTheme.labelSmall?.copyWith(
+                                        color: widget.missionProgress.mission.source == 'template'
+                                            ? const Color(0xFF4CAF50)
+                                            : const Color(0xFF2196F3),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _getMissionTypeDescription(
-                              widget.missionProgress.mission.missionType),
+                          widget.missionProgress.mission.typeDisplay ??
+                              _getMissionTypeDescription(
+                                  widget.missionProgress.mission.missionType),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: Colors.grey[400],
                           ),
@@ -541,6 +595,9 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
   Widget _buildProgressSection(ThemeData theme, AppDecorations tokens) {
     final progress = widget.missionProgress.progress.clamp(0, 100) / 100;
     final isCompleted = widget.missionProgress.progress >= 100;
+    final progressMessage = widget.missionProgress.progressMessage;
+    final canComplete = widget.missionProgress.canComplete;
+    final isOnTrack = widget.missionProgress.isOnTrack;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -555,6 +612,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -607,8 +665,327 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
               ),
             ),
           ),
+          
+          // Mensagem de progresso da API
+          if (progressMessage != null && progressMessage.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (canComplete 
+                    ? const Color(0xFF4CAF50) 
+                    : isOnTrack 
+                        ? const Color(0xFF2196F3) 
+                        : const Color(0xFFFF9800)
+                ).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: (canComplete 
+                      ? const Color(0xFF4CAF50) 
+                      : isOnTrack 
+                          ? const Color(0xFF2196F3) 
+                          : const Color(0xFFFF9800)
+                  ).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    canComplete 
+                        ? Icons.check_circle_outline
+                        : isOnTrack
+                            ? Icons.trending_up
+                            : Icons.info_outline,
+                    color: canComplete 
+                        ? const Color(0xFF4CAF50) 
+                        : isOnTrack 
+                            ? const Color(0xFF2196F3) 
+                            : const Color(0xFFFF9800),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      progressMessage,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[300],
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          
+          // Métricas detalhadas por tipo de missão
+          if (widget.missionProgress.metrics.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildDetailedMetrics(theme, tokens),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildDetailedMetrics(ThemeData theme, AppDecorations tokens) {
+    final metrics = widget.missionProgress.metrics;
+    final missionType = widget.missionProgress.mission.missionType;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics_outlined,
+                color: Colors.grey[400],
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Métricas Específicas',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[400],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Métricas específicas por tipo de missão
+          if (missionType == 'TPS_IMPROVEMENT') ..._buildTPSMetrics(theme, metrics)
+          else if (missionType == 'RDR_REDUCTION') ..._buildRDRMetrics(theme, metrics)
+          else if (missionType == 'ILI_BUILDING') ..._buildILIMetrics(theme, metrics)
+          else if (missionType == 'ONBOARDING') ..._buildOnboardingMetrics(theme, metrics)
+          else if (missionType == 'ADVANCED') ..._buildAdvancedMetrics(theme, metrics)
+          else ..._buildGenericMetrics(theme, metrics),
+        ],
+      ),
+    );
+  }
+  
+  List<Widget> _buildTPSMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+    final List<Widget> widgets = [];
+    
+    if (metrics['current_tps'] != null) {
+      widgets.add(_buildMetricRow(
+        theme,
+        'TPS Atual',
+        '${metrics['current_tps']}%',
+        Icons.trending_up,
+        const Color(0xFF4CAF50),
+      ));
+    }
+    
+    if (metrics['target_tps'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'TPS Alvo',
+        '${metrics['target_tps']}%',
+        Icons.flag,
+        const Color(0xFF2196F3),
+      ));
+    }
+    
+    if (metrics['improvement_needed'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'Melhoria Necessária',
+        '+${metrics['improvement_needed']}%',
+        Icons.arrow_upward,
+        const Color(0xFFFF9800),
+      ));
+    }
+    
+    return widgets;
+  }
+  
+  List<Widget> _buildRDRMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+    final List<Widget> widgets = [];
+    
+    if (metrics['current_rdr'] != null) {
+      widgets.add(_buildMetricRow(
+        theme,
+        'RDR Atual',
+        '${metrics['current_rdr']}%',
+        Icons.trending_down,
+        const Color(0xFFF44336),
+      ));
+    }
+    
+    if (metrics['target_rdr'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'RDR Alvo',
+        '${metrics['target_rdr']}%',
+        Icons.flag,
+        const Color(0xFF2196F3),
+      ));
+    }
+    
+    if (metrics['reduction_needed'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'Redução Necessária',
+        '-${metrics['reduction_needed']}%',
+        Icons.arrow_downward,
+        const Color(0xFF4CAF50),
+      ));
+    }
+    
+    return widgets;
+  }
+  
+  List<Widget> _buildILIMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+    final List<Widget> widgets = [];
+    
+    if (metrics['current_ili'] != null) {
+      widgets.add(_buildMetricRow(
+        theme,
+        'ILI Atual',
+        'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(metrics['current_ili'])}',
+        Icons.account_balance_wallet,
+        const Color(0xFF2196F3),
+      ));
+    }
+    
+    if (metrics['target_ili'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'ILI Alvo',
+        'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(metrics['target_ili'])}',
+        Icons.flag,
+        const Color(0xFF4CAF50),
+      ));
+    }
+    
+    if (metrics['amount_needed'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'Valor Necessário',
+        'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(metrics['amount_needed'])}',
+        Icons.arrow_upward,
+        const Color(0xFFFF9800),
+      ));
+    }
+    
+    return widgets;
+  }
+  
+  List<Widget> _buildOnboardingMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+    final List<Widget> widgets = [];
+    
+    if (metrics['transactions_registered'] != null) {
+      widgets.add(_buildMetricRow(
+        theme,
+        'Transações Registradas',
+        '${metrics['transactions_registered']}',
+        Icons.receipt_long,
+        const Color(0xFF9C27B0),
+      ));
+    }
+    
+    if (metrics['target_transactions'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'Meta de Transações',
+        '${metrics['target_transactions']}',
+        Icons.flag,
+        const Color(0xFF2196F3),
+      ));
+    }
+    
+    return widgets;
+  }
+  
+  List<Widget> _buildAdvancedMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+    final List<Widget> widgets = [];
+    
+    if (metrics['streak'] != null) {
+      widgets.add(_buildMetricRow(
+        theme,
+        'Sequência Atual',
+        '${metrics['streak']} dias',
+        Icons.local_fire_department,
+        const Color(0xFFFF5722),
+      ));
+    }
+    
+    if (metrics['days_met'] != null) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(_buildMetricRow(
+        theme,
+        'Dias Cumpridos',
+        '${metrics['days_met']}',
+        Icons.check_circle,
+        const Color(0xFF4CAF50),
+      ));
+    }
+    
+    return widgets;
+  }
+  
+  List<Widget> _buildGenericMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+    final List<Widget> widgets = [];
+    
+    metrics.forEach((key, value) {
+      if (widgets.isNotEmpty) {
+        widgets.add(const SizedBox(height: 8));
+      }
+      widgets.add(_buildMetricRow(
+        theme,
+        key.replaceAll('_', ' ').toUpperCase(),
+        value.toString(),
+        Icons.info_outline,
+        Colors.grey[400]!,
+      ));
+    });
+    
+    return widgets;
+  }
+  
+  Widget _buildMetricRow(
+    ThemeData theme,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.grey[400],
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -668,13 +1045,43 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           _buildInfoRow(
               theme,
               'Dificuldade',
-              mission.difficulty == 'EASY'
-                  ? 'Fácil'
-                  : mission.difficulty == 'MEDIUM'
-                      ? 'Média'
-                      : 'Difícil',
+              mission.difficultyDisplay ?? 
+                  (mission.difficulty == 'EASY'
+                      ? 'Fácil'
+                      : mission.difficulty == 'MEDIUM'
+                          ? 'Média'
+                          : 'Difícil'),
               Icons.signal_cellular_alt,
               _getDifficultyColor(mission.difficulty)),
+          
+          // Tipo de validação
+          if (mission.validationTypeDisplay != null) ...[
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              theme,
+              'Validação',
+              mission.validationTypeDisplay!,
+              Icons.verified_outlined,
+              AppColors.primary,
+            ),
+          ],
+          
+          // Target Info - informações consolidadas de alvos
+          if (mission.targetInfo != null && mission.targetInfo!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Color(0xFF2A2A2A)),
+            const SizedBox(height: 16),
+            Text(
+              'Alvos',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[400],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ..._buildTargetInfoWidgets(theme, mission.targetInfo!),
+          ],
+          
           if (_details?['days_remaining'] != null) ...[
             const SizedBox(height: 12),
             _buildInfoRow(
@@ -697,6 +1104,114 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         ],
       ),
     );
+  }
+  
+  List<Widget> _buildTargetInfoWidgets(ThemeData theme, Map<String, dynamic> targetInfo) {
+    final List<Widget> widgets = [];
+    
+    targetInfo.forEach((key, value) {
+      if (value == null) return;
+      
+      IconData icon;
+      Color color;
+      String displayValue;
+      String displayLabel;
+      
+      // Mapear chaves para labels e formatação apropriada
+      switch (key) {
+        case 'target_tps':
+          icon = Icons.savings_outlined;
+          color = const Color(0xFF4CAF50);
+          displayValue = '$value%';
+          displayLabel = 'TPS Alvo';
+          break;
+        case 'target_rdr':
+          icon = Icons.trending_down;
+          color = const Color(0xFFF44336);
+          displayValue = '$value%';
+          displayLabel = 'RDR Alvo';
+          break;
+        case 'min_ili':
+          icon = Icons.account_balance_wallet;
+          color = const Color(0xFF2196F3);
+          displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
+          displayLabel = 'ILI Mínimo';
+          break;
+        case 'max_ili':
+          icon = Icons.account_balance_wallet;
+          color = const Color(0xFF2196F3);
+          displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
+          displayLabel = 'ILI Máximo';
+          break;
+        case 'min_transactions':
+          icon = Icons.receipt_long;
+          color = const Color(0xFF9C27B0);
+          displayValue = '$value transações';
+          displayLabel = 'Transações Mínimas';
+          break;
+        case 'target_category':
+          icon = Icons.category;
+          color = const Color(0xFFFF9800);
+          displayValue = 'Categoria #$value';
+          displayLabel = 'Categoria Alvo';
+          break;
+        case 'target_reduction_percent':
+          icon = Icons.arrow_downward;
+          color = const Color(0xFF4CAF50);
+          displayValue = '-$value%';
+          displayLabel = 'Redução Necessária';
+          break;
+        case 'category_spending_limit':
+          icon = Icons.block;
+          color = const Color(0xFFF44336);
+          displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
+          displayLabel = 'Limite de Gastos';
+          break;
+        case 'savings_increase_amount':
+          icon = Icons.arrow_upward;
+          color = const Color(0xFF4CAF50);
+          displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
+          displayLabel = 'Aumento na Poupança';
+          break;
+        case 'goal_progress_target':
+          icon = Icons.track_changes;
+          color = const Color(0xFF2196F3);
+          displayValue = '$value%';
+          displayLabel = 'Progresso em Meta';
+          break;
+        case 'min_consecutive_days':
+          icon = Icons.calendar_today;
+          color = const Color(0xFFFF5722);
+          displayValue = '$value dias';
+          displayLabel = 'Dias Consecutivos';
+          break;
+        case 'min_daily_actions':
+          icon = Icons.check_circle_outline;
+          color = const Color(0xFF4CAF50);
+          displayValue = '$value ações/dia';
+          displayLabel = 'Ações Diárias';
+          break;
+        default:
+          icon = Icons.info_outline;
+          color = Colors.grey[400]!;
+          displayValue = value.toString();
+          displayLabel = key.replaceAll('_', ' ').toUpperCase();
+      }
+      
+      if (widgets.isNotEmpty) {
+        widgets.add(const SizedBox(height: 8));
+      }
+      
+      widgets.add(_buildInfoRow(
+        theme,
+        displayLabel,
+        displayValue,
+        icon,
+        color,
+      ));
+    });
+    
+    return widgets;
   }
 
   Widget _buildInfoRow(

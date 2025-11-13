@@ -27,6 +27,12 @@ class MissionModel {
     this.minDailyActions,
     this.impacts,
     this.tips,
+    // Campos de display da API
+    this.typeDisplay,
+    this.difficultyDisplay,
+    this.validationTypeDisplay,
+    this.source,
+    this.targetInfo,
   });
 
   final int id;
@@ -59,6 +65,13 @@ class MissionModel {
   // Gamificação contextual
   final List<Map<String, dynamic>>? impacts;
   final List<Map<String, dynamic>>? tips;
+  
+  // Campos de display da API
+  final String? typeDisplay;
+  final String? difficultyDisplay;
+  final String? validationTypeDisplay;
+  final String? source; // 'template', 'ai', 'system'
+  final Map<String, dynamic>? targetInfo;
 
   factory MissionModel.fromMap(Map<String, dynamic> map) {
     return MissionModel(
@@ -105,6 +118,14 @@ class MissionModel {
       tips: (map['tips'] as List<dynamic>?)
           ?.map((e) => Map<String, dynamic>.from(e as Map))
           .toList(),
+      // Campos de display da API
+      typeDisplay: map['type_display'] as String?,
+      difficultyDisplay: map['difficulty_display'] as String?,
+      validationTypeDisplay: map['validation_type_display'] as String?,
+      source: map['source'] as String?,
+      targetInfo: map['target_info'] != null 
+          ? Map<String, dynamic>.from(map['target_info'] as Map)
+          : null,
     );
   }
 

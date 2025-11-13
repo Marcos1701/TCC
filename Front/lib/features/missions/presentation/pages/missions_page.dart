@@ -328,7 +328,8 @@ class _ActiveMissionCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  _getMissionTypeDescription(mission.mission.missionType),
+                  mission.mission.typeDisplay ??
+                      _getMissionTypeDescription(mission.mission.missionType),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -336,6 +337,50 @@ class _ActiveMissionCard extends StatelessWidget {
                   ),
                 ),
               ),
+              // Badge de origem (template/AI)
+              if (mission.mission.source != null) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: mission.mission.source == 'template'
+                        ? const Color(0xFF4CAF50).withOpacity(0.15)
+                        : const Color(0xFF2196F3).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: mission.mission.source == 'template'
+                          ? const Color(0xFF4CAF50).withOpacity(0.5)
+                          : const Color(0xFF2196F3).withOpacity(0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        mission.mission.source == 'template'
+                            ? Icons.bolt
+                            : Icons.auto_awesome,
+                        size: 10,
+                        color: mission.mission.source == 'template'
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFF2196F3),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        mission.mission.source == 'template' ? 'Template' : 'IA',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: mission.mission.source == 'template'
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFF2196F3),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const Spacer(),
               // Indicador de prazo
               Row(

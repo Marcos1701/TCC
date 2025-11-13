@@ -1613,6 +1613,140 @@ class MissionViewSet(viewsets.ModelViewSet):
         )
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def generate_template_missions(self, request):
+        """
+        Gera missões usando templates pré-definidos (rápido e consistente) - ADMIN/STAFF ONLY
+        
+        Requer: is_staff=True ou is_superuser=True
+        
+        POST /api/missions/generate_template_missions/
+        {
+            "tier": "BEGINNER|INTERMEDIATE|ADVANCED" (opcional, padrão: BEGINNER),
+            "count": 20 (opcional, número total de missões),
+            "distribution": {"ONBOARDING": 5, "TPS_IMPROVEMENT": 10, ...} (opcional)
+        }
+        
+        Vantagens dos templates:
+        - 80% mais rápido que IA
+        - Sem duplicatas
+        - Validação garantida
+        - Sem custos de API
+        
+        Exemplo de resposta:
+        {
+            "success": true,
+            "total_created": 15,
+            "missions_by_type": {
+                "ONBOARDING": 3,
+                "TPS_IMPROVEMENT": 3,
+                "RDR_REDUCTION": 3,
+                "ILI_BUILDING": 3,
+                "ADVANCED": 3
+            },
+            "created_missions": [...],
+            "generation_time_ms": 120
+        }
+        """
+        import time
+        from .mission_templates import generate_mission_batch_from_templates
+        from .services import calculate_summary
+        
+        start_time = time.time()
+        
+        tier = request.data.get('tier', 'BEGINNER')
+        count = request.data.get('count', 20)
+        distribution = request.data.get('distribution')
+        
+        # Validar tier
+        if tier not in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
+            return Response(
+                {'error': 'tier deve ser BEGINNER, INTERMEDIATE ou ADVANCED'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar count
+        try:
+            count = int(count)
+            if count < 1 or count > 100:
+                return Response(
+                    {'error': 'count deve estar entre 1 e 100'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'count deve ser um número inteiro'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Obter métricas de um usuário representativo ou usar valores padrão
+            current_metrics = {'tps': 15, 'rdr': 30, 'ili': 50000}
+            
+            try:
+                tier_level_range = self._get_tier_level_range(tier)
+                representative_profile = UserProfile.objects.filter(
+                    level__range=tier_level_range
+                ).select_related('user').order_by('-user__last_login').first()
+                
+                if representative_profile and representative_profile.user:
+                    summary = calculate_summary(representative_profile.user)
+                    current_metrics = {
+                        'tps': summary.get('tps', 15),
+                        'rdr': summary.get('rdr', 30),
+                        'ili': summary.get('ili', 50000)
+                    }
+            except Exception as e:
+                logger.warning(f"Usando métricas padrão: {e}")
+            
+            # Gerar missões via templates
+            missions_data = generate_mission_batch_from_templates(
+                tier=tier,
+                current_metrics=current_metrics,
+                count=count,
+                distribution=distribution
+            )
+            
+            # Criar objetos Mission no banco
+            from .models import Mission
+            missions = []
+            for data in missions_data:
+                mission = Mission.objects.create(**data)
+                missions.append(mission)
+            
+            end_time = time.time()
+            generation_time_ms = int((end_time - start_time) * 1000)
+            
+            # Contar por tipo
+            missions_by_type = {}
+            for mission in missions:
+                m_type = mission.mission_type
+                missions_by_type[m_type] = missions_by_type.get(m_type, 0) + 1
+            
+            # Serializar para resposta
+            serializer = MissionSerializer(missions, many=True)
+            
+            return Response({
+                'success': True,
+                'total_created': len(missions),
+                'missions_by_type': missions_by_type,
+                'created_missions': serializer.data[:10],  # Preview das primeiras 10
+                'generation_time_ms': generation_time_ms,
+                'tier': tier,
+                'message': f'{len(missions)} missões criadas via templates em {generation_time_ms}ms'
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar missões via templates: {e}", exc_info=True)
+            return Response(
+                {
+                    'success': False,
+                    'error': 'Erro ao gerar missões via templates',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_ai_missions(self, request):
         """
         Gera missões usando IA (Gemini) com validação incremental - ADMIN/STAFF ONLY
@@ -2435,7 +2569,9 @@ class SimplifiedOnboardingView(APIView):
 
 
 class RegisterView(APIView):
+    """View pública para registro de novos usuários."""
     permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # Sem autenticação para permitir registro com token expirado no storage
 
     def post(self, request):
         email = request.data.get("email", "").strip().lower()

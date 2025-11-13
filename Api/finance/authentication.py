@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from rest_framework import permissions
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -36,4 +37,19 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class EmailTokenObtainPairView(TokenObtainPairView):
+    """
+    View de autenticação que permite login com email ou username.
+    IMPORTANTE: Desabilita autenticação para permitir login com token expirado no storage.
+    """
     serializer_class = EmailTokenObtainPairSerializer
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # Sem autenticação para esta view
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    View para refresh de token com permissão explícita.
+    IMPORTANTE: Desabilita autenticação para permitir refresh com token expirado.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # Sem autenticação para esta view

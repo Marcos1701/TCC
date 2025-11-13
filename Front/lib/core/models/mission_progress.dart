@@ -28,6 +28,8 @@ class MissionProgressModel {
     this.daysRemaining,
     this.progressPercentage,
     this.currentVsInitial,
+    this.detailedMetrics,
+    this.progressStatus,
   });
 
   final int id;
@@ -58,6 +60,8 @@ class MissionProgressModel {
   final int? daysRemaining;
   final String? progressPercentage;
   final Map<String, dynamic>? currentVsInitial;
+  final Map<String, dynamic>? detailedMetrics;
+  final Map<String, dynamic>? progressStatus;
 
   factory MissionProgressModel.fromMap(Map<String, dynamic> map) {
     return MissionProgressModel(
@@ -105,6 +109,8 @@ class MissionProgressModel {
       daysRemaining: map['days_remaining'] as int?,
       progressPercentage: map['progress_percentage'] as String?,
       currentVsInitial: map['current_vs_initial'] as Map<String, dynamic>?,
+      detailedMetrics: map['detailed_metrics'] as Map<String, dynamic>?,
+      progressStatus: map['progress_status'] as Map<String, dynamic>?,
     );
   }
 
@@ -163,5 +169,26 @@ class MissionProgressModel {
   String get progressFormatted {
     return '${progress.toStringAsFixed(1)}%';
   }
+  
+  /// Retorna mensagem de progresso da API
+  String? get progressMessage {
+    return progressStatus?['message'] as String?;
+  }
+  
+  /// Retorna se pode completar a missão
+  bool get canComplete {
+    return progressStatus?['can_complete'] as bool? ?? false;
+  }
+  
+  /// Retorna se está no caminho certo
+  bool get isOnTrack {
+    return progressStatus?['on_track'] as bool? ?? false;
+  }
+  
+  /// Retorna métricas específicas do tipo de missão
+  Map<String, dynamic> get metrics {
+    return detailedMetrics ?? {};
+  }
 }
+
 

@@ -404,6 +404,17 @@ class GoalSerializer(serializers.ModelSerializer):
 
 
 class MissionSerializer(serializers.ModelSerializer):
+    # Campos calculados para melhor exibição no front
+    type_display = serializers.CharField(source='get_mission_type_display', read_only=True)
+    difficulty_display = serializers.CharField(source='get_difficulty_display', read_only=True)
+    validation_type_display = serializers.CharField(source='get_validation_type_display', read_only=True)
+    
+    # Informações de origem da missão
+    source = serializers.SerializerMethodField()
+    
+    # Informações contextuais
+    target_info = serializers.SerializerMethodField()
+    
     class Meta:
         model = Mission
         fields = (
@@ -412,7 +423,9 @@ class MissionSerializer(serializers.ModelSerializer):
             "description",
             "reward_points",
             "difficulty",
+            "difficulty_display",
             "mission_type",
+            "type_display",
             "priority",
             "target_tps",
             "target_rdr",
@@ -423,6 +436,7 @@ class MissionSerializer(serializers.ModelSerializer):
             "is_active",
             # Novos campos de validação avançada
             "validation_type",
+            "validation_type_display",
             "requires_consecutive_days",
             "min_consecutive_days",
             "target_category",
@@ -436,6 +450,103 @@ class MissionSerializer(serializers.ModelSerializer):
             # Campos de gamificação contextual
             "impacts",
             "tips",
+            # Campos calculados
+            "source",
+            "target_info",
+        )
+    
+    def get_source(self, obj):
+        """Identifica a origem da missão (template ou IA)."""
+        if obj.priority >= 90:
+            return "system"  # Missões padrão do sistema
+        elif obj.priority >= 5:
+            return "template"  # Geradas por templates
+        else:
+            return "ai"  # Geradas por IA
+    
+    def get_target_info(self, obj):
+        """Retorna informações consolidadas sobre os alvos da missão."""
+        info = {
+            'type': obj.mission_type,
+            'targets': []
+        }
+        
+        if obj.target_tps is not None:
+            info['targets'].append({
+                'metric': 'TPS',
+                'label': 'Taxa de Poupança',
+                'value': float(obj.target_tps),
+                'unit': '%',
+                'icon': '💰'
+            })
+        
+        if obj.target_rdr is not None:
+            info['targets'].append({
+                'metric': 'RDR',
+                'label': 'Despesas Recorrentes',
+                'value': float(obj.target_rdr),
+                'unit': '%',
+                'icon': '📉'
+            })
+        
+        if obj.min_ili is not None:
+            info['targets'].append({
+                'metric': 'ILI',
+                'label': 'Reserva de Emergência',
+                'value': float(obj.min_ili),
+                'unit': 'meses',
+                'icon': '🛡️'
+            })
+        
+        if obj.min_transactions is not None:
+            info['targets'].append({
+                'metric': 'TRANSACTIONS',
+                'label': 'Transações',
+                'value': obj.min_transactions,
+                'unit': 'registros',
+                'icon': '📝'
+            })
+        
+        return info
+    
+    class Meta:
+        model = Mission
+        fields = (
+            "id",
+            "title",
+            "description",
+            "reward_points",
+            "difficulty",
+            "difficulty_display",
+            "mission_type",
+            "type_display",
+            "priority",
+            "target_tps",
+            "target_rdr",
+            "min_ili",
+            "max_ili",
+            "min_transactions",
+            "duration_days",
+            "is_active",
+            # Novos campos de validação avançada
+            "validation_type",
+            "validation_type_display",
+            "requires_consecutive_days",
+            "min_consecutive_days",
+            "target_category",
+            "target_reduction_percent",
+            "category_spending_limit",
+            "target_goal",
+            "goal_progress_target",
+            "savings_increase_amount",
+            "requires_daily_action",
+            "min_daily_actions",
+            # Campos de gamificação contextual
+            "impacts",
+            "tips",
+            # Campos calculados
+            "source",
+            "target_info",
         )
     
     def validate_title(self, value):
@@ -533,6 +644,8 @@ class MissionProgressSerializer(serializers.ModelSerializer):
     days_remaining = serializers.SerializerMethodField()
     progress_percentage = serializers.SerializerMethodField()
     current_vs_initial = serializers.SerializerMethodField()
+    detailed_metrics = serializers.SerializerMethodField()
+    progress_status = serializers.SerializerMethodField()
 
     class Meta:
         model = MissionProgress
@@ -552,6 +665,8 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "days_remaining",
             "progress_percentage",
             "current_vs_initial",
+            "detailed_metrics",
+            "progress_status",
             # Novos campos de rastreamento avançado
             "baseline_category_spending",
             "baseline_period_days",
@@ -572,6 +687,8 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "days_remaining",
             "progress_percentage",
             "current_vs_initial",
+            "detailed_metrics",
+            "progress_status",
             "baseline_category_spending",
             "baseline_period_days",
             "initial_goal_progress",
@@ -597,6 +714,51 @@ class MissionProgressSerializer(serializers.ModelSerializer):
     def get_progress_percentage(self, obj):
         """Retorna progresso formatado como string."""
         return f"{float(obj.progress):.1f}%"
+    
+    def get_detailed_metrics(self, obj):
+        """Retorna métricas detalhadas usando o validator específico."""
+        try:
+            from .mission_types import MissionValidatorFactory
+            
+            validator = MissionValidatorFactory.create_validator(
+                obj.mission,
+                obj.user,
+                obj
+            )
+            
+            result = validator.calculate_progress()
+            return result.get('metrics', {})
+            
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def get_progress_status(self, obj):
+        """Retorna status detalhado do progresso."""
+        try:
+            from .mission_types import MissionValidatorFactory
+            
+            validator = MissionValidatorFactory.create_validator(
+                obj.mission,
+                obj.user,
+                obj
+            )
+            
+            result = validator.calculate_progress()
+            
+            return {
+                'message': result.get('message', ''),
+                'is_completed': result.get('is_completed', False),
+                'can_complete': float(obj.progress) >= 100.0,
+                'on_track': float(obj.progress) > 0
+            }
+            
+        except Exception as e:
+            return {
+                'message': f'Erro ao calcular: {str(e)}',
+                'is_completed': False,
+                'can_complete': False,
+                'on_track': False
+            }
     
     def get_current_vs_initial(self, obj):
         """Retorna comparação dos indicadores atuais vs iniciais."""

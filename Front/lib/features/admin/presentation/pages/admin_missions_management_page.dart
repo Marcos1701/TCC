@@ -1198,7 +1198,7 @@ class _AdminMissionsManagementPageState
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Powered by Google Gemini',
+                            'Utilizando o Google Gemini',
                             style: TextStyle(
                               color: Colors.grey,
                               fontSize: 12,
@@ -1211,13 +1211,15 @@ class _AdminMissionsManagementPageState
                   ],
                 ),
               ),
-              content: Container(
+              content: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.85,
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                height: MediaQuery.of(context).size.height * 0.65,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                     // Informações sobre o processo
                     Container(
                       padding: const EdgeInsets.all(18),
@@ -1250,15 +1252,10 @@ class _AdminMissionsManagementPageState
                             ],
                           ),
                           const SizedBox(height: 14),
-                          _buildInfoRow(
-                            Icons.analytics_outlined,
-                            'Analisa padrões financeiros dos usuários',
-                            Colors.purple,
-                          ),
                           const SizedBox(height: 10),
                           _buildInfoRow(
                             Icons.psychology,
-                            'Gera missões personalizadas com base em indicadores (TPS, RDR, ILI)',
+                            'Gera missões com base nos padrões (TPS, RDR, ILI)',
                             Colors.blue,
                           ),
                           const SizedBox(height: 10),
@@ -1270,7 +1267,7 @@ class _AdminMissionsManagementPageState
                           const SizedBox(height: 10),
                           _buildInfoRow(
                             Icons.insights,
-                            'Ajusta XP e critérios automaticamente',
+                            'Ajusta XP e critérios automaticamente (fornecidos pela IA)',
                             Colors.green,
                           ),
                           const SizedBox(height: 14),
@@ -1294,6 +1291,94 @@ class _AdminMissionsManagementPageState
                                 Expanded(
                                   child: Text(
                                     'As missões são criadas DESATIVADAS por padrão para revisão',
+                                    style: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Card explicativo sobre as faixas de usuários
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0D0D0D),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.blue.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.groups,
+                                color: Colors.blue,
+                                size: 20,
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Classificação de Usuários em Faixas',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          _buildUserTierInfo(
+                            '🌱 Iniciantes',
+                            'Usuários com menos de 30 transações',
+                            'Foco em aprendizado e formação de hábitos básicos',
+                            Colors.green,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildUserTierInfo(
+                            '📈 Intermediários',
+                            'Entre 30 e 100 transações registradas',
+                            'Desafios para melhorar indicadores e consistência',
+                            Colors.blue,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildUserTierInfo(
+                            '🏆 Avançados',
+                            'Mais de 100 transações no histórico',
+                            'Missões complexas com metas financeiras ambiciosas',
+                            Colors.orange,
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.blue.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.lightbulb_outline,
+                                  color: Colors.blue,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'A IA ajusta automaticamente a dificuldade e os critérios para cada faixa',
                                     style: TextStyle(
                                       color: Colors.grey[300],
                                       fontSize: 11,
@@ -1531,6 +1616,8 @@ class _AdminMissionsManagementPageState
                     ],
                   ],
                 ),
+                  ),
+                ),
               ),
               actions: [
                 if (!_isGeneratingAI) ...[
@@ -1637,6 +1724,63 @@ class _AdminMissionsManagementPageState
               fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Widget para mostrar informações sobre faixas de usuários
+  Widget _buildUserTierInfo(String title, String criteria, String description, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                color: color,
+                size: 14,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  criteria,
+                  style: TextStyle(
+                    color: Colors.grey[300],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 11,
+            ),
           ),
         ],
       ),

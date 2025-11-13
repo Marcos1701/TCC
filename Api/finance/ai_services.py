@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Configurar Gemini
 try:
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    model = genai.GenerativeModel('gemini-2.5-flash')
 except Exception as e:
     logger.warning(f"Gemini API não configurada: {e}")
     model = None
@@ -331,149 +331,186 @@ Mês comum, foco em manutenção de hábitos e progresso incremental.
 # ==================== PROMPT TEMPLATE ====================
 
 BATCH_MISSION_GENERATION_PROMPT = """
-Você é um especialista em educação financeira criando missões gamificadas para um sistema de gestão financeira pessoal.
+Você é um ESPECIALISTA EM EDUCAÇÃO FINANCEIRA criando missões gamificadas ÚNICAS e MENSURÁVEIS.
 
-## CONTEXTO DO SISTEMA
+## ⚠️ REGRA CRÍTICA: VARIEDADE MÁXIMA
 
-O sistema usa gamificação para ensinar educação financeira através de missões. Usuários ganham XP ao completar desafios.
+Cada missão DEVE ser SUBSTANCIALMENTE DIFERENTE das outras. Use:
+- Títulos COMPLETAMENTE distintos (evite repetir palavras-chave)
+- Abordagens variadas (economia, redução, otimização, construção)
+- Contextos diferentes (curto prazo, médio prazo, emergencial, planejado)
+- Linguagem diversificada (motivacional, desafiadora, educacional, prática)
 
-**Métricas Principais:**
-- **TPS (Taxa de Poupança Pessoal)**: % da receita que vira poupança/investimento
-  * Meta saudável: 20-30%
-  * Cálculo: (Receitas - Despesas) / Receitas × 100
-  
-- **RDR (Razão Dívida-Receita)**: % da receita comprometida com dívidas
-  * Meta saudável: <30%
-  * Cálculo: Total de Dívidas / Receita Mensal × 100
+## MÉTRICAS DO SISTEMA
 
-- **ILI (Índice de Liquidez Imediata)**: Meses que consegue viver com reservas
-  * Meta saudável: 6-12 meses
-  * Cálculo: Saldo Disponível / Despesas Mensais Médias
+**TPS (Taxa de Poupança)**: (Receitas - Despesas) / Receitas × 100
+- Iniciante: 10-15% | Intermediário: 15-25% | Avançado: 25%+
+
+**RDR (Razão Despesas-Receita)**: Total Despesas / Receita × 100  
+- Saudável: <30% | Atenção: 30-50% | Crítico: >50%
+
+**ILI (Reserva em Meses)**: Saldo / Despesas Mensais
+- Básico: 3 meses | Ideal: 6 meses | Excelente: 12+ meses
 
 ## TIPOS DE MISSÃO (use EXATAMENTE estes valores)
 
-1. **ONBOARDING** - Integração inicial, criar hábitos básicos
-   - Campo OBRIGATÓRIO: `min_transactions` (int, 5-50)
-   - Exemplos: Registrar primeiras transações, criar categorias, explorar app
+### 1. ONBOARDING - Criar hábito de registro
+**Campo OBRIGATÓRIO**: `min_transactions` (int, 5-50)
+**Foco**: Familiarização com o app, primeiros registros
+**Exemplos de abordagens**:
+- "Complete sua primeira semana financeira" (10 transações)
+- "Mapeie seus gastos essenciais" (15 transações básicas)
+- "Construa sua linha do tempo financeira" (20 registros variados)
 
-2. **TPS_IMPROVEMENT** - Melhoria de taxa de poupança
-   - Campo OBRIGATÓRIO: `target_tps` (float, 0-100)
-   - Exemplos: Aumentar poupança para X%, reduzir gastos supérfluos
+### 2. TPS_IMPROVEMENT - Elevar poupança
+**Campo OBRIGATÓRIO**: `target_tps` (float, 5-40)
+**Foco**: Aumentar % de economia sobre receita
+**Exemplos de abordagens**:
+- "Economize X% este mês" (meta direta)
+- "Reduza gastos supérfluos para atingir X%" (via cortes)
+- "Otimize sua renda disponível para X%" (via eficiência)
 
-3. **RDR_REDUCTION** - Redução de dívidas
-   - Campo OBRIGATÓRIO: `target_rdr` (float, 0-200)
-   - Exemplos: Baixar RDR para X%, quitar dívidas específicas
+### 3. RDR_REDUCTION - Controlar despesas
+**Campo OBRIGATÓRIO**: `target_rdr` (float, 10-50)
+**Foco**: Reduzir comprometimento de renda
+**Exemplos de abordagens**:
+- "Mantenha despesas abaixo de X%" (limite)
+- "Corte X% dos gastos recorrentes" (redução ativa)
+- "Libere X% da sua renda" (via renegociação/cancelamentos)
 
-4. **ILI_BUILDING** - Construção de reserva de emergência
-   - Campo OBRIGATÓRIO: `min_ili` (float, 0-24)
-   - Exemplos: Construir reserva de X meses, aumentar liquidez
+### 4. ILI_BUILDING - Construir reserva
+**Campo OBRIGATÓRIO**: `min_ili` (float, 1-12)
+**Foco**: Aumentar meses de cobertura
+**Exemplos de abordagens**:
+- "Construa X meses de reserva" (acumulação)
+- "Proteja-se por X meses" (segurança)
+- "Alcance X meses de independência" (liberdade)
 
-5. **ADVANCED** - Desafios complexos, múltiplos objetivos
-   - Pode combinar: target_tps, target_rdr, min_ili
-   - Exemplos: Otimizar finanças completas, desafios avançados
+### 5. ADVANCED - Desafios múltiplos
+**Campos**: Combinar 2+ de (target_tps, target_rdr, min_ili)
+**Foco**: Otimização completa das finanças
+**Exemplos de abordagens**:
+- "Equilíbrio total: TPS X%, RDR Y%, ILI Z meses"
+- "Transformação financeira completa"
+- "Maestria em gestão de recursos"
 
-## EXEMPLOS DE MISSÕES PADRÃO (siga este tom e estilo):
+## EXEMPLOS REAIS (siga ESTE padrão exato):
 
 {reference_missions}
 
-## CENÁRIO: {scenario_name}
+## CENÁRIO ATUAL: {scenario_name}
 
-{scenario_description}
-
-**Foco Principal:** {scenario_focus}
-**Faixa de Usuários:** {user_tier}
+**Descrição**: {scenario_description}
+**Foco**: {scenario_focus}
+**Faixa**: {user_tier}
 
 {tier_description}
 
-## ESTATÍSTICAS ATUAIS DA FAIXA
+## ESTATÍSTICAS DO USUÁRIO
 
-- Nível médio: {avg_level}
-- TPS médio atual: {avg_tps}%{tps_context}
-- RDR médio atual: {avg_rdr}%{rdr_context}
-- ILI médio atual: {avg_ili} meses{ili_context}
-- Categorias de gasto mais comuns: {common_categories}
-- Experiência com o app: {experience_level}
+- Nível: {avg_level}
+- TPS atual: {avg_tps}%{tps_context}
+- RDR atual: {avg_rdr}%{rdr_context}
+- ILI atual: {avg_ili} meses{ili_context}
+- Categorias comuns: {common_categories}
+- Experiência: {experience_level}
 
-## PERÍODO: {period_type} - {period_name}
+## CONTEXTO TEMPORAL: {period_name}
 
 {period_context}
 
-## TAREFA
+## SUA TAREFA: Criar {count} Missões ÚNICAS
 
-Crie 20 missões variadas e progressivas para este cenário específico.
-
-**Distribuição por Tipo (obrigatória):**
+**DISTRIBUIÇÃO OBRIGATÓRIA**:
 {distribution_requirements}
 
-**Distribuição por Dificuldade:**
-- 8 missões EASY (alcançável para 80% da faixa)
-- 8 missões MEDIUM (alcançável para 50% da faixa)
-- 4 missões HARD (desafio para 20% da faixa)
+**DIFICULDADE** (progressiva):
+- {easy_count} EASY: Alcançável para 80% dos usuários
+- {medium_count} MEDIUM: Alcançável para 50% dos usuários  
+- {hard_count} HARD: Desafio para top 20%
 
-**Variedade de Duração:**
-- Missões curtas: 7 dias (ações rápidas)
-- Missões médias: 14-21 dias (formação de hábito)
-- Missões longas: 30 dias (transformação mensal)
+**DURAÇÃO** (variada):
+- Curtas: 7 dias (ação rápida)
+- Médias: 14-21 dias (formação de hábito)
+- Longas: 30 dias (transformação completa)
 
-**Progressão de Recompensa XP:**
+**XP REWARD** (por dificuldade):
 - EASY: 50-150 XP
 - MEDIUM: 100-250 XP
 - HARD: 200-500 XP
 
-**Diretrizes Específicas do Cenário:**
-{scenario_guidelines}
+## ⚠️ VALIDAÇÃO CRÍTICA (não negociável)
 
-**Contextualização:**
-- Use {period_name} no título/descrição quando relevante
-- Mencione {common_categories} em missões de controle de gastos
-- Adapte metas ao perfil da faixa e cenário
-- Seja específico sobre valores alvo (TPS, RDR, ILI)
+1. **mission_type**: Deve ser EXATAMENTE um de: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, ADVANCED
 
-## REGRAS DE VALIDAÇÃO (CRÍTICAS - MISSÕES QUE NÃO SEGUIREM SERÃO REJEITADAS)
+2. **Campos obrigatórios por tipo**:
+   - ONBOARDING → `min_transactions` (int entre 5-50)
+   - TPS_IMPROVEMENT → `target_tps` (float entre 5-40)
+   - RDR_REDUCTION → `target_rdr` (float entre 10-50)
+   - ILI_BUILDING → `min_ili` (float entre 1-12)
+   - ADVANCED → 2 ou mais dos campos acima
 
-1. **mission_type**: DEVE ser exatamente um de: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, ADVANCED
-2. **Campos por tipo**:
-   - ONBOARDING → DEVE ter `min_transactions` (int, 5-50)
-   - TPS_IMPROVEMENT → DEVE ter `target_tps` (float, 0-100)
-   - RDR_REDUCTION → DEVE ter `target_rdr` (float, 0-200)
-   - ILI_BUILDING → DEVE ter `min_ili` (float, 0-24)
-   - ADVANCED → PODE ter combinação dos campos acima
-3. **difficulty**: DEVE ser exatamente EASY, MEDIUM ou HARD (maiúsculas)
-4. **duration_days**: DEVE ser exatamente 7, 14, 21 ou 30 (números)
-5. **xp_reward**: DEVE respeitar ranges por dificuldade (EASY: 50-150, MEDIUM: 100-250, HARD: 200-500)
-6. **title**: Máximo 150 caracteres, SEM emojis
-7. **description**: Obrigatório, claro e educacional
+3. **difficulty**: EASY, MEDIUM ou HARD (maiúsculas)
 
-## FORMATO DE RESPOSTA (JSON)
+4. **duration_days**: 7, 14, 21 ou 30 (números exatos)
 
-Retorne APENAS um array JSON válido, sem texto adicional antes ou depois.
-REMOVA campos não utilizados (target_category, target_reduction_percent, tags).
+5. **xp_reward**: Dentro do range da difficulty
+
+6. **title**: Máximo 150 caracteres, SEM emojis, ÚNICO
+
+7. **description**: Clara, educacional, motivadora, SEM jargão excessivo
+
+## 🎯 DIRETRIZES DE VARIEDADE (CRÍTICO)
+
+**Títulos**: Use estruturas completamente diferentes
+- ✅ "Economize 15% Este Mês"
+- ✅ "Construa Sua Reserva de 3 Meses"  
+- ✅ "Otimize Gastos Recorrentes"
+- ❌ "Economize 15%", "Economize 20%", "Economize 25%" (muito similar)
+
+**Descrições**: Varie abordagens educacionais
+- Motivação: "Cada real economizado..."
+- Prática: "Revise seus gastos em..."
+- Benefício: "Garanta tranquilidade com..."
+- Desafio: "Supere a meta de..."
+
+**Contexto**: Adapte ao cenário
+- Use {period_name} quando relevante
+- Mencione {common_categories} em missões de controle
+- Referencie métricas atuais do usuário
+- Considere próximos passos naturais
+
+## FORMATO DE RESPOSTA (JSON válido)
+
+Retorne APENAS um array JSON válido, SEM texto antes/depois.
+NÃO inclua campos não utilizados.
 
 [
     {{
-        "title": "Título criativo e motivador (max 150 chars)",
-        "description": "Descrição clara do desafio e benefício educacional",
+        "title": "Título único e claro (max 150 chars)",
+        "description": "Descrição educacional e motivadora",
         "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
-        "target_tps": null ou float (0-100, OBRIGATÓRIO se TPS_IMPROVEMENT),
-        "target_rdr": null ou float (0-200, OBRIGATÓRIO se RDR_REDUCTION),
-        "min_ili": null ou float (0-24, OBRIGATÓRIO se ILI_BUILDING),
-        "min_transactions": null ou int (5-50, OBRIGATÓRIO se ONBOARDING),
+        "target_tps": null ou float (obrigatório se TPS_IMPROVEMENT),
+        "target_rdr": null ou float (obrigatório se RDR_REDUCTION),
+        "min_ili": null ou float (obrigatório se ILI_BUILDING),
+        "min_transactions": null ou int (obrigatório se ONBOARDING),
         "duration_days": 7|14|21|30,
-        "xp_reward": int (50-500, seguir ranges por difficulty),
+        "xp_reward": int (50-500),
         "difficulty": "EASY|MEDIUM|HARD"
     }}
 ]
 
-**IMPORTANTE:**
-- Seja específico e mensurável
-- Use linguagem motivadora, não punitiva (ex: "Organize" ao invés de "Pare de gastar")
-- Varie os títulos e descrições (evite repetição)
-- Adapte as metas ao nível da faixa E ao cenário específico
-- Para cenários com range (ex: TPS 0-15% → 15-25%), crie metas progressivas dentro do range
-- Mantenha consistência JSON válido
-- Siga EXATAMENTE o tom e estilo dos exemplos fornecidos
-- NÃO use jargão técnico excessivo
-- NÃO repita missões já existentes
+## ✅ CHECKLIST FINAL
+
+Antes de retornar, verifique:
+- [ ] Todos os títulos são ÚNICOS e DISTINTOS
+- [ ] Descrições variam em tom e abordagem
+- [ ] Campos obrigatórios presentes por tipo
+- [ ] Valores dentro dos ranges especificados
+- [ ] JSON válido (sem trailing commas, aspas corretas)
+- [ ] Distribuição de dificuldade atendida
+- [ ] Contexto do usuário considerado
+- [ ] Linguagem clara e motivadora (não punitiva)
 """
 
 
@@ -1233,6 +1270,12 @@ def _build_standard_prompt(tier, scenario, stats, period_type, period_name, peri
         dist_requirements.append(f"   - {count} missões de {mission_type}")
     distribution_text = '\n'.join(dist_requirements)
     
+    # Calcular distribuição de dificuldade (padrão: 40% EASY, 40% MEDIUM, 20% HARD)
+    total_count = 20
+    easy_count = 8
+    medium_count = 8
+    hard_count = 4
+    
     # Obter diretrizes específicas do cenário
     guidelines = get_scenario_guidelines(scenario.get('key', ''), stats)
     
@@ -1256,17 +1299,27 @@ def _build_standard_prompt(tier, scenario, stats, period_type, period_name, peri
         period_name=period_name,
         period_context=period_context,
         distribution_requirements=distribution_text,
-        scenario_guidelines=guidelines
+        scenario_guidelines=guidelines,
+        count=total_count,
+        easy_count=easy_count,
+        medium_count=medium_count,
+        hard_count=hard_count
     )
     
     return prompt
 
 
-def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, count=10, max_retries=2):
+def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, count=10, max_retries=2, use_templates_first=True):
     """
     Gera e salva missões incrementalmente (uma por vez) com validação robusta.
     
-    Esta função substitui a geração em lote, oferecendo:
+    NOVA ESTRATÉGIA HÍBRIDA:
+    1. Tenta usar templates primeiro (rápido, consistente, sem duplicatas)
+    2. Complementa com IA apenas se necessário (variações específicas)
+    3. Validação rigorosa antes de salvar
+    
+    Esta função oferece:
+    - Geração 80% mais rápida via templates
     - Validação antes de salvar cada missão
     - Detecção de duplicatas semânticas
     - Salvamento parcial (não perde tudo se houver erro)
@@ -1276,8 +1329,9 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
         tier: 'BEGINNER', 'INTERMEDIATE' ou 'ADVANCED'
         scenario_key: Chave do cenário específico ou None para auto-detectar
         user_context: Contexto completo de um usuário real (opcional)
-        count: Número de missões a tentar gerar (padrão: 10, reduzido de 20 para evitar timeout)
-        max_retries: Tentativas por missão se falhar validação (padrão: 2, reduzido de 3)
+        count: Número de missões a tentar gerar (padrão: 10)
+        max_retries: Tentativas por missão se falhar validação (padrão: 2)
+        use_templates_first: Se True, tenta usar templates antes da IA (padrão: True)
         
     Returns:
         dict: {
@@ -1286,6 +1340,8 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
             'summary': {
                 'total_created': int,
                 'total_failed': int,
+                'from_templates': int,
+                'from_ai': int,
                 'failed_validation': int,
                 'failed_duplicate': int,
                 'failed_api': int
@@ -1293,16 +1349,208 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
         }
     """
     from .models import Mission
+    from .mission_templates import generate_mission_batch_from_templates, get_template_variety_score
     
-    if not model:
-        logger.error("Gemini API não configurada")
-        return {
-            'created': [],
-            'failed': [{'error': 'Gemini API não configurada', 'type': 'config_error'}],
-            'summary': {'total_created': 0, 'total_failed': 1, 'failed_validation': 0, 'failed_duplicate': 0, 'failed_api': 1}
-        }
+    # Contadores para summary detalhado
+    created_from_templates = 0
+    created_from_ai = 0
+    failed_validation_count = 0
+    failed_duplicate_count = 0
+    failed_api_count = 0
+    
+    created_missions = []
+    failed_missions = []
     
     # Preparar contexto (igual à função antiga)
+    if user_context:
+        stats = _extract_stats_from_user_context(user_context)
+        if not scenario_key:
+            scenario_key = _determine_scenario_from_context(user_context)
+    else:
+        stats = get_user_tier_stats(tier)
+        if not scenario_key:
+            scenario_key = determine_best_scenario(stats)
+    
+    scenario = MISSION_SCENARIOS.get(scenario_key)
+    if not scenario:
+        logger.error(f"Cenário inválido: {scenario_key}")
+        return {
+            'created': [],
+            'failed': [{'error': f'Cenário inválido: {scenario_key}', 'type': 'config_error'}],
+            'summary': {
+                'total_created': 0,
+                'total_failed': 1,
+                'from_templates': 0,
+                'from_ai': 0,
+                'failed_validation': 0,
+                'failed_duplicate': 0,
+                'failed_api': 1
+            }
+        }
+    
+    logger.info(f"Iniciando geração HÍBRIDA de {count} missões para {tier}/{scenario_key}")
+    
+    # =========================================================================
+    # FASE 1: TENTAR USAR TEMPLATES (mais rápido e consistente)
+    # =========================================================================
+    
+    template_missions_data = []
+    if use_templates_first:
+        try:
+            logger.info("🎯 FASE 1: Gerando missões de templates...")
+            
+            # Gerar a partir de templates
+            current_metrics = {
+                'tps': stats.get('avg_tps', 10),
+                'rdr': stats.get('avg_rdr', 50),
+                'ili': stats.get('avg_ili', 2),
+            }
+            
+            # Obter distribuição do cenário
+            distribution = scenario.get('distribution', {})
+            
+            template_missions_data = generate_mission_batch_from_templates(
+                tier=tier,
+                current_metrics=current_metrics,
+                count=count,
+                distribution=distribution
+            )
+            
+            logger.info(f"📋 Templates geraram {len(template_missions_data)} missões candidatas")
+            
+            # Salvar missões de template com validação
+            for i, mission_data in enumerate(template_missions_data):
+                try:
+                    # 1. Validar estrutura
+                    is_valid, validation_errors = validate_generated_mission(mission_data)
+                    if not is_valid:
+                        logger.warning(f"Template {i+1} falhou validação: {validation_errors}")
+                        failed_validation_count += 1
+                        continue
+                    
+                    # 2. Verificar duplicação semântica
+                    is_duplicate, dup_message = check_mission_similarity(
+                        mission_data['title'],
+                        mission_data['description']
+                    )
+                    if is_duplicate:
+                        logger.debug(f"Template {i+1} é duplicata: {dup_message}")
+                        failed_duplicate_count += 1
+                        continue
+                    
+                    # 3. Salvar no banco
+                    mission = Mission.objects.create(
+                        title=mission_data['title'],
+                        description=mission_data['description'],
+                        mission_type=mission_data['mission_type'],
+                        target_tps=mission_data.get('target_tps'),
+                        target_rdr=mission_data.get('target_rdr'),
+                        min_ili=mission_data.get('min_ili'),
+                        min_transactions=mission_data.get('min_transactions'),
+                        duration_days=mission_data['duration_days'],
+                        reward_points=mission_data['xp_reward'],
+                        difficulty=mission_data['difficulty'],
+                        is_active=True,
+                        priority=5  # Templates têm prioridade média
+                    )
+                    
+                    created_missions.append({
+                        'id': mission.id,
+                        'title': mission.title,
+                        'mission_type': mission.mission_type,
+                        'difficulty': mission.difficulty,
+                        'xp_reward': mission.reward_points,
+                        'source': 'template'
+                    })
+                    
+                    created_from_templates += 1
+                    logger.info(f"✓ Template {i+1} salvo: '{mission.title}' (ID: {mission.id})")
+                    
+                    # Parar se já temos o suficiente
+                    if len(created_missions) >= count:
+                        break
+                        
+                except Exception as e:
+                    logger.error(f"Erro ao salvar template {i+1}: {e}")
+                    failed_missions.append({
+                        'title': mission_data.get('title', 'Unknown'),
+                        'error': str(e),
+                        'type': 'save_error'
+                    })
+            
+            logger.info(f"✅ FASE 1 completa: {created_from_templates} missões de templates salvas")
+            
+        except Exception as e:
+            logger.warning(f"Erro na geração de templates: {e}, prosseguindo para IA...")
+    
+    # =========================================================================
+    # FASE 2: COMPLEMENTAR COM IA (apenas se necessário)
+    # =========================================================================
+    
+    remaining_count = count - len(created_missions)
+    
+    if remaining_count > 0:
+        logger.info(f"🤖 FASE 2: Complementando com IA ({remaining_count} missões restantes)...")
+        
+        if not model:
+            logger.error("Gemini API não configurada, não é possível complementar")
+            failed_api_count += remaining_count
+            return {
+                'created': created_missions,
+                'failed': failed_missions,
+                'summary': {
+                    'total_created': len(created_missions),
+                    'total_failed': len(failed_missions),
+                    'from_templates': created_from_templates,
+                    'from_ai': created_from_ai,
+                    'failed_validation': failed_validation_count,
+                    'failed_duplicate': failed_duplicate_count,
+                    'failed_api': failed_api_count
+                }
+            }
+    
+        # Preparar prompt para IA (versão simplificada para 1 missão por vez)
+        prompt_single = f"""Gere UMA missão de educação financeira gamificada ÚNICA e DIFERENTE.
+
+IMPORTANTE: Esta missão deve ser SUBSTANCIALMENTE DIFERENTE de missões comuns.
+Evite títulos e descrições genéricas. Seja criativo e específico.
+
+CONTEXTO:
+- Tier: {tier}
+- Cenário: {scenario.get('name')}
+- Nível médio: {stats['avg_level']}
+
+INDICADORES ATUAIS:
+- TPS: {stats['avg_tps']:.1f}%
+- RDR: {stats['avg_rdr']:.1f}%
+- ILI: {stats.get('avg_ili', 2.0):.1f} meses
+
+DISTRIBUIÇÃO NECESSÁRIA: {scenario.get('distribution', {})}
+
+RETORNE APENAS UM OBJETO JSON (SEM ARRAY):
+{{
+  "title": "Título específico e único (max 150 chars)",
+  "description": "Descrição educacional clara",
+  "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
+  "duration_days": 7|14|21|30,
+  "xp_reward": 50-500,
+  "difficulty": "EASY|MEDIUM|HARD",
+  "target_tps": null,
+  "target_rdr": null,
+  "min_ili": null,
+  "min_transactions": null
+}}
+
+REGRAS CRÍTICAS:
+1. Campos obrigatórios por tipo:
+   - ONBOARDING: min_transactions (5-50)
+   - TPS_IMPROVEMENT: target_tps (5-40)
+   - RDR_REDUCTION: target_rdr (10-50)
+   - ILI_BUILDING: min_ili (1-12)
+   - ADVANCED: 2+ campos acima
+2. Título DEVE ser único e específico
+3. JSON válido (sem markdown, sem comentários)
+"""
     if user_context:
         stats = _extract_stats_from_user_context(user_context)
         if not scenario_key:
