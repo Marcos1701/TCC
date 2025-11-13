@@ -23,8 +23,12 @@ import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
 import '../../../transactions/presentation/pages/bulk_payment_page.dart';
-import '../../../transactions/presentation/widgets/register_transaction_sheet.dart';
+import 'finances_page.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
+import '../../../transactions/presentation/widgets/transaction_action_selector.dart';
+import '../../../transactions/presentation/widgets/transaction_wizard.dart';
+import '../../../transactions/presentation/widgets/payment_wizard.dart';
+import '../../../shared/presentation/pages/financial_concepts_page.dart';
 import '../widgets/day4_5_widgets.dart';
 
 class HomePage extends StatefulWidget {
@@ -135,13 +139,29 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openTransactionSheet() async {
+    // Mostrar seletor de ação primeiro
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TransactionActionSelector(
+        onActionSelected: (actionType) async {
+          if (actionType == TransactionActionType.transaction) {
+            _openTransactionWizard();
+          } else {
+            _openPaymentWizard();
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _openTransactionWizard() async {
     final created = await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => RegisterTransactionSheet(
-        repository: _repository,
-      ),
+      builder: (context) => const TransactionWizard(),
     );
 
     if (created == null || !mounted) return;
@@ -156,8 +176,24 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _openPaymentWizard() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const PaymentWizard(),
+    );
+
+    if (result == true && mounted) {
+      // Atualiza o dashboard após criar pagamentos
+      _refresh();
+    }
+  }
+
   void _openPage(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => page),
+    );
   }
 
   Future<void> _showMissionDetails(MissionProgressModel mission) async {
@@ -237,6 +273,11 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Colors.white),
+            tooltip: 'Ajuda e Conceitos',
+            onPressed: () => _openPage(const FinancialConceptsPage()),
+          ),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
             tooltip: 'Configurações',
@@ -323,7 +364,7 @@ class _HomePageState extends State<HomePage> {
                   QuickActionsCard(
                     onAddTransaction: _openTransactionSheet,
                     onViewGoals: () => _openPage(const ProgressPage()),
-                    onViewAnalysis: () => _openPage(const TransactionsPage()),
+                    onViewAnalysis: () => _openPage(const FinancesPage(initialTab: 1)),
                   ),
                   const SizedBox(height: 16),
                   
@@ -331,6 +372,15 @@ class _HomePageState extends State<HomePage> {
                   RecentTransactionsSection(
                     repository: _repository,
                     currency: _currency,
+                    onViewAll: () => _openPage(const TransactionsPage()),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 5. Pagamentos Recentes com acesso ao wizard
+                  RecentPaymentsCard(
+                    repository: _repository,
+                    currency: _currency,
+                    onCreatePayment: _openPaymentWizard,
                     onViewAll: () => _openPage(const TransactionsPage()),
                   ),
                 ],

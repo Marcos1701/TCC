@@ -2,13 +2,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Página de Acompanhamento Financeiro
+/// Página de Análise Financeira
 /// 
 /// Exibe análise temporal de receitas e despesas com gráficos interativos
 class TrackingPage extends StatefulWidget {
@@ -64,7 +65,7 @@ class _TrackingPageState extends State<TrackingPage> {
         backgroundColor: Colors.black,
         elevation: 0,
         title: Text(
-          'Acompanhamento',
+          UxStrings.analysis,
           style: theme.textTheme.titleLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w700,
@@ -169,7 +170,7 @@ class _TrackingPageState extends State<TrackingPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                'Resumo Financeiro',
+                'Resumo do Período',
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -182,7 +183,7 @@ class _TrackingPageState extends State<TrackingPage> {
             children: [
               Expanded(
                 child: _MetricItem(
-                  label: 'Receitas',
+                  label: UxStrings.income,
                   value: summary.totalIncome,
                   color: AppColors.success,
                   icon: Icons.trending_up,
@@ -191,7 +192,7 @@ class _TrackingPageState extends State<TrackingPage> {
               const SizedBox(width: 16),
               Expanded(
                 child: _MetricItem(
-                  label: 'Despesas',
+                  label: UxStrings.expense,
                   value: summary.totalExpense,
                   color: AppColors.alert,
                   icon: Icons.trending_down,
@@ -206,7 +207,7 @@ class _TrackingPageState extends State<TrackingPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Saldo',
+                UxStrings.balance,
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: Colors.white70,
                   fontWeight: FontWeight.w600,
@@ -346,12 +347,12 @@ class _TrackingPageState extends State<TrackingPage> {
             runSpacing: 8,
             children: [
               _buildLegendItem(
-                '💰 Receita',
+                '💰 ${UxStrings.income}',
                 AppColors.success,
                 isDashed: false,
               ),
               _buildLegendItem(
-                '💸 Despesa',
+                '💸 ${UxStrings.expense}',
                 AppColors.alert,
                 isDashed: false,
               ),
@@ -613,8 +614,16 @@ class _TrackingPageState extends State<TrackingPage> {
                             ),
                             children: [
                               const TextSpan(
-                                text: '💰 Receita: ',
+                                text: '💰 ',
                                 style: TextStyle(
+                                  color: AppColors.success,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '${UxStrings.income}: ',
+                                style: const TextStyle(
                                   color: AppColors.success,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
@@ -629,8 +638,16 @@ class _TrackingPageState extends State<TrackingPage> {
                                 ),
                               ),
                               const TextSpan(
-                                text: '💸 Despesa: ',
+                                text: '💸 ',
                                 style: TextStyle(
+                                  color: AppColors.alert,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              TextSpan(
+                                text: '${UxStrings.expense}: ',
+                                style: const TextStyle(
                                   color: AppColors.alert,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
@@ -645,7 +662,7 @@ class _TrackingPageState extends State<TrackingPage> {
                                 ),
                               ),
                               TextSpan(
-                                text: '📊 Saldo: ',
+                                text: '📊 ${UxStrings.balance}: ',
                                 style: TextStyle(
                                   color: balance >= 0 ? AppColors.success : AppColors.alert,
                                   fontWeight: FontWeight.w600,
@@ -680,12 +697,12 @@ class _TrackingPageState extends State<TrackingPage> {
             children: [
               _LegendItem(
                 color: AppColors.success,
-                label: 'Receitas',
+                label: UxStrings.income,
               ),
               SizedBox(width: 24),
               _LegendItem(
                 color: AppColors.alert,
-                label: 'Despesas',
+                label: UxStrings.expense,
               ),
             ],
           ),
@@ -749,7 +766,7 @@ class _TrackingPageState extends State<TrackingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Saldo Mensal',
+                            UxStrings.balance,
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -835,8 +852,16 @@ class _TrackingPageState extends State<TrackingPage> {
                         ),
                         children: [
                           const TextSpan(
-                            text: '💰 Receita: ',
+                            text: '💰 ',
                             style: TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${UxStrings.income}: ',
+                            style: const TextStyle(
                               color: AppColors.success,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
@@ -851,8 +876,16 @@ class _TrackingPageState extends State<TrackingPage> {
                             ),
                           ),
                           const TextSpan(
-                            text: '💸 Despesa: ',
+                            text: '💸 ',
                             style: TextStyle(
+                              color: AppColors.alert,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '${UxStrings.expense}: ',
+                            style: const TextStyle(
                               color: AppColors.alert,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
@@ -867,7 +900,7 @@ class _TrackingPageState extends State<TrackingPage> {
                             ),
                           ),
                           TextSpan(
-                            text: '📊 Saldo: ',
+                            text: '📊 ${UxStrings.balance}: ',
                             style: TextStyle(
                               color: balance >= 0 ? AppColors.success : AppColors.alert,
                               fontWeight: FontWeight.w600,
@@ -1129,7 +1162,7 @@ class _TrackingPageState extends State<TrackingPage> {
       children: [
         if (expenses.isNotEmpty) ...[
           _buildCategoryPieChart(
-            'Despesas por Categoria',
+            '${UxStrings.expense} por Categoria',
             expenses,
             AppColors.alert,
             theme,
@@ -1139,7 +1172,7 @@ class _TrackingPageState extends State<TrackingPage> {
         ],
         if (income.isNotEmpty) ...[
           _buildCategoryPieChart(
-            'Receitas por Categoria',
+            '${UxStrings.income} por Categoria',
             income,
             AppColors.success,
             theme,
@@ -1671,7 +1704,7 @@ class _TrackingPageState extends State<TrackingPage> {
           ElevatedButton.icon(
             onPressed: _refresh,
             icon: const Icon(Icons.refresh),
-            label: const Text('Tentar Novamente'),
+            label: const Text(UxStrings.tryAgain),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -1698,14 +1731,14 @@ class _TrackingPageState extends State<TrackingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Sem dados disponíveis',
+            UxStrings.noData,
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Adicione transações para ver gráficos',
+            'Adicione transações para ver suas análises',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.grey[500],
             ),

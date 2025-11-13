@@ -5,7 +5,9 @@ import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/transaction.dart';
+import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/theme/app_colors.dart';
 
 // ========== DIA 4-5: NOVOS WIDGETS SIMPLIFICADOS ==========
 
@@ -475,6 +477,302 @@ class SimpleTransactionTile extends StatelessWidget {
           fontWeight: FontWeight.bold,
           fontSize: 16,
         ),
+      ),
+    );
+  }
+}
+
+/// Seção de pagamentos recentes
+class RecentPaymentsCard extends StatefulWidget {
+  const RecentPaymentsCard({
+    super.key,
+    required this.repository,
+    required this.currency,
+    required this.onCreatePayment,
+    required this.onViewAll,
+  });
+
+  final FinanceRepository repository;
+  final NumberFormat currency;
+  final VoidCallback onCreatePayment;
+  final VoidCallback onViewAll;
+
+  @override
+  State<RecentPaymentsCard> createState() => _RecentPaymentsCardState();
+}
+
+class _RecentPaymentsCardState extends State<RecentPaymentsCard> {
+  List<TransactionLinkModel>? _payments;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayments();
+  }
+
+  Future<void> _loadPayments() async {
+    try {
+      final allPayments = await widget.repository.fetchTransactionLinks();
+      if (mounted) {
+        setState(() {
+          _payments = allPayments.take(5).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.grey[900],
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.swap_horiz,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Pagamentos',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: widget.onViewAll,
+                  child: const Text('Ver todas'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_payments == null || _payments!.isEmpty)
+              Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.swap_horiz,
+                            size: 48,
+                            color: Colors.grey[700],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Nenhum pagamento ainda',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Crie seu primeiro pagamento',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: widget.onCreatePayment,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Novo Pagamento'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Column(
+                children: [
+                  ..._payments!.map((payment) => SimplePaymentTile(
+                        payment: payment,
+                        currency: widget.currency,
+                      )),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: widget.onCreatePayment,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Novo Pagamento'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SimplePaymentTile extends StatelessWidget {
+  const SimplePaymentTile({
+    super.key,
+    required this.payment,
+    required this.currency,
+  });
+
+  final TransactionLinkModel payment;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.link,
+                  color: AppColors.primary,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  payment.linkTypeLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              Text(
+                currency.format(payment.linkedAmount),
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
+          if (payment.sourceTransaction != null &&
+              payment.targetTransaction != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    payment.sourceTransaction!.description,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward,
+                  size: 12,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    payment.targetTransaction!.description,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            DateFormat('dd/MM/yyyy • HH:mm').format(payment.createdAt),
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 10,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -132,6 +132,26 @@ class _AuthFlowState extends State<AuthFlow> {
           );
         }
 
+        // Se a sessão expirou, mostra mensagem e redireciona para login
+        if (session.sessionExpired) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    '⏰ Sua sessão expirou. Por favor, faça login novamente.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+              // Reset das flags de onboarding ao expirar sessão
+              resetOnboardingFlags();
+            }
+          });
+        }
+
         // Detecta mudança de usuário autenticado (logout/login)
         final currentUserId = session.session?.user.id.toString();
         if (_lastAuthenticatedUserId != null && 

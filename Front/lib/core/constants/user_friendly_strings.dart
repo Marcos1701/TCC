@@ -35,9 +35,9 @@ class UxStrings {
   static const recentTransactions = 'Últimas transações';
   
   /// Linguagem mais amigável para receitas e despesas
-  static const income = 'Entrou';
-  static const expense = 'Saiu';
-  static const balance = 'Sobrou';
+  static const income = 'Receita';
+  static const expense = 'Despesa';
+  static const balance = 'Saldo';
   
   /// "Transferência" ao invés de "Vínculo"
   static const transfer = 'Transferência';

@@ -7,11 +7,12 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/constants/category_groups.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../data/transactions_viewmodel.dart';
-import '../../presentation/widgets/register_transaction_sheet.dart';
 import '../../presentation/widgets/transaction_details_sheet.dart';
+import '../../presentation/widgets/transaction_wizard.dart';
+import '../../presentation/widgets/payment_wizard.dart';
+import '../../../shared/presentation/pages/financial_concepts_page.dart';
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -53,7 +54,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => RegisterTransactionSheet(repository: _repository),
+      builder: (context) => const TransactionWizard(),
     );
 
     if (created == null) return;
@@ -70,6 +71,20 @@ class _TransactionsPageState extends State<TransactionsPage> {
       type: created.type,
       xpEarned: 50, // Pode vir do backend futuramente
     );
+  }
+
+  Future<void> _openPaymentWizard() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const PaymentWizard(),
+    );
+
+    if (result == true) {
+      // Atualiza a lista após criar pagamentos
+      _viewModel.refreshSilently();
+    }
   }
 
   Future<void> _deleteTransaction(TransactionModel transaction) async {
@@ -172,6 +187,22 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         automaticallyImplyLeading: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline, color: Colors.white),
+            tooltip: 'Ajuda e Conceitos',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FinancialConceptsPage(),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.swap_horiz, color: Colors.white),
+            tooltip: 'Novo Pagamento',
+            onPressed: _openPaymentWizard,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () => _viewModel.loadTransactions(type: _viewModel.filter),
@@ -497,10 +528,6 @@ class _TransactionTile extends StatelessWidget {
     final tokens = theme.extension<AppDecorations>()!;
     final accent = _colorFor(transaction.type);
     final icon = _iconFor(transaction.type);
-    final groupLabel = transaction.category?.group != null
-        ? CategoryGroupMetadata.labels[transaction.category!.group!] ??
-            transaction.category!.group!
-        : null;
     final recurrenceLabel = transaction.recurrenceLabel;
     
     // Obter cor da categoria (se disponível)
@@ -575,32 +602,6 @@ class _TransactionTile extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (groupLabel != null) ...[
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: (categoryColor ?? accent).withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: (categoryColor ?? accent).withOpacity(0.3),
-                                    width: 0.5,
-                                  ),
-                                ),
-                                child: Text(
-                                  groupLabel,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: categoryColor ?? accent,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                     ],

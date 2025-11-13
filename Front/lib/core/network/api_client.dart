@@ -2,6 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/secure_storage_service.dart';
 
+/// Callback chamado quando o token expirar e não puder ser renovado
+typedef OnSessionExpired = void Function();
+
 /// Cliente único pra falar com a API.
 /// guarda token na memória e renova quando 401 pingar.
 class ApiClient {
@@ -90,8 +93,19 @@ class ApiClient {
   String? _accessToken;
   String? _refreshToken;
   bool _refreshing = false;
+  OnSessionExpired? _onSessionExpired;
 
   Dio get client => _dio;
+
+  /// Configura callback para quando a sessão expirar
+  void setOnSessionExpired(OnSessionExpired callback) {
+    _onSessionExpired = callback;
+  }
+
+  /// Remove o callback de sessão expirada
+  void clearOnSessionExpired() {
+    _onSessionExpired = null;
+  }
 
   Future<void> bootstrap() async {
     _accessToken = await _storage.readToken();
@@ -119,36 +133,61 @@ class ApiClient {
   }
 
   Future<Response<dynamic>?> _refreshAndRetry(RequestOptions original) async {
-    if (_refreshToken == null) return null;
+    if (_refreshToken == null) {
+      debugPrint('🚨 Token de refresh não disponível, notificando expiração');
+      await clearTokens();
+      _notifySessionExpired();
+      return null;
+    }
+    
     try {
       _refreshing = true;
+      debugPrint('🔄 Tentando renovar token de acesso...');
+      
       final response = await _dio.post<Map<String, dynamic>>(
         '/api/token/refresh/',
         data: {'refresh': _refreshToken},
         options: Options(headers: {'Authorization': null}),
       );
+      
       final data = response.data ?? {};
       final newAccess = data['access'] as String?;
       final refreshValue = (data['refresh'] as String?) ?? _refreshToken;
+      
       if (newAccess != null && refreshValue != null) {
+        debugPrint('✅ Token renovado com sucesso');
         await setTokens(access: newAccess, refresh: refreshValue);
+        
         final opts = Options(
           method: original.method,
           headers: Map<String, dynamic>.from(original.headers),
         );
+        
         return _dio.request<dynamic>(
           original.path,
           data: original.data,
           queryParameters: original.queryParameters,
           options: opts,
         );
+      } else {
+        debugPrint('🚨 Resposta de refresh inválida, notificando expiração');
+        await clearTokens();
+        _notifySessionExpired();
       }
-    } on DioException {
+    } on DioException catch (e) {
+      debugPrint('🚨 Erro ao renovar token (${e.response?.statusCode}), notificando expiração');
       await clearTokens();
+      _notifySessionExpired();
     } finally {
       _refreshing = false;
     }
     return null;
+  }
+
+  /// Notifica que a sessão expirou
+  void _notifySessionExpired() {
+    debugPrint('📢 Notificando expiração de sessão');
+    _onSessionExpired?.call();
   }
 
   static String _resolveBaseUrl() {

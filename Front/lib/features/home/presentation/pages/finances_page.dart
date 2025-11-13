@@ -10,7 +10,9 @@ import '../../../transactions/presentation/pages/transactions_page.dart';
 /// Combina Transações + Análises + Metas em tabs internas
 /// Simplifica navegação de 5 para 3 abas principais
 class FinancesPage extends StatefulWidget {
-  const FinancesPage({super.key});
+  const FinancesPage({super.key, this.initialTab = 0});
+
+  final int initialTab;
 
   @override
   State<FinancesPage> createState() => _FinancesPageState();
@@ -24,7 +26,11 @@ class _FinancesPageState extends State<FinancesPage>
   void initState() {
     super.initState();
     AnalyticsService.trackScreenView('finances');
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
   }
 
   @override

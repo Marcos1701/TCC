@@ -1368,9 +1368,6 @@ class _CategoryMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final groupLabel = category.group != null
-        ? CategoryGroupMetadata.labels[category.group!] ?? category.group!
-        : null;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 280),
       child: Padding(
@@ -1381,27 +1378,13 @@ class _CategoryMenuItem extends StatelessWidget {
             const Icon(Icons.bookmark_border_rounded, size: 18, color: Colors.white70),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    category.name,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (groupLabel != null)
-                    Text(
-                      groupLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white54,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
+              child: Text(
+                category.name,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

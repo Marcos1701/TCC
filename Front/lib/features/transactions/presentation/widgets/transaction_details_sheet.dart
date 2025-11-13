@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/constants/category_groups.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
@@ -573,18 +572,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                   categoryColor ?? Colors.grey,
                   categoryColor: categoryColor,
                 ),
-                if (widget.transaction.category?.group != null) ...[
-                  const SizedBox(height: 16),
-                  _buildInfoRow(
-                    theme,
-                    'Grupo Financeiro',
-                    CategoryGroupMetadata
-                            .labels[widget.transaction.category!.group!] ??
-                        widget.transaction.category!.group!,
-                    Icons.folder_rounded,
-                    AppColors.highlight,
-                  ),
-                ],
                 if (_details?['days_since_created'] != null) ...[
                   const SizedBox(height: 16),
                   _buildInfoRow(

@@ -7,21 +7,41 @@ import '../repositories/auth_repository.dart';
 
 class SessionController extends ChangeNotifier {
   SessionController({AuthRepository? authRepository})
-      : _authRepository = authRepository ?? AuthRepository();
+      : _authRepository = authRepository ?? AuthRepository() {
+    // Configura callback para quando a sessão expirar
+    ApiClient().setOnSessionExpired(_handleSessionExpired);
+  }
 
   final AuthRepository _authRepository;
   SessionData? _session;
   bool _loading = true;
   bool _bootstrapDone = false;
   bool _isNewRegistration = false; // Flag para indicar novo cadastro
+  bool _sessionExpired = false; // Flag para indicar que a sessão expirou
 
   SessionData? get session => _session;
-  bool get isAuthenticated => _session != null;
+  bool get isAuthenticated => _session != null && !_sessionExpired;
   bool get isLoading => _loading;
   bool get bootstrapDone => _bootstrapDone;
   bool get isNewRegistration => _isNewRegistration;
+  bool get sessionExpired => _sessionExpired;
 
   ProfileModel? get profile => _session?.profile;
+
+  /// Callback chamado quando o ApiClient detectar que a sessão expirou
+  void _handleSessionExpired() {
+    debugPrint('🚨 SessionController: Sessão expirou, limpando dados...');
+    _sessionExpired = true;
+    _session = null;
+    _isNewRegistration = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    ApiClient().clearOnSessionExpired();
+    super.dispose();
+  }
 
   Future<void> bootstrap() async {
     if (_bootstrapDone) return;
@@ -40,6 +60,7 @@ class SessionController extends ChangeNotifier {
   Future<void> login({required String email, required String password}) async {
     _loading = true;
     _isNewRegistration = false; // Não é novo cadastro
+    _sessionExpired = false; // Reset flag de expiração
     notifyListeners();
     try {
       final tokens =
@@ -63,6 +84,7 @@ class SessionController extends ChangeNotifier {
   }) async {
     _loading = true;
     _isNewRegistration = true; // É novo cadastro!
+    _sessionExpired = false; // Reset flag de expiração
     notifyListeners();
     try {
       final tokens = await _authRepository.register(
@@ -126,6 +148,7 @@ class SessionController extends ChangeNotifier {
     await _authRepository.logout();
     _session = null;
     _isNewRegistration = false;
+    _sessionExpired = false;
     notifyListeners();
   }
 
