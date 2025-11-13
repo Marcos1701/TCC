@@ -81,7 +81,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Usuário desativado com sucesso'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         _loadUserDetails();
@@ -91,7 +91,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.alert,
           ),
         );
       }
@@ -117,7 +117,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Usuário reativado com sucesso'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
         _loadUserDetails();
@@ -127,7 +127,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.alert,
           ),
         );
       }
@@ -160,7 +160,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -171,7 +171,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.alert,
           ),
         );
       }
@@ -290,10 +290,10 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+              color: isActive ? AppColors.success.withOpacity(0.2) : AppColors.alert.withOpacity(0.2),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isActive ? Colors.green : Colors.red,
+                color: isActive ? AppColors.success : AppColors.alert,
                 width: 1.5,
               ),
             ),
@@ -303,13 +303,13 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                 Icon(
                   isActive ? Icons.check_circle : Icons.block,
                   size: 16,
-                  color: isActive ? Colors.green : Colors.red,
+                  color: isActive ? AppColors.success : AppColors.alert,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   isActive ? 'CONTA ATIVA' : 'CONTA DESATIVADA',
                   style: TextStyle(
-                    color: isActive ? Colors.green : Colors.red,
+                    color: isActive ? AppColors.success : AppColors.alert,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -398,8 +398,8 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   label: const Text('Desativar'),
                   onPressed: _deactivateUser,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
+                    foregroundColor: AppColors.alert,
+                    side: const BorderSide(color: AppColors.alert),
                   ),
                 )
               else
@@ -408,8 +408,8 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   label: const Text('Reativar'),
                   onPressed: _reactivateUser,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.success,
+                    foregroundColor: AppColors.surface,
                   ),
                 ),
             ],
@@ -505,11 +505,43 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildStatistics() {
-    final stats = _userDetails!['statistics'] as Map<String, dynamic>;
-    final tps = stats['tps'] as double;
-    final rdr = stats['rdr'] as double;
-    final ili = stats['ili'] as double;
-    final transactionCount = stats['transaction_count'] as int;
+    final stats = _userDetails!['statistics'] as Map<String, dynamic>?;
+    
+    // Se não houver estatísticas, exibir mensagem
+    if (stats == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        color: AppColors.surface,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Estatísticas',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                'Nenhuma estatística disponível',
+                style: TextStyle(
+                  color: AppColors.textSecondary.withOpacity(0.7),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    final tps = (stats['tps'] as num?)?.toDouble() ?? 0.0;
+    final rdr = (stats['rdr'] as num?)?.toDouble() ?? 0.0;
+    final ili = (stats['ili'] as num?)?.toDouble() ?? 0.0;
+    final transactionCount = (stats['transaction_count'] as num?)?.toInt() ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -533,7 +565,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   icon: Icons.trending_up,
                   label: 'TPS',
                   value: tps.toStringAsFixed(1),
-                  color: Colors.blue,
+                  color: AppColors.secondary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -542,7 +574,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   icon: Icons.balance,
                   label: 'RDR',
                   value: rdr.toStringAsFixed(1),
-                  color: Colors.purple,
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -551,7 +583,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   icon: Icons.calendar_today,
                   label: 'ILI',
                   value: ili.toStringAsFixed(1),
-                  color: Colors.orange,
+                  color: AppColors.highlight,
                 ),
               ),
             ],
@@ -608,7 +640,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildRecentTransactions() {
-    final transactions = _userDetails!['recent_transactions'] as List;
+    final transactions = (_userDetails!['recent_transactions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -643,9 +675,10 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildTransactionItem(Map<String, dynamic> transaction) {
-    final amount = double.parse(transaction['amount'].toString());
+    final amount = double.tryParse(transaction['amount']?.toString() ?? '0') ?? 0.0;
     final isIncome = amount > 0;
-    final date = DateTime.parse(transaction['date'] as String);
+    final dateStr = transaction['date'] as String?;
+    final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -654,12 +687,12 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: isIncome ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+              color: isIncome ? AppColors.success.withOpacity(0.2) : AppColors.alert.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-              color: isIncome ? Colors.green : Colors.red,
+              color: isIncome ? AppColors.success : AppColors.alert,
               size: 20,
             ),
           ),
@@ -669,7 +702,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction['description'] as String,
+                  transaction['description'] as String? ?? 'Sem descrição',
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 14,
@@ -678,7 +711,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  '${transaction['category']} • ${DateFormat('dd/MM/yyyy').format(date)}',
+                  '${transaction['category'] ?? 'Sem categoria'} • ${date != null ? DateFormat('dd/MM/yyyy').format(date) : 'Sem data'}',
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
@@ -690,7 +723,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
           Text(
             'R\$ ${amount.abs().toStringAsFixed(2)}',
             style: TextStyle(
-              color: isIncome ? Colors.green : Colors.red,
+              color: isIncome ? AppColors.success : AppColors.alert,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -701,7 +734,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildActiveMissions() {
-    final missions = _userDetails!['active_missions'] as List;
+    final missions = (_userDetails!['active_missions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -736,7 +769,10 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildMissionItem(Map<String, dynamic> mission) {
-    final progress = mission['progress_percentage'] as int;
+    // Backend agora retorna 'progress' (0-100) em vez de 'progress_percentage'
+    final progress = (mission['progress'] as num?)?.toInt() ?? 0;
+    final title = mission['mission__title'] as String? ?? mission['title'] as String? ?? 'Missão sem título';
+    final difficulty = mission['mission__difficulty'] as String? ?? mission['difficulty'] as String? ?? 'N/A';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -747,7 +783,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
             children: [
               Expanded(
                 child: Text(
-                  mission['title'] as String,
+                  title,
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 14,
@@ -762,7 +798,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  mission['status'] as String,
+                  difficulty,
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 10,
@@ -796,7 +832,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildAdminActions() {
-    final actions = _userDetails!['admin_actions'] as List;
+    final actions = (_userDetails!['admin_actions'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -831,8 +867,9 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
   }
 
   Widget _buildAdminActionItem(Map<String, dynamic> action) {
-    final timestamp = DateTime.parse(action['timestamp'] as String);
-    final actionType = action['action_display'] as String;
+    final timestampStr = action['timestamp'] as String?;
+    final timestamp = timestampStr != null ? DateTime.tryParse(timestampStr) : null;
+    final actionType = action['action_display'] as String? ?? 'Ação desconhecida';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -876,7 +913,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
                 ],
                 const SizedBox(height: 2),
                 Text(
-                  'Por ${action['admin']} • ${_formatDate(timestamp)}',
+                  'Por ${action['admin'] ?? 'Admin'} • ${timestamp != null ? _formatDate(timestamp) : 'Data indisponível'}',
                   style: TextStyle(
                     color: AppColors.textSecondary.withOpacity(0.7),
                     fontSize: 10,

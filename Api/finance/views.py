@@ -131,6 +131,37 @@ class CategoryViewSet(viewsets.ModelViewSet):
         user = self.request.user
         data = serializer.validated_data
         
+        # Verificar se está tentando criar categoria global (sem user)
+        is_creating_global = data.get('is_system_default', False)
+        
+        # Apenas admins podem criar categorias globais/de sistema
+        if is_creating_global and not user.is_staff:
+            raise ValidationError({
+                'is_system_default': 'Apenas administradores podem criar categorias de sistema.'
+            })
+        
+        # Se for admin criando categoria global
+        if is_creating_global and user.is_staff:
+            # Validar unicidade global
+            name = data.get('name', '').strip()
+            category_type = data.get('type')
+            
+            existing = Category.objects.filter(
+                user__isnull=True,
+                name__iexact=name,
+                type=category_type
+            ).exists()
+            
+            if existing:
+                raise ValidationError({
+                    'name': f'Já existe uma categoria global "{name}" do tipo {category_type}.'
+                })
+            
+            # Criar categoria global (sem user)
+            serializer.save(user=None, is_system_default=True)
+            return
+        
+        # Fluxo normal para usuários: criar categoria pessoal
         # 1. Limitar número de categorias personalizadas por usuário
         custom_categories = Category.objects.filter(user=user, is_system_default=False).count()
         if custom_categories >= 100:  # Limite razoável
@@ -153,12 +184,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 'name': f'Já existe uma categoria "{name}" do tipo {category_type} para você.'
             })
         
-        # 3. Validar que não está tentando criar categoria de sistema
-        if data.get('is_system_default', False):
-            raise ValidationError({
-                'is_system_default': 'Você não pode criar categorias de sistema.'
-            })
-        
         serializer.save(user=user, is_system_default=False)
     
     def perform_update(self, serializer):
@@ -168,17 +193,55 @@ class CategoryViewSet(viewsets.ModelViewSet):
         from rest_framework.exceptions import ValidationError
         
         instance = self.get_object()
+        user = self.request.user
         
-        # 1. Validar que categorias de sistema não podem ser editadas
-        if instance.is_system_default:
+        # Apenas admins podem editar categorias globais/de sistema
+        if instance.user is None and not user.is_staff:
             raise ValidationError({
-                'is_system_default': 'Categorias padrão do sistema não podem ser editadas.'
+                'non_field_errors': 'Apenas administradores podem editar categorias globais.'
             })
         
-        # 2. Validar que categoria pertence ao usuário
-        if instance.user != self.request.user:
+        # Se for categoria de usuário, validar que pertence ao usuário atual
+        if instance.user is not None and instance.user != user:
             raise ValidationError({
                 'non_field_errors': 'Você não pode editar categorias de outros usuários.'
+            })
+        
+        # Validar unicidade ao atualizar nome
+        data = serializer.validated_data
+        if 'name' in data:
+            name = data['name'].strip()
+            category_type = data.get('type', instance.type)
+            
+            # Para categorias globais
+            if instance.user is None:
+                existing = Category.objects.filter(
+                    user__isnull=True,
+                    name__iexact=name,
+                    type=category_type
+                ).exclude(pk=instance.pk).exists()
+                
+                if existing:
+                    raise ValidationError({
+                        'name': f'Já existe uma categoria global "{name}" do tipo {category_type}.'
+                    })
+            # Para categorias de usuário
+            else:
+                existing = Category.objects.filter(
+                    user=user,
+                    name__iexact=name,
+                    type=category_type
+                ).exclude(pk=instance.pk).exists()
+                
+                if existing:
+                    raise ValidationError({
+                        'name': f'Já existe uma categoria "{name}" do tipo {category_type} para você.'
+                    })
+        
+        # Não permitir mudança de is_system_default após criação
+        if 'is_system_default' in data and data['is_system_default'] != instance.is_system_default:
+            raise ValidationError({
+                'is_system_default': 'Não é possível alterar o status de categoria de sistema.'
             })
         
         serializer.save()
@@ -189,23 +252,24 @@ class CategoryViewSet(viewsets.ModelViewSet):
         """
         from rest_framework.exceptions import ValidationError
         
+        user = self.request.user
         logger.info(f"Tentando deletar categoria ID={instance.id}, name={instance.name}, user={instance.user}, is_system_default={instance.is_system_default}")
         
-        # 1. Validar que categorias de sistema não podem ser deletadas
-        if instance.is_system_default:
-            logger.warning(f"Tentativa de deletar categoria de sistema: {instance.name}")
+        # Apenas admins podem deletar categorias globais
+        if instance.user is None and not user.is_staff:
+            logger.warning(f"Usuário não-admin {user} tentou deletar categoria global: {instance.name}")
             raise ValidationError({
-                'non_field_errors': 'Categorias padrão do sistema não podem ser excluídas.'
+                'non_field_errors': 'Apenas administradores podem excluir categorias globais.'
             })
         
-        # 2. Validar que categoria pertence ao usuário
-        if instance.user != self.request.user:
-            logger.warning(f"Usuário {self.request.user} tentou deletar categoria de outro usuário: {instance.user}")
+        # Se for categoria de usuário, validar que pertence ao usuário atual
+        if instance.user is not None and instance.user != user:
+            logger.warning(f"Usuário {user} tentou deletar categoria de outro usuário: {instance.user}")
             raise ValidationError({
                 'non_field_errors': 'Você não pode excluir categorias de outros usuários.'
             })
         
-        # 3. Verificar se categoria tem transações vinculadas
+        # Verificar se categoria tem transações vinculadas
         transaction_count = Transaction.objects.filter(category=instance).count()
         if transaction_count > 0:
             logger.warning(f"Categoria {instance.name} possui {transaction_count} transações vinculadas")
@@ -213,7 +277,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Esta categoria possui {transaction_count} transação(ões) vinculada(s). Reatribua as transações antes de excluir.'
             })
         
-        # 4. Verificar se categoria tem metas vinculadas
+        # Verificar se categoria tem metas vinculadas
         goal_count = Goal.objects.filter(target_category=instance).count()
         if goal_count > 0:
             logger.warning(f"Categoria {instance.name} possui {goal_count} metas vinculadas")
@@ -221,7 +285,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Esta categoria possui {goal_count} meta(s) vinculada(s). Reatribua as metas antes de excluir.'
             })
         
-        logger.info(f"Deletando categoria {instance.name} do usuário {self.request.user}")
+        logger.info(f"Deletando categoria {instance.name}")
         instance.delete()
         logger.info(f"Categoria {instance.name} deletada com sucesso")
 
@@ -3144,13 +3208,13 @@ class AdminStatsViewSet(viewsets.ViewSet):
             
             # Active users (users with transactions or mission progress in period)
             active_users_7d = User.objects.filter(
-                Q(transaction__date__gte=seven_days_ago.date()) |
-                Q(missionprogress__updated_at__gte=seven_days_ago)
+                Q(transactions__date__gte=seven_days_ago.date()) |
+                Q(mission_progress__updated_at__gte=seven_days_ago)
             ).distinct().count()
             
             active_users_30d = User.objects.filter(
-                Q(transaction__date__gte=thirty_days_ago.date()) |
-                Q(missionprogress__updated_at__gte=thirty_days_ago)
+                Q(transactions__date__gte=thirty_days_ago.date()) |
+                Q(mission_progress__updated_at__gte=thirty_days_ago)
             ).distinct().count()
             
             # New users
@@ -3167,30 +3231,36 @@ class AdminStatsViewSet(viewsets.ViewSet):
             users_by_level['Level 21+'] = UserProfile.objects.filter(level__gte=21).count()
             
             # Top users by XP
-            top_users = UserProfile.objects.select_related('user').order_by('-total_xp')[:10]
+            top_users = UserProfile.objects.select_related('user').order_by('-experience_points')[:10]
             top_users_data = []
             for profile in top_users:
+                # Calcular XP atual no nível
+                xp_for_levels = sum(150 + (lvl - 1) * 50 for lvl in range(1, profile.level))
+                xp_in_current_level = profile.experience_points - xp_for_levels
+                xp_needed = profile.next_level_threshold
+                
                 top_users_data.append({
                     'username': profile.user.username,
                     'level': profile.level,
-                    'total_xp': profile.total_xp,
-                    'xp_to_next_level': profile.xp_to_next_level,
+                    'experience_points': profile.experience_points,
+                    'xp_to_next_level': max(0, xp_needed - xp_in_current_level),
                 })
             
             # Inactive users (no activity in last 30 days)
             inactive_users = User.objects.exclude(
-                Q(transaction__date__gte=thirty_days_ago.date()) |
-                Q(missionprogress__updated_at__gte=thirty_days_ago)
+                Q(transactions__date__gte=thirty_days_ago.date()) |
+                Q(mission_progress__updated_at__gte=thirty_days_ago)
             ).distinct().count()
             
             # Users with goals
             users_with_goals = User.objects.filter(
-                goal__isnull=False
+                goals__isnull=False
             ).distinct().count()
             
-            # Users with completed goals
+            # Users with completed goals (current_amount >= target_amount)
+            from django.db.models import F
             users_with_completed_goals = User.objects.filter(
-                goal__status='COMPLETED'
+                goals__current_amount__gte=F('goals__target_amount')
             ).distinct().count()
             
             return {
@@ -3240,11 +3310,18 @@ class AdminStatsViewSet(viewsets.ViewSet):
             
             # Goal metrics
             total_goals = Goal.objects.count()
+            
+            # Active goals: metas com deadline no futuro ou sem deadline e não completadas
+            from django.db.models import F
             active_goals = Goal.objects.filter(
-                status='ACTIVE'
+                Q(deadline__isnull=True) | Q(deadline__gte=timezone.now().date())
+            ).filter(
+                current_amount__lt=F('target_amount')
             ).count()
+            
+            # Completed goals: metas onde current_amount >= target_amount
             completed_goals = Goal.objects.filter(
-                status='COMPLETED'
+                current_amount__gte=F('target_amount')
             ).count()
             
             # Category metrics
@@ -3450,13 +3527,20 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Missões ativas
         from .models import AdminActionLog, MissionProgress
-        active_missions = MissionProgress.objects.filter(
+        active_missions_qs = MissionProgress.objects.filter(
             user=user,
             status='IN_PROGRESS'
-        ).select_related('mission').values(
-            'id', 'mission__title', 'mission__mission_type',
-            'mission__difficulty', 'progress_percentage', 'started_at'
-        )[:5]
+        ).select_related('mission')[:5]
+        
+        # Construir lista com progresso calculado
+        active_missions = [{
+            'id': mp.id,
+            'mission__title': mp.mission.title,
+            'mission__mission_type': mp.mission.mission_type,
+            'mission__difficulty': mp.mission.difficulty,
+            'progress': mp.progress,  # Campo real do modelo
+            'started_at': mp.started_at,
+        } for mp in active_missions_qs]
         
         # Logs de ações admin (últimas 20)
         admin_actions = AdminActionLog.objects.filter(

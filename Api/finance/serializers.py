@@ -25,7 +25,8 @@ class CategorySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Category
-        fields = ("id", "name", "type", "color", "group", "is_user_created")
+        fields = ("id", "name", "type", "color", "group", "is_system_default", "is_user_created")
+        read_only_fields = ("id", "is_user_created")
     
     def get_is_user_created(self, obj):
         """

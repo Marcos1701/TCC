@@ -270,23 +270,44 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Widget _buildMetricsGrid() {
-    final users = _overviewStats?['total_users'] ?? 0;
-    final completedMissions = _overviewStats?['completed_missions'] ?? 0;
-    final activeMissions = _overviewStats?['active_missions'] ?? 0;
-    final avgLevel = _overviewStats?['avg_user_level'] ?? 0.0;
+    // Função auxiliar para pegar valores com fallback seguro
+    int _getIntValue(Map<String, dynamic>? map, String key, [int fallback = 0]) {
+      if (map == null) return fallback;
+      final value = map[key];
+      if (value == null) return fallback;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? fallback;
+      return fallback;
+    }
     
-    final activeUsers7d = _userAnalytics?['active_users_7d'] ?? 0;
-    final newUsers7d = _userAnalytics?['new_users_7d'] ?? 0;
-    final totalTransactions = _systemHealth?['total_transactions'] ?? 0;
-    final activeGoals = _systemHealth?['active_goals'] ?? 0;
+    double _getDoubleValue(Map<String, dynamic>? map, String key, [double fallback = 0.0]) {
+      if (map == null) return fallback;
+      final value = map[key];
+      if (value == null) return fallback;
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? fallback;
+      return fallback;
+    }
+    
+    final users = _getIntValue(_overviewStats, 'total_users');
+    final completedMissions = _getIntValue(_overviewStats, 'completed_missions');
+    final activeMissions = _getIntValue(_overviewStats, 'active_missions');
+    final avgLevel = _getDoubleValue(_overviewStats, 'avg_user_level');
+    
+    final activeUsers7d = _getIntValue(_userAnalytics, 'active_users_7d');
+    final newUsers7d = _getIntValue(_userAnalytics, 'new_users_7d');
+    final totalTransactions = _getIntValue(_systemHealth, 'total_transactions');
+    final activeGoals = _getIntValue(_systemHealth, 'active_goals');
 
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.15,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      childAspectRatio: 1.35, // Aumentado para deixar cards mais compactos verticalmente
       children: [
         _MetricCard(
           title: 'Usuários',
@@ -420,6 +441,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     if (missionsByDifficulty == null && missionsByType == null) {
       return const SizedBox.shrink();
     }
+    
+    // Função auxiliar para pegar valores com segurança
+    int _getSafeValue(Map<String, dynamic>? map, String key) {
+      if (map == null) return 0;
+      final value = map[key];
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,17 +475,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Column(
               children: [
                 if (missionsByDifficulty != null) ...[
-                  _buildStatRow('Fáceis', missionsByDifficulty['EASY'] ?? 0),
-                  _buildStatRow('Médias', missionsByDifficulty['MEDIUM'] ?? 0),
-                  _buildStatRow('Difíceis', missionsByDifficulty['HARD'] ?? 0),
+                  _buildStatRow('Fáceis', _getSafeValue(missionsByDifficulty, 'EASY')),
+                  _buildStatRow('Médias', _getSafeValue(missionsByDifficulty, 'MEDIUM')),
+                  _buildStatRow('Difíceis', _getSafeValue(missionsByDifficulty, 'HARD')),
                   Divider(height: 24, color: Colors.grey[800]),
                 ],
                 if (missionsByType != null) ...[
-                  _buildStatRow('Onboarding', missionsByType['ONBOARDING'] ?? 0),
-                  _buildStatRow('Melhoria TPS', missionsByType['TPS_IMPROVEMENT'] ?? 0),
-                  _buildStatRow('Redução RDR', missionsByType['RDR_REDUCTION'] ?? 0),
-                  _buildStatRow('Construção ILI', missionsByType['ILI_BUILDING'] ?? 0),
-                  _buildStatRow('Avançadas', missionsByType['ADVANCED'] ?? 0),
+                  _buildStatRow('Onboarding', _getSafeValue(missionsByType, 'ONBOARDING')),
+                  _buildStatRow('Melhoria TPS', _getSafeValue(missionsByType, 'TPS_IMPROVEMENT')),
+                  _buildStatRow('Redução RDR', _getSafeValue(missionsByType, 'RDR_REDUCTION')),
+                  _buildStatRow('Construção ILI', _getSafeValue(missionsByType, 'ILI_BUILDING')),
+                  _buildStatRow('Avançadas', _getSafeValue(missionsByType, 'ADVANCED')),
                 ],
               ],
             ),
@@ -614,9 +646,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey[800]),
             itemBuilder: (context, index) {
               final user = topUsers[index] as Map<String, dynamic>;
-              final username = user['username'] as String? ?? '';
+              final username = user['username'] as String? ?? 'Desconhecido';
               final level = user['level'] as int? ?? 0;
-              final totalXp = user['total_xp'] as int? ?? 0;
+              final experiencePoints = user['experience_points'] as int? ?? 0;
               final xpToNext = user['xp_to_next_level'] as int? ?? 0;
 
               return ListTile(
@@ -672,7 +704,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ],
                 ),
                 subtitle: Text(
-                  '$totalXp XP • Faltam $xpToNext XP',
+                  '$experiencePoints XP • Faltam $xpToNext XP',
                   style: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 12,
@@ -810,18 +842,28 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     if (_systemHealth == null) {
       return const SizedBox.shrink();
     }
+    
+    // Função auxiliar para pegar valores com segurança
+    int _getSafeInt(String key) {
+      final value = _systemHealth?[key];
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is double) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
 
-    final totalTransactions = _systemHealth?['total_transactions'] ?? 0;
-    final transactions7d = _systemHealth?['transactions_7d'] ?? 0;
-    final totalGoals = _systemHealth?['total_goals'] ?? 0;
-    final activeGoals = _systemHealth?['active_goals'] ?? 0;
-    final completedGoals = _systemHealth?['completed_goals'] ?? 0;
-    final categoriesCount = _systemHealth?['categories_count'] ?? 0;
-    final globalCategories = _systemHealth?['global_categories'] ?? 0;
-    final userCategories = _systemHealth?['user_categories'] ?? 0;
-    final totalMissions = _systemHealth?['total_missions'] ?? 0;
-    final aiMissions = _systemHealth?['ai_generated_missions'] ?? 0;
-    final defaultMissions = _systemHealth?['default_missions'] ?? 0;
+    final totalTransactions = _getSafeInt('total_transactions');
+    final transactions7d = _getSafeInt('transactions_7d');
+    final totalGoals = _getSafeInt('total_goals');
+    final activeGoals = _getSafeInt('active_goals');
+    final completedGoals = _getSafeInt('completed_goals');
+    final categoriesCount = _getSafeInt('categories_count');
+    final globalCategories = _getSafeInt('global_categories');
+    final userCategories = _getSafeInt('user_categories');
+    final totalMissions = _getSafeInt('total_missions');
+    final aiMissions = _getSafeInt('ai_generated_missions');
+    final defaultMissions = _getSafeInt('default_missions');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -921,7 +963,7 @@ class _MetricCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.15),
@@ -940,12 +982,12 @@ class _MetricCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 20),
+                  child: Icon(icon, color: color, size: 18),
                 ),
                 Container(
                   width: 4,
@@ -957,24 +999,24 @@ class _MetricCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               value,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 22,
                 height: 1.1,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               title,
               style: TextStyle(
                 color: Colors.grey[400],
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
@@ -984,7 +1026,7 @@ class _MetricCard extends StatelessWidget {
               subtitle,
               style: TextStyle(
                 color: Colors.grey[600],
-                fontSize: 9,
+                fontSize: 8.5,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

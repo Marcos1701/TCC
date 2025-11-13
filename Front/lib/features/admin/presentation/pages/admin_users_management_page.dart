@@ -113,16 +113,17 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
         title: const Text(
           'Gestão de Usuários',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: AppColors.surface,
+        backgroundColor: const Color(0xFF1E1E1E),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadUsers,
             tooltip: 'Atualizar',
           ),
@@ -148,18 +149,20 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
   Widget _buildFilters() {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: AppColors.surface,
+      color: const Color(0xFF1E1E1E),
       child: Column(
         children: [
           // Busca
           TextField(
             controller: _searchController,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Buscar por username ou email...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+              hintStyle: TextStyle(color: Colors.grey[500]),
+              prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, size: 20),
+                      icon: const Icon(Icons.clear, size: 20, color: Colors.grey),
                       onPressed: () {
                         _searchController.clear();
                         _applyFilters();
@@ -167,7 +170,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.background,
+              fillColor: const Color(0xFF2A2A2A),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -220,7 +223,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
                   label: 'Ativos',
                   icon: Icons.check_circle_outline,
                   isSelected: _selectedStatus == true,
-                  color: Colors.green,
+                  color: AppColors.success,
                   onTap: () {
                     setState(() => _selectedStatus = _selectedStatus == true ? null : true);
                     _applyFilters();
@@ -231,7 +234,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
                   label: 'Inativos',
                   icon: Icons.block,
                   isSelected: _selectedStatus == false,
-                  color: Colors.red,
+                  color: AppColors.alert,
                   onTap: () {
                     setState(() => _selectedStatus = _selectedStatus == false ? null : false);
                     _applyFilters();
@@ -257,7 +260,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                const Text('Ordenar: ', style: TextStyle(color: AppColors.textSecondary)),
+                Text('Ordenar: ', style: TextStyle(color: Colors.grey[400])),
                 _buildSortChip('Mais recentes', '-date_joined'),
                 _buildSortChip('Mais antigos', 'date_joined'),
                 _buildSortChip('Maior nível', '-level'),
@@ -284,7 +287,7 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
           Icon(
             icon,
             size: 16,
-            color: isSelected ? Colors.white : (color ?? AppColors.primary),
+            color: isSelected ? AppColors.surface : (color ?? AppColors.primary),
           ),
           const SizedBox(width: 4),
           Text(label),
@@ -294,9 +297,9 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
       onSelected: (_) => onTap(),
       selectedColor: color ?? AppColors.primary,
       checkmarkColor: Colors.white,
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF2A2A2A),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppColors.textPrimary,
+        color: isSelected ? Colors.white : Colors.grey[300],
       ),
     );
   }
@@ -313,9 +316,9 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
           _applyFilters();
         },
         selectedColor: AppColors.primary,
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFF2A2A2A),
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : AppColors.textPrimary,
+          color: isSelected ? Colors.white : Colors.grey[300],
           fontSize: 12,
         ),
       ),
@@ -327,15 +330,15 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: AppColors.surface,
+      color: const Color(0xFF1E1E1E),
       child: Row(
         children: [
-          const Icon(Icons.people, color: AppColors.textSecondary, size: 20),
+          Icon(Icons.people, color: Colors.grey[400], size: 20),
           const SizedBox(width: 8),
           Text(
             '$_totalUsers usuários',
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            style: TextStyle(
+              color: Colors.grey[300],
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -361,16 +364,16 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.person_off_outlined, size: 64, color: AppColors.textSecondary.withOpacity(0.5)),
+            Icon(Icons.person_off_outlined, size: 64, color: Colors.grey[600]),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Nenhum usuário encontrado',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
             ),
             const SizedBox(height: 8),
             TextButton.icon(
-              icon: const Icon(Icons.clear_all),
-              label: const Text('Limpar filtros'),
+              icon: const Icon(Icons.clear_all, color: AppColors.primary),
+              label: const Text('Limpar filtros', style: TextStyle(color: AppColors.primary)),
               onPressed: _clearFilters,
             ),
           ],
@@ -403,29 +406,29 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: AppColors.surface,
+      color: const Color(0xFF1E1E1E),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             'Mostrando $startItem-$endItem de $_totalUsers',
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            style: TextStyle(color: Colors.grey[400], fontSize: 12),
           ),
           Row(
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: _hasPrevious ? _previousPage : null,
-                color: _hasPrevious ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                color: _hasPrevious ? AppColors.primary : Colors.grey[700],
               ),
               Text(
                 'Página $_currentPage',
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: _hasNext ? _nextPage : null,
-                color: _hasNext ? AppColors.primary : AppColors.textSecondary.withOpacity(0.3),
+                color: _hasNext ? AppColors.primary : Colors.grey[700],
               ),
             ],
           ),
@@ -441,18 +444,22 @@ class _AdminUsersManagementPageState extends State<AdminUsersManagementPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(Icons.error_outline, size: 64, color: AppColors.alert.withOpacity(0.7)),
             const SizedBox(height: 16),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.refresh),
               label: const Text('Tentar novamente'),
               onPressed: _loadUsers,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         ),
@@ -483,7 +490,8 @@ class _UserCard extends StatelessWidget {
         : null;
 
     return Card(
-      color: AppColors.surface,
+      color: const Color(0xFF1E1E1E),
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
@@ -521,7 +529,7 @@ class _UserCard extends StatelessWidget {
                               child: Text(
                                 user['username'] as String,
                                 style: const TextStyle(
-                                  color: AppColors.textPrimary,
+                                  color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -535,8 +543,8 @@ class _UserCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           user['email'] as String,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: Colors.grey[400],
                             fontSize: 12,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -569,19 +577,19 @@ class _UserCard extends StatelessWidget {
               // Datas
               Row(
                 children: [
-                  const Icon(Icons.calendar_today, size: 12, color: AppColors.textSecondary),
+                  Icon(Icons.calendar_today, size: 12, color: Colors.grey[500]),
                   const SizedBox(width: 4),
                   Text(
                     'Desde ${DateFormat('dd/MM/yyyy').format(dateJoined)}',
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 11),
                   ),
                   if (lastLogin != null) ...[
                     const SizedBox(width: 16),
-                    const Icon(Icons.login, size: 12, color: AppColors.textSecondary),
+                    Icon(Icons.login, size: 12, color: Colors.grey[500]),
                     const SizedBox(width: 4),
                     Text(
                       'Último acesso: ${_formatLastLogin(lastLogin)}',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                      style: TextStyle(color: Colors.grey[400], fontSize: 11),
                     ),
                   ],
                 ],
@@ -597,17 +605,17 @@ class _UserCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isActive ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2),
+        color: isActive ? AppColors.success.withOpacity(0.2) : AppColors.alert.withOpacity(0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isActive ? Colors.green : Colors.red,
+          color: isActive ? AppColors.success : AppColors.alert,
           width: 1,
         ),
       ),
       child: Text(
         isActive ? 'ATIVO' : 'INATIVO',
         style: TextStyle(
-          color: isActive ? Colors.green : Colors.red,
+          color: isActive ? AppColors.success : AppColors.alert,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),
@@ -681,9 +689,9 @@ class _UserCard extends StatelessWidget {
   Color _getTierColor(String tier) {
     switch (tier) {
       case 'BEGINNER':
-        return Colors.blue;
+        return AppColors.secondary;
       case 'INTERMEDIATE':
-        return Colors.purple;
+        return AppColors.primary;
       case 'ADVANCED':
         return AppColors.highlight;
       default:

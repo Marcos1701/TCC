@@ -194,13 +194,19 @@ class _AdminMissionsManagementPageState
   Future<void> _showEditMissionDialog(Map<String, dynamic> mission) async {
     final titleController = TextEditingController(text: mission['title']?.toString() ?? '');
     final descriptionController = TextEditingController(text: mission['description']?.toString() ?? '');
-    // Suporta tanto reward_points quanto xp_reward
     final xpValue = mission['reward_points'] ?? mission['xp_reward'] ?? 0;
     final xpController = TextEditingController(text: xpValue.toString());
-    String selectedType = mission['mission_type']?.toString().toUpperCase() ?? 'SAVINGS';
-    // Suporta tanto difficulty quanto priority
-    final difficultyValue = mission['difficulty'] ?? mission['priority'];
-    String selectedDifficulty = difficultyValue?.toString().toUpperCase() ?? 'EASY';
+    final durationController = TextEditingController(text: (mission['duration_days'] ?? 30).toString());
+    final priorityController = TextEditingController(text: (mission['priority'] ?? 1).toString());
+    final targetTPSController = TextEditingController(text: mission['target_tps']?.toString() ?? '');
+    final targetRDRController = TextEditingController(text: mission['target_rdr']?.toString() ?? '');
+    final minILIController = TextEditingController(text: mission['min_ili']?.toString() ?? '');
+    final maxILIController = TextEditingController(text: mission['max_ili']?.toString() ?? '');
+    final minTransactionsController = TextEditingController(text: mission['min_transactions']?.toString() ?? '');
+    
+    String selectedType = mission['mission_type']?.toString().toUpperCase() ?? 'ONBOARDING';
+    String selectedDifficulty = (mission['difficulty']?.toString() ?? 'EASY').toUpperCase();
+    String selectedValidationType = (mission['validation_type']?.toString() ?? 'SNAPSHOT').toUpperCase();
 
     await showDialog(
       context: context,
@@ -228,92 +234,140 @@ class _AdminMissionsManagementPageState
                 ),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTextField('Título', titleController),
-                  const SizedBox(height: 16),
-                  _buildTextField('Descrição', descriptionController, maxLines: 3),
-                  const SizedBox(height: 16),
-                  _buildTextField('XP Reward', xpController, keyboardType: TextInputType.number),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Tipo',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[400],
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.85,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Seção: Informações Básicas
+                    _buildSectionHeader('Informações Básicas', Icons.info_outline),
+                    const SizedBox(height: 12),
+                    _buildTextField('Título', titleController),
+                    const SizedBox(height: 16),
+                    _buildTextField('Descrição', descriptionController, maxLines: 3),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField('XP Recompensa', xpController, 
+                            keyboardType: TextInputType.number),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField('Duração (dias)', durationController,
+                            keyboardType: TextInputType.number),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedType,
-                    dropdownColor: const Color(0xFF2A2A2A),
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      isDense: true,
+                    const SizedBox(height: 16),
+                    _buildTextField('Prioridade (menor = maior)', priorityController,
+                      keyboardType: TextInputType.number),
+                    
+                    const SizedBox(height: 24),
+                    // Seção: Classificação
+                    _buildSectionHeader('Classificação', Icons.category),
+                    const SizedBox(height: 12),
+                    _buildLabeledDropdown(
+                      'Tipo de Missão',
+                      selectedType,
+                      const [
+                        DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
+                        DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
+                        DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
+                        DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
+                        DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                      ],
+                      (value) => setDialogState(() => selectedType = value!),
                     ),
-                    style: const TextStyle(color: Colors.white),
-                    items: const [
-                      DropdownMenuItem(value: 'SAVINGS', child: Text('Economia')),
-                      DropdownMenuItem(value: 'EXPENSE_CONTROL', child: Text('Controle')),
-                      DropdownMenuItem(value: 'DEBT_REDUCTION', child: Text('Dívidas')),
-                      DropdownMenuItem(value: 'ONBOARDING', child: Text('Onboarding')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedType = value!;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Dificuldade',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[400],
+                    const SizedBox(height: 16),
+                    _buildLabeledDropdown(
+                      'Dificuldade',
+                      selectedDifficulty,
+                      const [
+                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
+                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                      ],
+                      (value) => setDialogState(() => selectedDifficulty = value!),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedDifficulty,
-                    dropdownColor: const Color(0xFF2A2A2A),
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      isDense: true,
+                    const SizedBox(height: 16),
+                    _buildLabeledDropdown(
+                      'Tipo de Validação',
+                      selectedValidationType,
+                      const [
+                        DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
+                        DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
+                        DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
+                        DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
+                        DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
+                        DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
+                      ],
+                      (value) => setDialogState(() => selectedValidationType = value!),
                     ),
-                    style: const TextStyle(color: Colors.white),
-                    items: const [
-                      DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                      DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                      DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedDifficulty = value!;
-                      });
-                    },
-                  ),
-                ],
+                    
+                    const SizedBox(height: 24),
+                    // Seção: Critérios de Indicadores (Opcional)
+                    _buildSectionHeader('Critérios de Indicadores (Opcional)', Icons.insights),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField('TPS Alvo (%)', targetTPSController,
+                            keyboardType: TextInputType.number),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField('RDR Máximo (%)', targetRDRController,
+                            keyboardType: TextInputType.number),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField('ILI Mínimo (meses)', minILIController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField('ILI Máximo (meses)', maxILIController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField('Transações Mínimas', minTransactionsController,
+                      keyboardType: TextInputType.number),
+                    
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lightbulb_outline, color: AppColors.primary, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Deixe os campos vazios se não forem aplicáveis',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -348,20 +402,41 @@ class _AdminMissionsManagementPageState
                     return;
                   }
 
-                  // Capturar referências antes do await
                   final navigator = Navigator.of(context);
                   final messenger = ScaffoldMessenger.of(context);
 
                   try {
+                    final data = <String, dynamic>{
+                      'title': titleController.text.trim(),
+                      'description': descriptionController.text.trim(),
+                      'reward_points': xpValue,
+                      'mission_type': selectedType,
+                      'difficulty': selectedDifficulty,
+                      'validation_type': selectedValidationType,
+                      'duration_days': int.tryParse(durationController.text) ?? 30,
+                      'priority': int.tryParse(priorityController.text) ?? 1,
+                    };
+                    
+                    // Adicionar campos opcionais apenas se preenchidos
+                    if (targetTPSController.text.isNotEmpty) {
+                      data['target_tps'] = int.tryParse(targetTPSController.text);
+                    }
+                    if (targetRDRController.text.isNotEmpty) {
+                      data['target_rdr'] = int.tryParse(targetRDRController.text);
+                    }
+                    if (minILIController.text.isNotEmpty) {
+                      data['min_ili'] = double.tryParse(minILIController.text);
+                    }
+                    if (maxILIController.text.isNotEmpty) {
+                      data['max_ili'] = double.tryParse(maxILIController.text);
+                    }
+                    if (minTransactionsController.text.isNotEmpty) {
+                      data['min_transactions'] = int.tryParse(minTransactionsController.text);
+                    }
+
                     await _apiClient.client.patch(
                       '/api/missions/${mission['id']}/',
-                      data: {
-                        'title': titleController.text.trim(),
-                        'description': descriptionController.text.trim(),
-                        'xp_reward': xpValue,
-                        'mission_type': selectedType,
-                        'difficulty': selectedDifficulty,
-                      },
+                      data: data,
                     );
 
                     if (!mounted) return;
@@ -403,6 +478,13 @@ class _AdminMissionsManagementPageState
       titleController.dispose();
       descriptionController.dispose();
       xpController.dispose();
+      durationController.dispose();
+      priorityController.dispose();
+      targetTPSController.dispose();
+      targetRDRController.dispose();
+      minILIController.dispose();
+      maxILIController.dispose();
+      minTransactionsController.dispose();
     });
   }
 
@@ -412,8 +494,16 @@ class _AdminMissionsManagementPageState
     final descriptionController = TextEditingController();
     final xpController = TextEditingController(text: '100');
     final durationController = TextEditingController(text: '30');
+    final priorityController = TextEditingController(text: '50');
+    final targetTPSController = TextEditingController();
+    final targetRDRController = TextEditingController();
+    final minILIController = TextEditingController();
+    final maxILIController = TextEditingController();
+    final minTransactionsController = TextEditingController();
+    
     String selectedType = 'ONBOARDING';
     String selectedDifficulty = 'EASY';
+    String selectedValidationType = 'SNAPSHOT';
 
     await showDialog(
       context: context,
@@ -441,113 +531,168 @@ class _AdminMissionsManagementPageState
                 ),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildTextField('Título', titleController),
-                  const SizedBox(height: 16),
-                  _buildTextField('Descrição', descriptionController, maxLines: 3),
-                  const SizedBox(height: 16),
-                  _buildTextField('XP Reward', xpController, keyboardType: TextInputType.number),
-                  const SizedBox(height: 16),
-                  _buildTextField('Duração (dias)', durationController, keyboardType: TextInputType.number),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Tipo',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[400],
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.85,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Seção: Informações Básicas
+                    _buildSectionHeader('Informações Básicas', Icons.info_outline),
+                    const SizedBox(height: 12),
+                    _buildTextField('Título', titleController),
+                    const SizedBox(height: 16),
+                    _buildTextField('Descrição', descriptionController, maxLines: 3),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField('XP Recompensa', xpController, 
+                            keyboardType: TextInputType.number),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField('Duração (dias)', durationController,
+                            keyboardType: TextInputType.number),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedType,
-                    dropdownColor: const Color(0xFF2A2A2A),
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFF2A2A2A),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                    const SizedBox(height: 16),
+                    _buildTextField('Prioridade (menor = maior)', priorityController,
+                      keyboardType: TextInputType.number),
+                    
+                    const SizedBox(height: 24),
+                    // Seção: Classificação
+                    _buildSectionHeader('Classificação', Icons.category),
+                    const SizedBox(height: 12),
+                    _buildLabeledDropdown(
+                      'Tipo de Missão',
+                      selectedType,
+                      const [
+                        DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
+                        DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
+                        DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
+                        DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
+                        DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                      ],
+                      (value) => setDialogState(() => selectedType = value!),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildLabeledDropdown(
+                      'Dificuldade',
+                      selectedDifficulty,
+                      const [
+                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
+                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                      ],
+                      (value) => setDialogState(() => selectedDifficulty = value!),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildLabeledDropdown(
+                      'Tipo de Validação',
+                      selectedValidationType,
+                      const [
+                        DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
+                        DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
+                        DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
+                        DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
+                        DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
+                        DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
+                      ],
+                      (value) => setDialogState(() => selectedValidationType = value!),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    // Seção: Critérios de Indicadores (Opcional)
+                    _buildSectionHeader('Critérios de Indicadores (Opcional)', Icons.insights),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField('TPS Alvo (%)', targetTPSController,
+                            keyboardType: TextInputType.number),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField('RDR Máximo (%)', targetRDRController,
+                            keyboardType: TextInputType.number),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField('ILI Mínimo (meses)', minILIController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildTextField('ILI Máximo (meses)', maxILIController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField('Transações Mínimas', minTransactionsController,
+                      keyboardType: TextInputType.number),
+                    
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.lightbulb_outline, color: AppColors.primary, size: 16),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Deixe os campos vazios se não forem aplicáveis',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
-                      DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
-                      DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
-                      DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
-                      DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() {
-                          selectedType = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Dificuldade',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: selectedDifficulty,
-                    dropdownColor: const Color(0xFF2A2A2A),
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: const Color(0xFF2A2A2A),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                      DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                      DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() {
-                          selectedDifficulty = value;
-                        });
-                      }
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  titleController.dispose();
-                  descriptionController.dispose();
-                  xpController.dispose();
-                  durationController.dispose();
-                },
-                child: const Text('Cancelar'),
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancelar',
+                  style: TextStyle(color: Colors.grey[400]),
+                ),
               ),
               ElevatedButton(
                 onPressed: () async {
-                  final xpValue = int.tryParse(xpController.text) ?? 100;
-                  final durationValue = int.tryParse(durationController.text) ?? 30;
-
+                  // Validações
                   if (titleController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('O título não pode estar vazio'),
+                        content: Text('O título é obrigatório'),
+                        backgroundColor: AppColors.alert,
+                      ),
+                    );
+                    return;
+                  }
+
+                  final xpValue = int.tryParse(xpController.text);
+                  if (xpValue == null || xpValue <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('XP deve ser um número válido maior que zero'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -558,25 +703,41 @@ class _AdminMissionsManagementPageState
                   final messenger = ScaffoldMessenger.of(context);
 
                   try {
-                    await _apiClient.client.post(
-                      '/api/missions/',
-                      data: {
-                        'title': titleController.text.trim(),
-                        'description': descriptionController.text.trim(),
-                        'reward_points': xpValue,
-                        'duration_days': durationValue,
-                        'mission_type': selectedType,
-                        'difficulty': selectedDifficulty,
-                        'is_active': true,
-                        'priority': 99, // Baixa prioridade para missões manuais
-                        'validation_type': 'SNAPSHOT', // Validação padrão
-                      },
-                    );
+                    final data = <String, dynamic>{
+                      'title': titleController.text.trim(),
+                      'description': descriptionController.text.trim(),
+                      'reward_points': xpValue,
+                      'mission_type': selectedType,
+                      'difficulty': selectedDifficulty,
+                      'validation_type': selectedValidationType,
+                      'duration_days': int.tryParse(durationController.text) ?? 30,
+                      'priority': int.tryParse(priorityController.text) ?? 50,
+                      'is_active': true,
+                    };
+                    
+                    // Adicionar campos opcionais apenas se preenchidos
+                    if (targetTPSController.text.isNotEmpty) {
+                      data['target_tps'] = int.tryParse(targetTPSController.text);
+                    }
+                    if (targetRDRController.text.isNotEmpty) {
+                      data['target_rdr'] = int.tryParse(targetRDRController.text);
+                    }
+                    if (minILIController.text.isNotEmpty) {
+                      data['min_ili'] = double.tryParse(minILIController.text);
+                    }
+                    if (maxILIController.text.isNotEmpty) {
+                      data['max_ili'] = double.tryParse(maxILIController.text);
+                    }
+                    if (minTransactionsController.text.isNotEmpty) {
+                      data['min_transactions'] = int.tryParse(minTransactionsController.text);
+                    }
+
+                    await _apiClient.client.post('/api/missions/', data: data);
 
                     if (!mounted) return;
-
+                    
                     navigator.pop();
-
+                    
                     if (!mounted) return;
                     messenger.showSnackBar(
                       const SnackBar(
@@ -584,22 +745,17 @@ class _AdminMissionsManagementPageState
                         backgroundColor: AppColors.success,
                       ),
                     );
-
+                    
                     await _loadMissions();
                   } catch (e) {
                     if (!mounted) return;
                     messenger.showSnackBar(
                       SnackBar(
-                        content: Text('Erro ao criar missão: ${e.toString()}'),
+                        content: Text('Erro ao criar: ${e.toString()}'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
                   }
-
-                  titleController.dispose();
-                  descriptionController.dispose();
-                  xpController.dispose();
-                  durationController.dispose();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -611,6 +767,20 @@ class _AdminMissionsManagementPageState
         },
       ),
     );
+    
+    // Libera os controllers
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      titleController.dispose();
+      descriptionController.dispose();
+      xpController.dispose();
+      durationController.dispose();
+      priorityController.dispose();
+      targetTPSController.dispose();
+      targetRDRController.dispose();
+      minILIController.dispose();
+      maxILIController.dispose();
+      minTransactionsController.dispose();
+    });
   }
 
   /// Duplica uma missão existente
@@ -873,6 +1043,93 @@ class _AdminMissionsManagementPageState
     );
   }
 
+  /// Widget para cabeçalho de seção nos formulários
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 16),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withOpacity(0.3),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Widget para dropdown com label
+  Widget _buildLabeledDropdown(
+    String label,
+    String value,
+    List<DropdownMenuItem<String>> items,
+    void Function(String?) onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[400],
+          ),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: value,
+          dropdownColor: const Color(0xFF2A2A2A),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFF0D0D0D),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[700]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[700]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            isDense: true,
+          ),
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          items: items,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
   /// Abre o dialog de geração de missões com IA
   Future<void> _showAIGenerationDialog() async {
     return showDialog(
@@ -983,7 +1240,7 @@ class _AdminMissionsManagementPageState
                               ),
                               SizedBox(width: 10),
                               Text(
-                                'Como Funciona',
+                                'Como Funciona a Geração Inteligente',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -994,21 +1251,132 @@ class _AdminMissionsManagementPageState
                           ),
                           const SizedBox(height: 14),
                           _buildInfoRow(
-                            Icons.psychology,
-                            'IA analisa perfis de usuários',
+                            Icons.analytics_outlined,
+                            'Analisa padrões financeiros dos usuários',
                             Colors.purple,
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(
-                            Icons.tune,
-                            'Ajusta dificuldade por faixa',
+                            Icons.psychology,
+                            'Gera missões personalizadas com base em indicadores (TPS, RDR, ILI)',
                             Colors.blue,
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(
-                            Icons.celebration,
-                            'Cria 40% EASY, 40% MEDIUM, 20% HARD',
+                            Icons.layers,
+                            'Cria missões em 3 níveis de dificuldade',
                             Colors.orange,
+                          ),
+                          const SizedBox(height: 10),
+                          _buildInfoRow(
+                            Icons.insights,
+                            'Ajusta XP e critérios automaticamente',
+                            Colors.green,
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.info_outline,
+                                  color: AppColors.primary,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'As missões são criadas DESATIVADAS por padrão para revisão',
+                                    style: TextStyle(
+                                      color: Colors.grey[300],
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Estatísticas esperadas
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary.withOpacity(0.15),
+                            AppColors.primary.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.auto_graph,
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Distribuição de Missões',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatChip(
+                                  'Fácil',
+                                  '40%',
+                                  Colors.green,
+                                  Icons.sentiment_satisfied_alt,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildStatChip(
+                                  'Média',
+                                  '40%',
+                                  Colors.orange,
+                                  Icons.sentiment_neutral,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildStatChip(
+                                  'Difícil',
+                                  '20%',
+                                  Colors.red,
+                                  Icons.sentiment_very_dissatisfied,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -1232,6 +1600,46 @@ class _AdminMissionsManagementPageState
           ),
         ),
       ],
+    );
+  }
+
+  /// Widget para mostrar estatísticas no dialog de IA
+  Widget _buildStatChip(String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: color.withOpacity(0.4),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              height: 1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
