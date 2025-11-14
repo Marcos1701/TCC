@@ -40,11 +40,15 @@ from .serializers import (
     UserAchievementSerializer,
 )
 from .services import (
+    analyze_user_context,
     apply_mission_reward,
     assign_missions_automatically,
+    assign_missions_smartly,
+    calculate_mission_priorities,
     calculate_summary,
     cashflow_series,
     category_breakdown,
+    identify_improvement_opportunities,
     indicator_insights,
     invalidate_indicators_cache,
     profile_snapshot,
@@ -1445,17 +1449,33 @@ class MissionViewSet(viewsets.ModelViewSet):
     - CREATE/UPDATE/DELETE: Apenas admins (is_staff ou is_superuser)
     
     Filtros disponíveis:
-    - tier: BEGINNER, INTERMEDIATE, ADVANCED
-    - mission_type: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, etc.
+    - mission_type: ONBOARDING_TRANSACTIONS, CATEGORY_REDUCTION, etc.
+    - validation_type: TRANSACTION_COUNT, CATEGORY_REDUCTION, etc.
     - difficulty: EASY, MEDIUM, HARD
     - is_active: true/false
+    - transaction_type_filter: ALL, INCOME, EXPENSE, TRANSFER
+    - requires_payment_tracking: true/false
+    - is_system_generated: true/false
     - search: busca por título ou descrição
+    
+    Filtros customizados:
+    - tier: BEGINNER, INTERMEDIATE, ADVANCED
+    - has_category: true/false (missões com categoria alvo)
+    - has_goal: true/false (missões com meta alvo)
     """
     serializer_class = MissionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['mission_type', 'difficulty', 'is_active']
+    filterset_fields = [
+        'mission_type',
+        'validation_type',
+        'difficulty',
+        'is_active',
+        'transaction_type_filter',
+        'requires_payment_tracking',
+        'is_system_generated',
+    ]
     search_fields = ['title', 'description']
-    ordering_fields = ['created_at', 'priority', 'reward_points']
+    ordering_fields = ['created_at', 'priority', 'reward_points', 'difficulty']
     ordering = ['priority', '-created_at']
 
     def _get_tier_level_range(self, tier):
@@ -1483,9 +1503,15 @@ class MissionViewSet(viewsets.ModelViewSet):
         - Para admin: todas as missões
         - Para usuário comum: apenas missões ativas
         
-        Suporta filtro por tier via query param.
+        Suporta filtros customizados via query params.
         """
-        queryset = Mission.objects.all()
+        queryset = Mission.objects.all().select_related(
+            'target_category',
+            'target_goal'
+        ).prefetch_related(
+            'target_categories',
+            'target_goals'
+        )
         
         # Usuários comuns veem apenas missões ativas
         if not self.request.user.is_staff:
@@ -1500,6 +1526,32 @@ class MissionViewSet(viewsets.ModelViewSet):
                 Q(min_transactions__isnull=True) | 
                 Q(min_transactions__lte=tier_level_range[1])
             )
+        
+        # Filtro por presença de categoria alvo
+        has_category = self.request.query_params.get('has_category', None)
+        if has_category is not None:
+            if has_category.lower() == 'true':
+                queryset = queryset.filter(
+                    Q(target_category__isnull=False) | Q(target_categories__isnull=False)
+                ).distinct()
+            else:
+                queryset = queryset.filter(
+                    target_category__isnull=True,
+                    target_categories__isnull=True
+                )
+        
+        # Filtro por presença de meta alvo
+        has_goal = self.request.query_params.get('has_goal', None)
+        if has_goal is not None:
+            if has_goal.lower() == 'true':
+                queryset = queryset.filter(
+                    Q(target_goal__isnull=False) | Q(target_goals__isnull=False)
+                ).distinct()
+            else:
+                queryset = queryset.filter(
+                    target_goal__isnull=True,
+                    target_goals__isnull=True
+                )
         
         return queryset
     
@@ -1611,6 +1663,264 @@ class MissionViewSet(viewsets.ModelViewSet):
                 'mission': serializer.data
             }
         )
+    
+    @action(detail=False, methods=['get'])
+    def by_validation_type(self, request):
+        """
+        Lista missões agrupadas por validation_type.
+        
+        GET /api/missions/by_validation_type/
+        
+        Retorna:
+        {
+            "TRANSACTION_COUNT": [...],
+            "CATEGORY_REDUCTION": [...],
+            ...
+        }
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        from collections import defaultdict
+        missions_by_type = defaultdict(list)
+        
+        for mission in queryset:
+            serializer = self.get_serializer(mission)
+            missions_by_type[mission.validation_type].append(serializer.data)
+        
+        return Response(dict(missions_by_type))
+    
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """
+        Retorna estatísticas sobre missões.
+        
+        GET /api/missions/statistics/
+        
+        Retorna contadores por tipo, dificuldade, validation_type, etc.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        from collections import Counter
+        
+        stats = {
+            'total': queryset.count(),
+            'by_mission_type': dict(Counter(queryset.values_list('mission_type', flat=True))),
+            'by_validation_type': dict(Counter(queryset.values_list('validation_type', flat=True))),
+            'by_difficulty': dict(Counter(queryset.values_list('difficulty', flat=True))),
+            'by_transaction_filter': dict(Counter(queryset.values_list('transaction_type_filter', flat=True))),
+            'active': queryset.filter(is_active=True).count(),
+            'inactive': queryset.filter(is_active=False).count(),
+            'system_generated': queryset.filter(is_system_generated=True).count(),
+            'with_category': queryset.filter(
+                Q(target_category__isnull=False) | Q(target_categories__isnull=False)
+            ).distinct().count(),
+            'with_goal': queryset.filter(
+                Q(target_goal__isnull=False) | Q(target_goals__isnull=False)
+            ).distinct().count(),
+            'with_payment_tracking': queryset.filter(requires_payment_tracking=True).count(),
+        }
+        
+        return Response(stats)
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def recommend(self, request):
+        """Recomenda missões baseado em análise contextual (GET /api/missions/recommend/?limit=5)."""
+        from .services import analyze_user_context, calculate_mission_priorities
+        
+        limit = int(request.query_params.get('limit', 5))
+        
+        # Analisar contexto do usuário
+        context = analyze_user_context(request.user)
+        
+        # Calcular prioridades
+        mission_priorities = calculate_mission_priorities(request.user, context)
+        
+        # Limitar resultados
+        top_missions = mission_priorities[:limit]
+        
+        # Preparar resposta
+        recommended = []
+        for mission, score in top_missions:
+            # Determinar razão da recomendação
+            reason = self._get_recommendation_reason(mission, context, score)
+            
+            recommended.append({
+                'mission': MissionSerializer(mission).data,
+                'priority_score': round(score, 2),
+                'recommendation_reason': reason
+            })
+        
+        return Response({
+            'context_summary': {
+                'at_risk_indicators': context.get('at_risk_indicators', []),
+                'top_opportunities': context.get('spending_patterns', [])[:3],
+                'transaction_count': context.get('transaction_count', 0),
+                'days_active': context.get('days_active', 0),
+                'summary': context.get('summary', {})
+            },
+            'recommended_missions': recommended
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def by_category(self, request):
+        """Retorna missões por categoria (GET /api/missions/by-category/?category_id=uuid)."""
+        category_id = request.query_params.get('category_id')
+        
+        if not category_id:
+            return Response(
+                {'error': 'category_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar se categoria existe e pertence ao usuário
+        try:
+            category = Category.objects.get(id=category_id, user=request.user)
+        except Category.DoesNotExist:
+            return Response(
+                {'error': 'Categoria não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Buscar missões relacionadas
+        missions = Mission.objects.filter(
+            Q(target_category=category) | Q(target_categories=category),
+            is_active=True
+        ).distinct()
+        
+        serializer = MissionSerializer(missions, many=True)
+        return Response({
+            'category': CategorySerializer(category).data,
+            'missions': serializer.data,
+            'count': missions.count()
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def by_goal(self, request):
+        """Retorna missões por meta (GET /api/missions/by-goal/?goal_id=uuid).
+        goal_id = request.query_params.get('goal_id')
+        - Incluem a meta em target_goals
+        - São de tipos GOAL_ACHIEVEMENT, GOAL_CONSISTENCY, etc.
+        """
+        goal_id = request.query_params.get('goal_id')
+        
+        if not goal_id:
+            return Response(
+                {'error': 'goal_id é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar se meta existe e pertence ao usuário
+        try:
+            goal = Goal.objects.get(id=goal_id, user=request.user)
+        except Goal.DoesNotExist:
+            return Response(
+                {'error': 'Meta não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Buscar missões relacionadas
+        missions = Mission.objects.filter(
+            Q(target_goal=goal) | Q(target_goals=goal),
+            is_active=True
+        ).distinct()
+        
+        # Se não houver missões específicas, buscar missões genéricas de metas
+        if not missions.exists():
+            missions = Mission.objects.filter(
+                mission_type__in=[
+                    'GOAL_ACHIEVEMENT',
+                    'GOAL_CONSISTENCY',
+                    'GOAL_ACCELERATION'
+                ],
+                is_active=True
+            )
+        
+        serializer = MissionSerializer(missions, many=True)
+        return Response({
+            'goal': GoalSerializer(goal).data,
+            'missions': serializer.data,
+            'count': missions.count()
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def context_analysis(self, request):
+        """Análise contextual completa do usuário (GET /api/missions/context-analysis/)."""
+        from .services import analyze_user_context, identify_improvement_opportunities
+        
+        # Analisar contexto
+        context = analyze_user_context(request.user)
+        
+        # Identificar oportunidades
+        opportunities = identify_improvement_opportunities(request.user)
+        
+        # Gerar ações sugeridas baseadas nas oportunidades
+        suggested_actions = []
+        for opp in opportunities[:5]:  # Top 5 oportunidades
+            action = self._opportunity_to_action(opp)
+            if action:
+                suggested_actions.append(action)
+        
+        return Response({
+            'context': context,
+            'opportunities': opportunities,
+            'suggested_actions': suggested_actions
+        })
+    
+    def _get_recommendation_reason(self, mission, context, score):
+        """Gera razão para recomendação baseada no score e contexto"""
+        at_risk = context.get('at_risk_indicators', [])
+        
+        # Indicador em risco
+        for indicator in at_risk:
+            if indicator['indicator'] == 'TPS' and 'TPS' in mission.mission_type:
+                return f"Alta prioridade: TPS atual ({indicator['current']:.1f}%) abaixo da meta ({indicator['target']}%)"
+            elif indicator['indicator'] == 'RDR' and 'RDR' in mission.mission_type:
+                return f"Alta prioridade: RDR atual ({indicator['current']:.1f}%) acima da meta ({indicator['target']}%)"
+            elif indicator['indicator'] == 'ILI' and 'ILI' in mission.mission_type:
+                return f"Alta prioridade: ILI atual ({indicator['current']:.1f} meses) abaixo da meta ({indicator['target']:.1f})"
+        
+        # Baseado em score
+        if score >= 70:
+            return "Altamente recomendada para seu perfil atual"
+        elif score >= 50:
+            return "Recomendada com base em seu histórico"
+        else:
+            return "Adequada para desenvolvimento contínuo"
+    
+    def _opportunity_to_action(self, opportunity):
+        """Converte oportunidade em ação sugerida"""
+        opp_type = opportunity.get('type')
+        
+        if opp_type == 'CATEGORY_GROWTH':
+            category_name = opportunity['data'].get('category_name')
+            growth = opportunity['data'].get('growth_percent', 0)
+            return {
+                'action': 'REDUCE_CATEGORY_SPENDING',
+                'description': f"Reduzir gastos em {category_name} que cresceram {growth:.1f}%",
+                'priority': opportunity.get('priority'),
+                'data': opportunity['data']
+            }
+        
+        elif opp_type == 'GOAL_STAGNANT':
+            goal_name = opportunity['data'].get('goal_name')
+            days = opportunity['data'].get('days_stagnant', 0)
+            return {
+                'action': 'RESUME_GOAL_PROGRESS',
+                'description': f"Retomar progresso na meta '{goal_name}' (estagnada há {days} dias)",
+                'priority': opportunity.get('priority'),
+                'data': opportunity['data']
+            }
+        
+        elif opp_type in ['INDICATOR_BELOW_TARGET', 'INDICATOR_ABOVE_TARGET']:
+            indicator = opportunity['data'].get('indicator')
+            return {
+                'action': 'IMPROVE_INDICATOR',
+                'description': opportunity.get('description'),
+                'priority': opportunity.get('priority'),
+                'data': opportunity['data']
+            }
+        
+        return None
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_template_missions(self, request):
@@ -2132,8 +2442,6 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def list(self, request, *args, **kwargs):
         """
         Dashboard principal com cache de 5 minutos.
-        
-        Performance: ~280ms → ~10ms com cache ativo (-96%)
         Cache pode ser forçado a refresh com ?refresh=true
         """
         from django.core.cache import cache
@@ -3119,12 +3427,7 @@ class LeaderboardViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'])
     def suggestions(self, request):
         """
-        Retorna sugestões de amigos baseadas em:
-        - Usuários com nível similar (±2 níveis)
-        - Usuários que ainda não são amigos
-        - Exclui solicitações pendentes
-        
-        Novo endpoint (Dia 11-14) para incentivar adição de amigos.
+        Retorna sugestões de amigos baseadas em nivel similar.
         """
         from .models import Friendship
         from django.core.cache import cache
@@ -3151,7 +3454,7 @@ class LeaderboardViewSet(viewsets.ViewSet):
             excluded_ids.add(user_id)
             excluded_ids.add(friend_id)
         
-        # Buscar usuários com nível similar (±2 níveis)
+        # Buscar usuários com nível similar
         suggested_profiles = UserProfile.objects.filter(
             level__gte=user_level - 2,
             level__lte=user_level + 2,

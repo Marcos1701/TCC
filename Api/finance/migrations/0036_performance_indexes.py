@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('finance', '0035_remove_category_cat_user_type_sys_idx_and_more'),
+        ('finance', '0035_make_category_user_required'),
     ]
 
     operations = [

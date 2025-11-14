@@ -998,29 +998,76 @@ class Mission(models.Model):
         HARD = "HARD", "Difícil"
 
     class MissionType(models.TextChoices):
-        ONBOARDING = "ONBOARDING", "Integração inicial"
-        TPS_IMPROVEMENT = "TPS_IMPROVEMENT", "Melhoria de poupança"
-        RDR_REDUCTION = "RDR_REDUCTION", "Redução de dívidas"
-        ILI_BUILDING = "ILI_BUILDING", "Construção de reserva"
-        ADVANCED = "ADVANCED", "Avançado"
+        # Básicas - Introdução
+        ONBOARDING_TRANSACTIONS = "ONBOARDING_TRANSACTIONS", "Primeiros passos: Transações"
+        ONBOARDING_CATEGORIES = "ONBOARDING_CATEGORIES", "Primeiros passos: Categorias"
+        ONBOARDING_GOALS = "ONBOARDING_GOALS", "Primeiros passos: Metas"
+        
+        # Indicadores - Melhoria de índices
+        TPS_IMPROVEMENT = "TPS_IMPROVEMENT", "Aumentar poupança (TPS)"
+        RDR_REDUCTION = "RDR_REDUCTION", "Reduzir dívidas (RDR)"
+        ILI_BUILDING = "ILI_BUILDING", "Construir reserva (ILI)"
+        
+        # Categorias - Controle de gastos
+        CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir gastos em categoria"
+        CATEGORY_SPENDING_LIMIT = "CATEGORY_SPENDING_LIMIT", "Manter limite de categoria"
+        CATEGORY_ELIMINATION = "CATEGORY_ELIMINATION", "Eliminar gastos supérfluos"
+        
+        # Metas - Progresso
+        GOAL_ACHIEVEMENT = "GOAL_ACHIEVEMENT", "Completar meta"
+        GOAL_CONSISTENCY = "GOAL_CONSISTENCY", "Contribuir regularmente"
+        GOAL_ACCELERATION = "GOAL_ACCELERATION", "Acelerar progresso de meta"
+        
+        # Comportamento - Hábitos financeiros
+        SAVINGS_STREAK = "SAVINGS_STREAK", "Sequência de poupança"
+        EXPENSE_CONTROL = "EXPENSE_CONTROL", "Controlar gastos mensais"
+        INCOME_TRACKING = "INCOME_TRACKING", "Registrar receitas"
+        PAYMENT_DISCIPLINE = "PAYMENT_DISCIPLINE", "Pagar contas em dia"
+        
+        # Avançadas - Múltiplos critérios
+        FINANCIAL_HEALTH = "FINANCIAL_HEALTH", "Saúde financeira completa"
+        WEALTH_BUILDING = "WEALTH_BUILDING", "Construção de patrimônio"
     
     class ValidationType(models.TextChoices):
-        SNAPSHOT = "SNAPSHOT", "Comparação pontual (inicial vs atual)"
+        # Já existentes - mantidos para compatibilidade
+        SNAPSHOT = "SNAPSHOT", "Comparação inicial vs atual"
         TEMPORAL = "TEMPORAL", "Manter critério por período"
-        CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir gasto em categoria"
-        CATEGORY_LIMIT = "CATEGORY_LIMIT", "Não exceder limite em categoria"
-        GOAL_PROGRESS = "GOAL_PROGRESS", "Progredir em meta específica"
+        
+        # Específicos para categorias
+        CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir X% em categoria"
+        CATEGORY_LIMIT = "CATEGORY_LIMIT", "Não exceder R$ em categoria"
+        CATEGORY_ZERO = "CATEGORY_ZERO", "Zero gastos em categoria"
+        
+        # Específicos para metas
+        GOAL_PROGRESS = "GOAL_PROGRESS", "Atingir X% de progresso"
+        GOAL_CONTRIBUTION = "GOAL_CONTRIBUTION", "Contribuir R$ para meta"
+        GOAL_COMPLETION = "GOAL_COMPLETION", "Completar meta 100%"
+        
+        # Específicos para transações
+        TRANSACTION_COUNT = "TRANSACTION_COUNT", "Registrar X transações"
+        TRANSACTION_CONSISTENCY = "TRANSACTION_CONSISTENCY", "X transações/semana"
+        PAYMENT_COUNT = "PAYMENT_COUNT", "Registrar X pagamentos"
+        
+        # Específicos para indicadores
+        INDICATOR_THRESHOLD = "INDICATOR_THRESHOLD", "Atingir valor de indicador"
+        INDICATOR_IMPROVEMENT = "INDICATOR_IMPROVEMENT", "Melhorar indicador em X%"
+        INDICATOR_MAINTENANCE = "INDICATOR_MAINTENANCE", "Manter indicador por X dias"
+        
+        # Legados / compatibilidade
         SAVINGS_INCREASE = "SAVINGS_INCREASE", "Aumentar poupança"
         CONSISTENCY = "CONSISTENCY", "Manter consistência/streak"
+        
+        # Combinados
+        MULTI_CRITERIA = "MULTI_CRITERIA", "Múltiplos critérios simultâneos"
 
     title = models.CharField(max_length=150)
     description = models.TextField()
     reward_points = models.PositiveIntegerField(default=50)
     difficulty = models.CharField(max_length=8, choices=Difficulty.choices, default=Difficulty.MEDIUM)
     mission_type = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=MissionType.choices,
-        default=MissionType.ONBOARDING,
+        default=MissionType.ONBOARDING_TRANSACTIONS,
         help_text="Tipo de missão que determina quando será aplicada",
     )
     priority = models.PositiveIntegerField(
@@ -1045,9 +1092,9 @@ class Mission(models.Model):
     
     # Tipo refinado de validação
     validation_type = models.CharField(
-        max_length=30,
+        max_length=35,
         choices=ValidationType.choices,
-        default=ValidationType.SNAPSHOT,
+        default=ValidationType.TRANSACTION_COUNT,
         help_text="Tipo de validação que determina como o progresso é calculado",
     )
     
@@ -1137,6 +1184,68 @@ class Mission(models.Model):
         default=list,
         blank=True,
         help_text="Lista de dicas contextuais (título, descrição, prioridade)",
+    )
+    
+    # === NOVOS CAMPOS PARA REFATORAÇÃO (Sprint 1) ===
+    
+    # Frequência mínima de transações
+    min_transaction_frequency = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Frequência mínima de transações por semana (para missões de consistência)",
+    )
+    
+    # Tipo de transação a ser considerado
+    transaction_type_filter = models.CharField(
+        max_length=10,
+        choices=[
+            ('ALL', 'Todas'),
+            ('INCOME', 'Receitas'),
+            ('EXPENSE', 'Despesas'),
+            ('TRANSFER', 'Transferências'),
+        ],
+        default='ALL',
+        help_text="Tipo de transação a ser considerado na validação",
+    )
+    
+    # Categorias alvo (Many-to-Many)
+    target_categories = models.ManyToManyField(
+        'Category',
+        blank=True,
+        related_name='target_missions',
+        help_text="Categorias alvo para missões que envolvem múltiplas categorias",
+    )
+    
+    # Metas alvo (Many-to-Many)
+    target_goals = models.ManyToManyField(
+        'Goal',
+        blank=True,
+        related_name='target_missions',
+        help_text="Metas alvo para missões que envolvem múltiplas metas",
+    )
+    
+    # Rastreamento de pagamentos
+    requires_payment_tracking = models.BooleanField(
+        default=False,
+        help_text="Se a missão requer rastreamento de pagamentos (campo is_paid nas transações)",
+    )
+    
+    min_payments_count = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Número mínimo de pagamentos a serem rastreados",
+    )
+    
+    # Sistema de geração automática
+    is_system_generated = models.BooleanField(
+        default=False,
+        help_text="Se a missão foi gerada automaticamente pelo sistema",
+    )
+    
+    generation_context = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Contexto de geração automática (dados usados para criar a missão)",
     )
 
     class Meta:

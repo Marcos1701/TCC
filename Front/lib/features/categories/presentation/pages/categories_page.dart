@@ -96,8 +96,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
     // Verificar se é categoria global (não pode editar)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Categorias globais não podem ser editadas'),
+        const SnackBar(
+          content: Text('Categorias globais não podem ser editadas'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -128,8 +128,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
     // Verificar se é categoria global (não pode deletar)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Categorias globais não podem ser deletadas'),
+        const SnackBar(
+          content: Text('Categorias globais não podem ser deletadas'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -167,8 +167,8 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Categoria deletada com sucesso'),
+          const SnackBar(
+            content: Text('Categoria deletada com sucesso'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -264,7 +264,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
           // Lista de categorias
           Expanded(
             child: _isLoading
-                ? Center(
+                ? const Center(
                     child: CircularProgressIndicator(
                       color: AppColors.primary,
                     ),
@@ -390,7 +390,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     width: 1,
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'GLOBAL',
                   style: TextStyle(
                     fontSize: 10,
@@ -422,22 +422,22 @@ class _CategoriesPageState extends State<CategoriesPage> {
                   }
                 },
                 itemBuilder: (context) => [
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'edit',
                     child: Row(
                       children: [
                         Icon(Icons.edit, size: 20, color: AppColors.primary),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text('Editar'),
                       ],
                     ),
                   ),
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'delete',
                     child: Row(
                       children: [
                         Icon(Icons.delete, size: 20, color: AppColors.alert),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Text('Deletar', style: TextStyle(color: AppColors.alert)),
                       ],
                     ),

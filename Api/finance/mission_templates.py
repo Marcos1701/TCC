@@ -193,6 +193,102 @@ ILI_TEMPLATES = [
 
 
 # =============================================================================
+# TEMPLATES DE CATEGORIAS (Controle de Gastos)
+# =============================================================================
+
+CATEGORY_TEMPLATES = [
+    {
+        'title': 'Reduzindo {percent}% em Gastos',
+        'description': 'Reduza seus gastos em uma categoria específica em {percent}%. Identifique oportunidades de economia.',
+        'reduction_percent_ranges': [(10, 15), (15, 20), (20, 30)],
+        'duration_days': 30,
+        'xp_reward': 180,
+        'difficulty': 'MEDIUM'
+    },
+    {
+        'title': 'Desafio de Economia: {percent}%',
+        'description': 'Corte {percent}% dos gastos em uma categoria. Pequenos ajustes geram grandes resultados.',
+        'reduction_percent_ranges': [(15, 20), (20, 30), (30, 40)],
+        'duration_days': 30,
+        'xp_reward': 220,
+        'difficulty': 'HARD'
+    },
+    {
+        'title': 'Controle Inteligente',
+        'description': 'Reduza {percent}% em gastos desnecessários. Revise cada transação e questione sua necessidade.',
+        'reduction_percent_ranges': [(10, 15), (15, 25), (25, 35)],
+        'duration_days': 30,
+        'xp_reward': 200,
+        'difficulty': 'MEDIUM'
+    },
+]
+
+
+# =============================================================================
+# TEMPLATES DE METAS (Progresso e Contribuição)
+# =============================================================================
+
+GOAL_TEMPLATES = [
+    {
+        'title': 'Progresso de {percent}% na Meta',
+        'description': 'Alcance {percent}% de progresso em sua meta. Consistência é o caminho para o sucesso.',
+        'progress_percent_ranges': [(30, 50), (50, 75), (75, 100)],
+        'duration_days': 30,
+        'xp_reward': 200,
+        'difficulty': 'MEDIUM'
+    },
+    {
+        'title': 'Rumo à Conquista: {percent}%',
+        'description': 'Atinja {percent}% de sua meta. Cada contribuição te aproxima do objetivo.',
+        'progress_percent_ranges': [(40, 60), (60, 80), (80, 100)],
+        'duration_days': 30,
+        'xp_reward': 250,
+        'difficulty': 'HARD'
+    },
+    {
+        'title': 'Primeiros Passos: {percent}%',
+        'description': 'Complete {percent}% de sua meta. A jornada começa com o primeiro passo.',
+        'progress_percent_ranges': [(10, 25), (25, 40), (40, 60)],
+        'duration_days': 21,
+        'xp_reward': 150,
+        'difficulty': 'EASY'
+    },
+]
+
+
+# =============================================================================
+# TEMPLATES DE COMPORTAMENTO (Hábitos Financeiros)
+# =============================================================================
+
+BEHAVIOR_TEMPLATES = [
+    {
+        'title': 'Consistência de {days} Dias',
+        'description': 'Registre transações por {days} dias consecutivos. Construa o hábito de controlar suas finanças.',
+        'consecutive_days_ranges': [(7, 10), (14, 21), (21, 30)],
+        'duration_days': 30,
+        'xp_reward': 180,
+        'difficulty': 'MEDIUM'
+    },
+    {
+        'title': 'Disciplina Financeira',
+        'description': 'Mantenha registros diários por {days} dias. Disciplina transforma hábitos em resultados.',
+        'consecutive_days_ranges': [(10, 14), (14, 21), (21, 30)],
+        'duration_days': 30,
+        'xp_reward': 220,
+        'difficulty': 'HARD'
+    },
+    {
+        'title': 'Construindo o Hábito',
+        'description': 'Registre finanças por {days} dias seguidos. Pequenos passos geram grandes mudanças.',
+        'consecutive_days_ranges': [(3, 7), (7, 14), (14, 21)],
+        'duration_days': 21,
+        'xp_reward': 150,
+        'difficulty': 'EASY'
+    },
+]
+
+
+# =============================================================================
 # TEMPLATES AVANÇADOS (Múltiplos Critérios)
 # =============================================================================
 

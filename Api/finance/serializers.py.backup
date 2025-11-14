@@ -535,7 +535,7 @@ class MissionSerializer(serializers.ModelSerializer):
         if obj.target_goal:
             info['targets'].append({
                 'metric': 'GOAL',
-                'label': obj.target_goal.title,
+                'label': obj.target_goal.name,
                 'goal_id': obj.target_goal.id,
                 'icon': '🎯'
             })
@@ -610,6 +610,46 @@ class MissionSerializer(serializers.ModelSerializer):
             })
         
         return info
+    
+    class Meta:
+        model = Mission
+        fields = (
+            "id",
+            "title",
+            "description",
+            "reward_points",
+            "difficulty",
+            "difficulty_display",
+            "mission_type",
+            "type_display",
+            "priority",
+            "target_tps",
+            "target_rdr",
+            "min_ili",
+            "max_ili",
+            "min_transactions",
+            "duration_days",
+            "is_active",
+            # Novos campos de validação avançada
+            "validation_type",
+            "validation_type_display",
+            "requires_consecutive_days",
+            "min_consecutive_days",
+            "target_category",
+            "target_reduction_percent",
+            "category_spending_limit",
+            "target_goal",
+            "goal_progress_target",
+            "savings_increase_amount",
+            "requires_daily_action",
+            "min_daily_actions",
+            # Campos de gamificação contextual
+            "impacts",
+            "tips",
+            # Campos calculados
+            "source",
+            "target_info",
+        )
     
     def validate_title(self, value):
         """Valida que o título não está vazio e tem tamanho apropriado."""

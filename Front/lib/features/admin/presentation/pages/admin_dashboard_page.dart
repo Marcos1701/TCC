@@ -271,7 +271,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   Widget _buildMetricsGrid() {
     // Função auxiliar para pegar valores com fallback seguro
-    int _getIntValue(Map<String, dynamic>? map, String key, [int fallback = 0]) {
+    int getIntValue(Map<String, dynamic>? map, String key, [int fallback = 0]) {
       if (map == null) return fallback;
       final value = map[key];
       if (value == null) return fallback;
@@ -281,7 +281,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return fallback;
     }
     
-    double _getDoubleValue(Map<String, dynamic>? map, String key, [double fallback = 0.0]) {
+    double getDoubleValue(Map<String, dynamic>? map, String key, [double fallback = 0.0]) {
       if (map == null) return fallback;
       final value = map[key];
       if (value == null) return fallback;
@@ -291,15 +291,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return fallback;
     }
     
-    final users = _getIntValue(_overviewStats, 'total_users');
-    final completedMissions = _getIntValue(_overviewStats, 'completed_missions');
-    final activeMissions = _getIntValue(_overviewStats, 'active_missions');
-    final avgLevel = _getDoubleValue(_overviewStats, 'avg_user_level');
+    final users = getIntValue(_overviewStats, 'total_users');
+    final completedMissions = getIntValue(_overviewStats, 'completed_missions');
+    final activeMissions = getIntValue(_overviewStats, 'active_missions');
+    final avgLevel = getDoubleValue(_overviewStats, 'avg_user_level');
     
-    final activeUsers7d = _getIntValue(_userAnalytics, 'active_users_7d');
-    final newUsers7d = _getIntValue(_userAnalytics, 'new_users_7d');
-    final totalTransactions = _getIntValue(_systemHealth, 'total_transactions');
-    final activeGoals = _getIntValue(_systemHealth, 'active_goals');
+    final activeUsers7d = getIntValue(_userAnalytics, 'active_users_7d');
+    final newUsers7d = getIntValue(_userAnalytics, 'new_users_7d');
+    final totalTransactions = getIntValue(_systemHealth, 'total_transactions');
+    final activeGoals = getIntValue(_systemHealth, 'active_goals');
 
     return GridView.count(
       shrinkWrap: true,
@@ -443,7 +443,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
     
     // Função auxiliar para pegar valores com segurança
-    int _getSafeValue(Map<String, dynamic>? map, String key) {
+    int getSafeValue(Map<String, dynamic>? map, String key) {
       if (map == null) return 0;
       final value = map[key];
       if (value == null) return 0;
@@ -475,17 +475,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Column(
               children: [
                 if (missionsByDifficulty != null) ...[
-                  _buildStatRow('Fáceis', _getSafeValue(missionsByDifficulty, 'EASY')),
-                  _buildStatRow('Médias', _getSafeValue(missionsByDifficulty, 'MEDIUM')),
-                  _buildStatRow('Difíceis', _getSafeValue(missionsByDifficulty, 'HARD')),
+                  _buildStatRow('Fáceis', getSafeValue(missionsByDifficulty, 'EASY')),
+                  _buildStatRow('Médias', getSafeValue(missionsByDifficulty, 'MEDIUM')),
+                  _buildStatRow('Difíceis', getSafeValue(missionsByDifficulty, 'HARD')),
                   Divider(height: 24, color: Colors.grey[800]),
                 ],
                 if (missionsByType != null) ...[
-                  _buildStatRow('Onboarding', _getSafeValue(missionsByType, 'ONBOARDING')),
-                  _buildStatRow('Melhoria TPS', _getSafeValue(missionsByType, 'TPS_IMPROVEMENT')),
-                  _buildStatRow('Redução RDR', _getSafeValue(missionsByType, 'RDR_REDUCTION')),
-                  _buildStatRow('Construção ILI', _getSafeValue(missionsByType, 'ILI_BUILDING')),
-                  _buildStatRow('Avançadas', _getSafeValue(missionsByType, 'ADVANCED')),
+                  _buildStatRow('Onboarding', getSafeValue(missionsByType, 'ONBOARDING')),
+                  _buildStatRow('Melhoria TPS', getSafeValue(missionsByType, 'TPS_IMPROVEMENT')),
+                  _buildStatRow('Redução RDR', getSafeValue(missionsByType, 'RDR_REDUCTION')),
+                  _buildStatRow('Construção ILI', getSafeValue(missionsByType, 'ILI_BUILDING')),
+                  _buildStatRow('Avançadas', getSafeValue(missionsByType, 'ADVANCED')),
                 ],
               ],
             ),
@@ -844,7 +844,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
     
     // Função auxiliar para pegar valores com segurança
-    int _getSafeInt(String key) {
+    int getSafeInt(String key) {
       final value = _systemHealth?[key];
       if (value == null) return 0;
       if (value is int) return value;
@@ -853,17 +853,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return 0;
     }
 
-    final totalTransactions = _getSafeInt('total_transactions');
-    final transactions7d = _getSafeInt('transactions_7d');
-    final totalGoals = _getSafeInt('total_goals');
-    final activeGoals = _getSafeInt('active_goals');
-    final completedGoals = _getSafeInt('completed_goals');
-    final categoriesCount = _getSafeInt('categories_count');
-    final globalCategories = _getSafeInt('global_categories');
-    final userCategories = _getSafeInt('user_categories');
-    final totalMissions = _getSafeInt('total_missions');
-    final aiMissions = _getSafeInt('ai_generated_missions');
-    final defaultMissions = _getSafeInt('default_missions');
+    final totalTransactions = getSafeInt('total_transactions');
+    final transactions7d = getSafeInt('transactions_7d');
+    final totalGoals = getSafeInt('total_goals');
+    final activeGoals = getSafeInt('active_goals');
+    final completedGoals = getSafeInt('completed_goals');
+    final categoriesCount = getSafeInt('categories_count');
+    final globalCategories = getSafeInt('global_categories');
+    final userCategories = getSafeInt('user_categories');
+    final totalMissions = getSafeInt('total_missions');
+    final aiMissions = getSafeInt('ai_generated_missions');
+    final defaultMissions = getSafeInt('default_missions');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

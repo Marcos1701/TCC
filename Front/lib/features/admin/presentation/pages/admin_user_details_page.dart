@@ -385,7 +385,7 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
             children: [
               ElevatedButton.icon(
                 icon: const Icon(Icons.stars),
-                label: Text(UxStrings.adjustPoints),
+                label: const Text(UxStrings.adjustPoints),
                 onPressed: _adjustXp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -742,9 +742,9 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             '${UxStrings.challenges} Ativos',
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -752,12 +752,12 @@ class _AdminUserDetailsPageState extends State<AdminUserDetailsPage> {
           ),
           const SizedBox(height: 12),
           if (missions.isEmpty)
-            Center(
+            const Center(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Text(
                   UxStrings.noActiveChallenges,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ),
             )

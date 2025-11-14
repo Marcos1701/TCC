@@ -100,25 +100,4 @@ class Migration(migrations.Migration):
             migrate_global_categories_to_users,
             reverse_code=reverse_migration
         ),
-        
-        # 3. Tornar campo user obrigatório (NOT NULL)
-        migrations.AlterField(
-            model_name='category',
-            name='user',
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name='categories',
-                to='auth.user',
-                help_text='Usuário proprietário desta categoria',
-            ),
-        ),
-        
-        # 4. Adicionar índice para melhor performance
-        migrations.AddIndex(
-            model_name='category',
-            index=models.Index(
-                fields=['user', 'type', 'is_system_default'],
-                name='cat_user_type_sys_idx'
-            ),
-        ),
     ]

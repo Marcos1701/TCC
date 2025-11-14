@@ -621,9 +621,9 @@ class _TrackingPageState extends State<TrackingPage> {
                                   fontSize: 11,
                                 ),
                               ),
-                              TextSpan(
+                              const TextSpan(
                                 text: '${UxStrings.income}: ',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.success,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
@@ -645,9 +645,9 @@ class _TrackingPageState extends State<TrackingPage> {
                                   fontSize: 11,
                                 ),
                               ),
-                              TextSpan(
+                              const TextSpan(
                                 text: '${UxStrings.expense}: ',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.alert,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 11,
@@ -859,9 +859,9 @@ class _TrackingPageState extends State<TrackingPage> {
                               fontSize: 11,
                             ),
                           ),
-                          TextSpan(
+                          const TextSpan(
                             text: '${UxStrings.income}: ',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.success,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,
@@ -883,9 +883,9 @@ class _TrackingPageState extends State<TrackingPage> {
                               fontSize: 11,
                             ),
                           ),
-                          TextSpan(
+                          const TextSpan(
                             text: '${UxStrings.expense}: ',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.alert,
                               fontWeight: FontWeight.w600,
                               fontSize: 11,

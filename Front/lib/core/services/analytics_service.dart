@@ -143,6 +143,79 @@ class AnalyticsService {
     });
   }
 
+  /// Rastreia carregamento das recomendações de missão
+  static void trackMissionRecommendationsLoaded({required int count}) {
+    _instance._logEvent('mission_recommendations_loaded', {
+      'count': count,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Rastreia interação com cartões recomendados
+  static void trackMissionRecommendationSwiped({
+    required String missionId,
+    required String missionType,
+    required int position,
+  }) {
+    _instance._logEvent('mission_recommendation_swiped', {
+      'mission_id': missionId,
+      'mission_type': missionType,
+      'position': position,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Rastreia visualização detalhada de recomendação
+  static void trackMissionRecommendationDetail({
+    required String missionId,
+    required String missionType,
+    required int position,
+    required String source,
+  }) {
+    _instance._logEvent('mission_recommendation_detail', {
+      'mission_id': missionId,
+      'mission_type': missionType,
+      'position': position,
+      'source': source,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Rastreia abertura de coleções (categoria/meta)
+  static void trackMissionCollectionViewed({
+    required String collectionType,
+    required int targetId,
+    required int missionCount,
+  }) {
+    _instance._logEvent('mission_collection_viewed', {
+      'collection_type': collectionType,
+      'target_id': targetId,
+      'mission_count': missionCount,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Rastreia snapshot da análise de contexto
+  static void trackMissionContextSnapshot({
+    required int indicatorCount,
+    required int opportunityCount,
+    required bool fromRefresh,
+  }) {
+    _instance._logEvent('mission_context_snapshot', {
+      'indicators': indicatorCount,
+      'opportunities': opportunityCount,
+      'from_refresh': fromRefresh,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Rastreia pedido de atualização manual da análise
+  static void trackMissionContextRefreshRequested() {
+    _instance._logEvent('mission_context_refresh_requested', {
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
   /// Rastreia conclusão de missão
   static void trackMissionCompleted({
     required String missionId,

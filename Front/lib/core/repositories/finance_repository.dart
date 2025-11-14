@@ -291,6 +291,129 @@ class FinanceRepository {
         .toList();
   }
 
+  Future<List<MissionModel>> fetchRecommendedMissions({
+    String? missionType,
+    String? difficulty,
+    int? limit,
+  }) async {
+    final query = <String, dynamic>{};
+    if (missionType != null && missionType.isNotEmpty) {
+      query['type'] = missionType;
+    }
+    if (difficulty != null && difficulty.isNotEmpty) {
+      query['difficulty'] = difficulty;
+    }
+    if (limit != null && limit > 0) {
+      query['limit'] = limit;
+    }
+
+    final response = await _client.client.get<dynamic>(
+      ApiEndpoints.missionsRecommend,
+      queryParameters: query.isEmpty ? null : query,
+    );
+
+    final items = _extractListFromResponse(response.data);
+    return items
+        .map((e) => MissionModel.fromMap(
+              Map<String, dynamic>.from(e as Map),
+            ))
+        .toList();
+  }
+
+  Future<List<MissionModel>> fetchMissionsByCategory(
+    int categoryId, {
+    String? difficulty,
+    bool includeInactive = false,
+  }) async {
+    final query = <String, dynamic>{};
+    if (difficulty != null && difficulty.isNotEmpty) {
+      query['difficulty'] = difficulty;
+    }
+    if (includeInactive) {
+      query['include_inactive'] = true;
+    }
+
+    final response = await _client.client.get<dynamic>(
+      '${ApiEndpoints.missionsByCategory}$categoryId/',
+      queryParameters: query.isEmpty ? null : query,
+    );
+
+    final items = _extractListFromResponse(response.data);
+    return items
+        .map((e) => MissionModel.fromMap(
+              Map<String, dynamic>.from(e as Map),
+            ))
+        .toList();
+  }
+
+  Future<List<MissionModel>> fetchMissionsByGoal(
+    int goalId, {
+    String? missionType,
+    bool includeCompleted = false,
+  }) async {
+    final query = <String, dynamic>{};
+    if (missionType != null && missionType.isNotEmpty) {
+      query['type'] = missionType;
+    }
+    if (includeCompleted) {
+      query['include_completed'] = true;
+    }
+
+    final response = await _client.client.get<dynamic>(
+      '${ApiEndpoints.missionsByGoal}$goalId/',
+      queryParameters: query.isEmpty ? null : query,
+    );
+
+    final items = _extractListFromResponse(response.data);
+    return items
+        .map((e) => MissionModel.fromMap(
+              Map<String, dynamic>.from(e as Map),
+            ))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> fetchMissionContextAnalysis({
+    bool forceRefresh = false,
+  }) async {
+    final query = forceRefresh ? {'force_refresh': true} : null;
+    final response = await _client.client.get<Map<String, dynamic>>(
+      ApiEndpoints.missionsContextAnalysis,
+      queryParameters: query,
+    );
+    return response.data != null
+        ? Map<String, dynamic>.from(response.data!)
+        : <String, dynamic>{};
+  }
+
+  Future<List<Map<String, dynamic>>> fetchMissionTemplates({
+    bool includeInactive = false,
+  }) async {
+    final response = await _client.client.get<dynamic>(
+      ApiEndpoints.missionsTemplates,
+      queryParameters: includeInactive ? {'include_inactive': true} : null,
+    );
+    final items = _extractListFromResponse(response.data);
+    return items
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<MissionModel> generateMissionFromTemplate({
+    required String templateKey,
+    Map<String, dynamic>? overrides,
+  }) async {
+    final payload = {
+      'template_key': templateKey,
+      if (overrides != null && overrides.isNotEmpty) 'overrides': overrides,
+    };
+    final response = await _client.client.post<Map<String, dynamic>>(
+      ApiEndpoints.missionsGenerateFromTemplate,
+      data: payload,
+    );
+    return MissionModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
   Future<List<GoalModel>> fetchGoals() async {
     final response =
         await _client.client.get<dynamic>(ApiEndpoints.goals);

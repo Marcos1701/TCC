@@ -449,9 +449,9 @@ class _TransactionWizardState extends State<TransactionWizard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           '2. Escolha a categoria',
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -777,7 +777,7 @@ class _TransactionWizardState extends State<TransactionWizard> {
                 const SizedBox(height: 16),
                 Text(
                   'Resumo: ${_recurrenceUnit.shortLabel(_recurrenceValue)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

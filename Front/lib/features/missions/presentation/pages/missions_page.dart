@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../data/missions_viewmodel.dart';
+import '../widgets/mission_catalog_highlights.dart';
 import '../widgets/mission_details_sheet.dart';
+import '../widgets/mission_impact_visualization.dart';
 
 class MissionsPage extends StatefulWidget {
   const MissionsPage({super.key});
@@ -28,9 +31,10 @@ class _MissionsPageState extends State<MissionsPage> {
     _viewModel = MissionsViewModel(repository: _repository);
     _viewModel.loadMissions();
     _cacheManager.addListener(_onCacheInvalidated);
-    
+
     // Observa celebrações de missões
     _viewModel.addListener(_checkForCelebrations);
+    AnalyticsService.trackScreenView('missions');
   }
 
   @override
@@ -38,6 +42,7 @@ class _MissionsPageState extends State<MissionsPage> {
     _viewModel.removeListener(_checkForCelebrations);
     _cacheManager.removeListener(_onCacheInvalidated);
     _viewModel.dispose();
+    AnalyticsService.trackScreenExit('missions');
     super.dispose();
   }
 
@@ -58,14 +63,14 @@ class _MissionsPageState extends State<MissionsPage> {
             (m) => m.mission.id == missionId,
           ),
         );
-        
+
         FeedbackService.showMissionCompleted(
           context,
           missionName: mission.mission.title,
           xpReward: mission.mission.rewardPoints,
           coinsReward: null, // Pode ser adicionado futuramente
         );
-        
+
         _viewModel.markMissionAsViewed(missionId);
       }
     }
@@ -105,7 +110,7 @@ class _MissionsPageState extends State<MissionsPage> {
               if (_viewModel.isLoading && _viewModel.activeMissions.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
-              
+
               if (_viewModel.hasError) {
                 return ListView(
                   padding: const EdgeInsets.all(24),
@@ -126,7 +131,7 @@ class _MissionsPageState extends State<MissionsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _viewModel.errorMessage ?? 
+                      _viewModel.errorMessage ??
                           'Não foi possível carregar os desafios.',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
@@ -156,13 +161,25 @@ class _MissionsPageState extends State<MissionsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
                   Text(
-                    'Acompanhe seu progresso nos desafios ativos. O sistema atualiza automaticamente conforme você realiza transações.',
+                    'Veja os desafios ativos. Atualizamos tudo após cada transação registrada.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[400],
                       height: 1.4,
                     ),
                   ),
                   const SizedBox(height: 24),
+                  MissionImpactVisualization(viewModel: _viewModel),
+                  const SizedBox(height: 16),
+                  MissionRecommendationsSection(viewModel: _viewModel),
+                  const SizedBox(height: 24),
+                  if (_viewModel.categorySummaries.isNotEmpty) ...[
+                    CategoryMissionBadgeList(viewModel: _viewModel),
+                    const SizedBox(height: 24),
+                  ],
+                  if (_viewModel.goalSummaries.isNotEmpty) ...[
+                    GoalMissionPanel(viewModel: _viewModel),
+                    const SizedBox(height: 24),
+                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -286,7 +303,7 @@ class _ActiveMissionCard extends StatelessWidget {
         Duration(days: mission.mission.durationDays),
       );
       final daysRemaining = endDate.difference(DateTime.now()).inDays;
-      
+
       if (daysRemaining < 0) {
         deadlineText = 'Expirado';
         deadlineColor = AppColors.alert;
@@ -322,7 +339,8 @@ class _ActiveMissionCard extends StatelessWidget {
             children: [
               // Badge do tipo de missão
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: _getMissionTypeColor(mission.mission.missionType),
                   borderRadius: BorderRadius.circular(6),
@@ -341,7 +359,8 @@ class _ActiveMissionCard extends StatelessWidget {
               if (mission.mission.source != null) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: mission.mission.source == 'template'
                         ? const Color(0xFF4CAF50).withOpacity(0.15)
@@ -368,7 +387,9 @@ class _ActiveMissionCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        mission.mission.source == 'template' ? 'Template' : 'IA',
+                        mission.mission.source == 'template'
+                            ? 'Template'
+                            : 'IA',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: mission.mission.source == 'template'
                               ? const Color(0xFF4CAF50)
@@ -420,7 +441,7 @@ class _ActiveMissionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Barra de progresso
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
@@ -434,7 +455,7 @@ class _ActiveMissionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Informações de progresso e recompensa
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -457,7 +478,8 @@ class _ActiveMissionCard extends StatelessWidget {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -483,7 +505,7 @@ class _ActiveMissionCard extends StatelessWidget {
               ),
             ],
           ),
-          
+
           // Mensagem de conclusão
           if (isCompleted) ...[
             const SizedBox(height: 12),

@@ -410,7 +410,7 @@ class _PaymentWizardState extends State<PaymentWizard> {
               },
               maxAmount: income.availableAmount ?? income.amount,
             );
-          }).toList(),
+          }),
       ],
     );
   }
@@ -468,7 +468,7 @@ class _PaymentWizardState extends State<PaymentWizard> {
               },
               maxAmount: expense.availableAmount ?? expense.amount,
             );
-          }).toList(),
+          }),
       ],
     );
   }
