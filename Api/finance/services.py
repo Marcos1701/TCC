@@ -213,12 +213,17 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
     )
     
     for goal in active_goals:
-        # Verificar última transação na categoria da meta
-        last_contribution = Transaction.objects.filter(
-            user=user,
-            category=goal.category,
-            type=Transaction.TransactionType.INCOME
-        ).order_by('-date').first()
+        # Verificar última transação relacionada à meta
+        # Se a meta tiver categoria, verificar transações nela
+        if goal.target_category:
+            last_contribution = Transaction.objects.filter(
+                user=user,
+                category=goal.target_category,
+                type=Transaction.TransactionType.INCOME
+            ).order_by('-date').first()
+        else:
+            # Para metas sem categoria específica, pular verificação
+            continue
         
         if not last_contribution or last_contribution.date < fifteen_days_ago:
             days_stagnant = (today - last_contribution.date).days if last_contribution else 999
@@ -349,8 +354,6 @@ def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
             mission=mission,
             defaults={
                 'status': MissionProgress.Status.PENDING,
-                'assigned_at': timezone.now(),
-                'deadline': timezone.now().date() + timedelta(days=mission.duration_days),
             }
         )
         new_progress_list.append(progress)
