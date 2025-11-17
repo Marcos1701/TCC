@@ -88,6 +88,15 @@ class OnboardingMissionValidator(BaseMissionValidator):
     def calculate_progress(self) -> Dict[str, Any]:
         from .models import Transaction
         
+        # Verificar se missão foi iniciada
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {'transactions_registered': 0, 'target_transactions': self.mission.min_transactions or 10, 'remaining': self.mission.min_transactions or 10},
+                'message': 'Missão ainda não foi iniciada'
+            }
+        
         # Contar transações desde o início da missão
         transactions_count = Transaction.objects.filter(
             user=self.user,
@@ -110,6 +119,9 @@ class OnboardingMissionValidator(BaseMissionValidator):
     
     def validate_completion(self) -> Tuple[bool, str]:
         from .models import Transaction
+        
+        if not self.mission_progress.started_at:
+            return False, 'Missão ainda não foi iniciada'
         
         transactions_count = Transaction.objects.filter(
             user=self.user,
@@ -377,6 +389,15 @@ class CategoryReductionValidator(BaseMissionValidator):
                 'message': 'Missão sem categoria alvo configurada'
             }
         
+        # Verificar se missão foi iniciada
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
+            }
+        
         # Período da missão
         mission_duration = self.mission.duration_days
         start_date = self.mission_progress.started_at
@@ -457,6 +478,15 @@ class CategoryLimitValidator(BaseMissionValidator):
                 'is_completed': False,
                 'metrics': {},
                 'message': 'Missão sem categoria ou limite configurado'
+            }
+        
+        # Verificar se missão foi iniciada
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
             }
         
         # Gastos na categoria desde o início da missão
@@ -571,6 +601,15 @@ class GoalContributionValidator(BaseMissionValidator):
                 'message': 'Missão sem meta alvo configurada'
             }
         
+        # Verificar se missão foi iniciada
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
+            }
+        
         # Contribuições desde o início da missão
         contributions = Transaction.objects.filter(
             user=self.user,
@@ -615,6 +654,15 @@ class TransactionConsistencyValidator(BaseMissionValidator):
         duration_weeks = (self.mission.duration_days + 6) // 7  # Arredondar para cima
         
         # Filtro por tipo de transação
+        # Verificar se missão foi iniciada
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
+            }
+        
         transaction_filter = Q(user=self.user, date__gte=self.mission_progress.started_at.date())
         if self.mission.transaction_type_filter != 'ALL':
             transaction_filter &= Q(type=self.mission.transaction_type_filter)
@@ -677,6 +725,14 @@ class PaymentDisciplineValidator(BaseMissionValidator):
                 'message': 'Missão não requer rastreamento de pagamentos'
             }
         
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
+            }
+        
         # Contar pagamentos desde o início da missão
         payments_count = Transaction.objects.filter(
             user=self.user,
@@ -715,6 +771,14 @@ class IndicatorMaintenanceValidator(BaseMissionValidator):
     
     def calculate_progress(self) -> Dict[str, Any]:
         from .services import calculate_summary
+        
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
+            }
         
         # Obter métricas atuais
         metrics = calculate_summary(self.user)
@@ -807,6 +871,14 @@ class MultiCriteriaValidator(BaseMissionValidator):
     """
     
     def calculate_progress(self) -> Dict[str, Any]:
+        if not self.mission_progress.started_at:
+            return {
+                'progress_percentage': 0,
+                'is_completed': False,
+                'metrics': {},
+                'message': 'Missão ainda não foi iniciada'
+            }
+        
         criteria_results = []
         total_progress = 0
         criteria_count = 0
