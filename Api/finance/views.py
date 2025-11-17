@@ -2879,7 +2879,8 @@ class SimplifiedOnboardingView(APIView):
 class RegisterView(APIView):
     """View pública para registro de novos usuários."""
     permission_classes = [permissions.AllowAny]
-    authentication_classes = []  # Sem autenticação para permitir registro com token expirado no storage
+    authentication_classes = []
+    throttle_classes = []
 
     def post(self, request):
         email = request.data.get("email", "").strip().lower()

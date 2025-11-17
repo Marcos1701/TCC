@@ -181,13 +181,14 @@ class IdentifyImprovementOpportunitiesTestCase(TestCase):
         """Testa detecção de metas estagnadas"""
         today = timezone.now().date()
         
-        # Meta sem progresso há 20 dias
+        # Meta sem progresso há 20 dias (com target_category para permitir verificação)
         goal = Goal.objects.create(
             user=self.user,
             title="Emergência",
             target_amount=Decimal("10000.00"),
             current_amount=Decimal("3000.00"),
-            deadline=today + timedelta(days=90)
+            deadline=today + timedelta(days=90),
+            target_category=self.cat_savings  # Necessário para verificação de contribuições
         )
         
         # Última contribuição foi há 25 dias
@@ -337,7 +338,7 @@ class AssignMissionsSmartlyTestCase(TestCase):
         new_assigned = assign_missions_smartly(self.user, max_active=5)
         active_new = [p for p in new_assigned if p.status in [
             MissionProgress.Status.PENDING,
-            MissionProgress.Status.IN_PROGRESS
+            MissionProgress.Status.ACTIVE
         ]]
         
         # Deve ter preenchido o slot (initial_count total, pois uma foi completada)

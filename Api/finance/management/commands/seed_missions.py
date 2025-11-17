@@ -118,13 +118,12 @@ class Command(BaseCommand):
             if use_ai:
                 # Usar geração com IA
                 try:
-                    missions = generate_mission_batch_from_templates(
-                        templates=templates,
-                        mission_type=mtype,
-                        count=type_count,
-                        use_ai=True
+                    # TODO: Implementar chamada correta com métricas do usuário
+                    # Por enquanto, gerar sem IA
+                    self.stdout.write(
+                        self.style.WARNING('⚠️  Geração com IA não implementada ainda')
                     )
-                    created = self._create_missions_from_data(missions, mtype)
+                    created = self._generate_without_ai(templates, mtype, type_count)
                 except Exception as e:
                     self.stdout.write(
                         self.style.WARNING(f'⚠️  Erro ao usar IA: {e}')
@@ -185,6 +184,7 @@ class Command(BaseCommand):
             counts = template['min_transactions']
             count = random.choice(counts)
             title = title.format(count=count)
+            data['title'] = title
             data['min_transactions'] = count
             data['validation_type'] = 'TRANSACTION_COUNT'
 

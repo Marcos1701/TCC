@@ -37,19 +37,15 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class EmailTokenObtainPairView(TokenObtainPairView):
-    """
-    View de autenticação que permite login com email ou username.
-    IMPORTANTE: Desabilita autenticação para permitir login com token expirado no storage.
-    """
+    """View de autenticação que permite login com email ou username."""
     serializer_class = EmailTokenObtainPairSerializer
     permission_classes = [permissions.AllowAny]
-    authentication_classes = []  # Sem autenticação para esta view
+    authentication_classes = []
+    throttle_classes = []
 
 
 class CustomTokenRefreshView(TokenRefreshView):
-    """
-    View para refresh de token com permissão explícita.
-    IMPORTANTE: Desabilita autenticação para permitir refresh com token expirado.
-    """
+    """View para refresh de token."""
     permission_classes = [permissions.AllowAny]
-    authentication_classes = []  # Sem autenticação para esta view
+    authentication_classes = []
+    throttle_classes = []
