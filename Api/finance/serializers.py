@@ -513,6 +513,16 @@ class MissionSerializer(serializers.ModelSerializer):
                 'icon': '🛡️'
             })
         
+        # Transações mínimas (onboarding)
+        if obj.min_transactions is not None:
+            info['targets'].append({
+                'metric': 'TRANSACTIONS',
+                'label': 'Transações',
+                'value': obj.min_transactions,
+                'unit': 'registros',
+                'icon': '📝'
+            })
+        
         # Categoria alvo
         if obj.target_category:
             info['targets'].append({

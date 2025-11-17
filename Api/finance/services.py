@@ -349,13 +349,28 @@ def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
     # Criar MissionProgress para as novas missões
     new_progress_list = []
     for mission in selected_missions:
+        # Iniciar automaticamente missões de onboarding
+        should_auto_start = mission.mission_type in [
+            'ONBOARDING_TRANSACTIONS',
+            'ONBOARDING_CATEGORIES', 
+            'ONBOARDING_GOALS'
+        ]
+        
         progress, created = MissionProgress.objects.get_or_create(
             user=user,
             mission=mission,
             defaults={
-                'status': MissionProgress.Status.PENDING,
+                'status': MissionProgress.Status.ACTIVE if should_auto_start else MissionProgress.Status.PENDING,
+                'started_at': timezone.now() if should_auto_start else None,
             }
         )
+        
+        # Se já existia mas estava PENDING e é onboarding, ativar
+        if not created and should_auto_start and progress.status == MissionProgress.Status.PENDING:
+            progress.status = MissionProgress.Status.ACTIVE
+            progress.started_at = timezone.now()
+            progress.save()
+        
         new_progress_list.append(progress)
     
     # Retornar todas as missões ativas (antigas + novas)
