@@ -1350,7 +1350,11 @@ def update_mission_progress(user) -> List[MissionProgress]:
                 logger.debug(f"Progresso atualizado para {progress.mission.title}: {old_progress:.1f}% → {new_progress:.1f}%")
                 
         except Exception as e:
+            import traceback
             logger.error(f"Erro ao atualizar progresso da missão {progress.mission.title}: {e}")
+            logger.error(f"Validator type: {validator.__class__.__name__}")
+            logger.error(f"Mission validation_type: {progress.mission.validation_type}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             continue
     
     return updated
