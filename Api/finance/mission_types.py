@@ -390,22 +390,26 @@ class CategoryReductionValidator(BaseMissionValidator):
         current_end = timezone.now()
         
         # Gastos na categoria no período de referência
-        reference_spending = Transaction.objects.filter(
+        reference_query = Transaction.objects.filter(
             user=self.user,
-            category=self.mission.target_category,
             type='EXPENSE',
             date__gte=reference_start.date(),
             date__lt=reference_end.date()
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        )
+        if self.mission.target_category:
+            reference_query = reference_query.filter(category=self.mission.target_category)
+        reference_spending = reference_query.aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
         # Gastos na categoria no período atual
-        current_spending = Transaction.objects.filter(
+        current_query = Transaction.objects.filter(
             user=self.user,
-            category=self.mission.target_category,
             type='EXPENSE',
             date__gte=current_start.date(),
             date__lt=current_end.date()
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        )
+        if self.mission.target_category:
+            current_query = current_query.filter(category=self.mission.target_category)
+        current_spending = current_query.aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
         # Calcular redução percentual
         if reference_spending > 0:
@@ -456,12 +460,14 @@ class CategoryLimitValidator(BaseMissionValidator):
             }
         
         # Gastos na categoria desde o início da missão
-        current_spending = Transaction.objects.filter(
+        spending_query = Transaction.objects.filter(
             user=self.user,
-            category=self.mission.target_category,
             type='EXPENSE',
             date__gte=self.mission_progress.started_at.date()
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        )
+        if self.mission.target_category:
+            spending_query = spending_query.filter(category=self.mission.target_category)
+        current_spending = spending_query.aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
         limit = self.mission.category_spending_limit
         remaining = limit - current_spending
@@ -509,7 +515,7 @@ class GoalProgressValidator(BaseMissionValidator):
     """
     
     def calculate_progress(self) -> Dict[str, Any]:
-        if not self.mission.target_goal:
+        if not self.mission.target_goal_id:
             return {
                 'progress_percentage': 0,
                 'is_completed': False,
@@ -557,7 +563,7 @@ class GoalContributionValidator(BaseMissionValidator):
     def calculate_progress(self) -> Dict[str, Any]:
         from .models import Transaction
         
-        if not self.mission.target_goal:
+        if not self.mission.target_goal_id:
             return {
                 'progress_percentage': 0,
                 'is_completed': False,
