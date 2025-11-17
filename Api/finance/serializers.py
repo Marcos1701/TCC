@@ -460,7 +460,6 @@ class MissionSerializer(serializers.ModelSerializer):
             "is_system_generated",
             "generation_context",
             "source",
-            "target_info",
             "created_at",
             "updated_at",
         ]
@@ -607,16 +606,6 @@ class MissionSerializer(serializers.ModelSerializer):
                 'value': float(obj.goal_progress_target),
                 'unit': '%',
                 'icon': '📈'
-            })
-        
-        return info
-        if obj.min_transactions is not None:
-            info['targets'].append({
-                'metric': 'TRANSACTIONS',
-                'label': 'Transações',
-                'value': obj.min_transactions,
-                'unit': 'registros',
-                'icon': '📝'
             })
         
         return info

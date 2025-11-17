@@ -1729,11 +1729,20 @@ class MissionViewSet(viewsets.ModelViewSet):
         
         limit = int(request.query_params.get('limit', 5))
         
-        # Analisar contexto do usuário
-        context = analyze_user_context(request.user)
-        
-        # Calcular prioridades
-        mission_priorities = calculate_mission_priorities(request.user, context)
+        try:
+            # Analisar contexto do usuário
+            context = analyze_user_context(request.user)
+            
+            # Calcular prioridades
+            mission_priorities = calculate_mission_priorities(request.user, context)
+        except Exception as e:
+            # Se falhar análise, retornar erro amigável
+            return Response({
+                'error': 'Análise não disponível no momento',
+                'message': 'Registre algumas transações para obter recomendações personalizadas',
+                'recommended_missions': [],
+                'context_summary': None
+            })
         
         # Limitar resultados
         top_missions = mission_priorities[:limit]
@@ -1847,11 +1856,21 @@ class MissionViewSet(viewsets.ModelViewSet):
         """Análise contextual completa do usuário (GET /api/missions/context-analysis/)."""
         from .services import analyze_user_context, identify_improvement_opportunities
         
-        # Analisar contexto
-        context = analyze_user_context(request.user)
-        
-        # Identificar oportunidades
-        opportunities = identify_improvement_opportunities(request.user)
+        try:
+            # Analisar contexto
+            context = analyze_user_context(request.user)
+            
+            # Identificar oportunidades
+            opportunities = identify_improvement_opportunities(request.user)
+        except Exception as e:
+            return Response({
+                'error': 'Análise não disponível',
+                'message': 'Certifique-se de ter transações registradas para análise contextual.',
+                'details': str(e),
+                'context': None,
+                'opportunities': [],
+                'suggested_actions': []
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         # Gerar ações sugeridas baseadas nas oportunidades
         suggested_actions = []
