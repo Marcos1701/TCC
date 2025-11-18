@@ -184,7 +184,9 @@ class Command(BaseCommand):
             counts = template['min_transactions']
             count = random.choice(counts)
             title = title.format(count=count)
+            description = template['description'].format(count=count)
             data['title'] = title
+            data['description'] = description
             data['min_transactions'] = count
             data['validation_type'] = 'TRANSACTION_COUNT'
 
@@ -194,9 +196,11 @@ class Command(BaseCommand):
             min_val, max_val = random.choice(ranges)
             target = random.randint(min_val, max_val)
             title = title.format(target=target)
+            description = template['description'].format(target=target)
             data['title'] = title
+            data['description'] = description
             data['target_tps'] = target
-            data['validation_type'] = 'INDICATOR_THRESHOLD'
+            data['validation_type'] = 'INDICATOR_IMPROVEMENT'
 
         # Para RDR: preencher {target}
         elif 'target_rdr_ranges' in template:
@@ -204,17 +208,21 @@ class Command(BaseCommand):
             min_val, max_val = random.choice(ranges)
             target = random.randint(min_val, max_val)
             title = title.format(target=target)
+            description = template['description'].format(target=target)
             data['title'] = title
+            data['description'] = description
             data['target_rdr'] = target
-            data['validation_type'] = 'INDICATOR_THRESHOLD'
+            data['validation_type'] = 'INDICATOR_IMPROVEMENT'
 
         # Para ILI: preencher {target}
-        elif 'target_ili_ranges' in template:
-            ranges = template['target_ili_ranges']
+        elif 'min_ili_ranges' in template:
+            ranges = template['min_ili_ranges']
             min_val, max_val = random.choice(ranges)
             target = round(random.uniform(min_val, max_val), 1)
-            title = title.format(target=target)
+            title = title.format(target=int(target))
+            description = template['description'].format(target=int(target))
             data['title'] = title
+            data['description'] = description
             data['min_ili'] = target
             data['validation_type'] = 'INDICATOR_THRESHOLD'
 
@@ -224,7 +232,9 @@ class Command(BaseCommand):
             min_val, max_val = random.choice(ranges)
             percent = random.randint(min_val, max_val)
             title = title.format(percent=percent)
+            description = template['description'].format(percent=percent)
             data['title'] = title
+            data['description'] = description
             data['target_reduction_percent'] = percent
             data['validation_type'] = 'CATEGORY_REDUCTION'
 
@@ -234,32 +244,60 @@ class Command(BaseCommand):
             min_val, max_val = random.choice(ranges)
             percent = random.randint(min_val, max_val)
             title = title.format(percent=percent)
+            description = template['description'].format(percent=percent)
             data['title'] = title
+            data['description'] = description
             data['goal_progress_target'] = percent
             data['validation_type'] = 'GOAL_PROGRESS'
+
+        # Para BEHAVIOR com {days}
+        elif '{days}' in title or '{days}' in template['description']:
+            days = template.get('duration_days', 30)
+            title = title.replace('{days}', str(days))
+            description = template['description'].replace('{days}', str(days))
+            data['title'] = title
+            data['description'] = description
+            data['validation_type'] = template.get('validation_type', 'TRANSACTION_CONSISTENCY')
+
+        # Para ADVANCED com múltiplos critérios
+        elif 'criteria' in template:
+            criteria_list = template['criteria']
+            criteria = random.choice(criteria_list)
+            
+            # Substituir todos os placeholders
+            title_formatted = title
+            desc_formatted = template['description']
+            
+            if '{tps}' in title or '{tps}' in desc_formatted:
+                tps_val = criteria.get('target_tps', 25)
+                title_formatted = title_formatted.replace('{tps}', str(tps_val))
+                desc_formatted = desc_formatted.replace('{tps}', str(tps_val))
+                data['target_tps'] = tps_val
+            
+            if '{rdr}' in title or '{rdr}' in desc_formatted:
+                rdr_val = criteria.get('target_rdr', 30)
+                title_formatted = title_formatted.replace('{rdr}', str(rdr_val))
+                desc_formatted = desc_formatted.replace('{rdr}', str(rdr_val))
+                data['target_rdr'] = rdr_val
+            
+            if '{ili}' in title or '{ili}' in desc_formatted:
+                ili_val = criteria.get('min_ili', 6)
+                title_formatted = title_formatted.replace('{ili}', str(int(ili_val)))
+                desc_formatted = desc_formatted.replace('{ili}', str(int(ili_val)))
+                data['min_ili'] = ili_val
+            
+            data['title'] = title_formatted
+            data['description'] = desc_formatted
+            data['validation_type'] = 'MULTI_CRITERIA'
 
         else:
             # Template sem placeholders
             data['title'] = title
+            data['description'] = template['description']
 
-        # Expandir placeholders na descrição
-        description = template['description']
-        if '{count}' in description and 'min_transactions' in data:
-            description = description.format(count=data['min_transactions'])
-        elif '{target}' in description:
-            if 'target_tps' in data:
-                description = description.format(target=data['target_tps'])
-            elif 'target_rdr' in data:
-                description = description.format(target=data['target_rdr'])
-            elif 'min_ili' in data:
-                description = description.format(target=data['min_ili'])
-        elif '{percent}' in description:
-            if 'target_reduction_percent' in data:
-                description = description.format(percent=data['target_reduction_percent'])
-            elif 'goal_progress_target' in data:
-                description = description.format(percent=data['goal_progress_target'])
-
-        data['description'] = description
+        # Descrição já foi formatada acima, mas garantir que não tenha placeholders restantes
+        if 'description' not in data:
+            data['description'] = template['description']
 
         # Definir prioridade baseada na dificuldade
         priority_map = {'EASY': 1, 'MEDIUM': 2, 'HARD': 3}
