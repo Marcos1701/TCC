@@ -2372,3 +2372,11 @@ Gere {total_achievements} conquistas (achievements) para um aplicativo de gestã
     except Exception as e:
         logger.error(f"Erro ao gerar conquistas via IA: {e}")
         return []
+
+
+# ============================================================================
+# ALIASES PARA COMPATIBILIDADE
+# ============================================================================
+
+# Alias para views.py e outras partes do código que usam o nome antigo
+generate_hybrid_missions = generate_and_save_incrementally
