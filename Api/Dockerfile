@@ -69,4 +69,5 @@ CMD python manage.py migrate --noinput && \
         --workers 4 \
         --timeout 120 \
         --access-logfile - \
-        --error-logfile -
+        --error-logfile - \
+        --worker-class=sync
