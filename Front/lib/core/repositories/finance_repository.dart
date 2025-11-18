@@ -286,9 +286,20 @@ class FinanceRepository {
     final response =
         await _client.client.get<dynamic>(ApiEndpoints.missions);
     final items = _extractListFromResponse(response.data);
-    return items
+    final missions = items
         .map((e) => MissionModel.fromMap(e as Map<String, dynamic>))
         .toList();
+    
+    // Log de missões com placeholders (debug)
+    final invalidMissions = missions.where((m) => m.hasPlaceholders()).toList();
+    if (invalidMissions.isNotEmpty) {
+      debugPrint(
+        '⚠️ API retornou ${invalidMissions.length} missão(ões) com placeholders:\n'
+        '${invalidMissions.map((m) => '  - ID ${m.id}: "${m.title}" -> ${m.getPlaceholders()}').join('\n')}'
+      );
+    }
+    
+    return missions;
   }
 
   Future<List<MissionModel>> fetchRecommendedMissions({

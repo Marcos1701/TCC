@@ -26,8 +26,13 @@ class _AdminMissionsManagementPageState
   String _filterType = 'ALL';
   String _filterDifficulty = 'ALL';
   String _filterStatus = 'ALL'; // ALL, ACTIVE, PAUSED
+  String _filterQuality = 'ALL'; // ALL, VALID, INVALID
   String _searchQuery = '';
   String _sortBy = 'xp_desc'; // xp_desc, xp_asc, difficulty_desc, difficulty_asc, date_desc, date_asc
+  
+  // Seleção múltipla para ações em lote
+  final Set<String> _selectedMissions = {};
+  bool _isSelectionMode = false;
   
   // Controles para geração de missões IA
   bool _isGeneratingAI = false;
@@ -60,6 +65,47 @@ class _AdminMissionsManagementPageState
     });
   }
 
+  /// Valida se uma missão contém placeholders não substituídos
+  bool _hasPlaceholders(Map<String, dynamic> mission) {
+    final placeholderPattern = RegExp(r'\{[^}]+\}');
+    final title = mission['title']?.toString() ?? '';
+    final description = mission['description']?.toString() ?? '';
+    return placeholderPattern.hasMatch(title) || placeholderPattern.hasMatch(description);
+  }
+  
+  /// Extrai placeholders de uma missão
+  List<String> _getPlaceholders(Map<String, dynamic> mission) {
+    final placeholderPattern = RegExp(r'\{([^}]+)\}');
+    final placeholders = <String>{};
+    final title = mission['title']?.toString() ?? '';
+    final description = mission['description']?.toString() ?? '';
+    
+    placeholderPattern.allMatches(title).forEach((match) {
+      if (match.group(1) != null) placeholders.add(match.group(1)!);
+    });
+    placeholderPattern.allMatches(description).forEach((match) {
+      if (match.group(1) != null) placeholders.add(match.group(1)!);
+    });
+    
+    return placeholders.toList();
+  }
+  
+  /// Conta missões por qualidade
+  Map<String, int> get _qualityStats {
+    int valid = 0;
+    int invalid = 0;
+    
+    for (final mission in _missions) {
+      if (_hasPlaceholders(mission)) {
+        invalid++;
+      } else {
+        valid++;
+      }
+    }
+    
+    return {'valid': valid, 'invalid': invalid, 'total': _missions.length};
+  }
+
   Future<void> _loadMissions() async {
     setState(() {
       _isLoading = true;
@@ -77,8 +123,18 @@ class _AdminMissionsManagementPageState
             : json.decode(response.data.toString()) as Map<String, dynamic>;
         
         final results = data['results'] as List?;
+        final missions = results?.cast<Map<String, dynamic>>() ?? [];
+        
+        // Log de missões com placeholders
+        final invalidMissions = missions.where(_hasPlaceholders).toList();
+        if (invalidMissions.isNotEmpty) {
+          debugPrint(
+            '⚠️ Detectadas ${invalidMissions.length} missão(ões) com placeholders no admin'
+          );
+        }
+        
         setState(() {
-          _missions = results?.cast<Map<String, dynamic>>() ?? [];
+          _missions = missions;
           _isLoading = false;
         });
       }
@@ -111,6 +167,13 @@ class _AdminMissionsManagementPageState
         final isActive = mission['is_active'] == true;
         if (_filterStatus == 'ACTIVE' && !isActive) return false;
         if (_filterStatus == 'PAUSED' && isActive) return false;
+      }
+      
+      // Filtro por qualidade
+      if (_filterQuality != 'ALL') {
+        final hasPlaceholders = _hasPlaceholders(mission);
+        if (_filterQuality == 'VALID' && hasPlaceholders) return false;
+        if (_filterQuality == 'INVALID' && !hasPlaceholders) return false;
       }
 
       // Filtro por busca
@@ -157,6 +220,152 @@ class _AdminMissionsManagementPageState
     });
 
     return filtered;
+  }
+
+  /// Ativa/desativa missões em lote
+  Future<void> _bulkToggleStatus(bool activate) async {
+    if (_selectedMissions.isEmpty) return;
+    
+    final count = _selectedMissions.length;
+    final action = activate ? 'ativar' : 'desativar';
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Text(
+          'Confirmar ação em lote',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Deseja $action $count missão(ões) selecionada(s)?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: activate ? AppColors.success : Colors.orange,
+            ),
+            child: Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    int successCount = 0;
+    int errorCount = 0;
+    
+    for (final missionId in _selectedMissions) {
+      try {
+        await _apiClient.client.patch(
+          '/api/missions/$missionId/',
+          data: {'is_active': activate},
+        );
+        successCount++;
+      } catch (e) {
+        errorCount++;
+      }
+    }
+    
+    setState(() {
+      _selectedMissions.clear();
+      _isSelectionMode = false;
+    });
+    
+    await _loadMissions();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$successCount missão(ões) ${activate ? 'ativada(s)' : 'desativada(s)'}' +
+            (errorCount > 0 ? ' ($errorCount erro(s))' : '')
+          ),
+          backgroundColor: errorCount > 0 ? Colors.orange : AppColors.success,
+        ),
+      );
+    }
+  }
+  
+  /// Deleta missões em lote
+  Future<void> _bulkDelete() async {
+    if (_selectedMissions.isEmpty) return;
+    
+    final count = _selectedMissions.length;
+    
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.alert),
+            SizedBox(width: 12),
+            Text(
+              'Excluir $count missão(ões)?',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        content: Text(
+          'Esta ação não pode ser desfeita. Deseja continuar?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.alert,
+            ),
+            child: Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirm != true) return;
+    
+    int successCount = 0;
+    int errorCount = 0;
+    
+    for (final missionId in _selectedMissions) {
+      try {
+        await _apiClient.client.delete('/api/missions/$missionId/');
+        successCount++;
+      } catch (e) {
+        errorCount++;
+      }
+    }
+    
+    setState(() {
+      _selectedMissions.clear();
+      _isSelectionMode = false;
+    });
+    
+    await _loadMissions();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '$successCount missão(ões) excluída(s)' +
+            (errorCount > 0 ? ' ($errorCount erro(s))' : '')
+          ),
+          backgroundColor: errorCount > 0 ? Colors.orange : AppColors.success,
+        ),
+      );
+    }
   }
 
   Future<void> _toggleMissionStatus(String missionId, bool isActive) async {
@@ -2173,7 +2382,7 @@ class _AdminMissionsManagementPageState
           ),
           const SizedBox(height: 12),
           
-          // Segunda linha: Status e Ordenação
+          // Terceira linha: Qualidade e Ordenação
           Row(
             children: [
               Expanded(
@@ -2181,7 +2390,7 @@ class _AdminMissionsManagementPageState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Status',
+                      'Qualidade',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -2190,7 +2399,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      initialValue: _filterStatus,
+                      value: _filterQuality,
                       dropdownColor: const Color(0xFF2A2A2A),
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(
@@ -2208,14 +2417,23 @@ class _AdminMissionsManagementPageState
                         isDense: true,
                       ),
                       style: const TextStyle(color: Colors.white),
-                      items: const [
-                        DropdownMenuItem(value: 'ALL', child: Text('Todos')),
-                        DropdownMenuItem(value: 'ACTIVE', child: Text('Ativas')),
-                        DropdownMenuItem(value: 'PAUSED', child: Text('Pausadas')),
+                      items: [
+                        const DropdownMenuItem(value: 'ALL', child: Text('Todas')),
+                        const DropdownMenuItem(value: 'VALID', child: Text('✓ Válidas')),
+                        DropdownMenuItem(
+                          value: 'INVALID',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orange),
+                              const SizedBox(width: 6),
+                              Text('Placeholders (${_qualityStats['invalid']})'),
+                            ],
+                          ),
+                        ),
                       ],
                       onChanged: (value) {
                         setState(() {
-                          _filterStatus = value!;
+                          _filterQuality = value!;
                         });
                       },
                     ),
@@ -2274,6 +2492,89 @@ class _AdminMissionsManagementPageState
               ),
             ],
           ),
+          
+          // Estatísticas de qualidade
+          if (_qualityStats['invalid']! > 0) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 18),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${_qualityStats['invalid']} missão(ões) com placeholders não substituídos',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _filterQuality = 'INVALID';
+                      });
+                    },
+                    child: const Text('Ver', style: TextStyle(color: Colors.orange)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          
+          // Modo de seleção
+          if (_isSelectionMode) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.15),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      '${_selectedMissions.length} missão(ões) selecionada(s)',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.toggle_on, color: AppColors.success, size: 28),
+                    onPressed: () => _bulkToggleStatus(true),
+                    tooltip: 'Ativar selecionadas',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.toggle_off, color: Colors.orange, size: 28),
+                    onPressed: () => _bulkToggleStatus(false),
+                    tooltip: 'Desativar selecionadas',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: AppColors.alert, size: 24),
+                    onPressed: _bulkDelete,
+                    tooltip: 'Excluir selecionadas',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                    onPressed: () {
+                      setState(() {
+                        _selectedMissions.clear();
+                        _isSelectionMode = false;
+                      });
+                    },
+                    tooltip: 'Cancelar seleção',
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2469,6 +2770,8 @@ class _AdminMissionsManagementPageState
               final mission = _filteredAndSortedMissions[index];
               final missionId = mission['id']?.toString() ?? '';
               final isActive = mission['is_active'] as bool? ?? true;
+              final hasPlaceholders = _hasPlaceholders(mission);
+              final isSelected = _selectedMissions.contains(missionId);
               
               // Animação de entrada suave
               return TweenAnimationBuilder<double>(
@@ -2486,6 +2789,9 @@ class _AdminMissionsManagementPageState
                 },
                 child: _MissionCard(
                   mission: mission,
+                  isSelected: isSelected,
+                  hasPlaceholders: hasPlaceholders,
+                  placeholders: hasPlaceholders ? _getPlaceholders(mission) : [],
                   onToggleStatus: () => _toggleMissionStatus(missionId, isActive),
                   onEdit: () => _showEditMissionDialog(mission),
                   onDuplicate: () => _duplicateMission(
@@ -2496,6 +2802,28 @@ class _AdminMissionsManagementPageState
                     missionId,
                     mission['title']?.toString() ?? 'Missão sem título',
                   ),
+                  onLongPress: () {
+                    setState(() {
+                      _isSelectionMode = true;
+                      if (isSelected) {
+                        _selectedMissions.remove(missionId);
+                      } else {
+                        _selectedMissions.add(missionId);
+                      }
+                    });
+                  },
+                  onTap: _isSelectionMode ? () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedMissions.remove(missionId);
+                        if (_selectedMissions.isEmpty) {
+                          _isSelectionMode = false;
+                        }
+                      } else {
+                        _selectedMissions.add(missionId);
+                      }
+                    });
+                  } : null,
                 ),
               );
             },
@@ -2509,17 +2837,27 @@ class _AdminMissionsManagementPageState
 class _MissionCard extends StatelessWidget {
   const _MissionCard({
     required this.mission,
+    required this.isSelected,
+    required this.hasPlaceholders,
+    required this.placeholders,
     required this.onToggleStatus,
     required this.onEdit,
     required this.onDuplicate,
     required this.onDelete,
+    required this.onLongPress,
+    this.onTap,
   });
 
   final Map<String, dynamic> mission;
+  final bool isSelected;
+  final bool hasPlaceholders;
+  final List<String> placeholders;
   final VoidCallback onToggleStatus;
   final VoidCallback onEdit;
   final VoidCallback onDuplicate;
   final VoidCallback onDelete;
+  final VoidCallback onLongPress;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -2529,24 +2867,37 @@ class _MissionCard extends StatelessWidget {
     final xp = mission['reward_points'] ?? mission['xp_reward'] ?? 0;
     final duration = mission['duration_days'] ?? 0;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isActive 
-              ? AppColors.primary.withOpacity(0.3)
-              : Colors.grey[800]!,
-          width: 1,
-        ),
-        boxShadow: isActive ? [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+    return GestureDetector(
+      onLongPress: onLongPress,
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primary
+                : (hasPlaceholders
+                    ? Colors.orange
+                    : (isActive 
+                        ? AppColors.primary.withOpacity(0.3)
+                        : Colors.grey[800]!)),
+            width: isSelected ? 2 : 1,
           ),
-        ] : null,
-      ),
+          boxShadow: isSelected || hasPlaceholders ? [
+            BoxShadow(
+              color: (isSelected ? AppColors.primary : Colors.orange).withOpacity(0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ] : (isActive ? [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ] : null),
+        ),
       child: Card(
         margin: EdgeInsets.zero,
         color: const Color(0xFF1E1E1E),
@@ -2561,8 +2912,44 @@ class _MissionCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Alerta de placeholders
+                if (hasPlaceholders) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Placeholders não substituídos: ${placeholders.join(", ")}',
+                            style: const TextStyle(color: Colors.orange, fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   children: [
+                    // Checkbox de seleção
+                    if (isSelected || onTap != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Checkbox(
+                          value: isSelected,
+                          onChanged: onTap != null ? (_) => onTap!() : null,
+                          activeColor: AppColors.primary,
+                          checkColor: Colors.white,
+                          side: BorderSide(color: Colors.grey[600]!),
+                        ),
+                      ),
                     // Ícone de status
                     Container(
                       padding: const EdgeInsets.all(8),

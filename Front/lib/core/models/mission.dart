@@ -310,5 +310,31 @@ class MissionModel {
     }
     return DateTime.parse(value.toString());
   }
+
+  /// Valida se a missão contém placeholders não substituídos
+  bool hasPlaceholders() {
+    final placeholderPattern = RegExp(r'\{[^}]+\}');
+    return placeholderPattern.hasMatch(title) || 
+           placeholderPattern.hasMatch(description);
+  }
+
+  /// Lista de placeholders encontrados (para debug)
+  List<String> getPlaceholders() {
+    final placeholderPattern = RegExp(r'\{([^}]+)\}');
+    final placeholders = <String>{};
+    
+    placeholderPattern.allMatches(title).forEach((match) {
+      if (match.group(1) != null) placeholders.add(match.group(1)!);
+    });
+    
+    placeholderPattern.allMatches(description).forEach((match) {
+      if (match.group(1) != null) placeholders.add(match.group(1)!);
+    });
+    
+    return placeholders.toList();
+  }
+
+  /// Indica se a missão é válida para exibição
+  bool get isValid => !hasPlaceholders() && title.isNotEmpty && description.isNotEmpty;
 }
 

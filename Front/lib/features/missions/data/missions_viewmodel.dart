@@ -63,6 +63,28 @@ class MissionsViewModel extends ChangeNotifier {
   List<CategoryMissionSummary> get categorySummaries =>
       _buildCategorySummaries();
   List<GoalMissionSummary> get goalSummaries => _buildGoalSummaries();
+  
+  /// Estatísticas de qualidade de dados das missões
+  Map<String, dynamic> get missionQualityStats {
+    final allMissions = [
+      ..._activeMissions.map((m) => m.mission),
+      ..._recommendedMissions,
+      ..._missionsByCategory.values.expand((list) => list),
+      ..._missionsByGoal.values.expand((list) => list),
+    ];
+    
+    final uniqueMissions = {for (var m in allMissions) m.id: m}.values;
+    final invalidCount = uniqueMissions.where((m) => !m.isValid).length;
+    
+    return {
+      'total': uniqueMissions.length,
+      'valid': uniqueMissions.length - invalidCount,
+      'invalid': invalidCount,
+      'quality_rate': uniqueMissions.isEmpty 
+        ? 100.0 
+        : ((uniqueMissions.length - invalidCount) / uniqueMissions.length * 100).toStringAsFixed(1),
+    };
+  }
 
   /// Carrega missões do dashboard
   Future<void> loadMissions() async {
@@ -115,11 +137,21 @@ class MissionsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _recommendedMissions = await _repository.fetchRecommendedMissions(
+      final missions = await _repository.fetchRecommendedMissions(
         missionType: missionType,
         difficulty: difficulty,
         limit: limit,
       );
+      
+      // Filtra missões com placeholders
+      _recommendedMissions = missions.where((m) => m.isValid).toList();
+      
+      final filteredCount = missions.length - _recommendedMissions.length;
+      if (filteredCount > 0) {
+        debugPrint(
+          '🔍 Filtradas $filteredCount missões recomendadas com placeholders'
+        );
+      }
     } on DioException catch (e) {
       _catalogError = _mapDioError(
         e,
@@ -155,8 +187,19 @@ class MissionsViewModel extends ChangeNotifier {
         difficulty: difficulty,
         includeInactive: includeInactive,
       );
-      _missionsByCategory[categoryId] = missions;
-      return missions;
+      
+      // Filtra missões com placeholders
+      final validMissions = missions.where((m) => m.isValid).toList();
+      final filteredCount = missions.length - validMissions.length;
+      
+      if (filteredCount > 0) {
+        debugPrint(
+          '🔍 Filtradas $filteredCount missões da categoria $categoryId com placeholders'
+        );
+      }
+      
+      _missionsByCategory[categoryId] = validMissions;
+      return validMissions;
     } on DioException catch (e) {
       _catalogError = _mapDioError(
         e,
@@ -316,8 +359,19 @@ class MissionsViewModel extends ChangeNotifier {
         missionType: missionType,
         includeCompleted: includeCompleted,
       );
-      _missionsByGoal[goalId] = missions;
-      return missions;
+      
+      // Filtra missões com placeholders
+      final validMissions = missions.where((m) => m.isValid).toList();
+      final filteredCount = missions.length - validMissions.length;
+      
+      if (filteredCount > 0) {
+        debugPrint(
+          '🔍 Filtradas $filteredCount missões da meta $goalId com placeholders'
+        );
+      }
+      
+      _missionsByGoal[goalId] = validMissions;
+      return validMissions;
     } on DioException catch (e) {
       _catalogError = _mapDioError(
         e,
@@ -384,13 +438,38 @@ class MissionsViewModel extends ChangeNotifier {
 
   /// Atualiza missões verificando se há novas completadas
   void _updateMissions(List<MissionProgressModel> missions) {
-    // Identifica missões recém completadas
+    // Filtra missões com placeholders não substituídos
+    final validMissions = <MissionProgressModel>[];
+    final invalidMissions = <MissionProgressModel>[];
+    
+    for (final mission in missions) {
+      if (mission.mission.hasPlaceholders()) {
+        invalidMissions.add(mission);
+        debugPrint(
+          '⚠️ Missão inválida detectada: ID=${mission.mission.id} '
+          'Título="${mission.mission.title}" '
+          'Placeholders: ${mission.mission.getPlaceholders().join(", ")}'
+        );
+      } else {
+        validMissions.add(mission);
+      }
+    }
+    
+    // Log resumido se houver missões filtradas
+    if (invalidMissions.isNotEmpty) {
+      debugPrint(
+        '🔍 Filtradas ${invalidMissions.length} missões com placeholders. '
+        'IDs: ${invalidMissions.map((m) => m.mission.id).join(", ")}'
+      );
+    }
+
+    // Identifica missões recém completadas (apenas das válidas)
     final previousCompleted = _activeMissions
         .where((m) => m.status == 'COMPLETED')
         .map((m) => m.mission.id)
         .toSet();
 
-    final newCompleted = missions
+    final newCompleted = validMissions
         .where((m) => m.status == 'COMPLETED')
         .map((m) => m.mission.id)
         .toSet();
@@ -402,7 +481,7 @@ class MissionsViewModel extends ChangeNotifier {
       }
     }
 
-    _activeMissions = missions;
+    _activeMissions = validMissions;
   }
 
   /// Atualiza missões silenciosamente (sem loading)
