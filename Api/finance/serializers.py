@@ -412,9 +412,6 @@ class MissionSerializer(serializers.ModelSerializer):
     # Informações de origem da missão
     source = serializers.SerializerMethodField()
     
-    # Informações contextuais
-    target_info = serializers.SerializerMethodField()
-    
     # Serializers aninhados para relações ManyToMany
     target_categories = CategorySerializer(many=True, read_only=True)
     target_category = CategorySerializer(read_only=True)
