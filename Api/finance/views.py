@@ -2086,64 +2086,43 @@ class MissionViewSet(viewsets.ModelViewSet):
         POST /api/missions/generate_ai_missions/
         {
             "tier": "BEGINNER|INTERMEDIATE|ADVANCED" (opcional),
-            "scenario": "TPS_LOW|RDR_HIGH|MIXED_BALANCED|..." (opcional),
-            "count": 20 (opcional, número de missões a gerar)
+            "scenario": "low_activity|..." (opcional),
+            "count": 20 (opcional, número de missões a gerar),
+            "async": true (opcional, usar task assíncrona - RECOMENDADO)
         }
         
-        Cenários disponíveis:
-        - BEGINNER_ONBOARDING: Primeiros passos (< 20 transações)
-        - TPS_LOW, TPS_MEDIUM, TPS_HIGH: Melhorar taxa de poupança
-        - RDR_HIGH, RDR_MEDIUM, RDR_LOW: Reduzir/controlar dívidas
-        - ILI_LOW, ILI_MEDIUM, ILI_HIGH: Construir/manter reserva
-        - MIXED_BALANCED: Equilíbrio financeiro geral
-        - MIXED_RECOVERY: Recuperação (baixo TPS + alto RDR)
-        - MIXED_OPTIMIZATION: Otimização avançada
+        Se async=true (RECOMENDADO):
+        - Retorna imediatamente com task_id
+        - Usa Celery worker (sem timeout)
+        - Cliente deve fazer polling em /api/missions/generation_status/{task_id}/
         
-        Se tier e scenario não forem fornecidos: gera automaticamente
-        baseado nas estatísticas dos usuários.
+        Se async=false:
+        - Bloqueia requisição até terminar
+        - Pode dar timeout se demorar >5min
+        - Útil apenas para testes rápidos
         
-        NOVO: Geração incremental (1 por vez) com:
-        - Validação antes de salvar
-        - Detecção de duplicatas semânticas
-        - Salvamento parcial (não perde tudo se houver erro)
+        Exemplo de resposta (async=true):
+        {
+            "success": true,
+            "task_id": "abc-123-def",
+            "message": "Geração iniciada em background",
+            "poll_url": "/api/missions/generation_status/abc-123-def/"
+        }
         
-        Exemplo de resposta:
+        Exemplo de resposta (async=false):
         {
             "success": true,
             "total_created": 18,
             "total_failed": 2,
-            "validation_summary": {
-                "failed_validation": 1,
-                "failed_duplicate": 1,
-                "failed_api": 0
-            },
-            "created_missions": [
-                {
-                    "id": "uuid",
-                    "title": "...",
-                    "mission_type": "TPS_IMPROVEMENT",
-                    "difficulty": "MEDIUM",
-                    "xp_reward": 150
-                },
-                ...
-            ],
-            "failed_missions": [
-                {
-                    "index": 15,
-                    "error": "Máximo de tentativas excedido",
-                    "retries": 3
-                }
-            ]
+            "created_missions": [...]
         }
         """
-        from .ai_services import (
-            generate_and_save_incrementally,
-            MISSION_SCENARIOS
-        )
+        from .ai_services import generate_hybrid_missions
         
-        tier = request.data.get('tier')
-        scenario = request.data.get('scenario')
+        tier = request.data.get('tier', 'BEGINNER')
+        scenario = request.data.get('scenario', 'low_activity')
         count = request.data.get('count', 20)
+        use_async = request.data.get('async', True)  # Async por padrão
         
         # Validar count
         try:
@@ -2159,25 +2138,176 @@ class MissionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validar tier se fornecido
-        if tier and tier not in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
+        # Validar tier
+        if tier not in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']:
             return Response(
-                {'error': 'tier deve ser BEGINNER, INTERMEDIATE ou ADVANCED'},
+                {'error': 'tier deve ser BEGINNER, INTERMEDIATE, ADVANCED ou EXPERT'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validar scenario se fornecido
-        if scenario and scenario not in MISSION_SCENARIOS:
+        try:
+            if use_async:
+                # MODO ASSÍNCRONO (RECOMENDADO)
+                from .tasks import generate_missions_async
+                
+                # Iniciar task Celery
+                task = generate_missions_async.delay(
+                    tier=tier,
+                    scenario_key=scenario,
+                    count=count,
+                    use_templates_first=True
+                )
+                
+                logger.info(f"Task de geração iniciada: {task.id} ({tier}/{scenario}, {count} missões)")
+                
+                return Response({
+                    'success': True,
+                    'task_id': task.id,
+                    'message': 'Geração de missões iniciada em background',
+                    'poll_url': f'/api/missions/generation_status/{task.id}/',
+                    'tier': tier,
+                    'scenario': scenario,
+                    'count': count,
+                    'estimated_time': '30-90 segundos'
+                }, status=status.HTTP_202_ACCEPTED)
+            
+            else:
+                # MODO SÍNCRONO (pode dar timeout)
+                logger.warning(f"Geração SÍNCRONA solicitada (pode dar timeout): {tier}/{scenario}")
+                
+                result = generate_hybrid_missions(
+                    tier=tier,
+                    scenario_key=scenario,
+                    count=count,
+                    use_templates_first=True
+                )
+                
+                created = result.get('created', [])
+                failed = result.get('failed', [])
+                summary = result.get('summary', {})
+                
+                return Response({
+                    'success': summary['total_created'] > 0,
+                    'total_created': summary['total_created'],
+                    'total_failed': summary['total_failed'],
+                    'summary': summary,
+                    'created_missions': created[:10],
+                    'failed_missions': failed[:5],
+                    'tier': tier,
+                    'scenario': scenario
+                })
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar missões: {e}", exc_info=True)
             return Response(
                 {
-                    'error': f'scenario inválido: {scenario}',
-                    'available_scenarios': list(MISSION_SCENARIOS.keys()),
-                    'scenario_descriptions': {
-                        key: val['name'] for key, val in MISSION_SCENARIOS.items()
-                    }
+                    'success': False,
+                    'error': 'Erro ao gerar missões',
+                    'detail': str(e)
                 },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser], url_path='generation_status/(?P<task_id>[^/.]+)')
+    def generation_status(self, request, task_id=None):
+        """
+        Verifica status de uma task de geração assíncrona.
+        
+        GET /api/missions/generation_status/{task_id}/
+        
+        Retorna progresso em tempo real da geração:
+        {
+            "task_id": "abc-123",
+            "status": "STARTED|SUCCESS|FAILURE|PENDING",
+            "current": 12,
+            "total": 20,
+            "percent": 60,
+            "message": "Gerando missão 12/20...",
+            "created": [...],  // Apenas se status=SUCCESS
+            "failed": [...],   // Apenas se status=SUCCESS
+            "error": "..."     // Apenas se status=FAILURE
+        }
+        
+        Status:
+        - PENDING: Task aguardando worker
+        - STARTED: Geração em andamento
+        - SUCCESS: Concluído com sucesso
+        - FAILURE: Erro durante geração
+        """
+        from celery.result import AsyncResult
+        from django.core.cache import cache
+        
+        if not task_id:
+            return Response(
+                {'error': 'task_id é obrigatório'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Buscar no cache (atualizado pela task)
+        cache_key = f'mission_generation_{task_id}'
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            # Cache encontrado (task está rodando ou terminou recentemente)
+            return Response(cached_data)
+        
+        # Cache não encontrado - verificar Celery
+        task = AsyncResult(task_id)
+        
+        if task.state == 'PENDING':
+            return Response({
+                'task_id': task_id,
+                'status': 'PENDING',
+                'current': 0,
+                'total': 0,
+                'percent': 0,
+                'message': 'Aguardando worker disponível...'
+            })
+        
+        elif task.state == 'STARTED':
+            return Response({
+                'task_id': task_id,
+                'status': 'STARTED',
+                'current': 0,
+                'total': 0,
+                'percent': 0,
+                'message': 'Iniciando geração...'
+            })
+        
+        elif task.state == 'SUCCESS':
+            result = task.result
+            return Response({
+                'task_id': task_id,
+                'status': 'SUCCESS',
+                'current': result.get('summary', {}).get('total_created', 0),
+                'total': result.get('summary', {}).get('total_created', 0) + result.get('summary', {}).get('total_failed', 0),
+                'percent': 100,
+                'message': 'Geração concluída',
+                'created': result.get('created', [])[:10],
+                'failed': result.get('failed', [])[:5],
+                'summary': result.get('summary', {})
+            })
+        
+        elif task.state == 'FAILURE':
+            return Response({
+                'task_id': task_id,
+                'status': 'FAILURE',
+                'current': 0,
+                'total': 0,
+                'percent': 0,
+                'message': 'Erro na geração',
+                'error': str(task.info)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        else:
+            return Response({
+                'task_id': task_id,
+                'status': task.state,
+                'current': 0,
+                'total': 0,
+                'percent': 0,
+                'message': f'Estado: {task.state}'
+            })
         
         # Se tier não fornecido, usar BEGINNER como padrão
         if not tier:

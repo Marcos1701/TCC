@@ -37,6 +37,9 @@ class _AdminMissionsManagementPageState
   // Controles para geração de missões IA
   bool _isGeneratingAI = false;
   String _selectedTier = 'ALL';
+  int _generationProgress = 0;
+  int _generationTotal = 20;
+  String _generationMessage = '';
   
   final _tierOptions = {
     'ALL': 'Todas as Faixas (60 missões)',
@@ -1480,6 +1483,76 @@ class _AdminMissionsManagementPageState
                             Colors.green,
                           ),
                           const SizedBox(height: 14),
+                          // Indicador de progresso (apenas quando gerando)
+                          if (_isGeneratingAI)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AppColors.success.withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation(
+                                            AppColors.success,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _generationMessage.isNotEmpty 
+                                                ? _generationMessage 
+                                                : 'Gerando missões...',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_generationProgress}/${_generationTotal} missões',
+                                              style: TextStyle(
+                                                color: Colors.grey[400],
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  LinearProgressIndicator(
+                                    value: _generationTotal > 0 
+                                      ? _generationProgress / _generationTotal 
+                                      : 0,
+                                    backgroundColor: Colors.grey[800],
+                                    valueColor: AlwaysStoppedAnimation(
+                                      AppColors.success,
+                                    ),
+                                    minHeight: 4,
+                                  ),
+                                ],
+                              ),
+                            ),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -1996,59 +2069,113 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Executa a geração de missões com IA
+  /// Executa a geração de missões com IA (assíncrona com polling)
   Future<void> _generateMissionsWithAI(StateSetter setDialogState) async {
     setDialogState(() {
       _isGeneratingAI = true;
     });
 
     try {
-      final body = _selectedTier == 'ALL' ? {} : {'tier': _selectedTier};
+      // ETAPA 1: Iniciar geração assíncrona
+      final body = {
+        if (_selectedTier != 'ALL') 'tier': _selectedTier,
+        'async': true,  // Usar modo assíncrono
+        'count': 20,
+      };
 
-      final response = await _apiClient.client.post<Map<String, dynamic>>(
+      final startResponse = await _apiClient.client.post<Map<String, dynamic>>(
         '/api/missions/generate_ai_missions/',
         data: body,
       );
 
-      if (response.data == null) {
+      if (startResponse.data == null) {
         throw Exception('Resposta vazia do servidor');
       }
 
-      final totalCreated = response.data!['total_created'] as int;
-
-      if (mounted) {
-        // Fecha o dialog ANTES de mostrar o SnackBar
-        Navigator.pop(context);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Sucesso! $totalCreated missões criadas com IA',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.success,
-            duration: const Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-
-        // Recarregar lista de missões
-        await _loadMissions();
+      final taskId = startResponse.data!['task_id'] as String?;
+      if (taskId == null) {
+        throw Exception('task_id não retornado pelo servidor');
       }
+
+      // ETAPA 2: Polling de progresso
+      bool completed = false;
+      int pollCount = 0;
+      const maxPolls = 120; // 5 minutos (120 * 2.5s)
+
+      while (!completed && pollCount < maxPolls) {
+        await Future.delayed(const Duration(milliseconds: 2500)); // Poll a cada 2.5s
+        pollCount++;
+
+        try {
+          final statusResponse = await _apiClient.client.get<Map<String, dynamic>>(
+            '/api/missions/generation_status/$taskId/',
+          );
+
+          if (statusResponse.data != null) {
+            final status = statusResponse.data!['status'] as String?;
+            final currentProgress = statusResponse.data!['current'] as int? ?? 0;
+            final totalMissions = statusResponse.data!['total'] as int? ?? 20;
+            final statusMessage = statusResponse.data!['message'] as String? ?? 'Processando...';
+
+            // Atualizar UI do dialog
+            setDialogState(() {
+              _generationProgress = currentProgress;
+              _generationTotal = totalMissions;
+              _generationMessage = statusMessage;
+            });
+
+            if (status == 'SUCCESS') {
+              completed = true;
+              final summary = statusResponse.data!['summary'] as Map<String, dynamic>?;
+              final totalCreated = summary?['total_created'] as int? ?? currentProgress;
+
+              if (mounted) {
+                Navigator.pop(context);
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Sucesso! $totalCreated missões criadas com IA',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: AppColors.success,
+                    duration: const Duration(seconds: 4),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                );
+
+                await _loadMissions();
+              }
+            } else if (status == 'FAILURE') {
+              completed = true;
+              final error = statusResponse.data!['error'] as String? ?? 'Erro desconhecido';
+              throw Exception(error);
+            }
+            // STARTED ou PENDING: continuar polling
+          }
+        } catch (e) {
+          // Erro no polling, mas continuar tentando
+          print('Erro no polling: $e');
+        }
+      }
+
+      if (!completed) {
+        throw Exception('Timeout: geração excedeu 5 minutos');
+      }
+
     } catch (e) {
       if (mounted) {
-        // Fecha o dialog ANTES de mostrar o erro
         Navigator.pop(context);
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2072,7 +2199,6 @@ class _AdminMissionsManagementPageState
         );
       }
     }
-    // Removido o finally com setDialogState pois o dialog já foi fechado
   }
 
   @override

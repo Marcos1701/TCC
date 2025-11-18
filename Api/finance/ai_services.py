@@ -713,13 +713,13 @@ def validate_generated_mission(mission_data):
     return (len(errors) == 0, errors)
 
 
-def check_mission_similarity(title, description, threshold_title=0.85, threshold_desc=0.75):
+def check_mission_similarity(title, description, threshold_title=0.90, threshold_desc=0.85):
     """
     Verifica se já existe missão similar no banco (evita duplicação semântica).
     
     Usa SequenceMatcher para comparar similaridade de strings.
-    - Títulos: threshold padrão 85%
-    - Descrições: threshold padrão 75%
+    - Títulos: threshold padrão 90% (reduzido de 85% para diminuir falsos positivos)
+    - Descrições: threshold padrão 85% (reduzido de 75% para diminuir falsos positivos)
     
     Args:
         title: Título da missão a verificar
@@ -1391,7 +1391,7 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
     logger.info(f"Iniciando geração HÍBRIDA de {count} missões para {tier}/{scenario_key}")
     
     # =========================================================================
-    # FASE 1: TENTAR USAR TEMPLATES (mais rápido e consistente)
+    # FASE 1: PRIORIZAR TEMPLATES (mais rápido, gratuito e consistente)
     # =========================================================================
     
     template_missions_data = []
@@ -1409,17 +1409,24 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
             # Obter distribuição do cenário
             distribution = scenario.get('distribution', {})
             
+            # Gerar TODAS as missões possíveis de templates
             template_missions_data = generate_mission_batch_from_templates(
                 tier=tier,
                 current_metrics=current_metrics,
-                count=count,
+                count=count * 2,  # Gerar mais candidatos de templates
                 distribution=distribution
             )
             
             logger.info(f"📋 Templates geraram {len(template_missions_data)} missões candidatas")
             
-            # Salvar missões de template com validação
+            # Salvar missões de template com validação (PRIORIDADE ALTA)
+            templates_saved = 0
             for i, mission_data in enumerate(template_missions_data):
+                # Se já temos missões suficientes de templates, parar
+                if templates_saved >= count:
+                    logger.info(f"✅ {templates_saved} missões de templates salvas - limite atingido")
+                    break
+                    
                 try:
                     # 1. Validar estrutura
                     is_valid, validation_errors = validate_generated_mission(mission_data)
@@ -1464,11 +1471,8 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
                     })
                     
                     created_from_templates += 1
-                    logger.info(f"✓ Template {i+1} salvo: '{mission.title}' (ID: {mission.id})")
-                    
-                    # Parar se já temos o suficiente
-                    if len(created_missions) >= count:
-                        break
+                    templates_saved += 1
+                    logger.info(f"✓ Template {templates_saved}/{count} salvo: '{mission.title}' (ID: {mission.id})")
                         
                 except Exception as e:
                     logger.error(f"Erro ao salvar template {i+1}: {e}")
@@ -1479,6 +1483,24 @@ def generate_and_save_incrementally(tier, scenario_key=None, user_context=None, 
                     })
             
             logger.info(f"✅ FASE 1 completa: {created_from_templates} missões de templates salvas")
+            
+            # Se conseguimos todas as missões via templates, retornar imediatamente
+            if len(created_missions) >= count:
+                logger.info(f"🎉 Todas as {count} missões geradas via TEMPLATES (rápido e gratuito)!")
+                return {
+                    'created': created_missions,
+                    'failed': failed_missions,
+                    'summary': {
+                        'total_created': len(created_missions),
+                        'total_failed': len(failed_missions),
+                        'from_templates': created_from_templates,
+                        'from_ai': 0,
+                        'failed_validation': failed_validation_count,
+                        'failed_duplicate': failed_duplicate_count,
+                        'failed_api': 0,
+                        'failed_parsing': 0
+                    }
+                }
             
         except Exception as e:
             logger.warning(f"Erro na geração de templates: {e}, prosseguindo para IA...")
@@ -1645,15 +1667,15 @@ REGRAS:
                 # Gerar 1 missão
                 logger.info(f"Gerando missão {i+1}/{count} (tentativa {retry_count+1}/{max_retries})...")
                 
-                # Configuração mais conservadora para evitar erros
+                # Configuração otimizada para velocidade e criatividade
                 response = model.generate_content(
                     prompt_single,
                     generation_config={
-                        'temperature': 0.7,  # Reduzido de 0.9 para respostas mais consistentes
-                        'top_p': 0.9,  # Reduzido de 0.95
-                        'max_output_tokens': 1500,  # Reduzido de 2000 para evitar timeout
+                        'temperature': 0.85,  # Aumentado para mais criatividade (reduz duplicatas)
+                        'top_p': 0.92,
+                        'max_output_tokens': 800,  # Reduzido para 800 (mais rápido, missões são curtas)
                     },
-                    request_options={'timeout': 30}  # Timeout de 30 segundos
+                    request_options={'timeout': 45}  # Timeout de 45 segundos
                 )
                 
                 # Parse resposta com sanitização robusta
