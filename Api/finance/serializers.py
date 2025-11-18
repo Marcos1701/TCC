@@ -774,7 +774,11 @@ class MissionProgressSerializer(serializers.ModelSerializer):
         return f"{float(obj.progress):.1f}%"
     
     def get_detailed_metrics(self, obj):
-        """Retorna métricas detalhadas usando o validator específico."""
+        """Retorna métricas detalhadas formatadas usando o validator específico."""
+        # Se missão não foi iniciada, não retornar métricas
+        if not obj.started_at:
+            return None
+            
         try:
             from .mission_types import MissionValidatorFactory
             
@@ -785,10 +789,272 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             )
             
             result = validator.calculate_progress()
-            return result.get('metrics', {})
+            raw_metrics = result.get('metrics', {})
+            
+            # Se as métricas estão vazias ou indicam erro, retornar None
+            if not raw_metrics or 'error' in str(raw_metrics):
+                return None
+            
+            # Formatar métricas para exibição
+            formatted_metrics = self._format_metrics(raw_metrics, obj.mission)
+            return formatted_metrics
             
         except Exception as e:
-            return {'error': str(e)}
+            return None
+    
+    def _format_metrics(self, metrics, mission):
+        """Formata métricas brutas para exibição amigável."""
+        formatted = []
+        
+        # Transações registradas
+        if 'transactions_registered' in metrics:
+            formatted.append({
+                'label': 'Transações Registradas',
+                'value': metrics['transactions_registered'],
+                'display': f"{metrics['transactions_registered']} transações",
+                'type': 'count',
+                'icon': '📝'
+            })
+        
+        # Meta de transações
+        if 'target_transactions' in metrics:
+            formatted.append({
+                'label': 'Meta de Transações',
+                'value': metrics['target_transactions'],
+                'display': f"{metrics['target_transactions']} transações",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        # Restante
+        if 'remaining' in metrics:
+            formatted.append({
+                'label': 'Faltam',
+                'value': metrics['remaining'],
+                'display': f"{metrics['remaining']} {'transações' if metrics['remaining'] != 1 else 'transação'}",
+                'type': 'remaining',
+                'icon': '⏳'
+            })
+        
+        # TPS (Taxa de Poupança)
+        if 'current_tps' in metrics:
+            formatted.append({
+                'label': 'TPS Atual',
+                'value': metrics['current_tps'],
+                'display': f"{metrics['current_tps']:.1f}%",
+                'type': 'percentage',
+                'icon': '💰'
+            })
+        
+        if 'target_tps' in metrics:
+            formatted.append({
+                'label': 'Meta TPS',
+                'value': metrics['target_tps'],
+                'display': f"{metrics['target_tps']:.1f}%",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        # RDR (Razão de Despesas Recorrentes)
+        if 'current_rdr' in metrics:
+            formatted.append({
+                'label': 'RDR Atual',
+                'value': metrics['current_rdr'],
+                'display': f"{metrics['current_rdr']:.1f}%",
+                'type': 'percentage',
+                'icon': '📉'
+            })
+        
+        if 'target_rdr' in metrics:
+            formatted.append({
+                'label': 'Meta RDR',
+                'value': metrics['target_rdr'],
+                'display': f"{metrics['target_rdr']:.1f}%",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        # ILI (Índice de Liquidez Imediata)
+        if 'current_ili' in metrics:
+            formatted.append({
+                'label': 'ILI Atual',
+                'value': metrics['current_ili'],
+                'display': f"{metrics['current_ili']:.1f} meses",
+                'type': 'months',
+                'icon': '🛡️'
+            })
+        
+        if 'target_ili' in metrics:
+            formatted.append({
+                'label': 'Meta ILI',
+                'value': metrics['target_ili'],
+                'display': f"{metrics['target_ili']:.1f} meses",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        # Categoria
+        if 'category_name' in metrics:
+            formatted.append({
+                'label': 'Categoria',
+                'value': metrics['category_name'],
+                'display': metrics['category_name'],
+                'type': 'text',
+                'icon': '📁'
+            })
+        
+        # Gastos
+        if 'current_spending' in metrics:
+            formatted.append({
+                'label': 'Gasto Atual',
+                'value': metrics['current_spending'],
+                'display': f"R$ {metrics['current_spending']:.2f}",
+                'type': 'currency',
+                'icon': '💸'
+            })
+        
+        if 'reference_spending' in metrics:
+            formatted.append({
+                'label': 'Gasto Anterior',
+                'value': metrics['reference_spending'],
+                'display': f"R$ {metrics['reference_spending']:.2f}",
+                'type': 'currency',
+                'icon': '📊'
+            })
+        
+        # Redução percentual
+        if 'reduction_percent' in metrics:
+            value = metrics['reduction_percent']
+            formatted.append({
+                'label': 'Redução Alcançada',
+                'value': value,
+                'display': f"{value:.1f}%",
+                'type': 'percentage',
+                'icon': '📉' if value > 0 else '📈'
+            })
+        
+        if 'target_reduction' in metrics:
+            formatted.append({
+                'label': 'Meta de Redução',
+                'value': metrics['target_reduction'],
+                'display': f"{metrics['target_reduction']:.1f}%",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        # Meta (Goal)
+        if 'goal_name' in metrics:
+            formatted.append({
+                'label': 'Meta',
+                'value': metrics['goal_name'],
+                'display': metrics['goal_name'],
+                'type': 'text',
+                'icon': '🎯'
+            })
+        
+        if 'current_amount' in metrics:
+            formatted.append({
+                'label': 'Valor Atual',
+                'value': metrics['current_amount'],
+                'display': f"R$ {metrics['current_amount']:.2f}",
+                'type': 'currency',
+                'icon': '💰'
+            })
+        
+        if 'target_amount' in metrics:
+            formatted.append({
+                'label': 'Valor Meta',
+                'value': metrics['target_amount'],
+                'display': f"R$ {metrics['target_amount']:.2f}",
+                'type': 'currency',
+                'icon': '🎯'
+            })
+        
+        if 'goal_progress' in metrics:
+            formatted.append({
+                'label': 'Progresso da Meta',
+                'value': metrics['goal_progress'],
+                'display': f"{metrics['goal_progress']:.1f}%",
+                'type': 'percentage',
+                'icon': '📈'
+            })
+        
+        # Contribuições
+        if 'contributions' in metrics:
+            formatted.append({
+                'label': 'Contribuído',
+                'value': metrics['contributions'],
+                'display': f"R$ {metrics['contributions']:.2f}",
+                'type': 'currency',
+                'icon': '💰'
+            })
+        
+        if 'target_contribution' in metrics:
+            formatted.append({
+                'label': 'Meta de Contribuição',
+                'value': metrics['target_contribution'],
+                'display': f"R$ {metrics['target_contribution']:.2f}",
+                'type': 'currency',
+                'icon': '🎯'
+            })
+        
+        # Semanas/Dias
+        if 'weeks_meeting_criteria' in metrics:
+            formatted.append({
+                'label': 'Semanas Completas',
+                'value': metrics['weeks_meeting_criteria'],
+                'display': f"{metrics['weeks_meeting_criteria']} semanas",
+                'type': 'count',
+                'icon': '📅'
+            })
+        
+        if 'target_weeks' in metrics:
+            formatted.append({
+                'label': 'Meta de Semanas',
+                'value': metrics['target_weeks'],
+                'display': f"{metrics['target_weeks']} semanas",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        if 'days_maintained' in metrics:
+            formatted.append({
+                'label': 'Dias Mantidos',
+                'value': metrics['days_maintained'],
+                'display': f"{metrics['days_maintained']} dias",
+                'type': 'count',
+                'icon': '📆'
+            })
+        
+        if 'target_days' in metrics:
+            formatted.append({
+                'label': 'Meta de Dias',
+                'value': metrics['target_days'],
+                'display': f"{metrics['target_days']} dias",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        # Pagamentos
+        if 'payments_count' in metrics:
+            formatted.append({
+                'label': 'Pagamentos Registrados',
+                'value': metrics['payments_count'],
+                'display': f"{metrics['payments_count']} pagamentos",
+                'type': 'count',
+                'icon': '💳'
+            })
+        
+        if 'target_payments' in metrics:
+            formatted.append({
+                'label': 'Meta de Pagamentos',
+                'value': metrics['target_payments'],
+                'display': f"{metrics['target_payments']} pagamentos",
+                'type': 'target',
+                'icon': '🎯'
+            })
+        
+        return formatted
     
     def get_progress_status(self, obj):
         """Retorna status detalhado do progresso."""

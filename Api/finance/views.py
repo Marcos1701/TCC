@@ -1864,13 +1864,13 @@ class MissionViewSet(viewsets.ModelViewSet):
             opportunities = identify_improvement_opportunities(request.user)
         except Exception as e:
             return Response({
+                'available': False,
                 'error': 'Análise não disponível',
                 'message': 'Certifique-se de ter transações registradas para análise contextual.',
-                'details': str(e),
                 'context': None,
                 'opportunities': [],
                 'suggested_actions': []
-            }, status=status.HTTP_400_BAD_REQUEST)
+            })
         
         # Gerar ações sugeridas baseadas nas oportunidades
         suggested_actions = []
@@ -1880,6 +1880,7 @@ class MissionViewSet(viewsets.ModelViewSet):
                 suggested_actions.append(action)
         
         return Response({
+            'available': True,
             'context': context,
             'opportunities': opportunities,
             'suggested_actions': suggested_actions
