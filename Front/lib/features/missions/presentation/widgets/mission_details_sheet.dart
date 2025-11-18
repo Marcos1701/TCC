@@ -772,191 +772,77 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     );
   }
   
-  List<Widget> _buildTPSMetrics(ThemeData theme, Map<String, dynamic> metrics) {
-    final List<Widget> widgets = [];
-    
-    if (metrics['current_tps'] != null) {
-      widgets.add(_buildMetricRow(
-        theme,
-        'TPS Atual',
-        '${metrics['current_tps']}%',
-        Icons.trending_up,
-        const Color(0xFF4CAF50),
-      ));
-    }
-    
-    if (metrics['target_tps'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'TPS Alvo',
-        '${metrics['target_tps']}%',
-        Icons.flag,
-        const Color(0xFF2196F3),
-      ));
-    }
-    
-    if (metrics['improvement_needed'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'Melhoria Necessária',
-        '+${metrics['improvement_needed']}%',
-        Icons.arrow_upward,
-        const Color(0xFFFF9800),
-      ));
-    }
-    
-    return widgets;
+  List<Widget> _buildTPSMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
+    return _buildFormattedMetrics(theme, metrics);
   }
   
-  List<Widget> _buildRDRMetrics(ThemeData theme, Map<String, dynamic> metrics) {
-    final List<Widget> widgets = [];
-    
-    if (metrics['current_rdr'] != null) {
-      widgets.add(_buildMetricRow(
-        theme,
-        'RDR Atual',
-        '${metrics['current_rdr']}%',
-        Icons.trending_down,
-        const Color(0xFFF44336),
-      ));
-    }
-    
-    if (metrics['target_rdr'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'RDR Alvo',
-        '${metrics['target_rdr']}%',
-        Icons.flag,
-        const Color(0xFF2196F3),
-      ));
-    }
-    
-    if (metrics['reduction_needed'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'Redução Necessária',
-        '-${metrics['reduction_needed']}%',
-        Icons.arrow_downward,
-        const Color(0xFF4CAF50),
-      ));
-    }
-    
-    return widgets;
+  List<Widget> _buildRDRMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
+    return _buildFormattedMetrics(theme, metrics);
   }
   
-  List<Widget> _buildILIMetrics(ThemeData theme, Map<String, dynamic> metrics) {
-    final List<Widget> widgets = [];
-    
-    if (metrics['current_ili'] != null) {
-      widgets.add(_buildMetricRow(
-        theme,
-        'ILI Atual',
-        'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(metrics['current_ili'])}',
-        Icons.account_balance_wallet,
-        const Color(0xFF2196F3),
-      ));
-    }
-    
-    if (metrics['target_ili'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'ILI Alvo',
-        'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(metrics['target_ili'])}',
-        Icons.flag,
-        const Color(0xFF4CAF50),
-      ));
-    }
-    
-    if (metrics['amount_needed'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'Valor Necessário',
-        'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(metrics['amount_needed'])}',
-        Icons.arrow_upward,
-        const Color(0xFFFF9800),
-      ));
-    }
-    
-    return widgets;
+  List<Widget> _buildILIMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
+    return _buildFormattedMetrics(theme, metrics);
   }
   
-  List<Widget> _buildOnboardingMetrics(ThemeData theme, Map<String, dynamic> metrics) {
-    final List<Widget> widgets = [];
-    
-    if (metrics['transactions_registered'] != null) {
-      widgets.add(_buildMetricRow(
-        theme,
-        'Transações Registradas',
-        '${metrics['transactions_registered']}',
-        Icons.receipt_long,
-        const Color(0xFF9C27B0),
-      ));
-    }
-    
-    if (metrics['target_transactions'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'Meta de Transações',
-        '${metrics['target_transactions']}',
-        Icons.flag,
-        const Color(0xFF2196F3),
-      ));
-    }
-    
-    return widgets;
+  List<Widget> _buildOnboardingMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
+    return _buildFormattedMetrics(theme, metrics);
   }
   
-  List<Widget> _buildAdvancedMetrics(ThemeData theme, Map<String, dynamic> metrics) {
-    final List<Widget> widgets = [];
-    
-    if (metrics['streak'] != null) {
-      widgets.add(_buildMetricRow(
-        theme,
-        'Sequência Atual',
-        '${metrics['streak']} dias',
-        Icons.local_fire_department,
-        const Color(0xFFFF5722),
-      ));
-    }
-    
-    if (metrics['days_met'] != null) {
-      widgets.add(const SizedBox(height: 8));
-      widgets.add(_buildMetricRow(
-        theme,
-        'Dias Cumpridos',
-        '${metrics['days_met']}',
-        Icons.check_circle,
-        const Color(0xFF4CAF50),
-      ));
-    }
-    
-    return widgets;
+  List<Widget> _buildAdvancedMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
+    return _buildFormattedMetrics(theme, metrics);
   }
   
-  List<Widget> _buildGenericMetrics(ThemeData theme, Map<String, dynamic> metrics) {
+  List<Widget> _buildGenericMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
+    return _buildFormattedMetrics(theme, metrics);
+  }
+  
+  List<Widget> _buildFormattedMetrics(ThemeData theme, List<Map<String, dynamic>> metrics) {
     final List<Widget> widgets = [];
     
-    metrics.forEach((key, value) {
-      if (widgets.isNotEmpty) {
+    for (int i = 0; i < metrics.length; i++) {
+      final metric = metrics[i];
+      if (i > 0) {
         widgets.add(const SizedBox(height: 8));
       }
       widgets.add(_buildMetricRow(
         theme,
-        key.replaceAll('_', ' ').toUpperCase(),
-        value.toString(),
-        Icons.info_outline,
-        Colors.grey[400]!,
+        metric['label'] as String? ?? '',
+        metric['display'] as String? ?? '',
+        _getIconFromEmoji(metric['icon'] as String?),
+        _getColorFromMetricType(metric['type'] as String?),
       ));
-    });
+    }
     
     return widgets;
+  }
+  
+  IconData _getIconFromEmoji(String? emoji) {
+    switch (emoji) {
+      case '📝': return Icons.receipt_long;
+      case '💰': return Icons.attach_money;
+      case '📊': return Icons.bar_chart;
+      case '📉': return Icons.trending_down;
+      case '🛡️': return Icons.shield;
+      case '📁': return Icons.folder;
+      case '🎯': return Icons.flag;
+      case '💸': return Icons.money_off;
+      case '📈': return Icons.trending_up;
+      case '📅': return Icons.calendar_today;
+      case '📆': return Icons.event;
+      case '💳': return Icons.credit_card;
+      default: return Icons.info_outline;
+    }
+  }
+  
+  Color _getColorFromMetricType(String? type) {
+    switch (type) {
+      case 'currency': return const Color(0xFF4CAF50);
+      case 'percentage': return const Color(0xFF2196F3);
+      case 'count': return const Color(0xFF9C27B0);
+      case 'months': return const Color(0xFFFF9800);
+      case 'target': return const Color(0xFF2196F3);
+      default: return Colors.grey[400]!;
+    }
   }
   
   Widget _buildMetricRow(
