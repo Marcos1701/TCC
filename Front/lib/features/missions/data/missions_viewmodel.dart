@@ -350,8 +350,21 @@ class MissionsViewModel extends ChangeNotifier {
       _contextAnalysis = await _repository.fetchMissionContextAnalysis(
         forceRefresh: forceRefresh,
       );
+      
+      // Se retornou null (404), não é um erro, apenas indisponível
+      if (_contextAnalysis == null) {
+        _contextError = null; // Não exibir erro
+      }
+      
       return _contextAnalysis;
     } on DioException catch (e) {
+      // Ignorar erro 404 (análise não disponível)
+      if (e.response?.statusCode == 404) {
+        _contextError = null;
+        _contextAnalysis = null;
+        return null;
+      }
+      
       _contextError = _mapDioError(
         e,
         fallback: 'Erro ao analisar contexto para missões.',

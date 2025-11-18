@@ -372,17 +372,26 @@ class FinanceRepository {
         .toList();
   }
 
-  Future<Map<String, dynamic>> fetchMissionContextAnalysis({
+  Future<Map<String, dynamic>?> fetchMissionContextAnalysis({
     bool forceRefresh = false,
   }) async {
-    final query = forceRefresh ? {'force_refresh': true} : null;
-    final response = await _client.client.get<Map<String, dynamic>>(
-      ApiEndpoints.missionsContextAnalysis,
-      queryParameters: query,
-    );
-    return response.data != null
-        ? Map<String, dynamic>.from(response.data!)
-        : <String, dynamic>{};
+    try {
+      final query = forceRefresh ? {'force_refresh': true} : null;
+      final response = await _client.client.get<Map<String, dynamic>>(
+        ApiEndpoints.missionsContextAnalysis,
+        queryParameters: query,
+      );
+      return response.data != null
+          ? Map<String, dynamic>.from(response.data!)
+          : null;
+    } on DioException catch (e) {
+      // Se endpoint não existe (404), retorna null silenciosamente
+      if (e.response?.statusCode == 404) {
+        debugPrint('⚠️ Análise contextual não disponível (404)');
+        return null;
+      }
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchMissionTemplates({
