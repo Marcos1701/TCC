@@ -2898,20 +2898,20 @@ class _MissionCard extends StatelessWidget {
             ),
           ] : null),
         ),
-      child: Card(
-        margin: EdgeInsets.zero,
-        color: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 0,
-        child: Opacity(
-          opacity: isActive ? 1.0 : 0.5,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Card(
+          margin: EdgeInsets.zero,
+          color: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+          child: Opacity(
+            opacity: isActive ? 1.0 : 0.5,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Alerta de placeholders
                 if (hasPlaceholders) ...[
                   Container(
@@ -3117,7 +3117,7 @@ class _MissionCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 
   String _getTypeLabel(String type) {
