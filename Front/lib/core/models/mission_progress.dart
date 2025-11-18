@@ -60,7 +60,7 @@ class MissionProgressModel {
   final int? daysRemaining;
   final String? progressPercentage;
   final Map<String, dynamic>? currentVsInitial;
-  final Map<String, dynamic>? detailedMetrics;
+  final List<Map<String, dynamic>>? detailedMetrics;
   final Map<String, dynamic>? progressStatus;
 
   factory MissionProgressModel.fromMap(Map<String, dynamic> map) {
@@ -109,7 +109,11 @@ class MissionProgressModel {
       daysRemaining: map['days_remaining'] as int?,
       progressPercentage: map['progress_percentage'] as String?,
       currentVsInitial: map['current_vs_initial'] as Map<String, dynamic>?,
-      detailedMetrics: map['detailed_metrics'] as Map<String, dynamic>?,
+      detailedMetrics: map['detailed_metrics'] != null
+          ? (map['detailed_metrics'] as List<dynamic>)
+              .map((e) => e as Map<String, dynamic>)
+              .toList()
+          : null,
       progressStatus: map['progress_status'] as Map<String, dynamic>?,
     );
   }
@@ -186,8 +190,8 @@ class MissionProgressModel {
   }
   
   /// Retorna métricas específicas do tipo de missão
-  Map<String, dynamic> get metrics {
-    return detailedMetrics ?? {};
+  List<Map<String, dynamic>> get metrics {
+    return detailedMetrics ?? [];
   }
 }
 
