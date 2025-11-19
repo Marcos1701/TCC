@@ -96,6 +96,10 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isSystemCategory = widget.category != null && 
+        (widget.category!['is_system_default'] == true || 
+         widget.category!['is_user_created'] == false);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.category == null ? 'Nova Categoria' : 'Editar Categoria'),
@@ -105,29 +109,59 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Nome
+            if (isSystemCategory)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Categoria do sistema - Apenas visualização',
+                        style: TextStyle(
+                          color: Colors.orange.shade300,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
+              enabled: !isSystemCategory,
+              decoration: InputDecoration(
                 labelText: 'Nome',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                filled: isSystemCategory,
+                fillColor: isSystemCategory ? Colors.grey.withOpacity(0.1) : null,
+                prefixIcon: isSystemCategory ? const Icon(Icons.lock_outline) : null,
               ),
               validator: (value) => _formData.copyWith(name: value).validateName(),
             ),
             const SizedBox(height: 16),
             
-            // Tipo
             DropdownButtonFormField<String>(
               value: _formData.type,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Tipo',
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
+                filled: isSystemCategory,
+                fillColor: isSystemCategory ? Colors.grey.withOpacity(0.1) : null,
               ),
               items: const [
                 DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
                 DropdownMenuItem(value: 'EXPENSE', child: Text('Despesa')),
               ],
-              onChanged: (value) {
+              onChanged: isSystemCategory ? null : (value) {
                 if (value != null) {
                   setState(() {
                     _formData = _formData.copyWith(type: value);
@@ -137,9 +171,9 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
             ),
             const SizedBox(height: 16),
             
-            // Cor
             ListTile(
               title: const Text('Cor'),
+              enabled: !isSystemCategory,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -152,10 +186,13 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                       border: Border.all(color: Colors.white, width: 2),
                     ),
                   ),
-                  const Icon(Icons.chevron_right),
+                  Icon(
+                    Icons.chevron_right,
+                    color: isSystemCategory ? Colors.grey : null,
+                  ),
                 ],
               ),
-              onTap: () {
+              onTap: isSystemCategory ? null : () {
                 showDialog(
                   context: context,
                   builder: (context) => ColorPickerDialog(
@@ -171,16 +208,16 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
             ),
             const SizedBox(height: 24),
             
-            // Botão Salvar
-            ElevatedButton(
-              onPressed: _isLoading ? null : _save,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+            if (!isSystemCategory)
+              ElevatedButton(
+                onPressed: _isLoading ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : Text(widget.category == null ? 'Criar' : 'Salvar'),
               ),
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : Text(widget.category == null ? 'Criar' : 'Salvar'),
-            ),
           ],
         ),
       ),

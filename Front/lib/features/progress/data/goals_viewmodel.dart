@@ -64,7 +64,7 @@ class GoalsViewModel extends ChangeNotifier {
 
   /// Atualiza progresso de meta otimisticamente (apenas visual)
   /// O backend calcula o progresso real baseado nas transações
-  void updateGoalProgressOptimistic(int goalId, double newAmount) {
+  void updateGoalProgressOptimistic(String goalId, double newAmount) {
     final index = _goals.indexWhere((g) => g.id == goalId);
     if (index == -1) return;
 
@@ -77,7 +77,6 @@ class GoalsViewModel extends ChangeNotifier {
 
     final updated = GoalModel(
       id: goal.id,
-      uuid: goal.uuid,  // Preservar UUID
       title: goal.title,
       description: goal.description,
       targetAmount: goal.targetAmount,

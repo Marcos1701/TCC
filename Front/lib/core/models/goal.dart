@@ -53,7 +53,6 @@ class TrackedCategory {
 class GoalModel {
   const GoalModel({
     required this.id,
-    this.uuid,
     required this.title,
     required this.description,
     required this.targetAmount,
@@ -72,8 +71,7 @@ class GoalModel {
     required this.updatedAt,
   });
 
-  final int id;
-  final String? uuid;  // UUID para identificação segura
+  final String id;
   final String title;
   final String description;
   final double targetAmount;
@@ -101,13 +99,8 @@ class GoalModel {
           .toList();
     }
 
-    // Suporta tanto UUID quanto int como ID
-    final idValue = map['id'].toString();
-    final isUuid = idValue.contains('-') && idValue.length > 20;
-
     return GoalModel(
-      id: isUuid ? idValue.hashCode : int.parse(idValue),
-      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
+      id: map['id'].toString(),
       title: map['title'] as String,
       description: (map['description'] as String?) ?? '',
       targetAmount: double.parse(map['target_amount'].toString()),
@@ -159,11 +152,11 @@ class GoalModel {
   double get progress =>
       targetAmount == 0 ? 0 : (currentAmount / targetAmount).clamp(0, 1);
 
-  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
-  dynamic get identifier => uuid ?? id;
+  /// Retorna o identificador preferencial
+  String get identifier => id;
   
   /// Verifica se possui UUID
-  bool get hasUuid => uuid != null;
+  bool get hasUuid => true;
 
   /// Verifica se a meta está completa
   bool get isCompleted => progressPercentage >= 100;

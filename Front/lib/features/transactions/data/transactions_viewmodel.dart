@@ -27,6 +27,12 @@ class TransactionsViewModel extends ChangeNotifier {
   String? _filter;
   String? _errorMessage;
   
+  // Paginação
+  bool _hasMore = true;
+  int _currentOffset = 0;
+  final int _pageSize = 50;
+  bool _isLoadingMore = false;
+  
   // Transações pendentes (otimistas)
   final Map<String, TransactionModel> _pendingTransactions = {};
   
@@ -36,7 +42,6 @@ class TransactionsViewModel extends ChangeNotifier {
   // Getters
   TransactionsViewState get state => _state;
   List<TransactionModel> get transactions {
-    // Combina transações reais com pendentes
     final pending = _pendingTransactions.values.toList();
     return [...pending, ..._transactions];
   }
@@ -46,17 +51,23 @@ class TransactionsViewModel extends ChangeNotifier {
   bool get isLoading => _state == TransactionsViewState.loading;
   bool get hasError => _state == TransactionsViewState.error;
   bool get isEmpty => transactions.isEmpty && !isLoading;
+  bool get hasMore => _hasMore;
+  bool get isLoadingMore => _isLoadingMore;
   
   /// Carrega transações do repositório
   Future<void> loadTransactions({String? type}) async {
     _filter = type;
     _state = TransactionsViewState.loading;
     _errorMessage = null;
+    _currentOffset = 0;
+    _hasMore = true;
     notifyListeners();
 
     try {
       _transactions = await _repository.fetchTransactions(type: type);
       _links = await _repository.fetchTransactionLinks();
+      _hasMore = _transactions.length >= _pageSize;
+      _currentOffset = _transactions.length;
       _state = TransactionsViewState.success;
       _errorMessage = null;
     } catch (e) {
@@ -64,6 +75,32 @@ class TransactionsViewModel extends ChangeNotifier {
       _errorMessage = 'Erro ao carregar transações: ${e.toString()}';
       debugPrint('Erro ao carregar transações: $e');
     } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Carrega mais transações (paginação)
+  Future<void> loadMore() async {
+    if (!_hasMore || _isLoadingMore) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final moreTransactions = await _repository.fetchTransactions(
+        type: _filter,
+      );
+      
+      if (moreTransactions.isEmpty || moreTransactions.length < _pageSize) {
+        _hasMore = false;
+      }
+      
+      _transactions.addAll(moreTransactions);
+      _currentOffset += moreTransactions.length;
+    } catch (e) {
+      debugPrint('Erro ao carregar mais transações: $e');
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }
@@ -94,7 +131,7 @@ class TransactionsViewModel extends ChangeNotifier {
     // 1. Cria transação temporária (otimista) com ID único
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}_${++_tempIdCounter}';
     final tempTransaction = TransactionModel(
-      id: -1, // ID temporário
+      id: tempId, // ID temporário como String
       type: type,
       description: description,
       amount: amount,
@@ -111,8 +148,7 @@ class TransactionsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 3. Envia ao servidor em background
-      final created = await _repository.createTransaction(
+      final response = await _repository.createTransaction(
         type: type,
         description: description,
         amount: amount,
@@ -124,13 +160,11 @@ class TransactionsViewModel extends ChangeNotifier {
         recurrenceEndDate: recurrenceEndDate,
       );
 
-      // 4. Remove transação temporária
       _pendingTransactions.remove(tempId);
 
-      // 5. Adiciona transação real à lista
+      final created = TransactionModel.fromMap(response);
       _transactions.insert(0, created);
       
-      // 6. Invalida cache para outras telas
       CacheManager().invalidateAfterTransaction(action: 'transaction created');
       
       notifyListeners();
@@ -196,6 +230,16 @@ class TransactionsViewModel extends ChangeNotifier {
     if (_state == TransactionsViewState.error) {
       _state = TransactionsViewState.initial;
     }
+    notifyListeners();
+  }
+
+  void removeTransactionOptimistic(String transactionId) {
+    _transactions.removeWhere((t) => t.id == transactionId);
+    notifyListeners();
+  }
+
+  void restoreTransactions(List<TransactionModel> originalList) {
+    _transactions = originalList;
     notifyListeners();
   }
 

@@ -13,70 +13,140 @@ import '../models/leaderboard.dart';
 import '../models/user_search.dart';
 import '../network/api_client.dart';
 import '../network/endpoints.dart';
+import '../services/cache_service.dart';
+import '../errors/failures.dart';
+import '../utils/date_formatter.dart';
 
 class FinanceRepository {
   FinanceRepository({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
 
-  /// Helper para extrair lista de resposta (paginada ou direta)
+  Failure _handleError(dynamic error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+        case DioExceptionType.connectionError:
+          return const NetworkFailure('Verifique sua conexão com a internet');
+        
+        case DioExceptionType.badResponse:
+          final statusCode = error.response?.statusCode;
+          final data = error.response?.data;
+          
+          if (statusCode == 401) {
+            return const UnauthorizedFailure();
+          }
+          
+          if (statusCode == 404) {
+            return const NotFoundFailure();
+          }
+          
+          if (statusCode == 400 && data is Map<String, dynamic>) {
+            final message = data['detail'] ?? 
+                           data['error'] ?? 
+                           data['message'] ?? 
+                           'Dados inválidos';
+            return ValidationFailure(message.toString(), errors: data);
+          }
+          
+          if (data is Map<String, dynamic>) {
+            final message = data['detail'] ?? data['error'] ?? 'Erro no servidor';
+            return ServerFailure(message.toString(), statusCode: statusCode);
+          }
+          
+          return ServerFailure(
+            'Erro no servidor (${statusCode ?? "desconhecido"})',
+            statusCode: statusCode,
+          );
+        
+        default:
+          return NetworkFailure(error.message ?? 'Erro de conexão');
+      }
+    }
+    
+    return ServerFailure(error.toString());
+  }
+
   List<dynamic> _extractListFromResponse(dynamic data) {
     if (data == null) {
       debugPrint('⚠️ _extractListFromResponse: data é null');
       return [];
     }
     
-    debugPrint('📦 _extractListFromResponse: tipo de data = ${data.runtimeType}');
-    
-    // Se for paginada (Map com 'results'), pega o campo 'results'
     if (data is Map<String, dynamic>) {
-      debugPrint('📦 Chaves do Map: ${data.keys.join(", ")}');
-      
       if (data.containsKey('results')) {
         final results = data['results'];
-        debugPrint('📦 Campo results encontrado, tipo: ${results.runtimeType}');
         
         if (results is List<dynamic>) {
           return results;
         } else {
-          debugPrint('⚠️ Campo results não é uma lista!');
           return [];
         }
       }
       
-      // Se o Map não tem 'results', pode ser um erro ou resposta vazia
-      debugPrint('⚠️ Map sem campo results - possível erro da API');
       if (data.containsKey('detail') || data.containsKey('error')) {
         debugPrint('🚨 Resposta de erro detectada: $data');
       }
       return [];
     }
     
-    // Se for uma lista direta, usa diretamente
     if (data is List<dynamic>) {
-      debugPrint('📦 Lista direta com ${data.length} itens');
       return data;
     }
     
-    debugPrint('⚠️ Tipo de resposta desconhecido: ${data.runtimeType}');
     return [];
   }
 
   Future<DashboardData> fetchDashboard() async {
-    final response =
-        await _client.client.get<Map<String, dynamic>>(ApiEndpoints.dashboard);
-    return DashboardData.fromMap(response.data ?? <String, dynamic>{});
+    try {
+      final cached = CacheService.getCachedDashboard();
+      if (cached != null) {
+        return DashboardData.fromMap(cached);
+      }
+      
+      final response =
+          await _client.client.get<Map<String, dynamic>>(ApiEndpoints.dashboard);
+      final data = response.data ?? <String, dynamic>{};
+      
+      await CacheService.cacheDashboard(data);
+      return DashboardData.fromMap(data);
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw _handleError(e);
+    }
   }
 
   Future<List<CategoryModel>> fetchCategories({String? type}) async {
-    final response = await _client.client.get<dynamic>(
-      ApiEndpoints.categories,
-      queryParameters: type != null ? {'type': type} : null,
-    );
-    final items = _extractListFromResponse(response.data);
-    return items
-        .map((e) => CategoryModel.fromMap(e as Map<String, dynamic>))
-        .toList();
+    try {
+      if (type == null) {
+        final cached = CacheService.getCachedCategories();
+        if (cached != null) {
+          return cached.map((e) => CategoryModel.fromMap(e)).toList();
+        }
+      }
+      
+      final response = await _client.client.get<dynamic>(
+        ApiEndpoints.categories,
+        queryParameters: type != null ? {'type': type} : null,
+      );
+      final items = _extractListFromResponse(response.data);
+      final categories = items
+          .map((e) => CategoryModel.fromMap(e as Map<String, dynamic>))
+          .toList();
+      
+      if (type == null) {
+        await CacheService.cacheCategories(
+          categories.map((c) => c.toMap()).toList(),
+        );
+      }
+      
+      return categories;
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw _handleError(e);
+    }
   }
 
   Future<CategoryModel> createCategory({
@@ -95,6 +165,7 @@ class FinanceRepository {
       ApiEndpoints.categories,
       data: payload,
     );
+    await CacheService.invalidateCategories();
     return CategoryModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
@@ -115,68 +186,43 @@ class FinanceRepository {
       '${ApiEndpoints.categories}$id/',
       data: payload,
     );
+    await CacheService.invalidateCategories();
     return CategoryModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
   Future<void> deleteCategory(String id) async {
     try {
       await _client.client.delete('${ApiEndpoints.categories}$id/');
-    } on DioException catch (e) {
-      // Extrair mensagem de erro da resposta
-      String errorMessage = 'Nao foi possivel excluir a categoria';
-      
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map<String, dynamic>) {
-          if (data.containsKey('non_field_errors')) {
-            final errors = data['non_field_errors'];
-            if (errors is List && errors.isNotEmpty) {
-              errorMessage = errors.first.toString();
-            } else if (errors is String) {
-              errorMessage = errors;
-            }
-          } else if (data.containsKey('detail')) {
-            errorMessage = data['detail'].toString();
-          }
-        }
-      }
-      
-      throw Exception(errorMessage);
+      await CacheService.invalidateCategories();
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
   Future<List<TransactionModel>> fetchTransactions({String? type}) async {
     try {
-      debugPrint('🔍 Buscando transações${type != null ? " (tipo: $type)" : ""}...');
-      
       final response = await _client.client.get<dynamic>(
         ApiEndpoints.transactions,
         queryParameters: type != null ? {'type': type} : null,
       );
       
-      debugPrint('✅ Resposta recebida - Status: ${response.statusCode}');
-      debugPrint('📦 Tipo de response.data: ${response.data.runtimeType}');
-      
       final items = _extractListFromResponse(response.data);
-      debugPrint('📋 ${items.length} transações encontradas');
       
       return items
           .map((e) {
             if (e is! Map<String, dynamic>) {
-              debugPrint('⚠️ Item não é Map<String, dynamic>: ${e.runtimeType}');
-              throw Exception('Formato de transação inválido');
+              throw const ParseFailure('Formato de transação inválido');
             }
             return TransactionModel.fromMap(e);
           })
           .toList();
-    } catch (e, stackTrace) {
-      debugPrint('🚨 Erro ao buscar transações: $e');
-      debugPrint('Stack trace: $stackTrace');
-      rethrow;
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw _handleError(e);
     }
   }
 
-  Future<TransactionModel> createTransaction({
+  Future<Map<String, dynamic>> createTransaction({
     required String type,
     required String description,
     required double amount,
@@ -191,7 +237,7 @@ class FinanceRepository {
       'type': type,
       'description': description,
       'amount': amount,
-      'date': date.toIso8601String().split('T').first,
+      'date': DateFormatter.toApiFormat(date),
       if (categoryId != null) 'category_id': categoryId,
       if (isRecurring) 'is_recurring': true,
       if (isRecurring && recurrenceValue != null)
@@ -199,31 +245,31 @@ class FinanceRepository {
       if (isRecurring && recurrenceUnit != null)
         'recurrence_unit': recurrenceUnit,
       if (isRecurring && recurrenceEndDate != null)
-        'recurrence_end_date':
-            recurrenceEndDate.toIso8601String().split('T').first,
+        'recurrence_end_date': DateFormatter.toApiFormat(recurrenceEndDate),
     };
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.transactions,
       data: payload,
     );
-    return TransactionModel.fromMap(response.data ?? <String, dynamic>{});
+    await CacheService.invalidateDashboard();
+    await CacheService.invalidateMissions();
+    return response.data ?? <String, dynamic>{};
   }
 
-  /// Deletar transação por ID ou UUID
-  Future<void> deleteTransaction(dynamic id) async {
+  Future<void> deleteTransaction(String id) async {
     await _client.client.delete('${ApiEndpoints.transactions}$id/');
+    await CacheService.invalidateDashboard();
+    await CacheService.invalidateMissions();
   }
 
-  /// Buscar detalhes da transação por ID ou UUID
-  Future<Map<String, dynamic>> fetchTransactionDetails(dynamic id) async {
+  Future<Map<String, dynamic>> fetchTransactionDetails(String id) async {
     final response = await _client.client
         .get<Map<String, dynamic>>('${ApiEndpoints.transactions}$id/details/');
     return response.data ?? <String, dynamic>{};
   }
 
-  /// Atualizar transação por ID ou UUID
   Future<TransactionModel> updateTransaction({
-    required dynamic id,  // Aceita int ou String (UUID)
+    required String id,
     String? type,
     String? description,
     double? amount,
@@ -239,7 +285,7 @@ class FinanceRepository {
     if (description != null) payload['description'] = description;
     if (amount != null) payload['amount'] = amount;
     if (date != null) {
-      payload['date'] = date.toIso8601String().split('T').first;
+      payload['date'] = DateFormatter.toApiFormat(date);
     }
     if (categoryId != null) {
       payload['category_id'] = categoryId;
@@ -248,8 +294,7 @@ class FinanceRepository {
     if (recurrenceValue != null) payload['recurrence_value'] = recurrenceValue;
     if (recurrenceUnit != null) payload['recurrence_unit'] = recurrenceUnit;
     if (recurrenceEndDate != null) {
-      payload['recurrence_end_date'] =
-          recurrenceEndDate.toIso8601String().split('T').first;
+      payload['recurrence_end_date'] = DateFormatter.toApiFormat(recurrenceEndDate);
     }
 
     final response = await _client.client.patch<Map<String, dynamic>>(
@@ -283,6 +328,11 @@ class FinanceRepository {
   }
 
   Future<List<MissionModel>> fetchMissions() async {
+    final cached = CacheService.getCachedMissions();
+    if (cached != null) {
+      return cached.map((e) => MissionModel.fromMap(e)).toList();
+    }
+    
     final response =
         await _client.client.get<dynamic>(ApiEndpoints.missions);
     final items = _extractListFromResponse(response.data);
@@ -290,7 +340,6 @@ class FinanceRepository {
         .map((e) => MissionModel.fromMap(e as Map<String, dynamic>))
         .toList();
     
-    // Log de missões com placeholders (debug)
     final invalidMissions = missions.where((m) => m.hasPlaceholders()).toList();
     if (invalidMissions.isNotEmpty) {
       debugPrint(
@@ -298,6 +347,10 @@ class FinanceRepository {
         '${invalidMissions.map((m) => '  - ID ${m.id}: "${m.title}" -> ${m.getPlaceholders()}').join('\n')}'
       );
     }
+    
+    await CacheService.cacheMissions(
+      missions.map((m) => m.toMap()).toList(),
+    );
     
     return missions;
   }
@@ -464,7 +517,7 @@ class FinanceRepository {
       'current_amount': currentAmount,
       'initial_amount': initialAmount,
       if (deadline != null)
-        'deadline': deadline.toIso8601String().split('T').first,
+        'deadline': DateFormatter.toApiFormat(deadline),
       'goal_type': goalType,
       if (targetCategoryId != null) 'target_category': targetCategoryId,
       if (trackedCategoryIds != null && trackedCategoryIds.isNotEmpty)
@@ -482,7 +535,7 @@ class FinanceRepository {
 
   /// Atualizar meta por ID ou UUID
   Future<GoalModel> updateGoal({
-    required dynamic goalId,  // Aceita int ou String (UUID)
+    required String goalId,
     String? title,
     String? description,
     double? targetAmount,
@@ -503,7 +556,7 @@ class FinanceRepository {
     if (currentAmount != null) payload['current_amount'] = currentAmount;
     if (initialAmount != null) payload['initial_amount'] = initialAmount;
     if (deadline != null) {
-      payload['deadline'] = deadline.toIso8601String().split('T').first;
+      payload['deadline'] = DateFormatter.toApiFormat(deadline);
     }
     if (goalType != null) payload['goal_type'] = goalType;
     if (targetCategoryId != null) payload['target_category'] = targetCategoryId;
@@ -522,12 +575,12 @@ class FinanceRepository {
   }
 
   /// Deletar meta por ID ou UUID
-  Future<void> deleteGoal(dynamic id) async {
+  Future<void> deleteGoal(String id) async {
     await _client.client.delete('${ApiEndpoints.goals}$id/');
   }
 
   /// Buscar transações relacionadas a uma meta por ID ou UUID
-  Future<List<TransactionModel>> fetchGoalTransactions(dynamic goalId) async {
+  Future<List<TransactionModel>> fetchGoalTransactions(String goalId) async {
     final response = await _client.client
         .get<dynamic>('${ApiEndpoints.goals}$goalId/transactions/');
     
@@ -538,14 +591,14 @@ class FinanceRepository {
   }
 
   /// Atualizar progresso da meta manualmente
-  Future<GoalModel> refreshGoalProgress(int goalId) async {
+  Future<GoalModel> refreshGoalProgress(String goalId) async {
     final response = await _client.client
         .post<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/refresh/');
     return GoalModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
   /// Buscar insights sobre a meta
-  Future<Map<String, dynamic>> fetchGoalInsights(int goalId) async {
+  Future<Map<String, dynamic>> fetchGoalInsights(String goalId) async {
     final response = await _client.client
         .get<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/insights/');
     return response.data ?? <String, dynamic>{};
@@ -609,7 +662,7 @@ class FinanceRepository {
   }
 
   /// Deletar vinculação por ID ou UUID
-  Future<void> deleteTransactionLink(dynamic linkId) async {
+  Future<void> deleteTransactionLink(String linkId) async {
     await _client.client.delete('${ApiEndpoints.transactionLinks}$linkId/');
   }
 
@@ -817,7 +870,7 @@ class FinanceRepository {
   }
 
   /// Aceita solicitação de amizade
-  Future<FriendshipModel> acceptFriendRequest({required int requestId}) async {
+  Future<FriendshipModel> acceptFriendRequest({required String requestId}) async {
     final response = await _client.client.post<Map<String, dynamic>>(
       '${ApiEndpoints.friendships}$requestId/accept/',
     );
@@ -825,14 +878,14 @@ class FinanceRepository {
   }
 
   /// Rejeita solicitação de amizade
-  Future<void> rejectFriendRequest({required int requestId}) async {
+  Future<void> rejectFriendRequest({required String requestId}) async {
     await _client.client.post(
       '${ApiEndpoints.friendships}$requestId/reject/',
     );
   }
 
   /// Remove amizade por ID ou UUID
-  Future<void> removeFriend({required dynamic friendshipId}) async {
+  Future<void> removeFriend({required String friendshipId}) async {
     await _client.client.delete(
       '${ApiEndpoints.friendships}$friendshipId/',
     );
@@ -854,7 +907,6 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Completa o onboarding simplificado (Dia 6-7)
   Future<Map<String, dynamic>> completeSimplifiedOnboarding({
     required double monthlyIncome,
     required double essentialExpenses,
@@ -865,6 +917,43 @@ class FinanceRepository {
         'monthly_income': monthlyIncome,
         'essential_expenses': essentialExpenses,
       },
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> devResetAccount() async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.user}dev_reset_account/',
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> devAddXp(int xp) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.user}dev_add_xp/',
+      data: {'xp': xp},
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> devCompleteMissions() async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.user}dev_complete_missions/',
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> devClearCache() async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.user}dev_clear_cache/',
+    );
+    return response.data ?? {};
+  }
+
+  Future<Map<String, dynamic>> devAddTestData(int count) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.user}dev_add_test_data/',
+      data: {'count': count},
     );
     return response.data ?? {};
   }

@@ -125,7 +125,7 @@ class FriendsViewModel extends ChangeNotifier {
   }
 
   /// Aceita solicitação de amizade
-  Future<bool> acceptFriendRequest(int requestId) async {
+  Future<bool> acceptFriendRequest(String requestId) async {
     try {
       await _repository.acceptFriendRequest(requestId: requestId);
       
@@ -143,7 +143,7 @@ class FriendsViewModel extends ChangeNotifier {
   }
 
   /// Rejeita solicitação de amizade
-  Future<bool> rejectFriendRequest(int requestId) async {
+  Future<bool> rejectFriendRequest(String requestId) async {
     try {
       await _repository.rejectFriendRequest(requestId: requestId);
       
@@ -159,7 +159,7 @@ class FriendsViewModel extends ChangeNotifier {
   }
 
   /// Remove amizade
-  Future<bool> removeFriend(int friendshipId) async {
+  Future<bool> removeFriend(String friendshipId) async {
     try {
       await _repository.removeFriend(friendshipId: friendshipId);
       

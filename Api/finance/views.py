@@ -93,29 +93,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_throttles(self):
-        """
-        Aplica rate limiting apenas em operações de criação.
-        Leitura não é limitada para não impactar UX.
-        """
         if self.action == 'create':
             return [CategoryCreateThrottle(), BurstRateThrottle()]
         return super().get_throttles()
 
     def get_queryset(self):
-        """
-        Retorna categorias do usuário autenticado e, se for admin, 
-        também retorna categorias globais (user=None).
-        SEGURANÇA: Isolamento total de dados entre usuários.
-        """
         user = self.request.user
         
-        # Todos os usuários veem suas categorias + categorias globais (user=None)
-        # Categorias globais são as criadas pelo sistema, disponíveis para todos
         qs = Category.objects.filter(
             Q(user=user) | Q(user=None)
         )
         
-        # Filtros opcionais
         category_type = self.request.query_params.get("type")
         if category_type:
             qs = qs.filter(type=category_type)
@@ -127,18 +115,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return qs.order_by("name")
 
     def perform_create(self, serializer):
-        """
-        Criar categoria com validações adicionais.
-        """
         from rest_framework.exceptions import ValidationError
         
         user = self.request.user
         data = serializer.validated_data
         
-        # Verificar se está tentando criar categoria global (sem user)
         is_creating_global = data.get('is_system_default', False)
         
-        # Apenas admins podem criar categorias globais/de sistema
         if is_creating_global and not user.is_staff:
             raise ValidationError({
                 'is_system_default': 'Apenas administradores podem criar categorias de sistema.'
@@ -165,15 +148,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
             serializer.save(user=None, is_system_default=True)
             return
         
-        # Fluxo normal para usuários: criar categoria pessoal
-        # 1. Limitar número de categorias personalizadas por usuário
         custom_categories = Category.objects.filter(user=user, is_system_default=False).count()
         if custom_categories >= 100:  # Limite razoável
             raise ValidationError({
                 'non_field_errors': 'Você atingiu o limite de 100 categorias personalizadas.'
             })
         
-        # 2. Validar unicidade case-insensitive
         name = data.get('name', '').strip()
         category_type = data.get('type')
         
@@ -191,9 +171,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer.save(user=user, is_system_default=False)
     
     def perform_update(self, serializer):
-        """
-        Atualizar categoria com validações adicionais.
-        """
         from rest_framework.exceptions import ValidationError
         
         instance = self.get_object()
@@ -251,9 +228,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
         serializer.save()
     
     def perform_destroy(self, instance):
-        """
-        Deletar categoria com validações de segurança.
-        """
         from rest_framework.exceptions import ValidationError
         
         user = self.request.user
@@ -296,18 +270,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gerenciar transações.
-    Usa UUID como identificador primário.
-    """
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
     
     def get_throttles(self):
-        """
-        Aplica rate limiting em criações e atualizações.
-        DELETE tem burst protection.
-        """
         if self.action in ['create', 'update', 'partial_update']:
             return [TransactionCreateThrottle(), BurstRateThrottle()]
         elif self.action == 'destroy':
@@ -315,18 +281,21 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return super().get_throttles()
 
     def get_queryset(self):
-        # Otimizado: select_related para evitar N+1 queries
+        from django.db.models import Count
+        
         qs = Transaction.objects.filter(
             user=self.request.user
         ).select_related(
             "category"
+        ).annotate(
+            outgoing_links_count_annotated=Count('outgoing_links'),
+            incoming_links_count_annotated=Count('incoming_links')
         )
         
         tx_type = self.request.query_params.get("type")
         if tx_type:
             qs = qs.filter(type=tx_type)
         
-        # Filtros avançados
         category_id = self.request.query_params.get("category")
         if category_id:
             qs = qs.filter(category_id=category_id)
@@ -353,7 +322,18 @@ class TransactionViewSet(viewsets.ModelViewSet):
         
         return qs.order_by("-date", "-created_at")
     
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        XP_PER_TRANSACTION = 50
+        
+        headers = self.get_success_headers(serializer.data)
+        response_data = serializer.data
+        response_data['xp_earned'] = XP_PER_TRANSACTION
+        
+        return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
         """
         Criar transação com validações adicionais.
         """
@@ -369,7 +349,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         data = serializer.validated_data
         
-        # 1. Verificar se categoria pertence ao usuário (ou é categoria global)
         category = data.get('category')
         if category and category.user is not None and category.user != user:
             logger.error(f"[TRANSACTION CREATE] Category validation failed: category.user={category.user}, user={user}")
@@ -377,7 +356,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'category': 'A categoria selecionada não pertence a você.'
             })
         
-        # 2. Verificar limites de transações por dia (anti-spam)
         from django.utils import timezone
         today = timezone.now().date()
         today_transactions = Transaction.objects.filter(
@@ -390,7 +368,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'non_field_errors': 'Limite de 500 transações por dia atingido.'
             })
         
-        # 3. Validar valor não excede limite diário de criação
         total_today = Transaction.objects.filter(
             user=user,
             created_at__date=today
@@ -404,41 +381,33 @@ class TransactionViewSet(viewsets.ModelViewSet):
         
         try:
             logger.info(f"[TRANSACTION CREATE] Attempting to save transaction...")
-            serializer.save()
-            logger.info(f"[TRANSACTION CREATE] Transaction saved successfully with ID: {serializer.instance.id}")
+            instance = serializer.save()
+            logger.info(f"[TRANSACTION CREATE] Transaction saved successfully with ID: {instance.id}")
         except Exception as e:
             logger.error(f"[TRANSACTION CREATE] Error saving transaction: {type(e).__name__}: {str(e)}")
             raise
         
-        # Invalidar todos os caches após criar transação
         invalidate_user_dashboard_cache(self.request.user)
     
     def perform_update(self, serializer):
-        """
-        Atualizar transação com validações adicionais.
-        """
         from rest_framework.exceptions import ValidationError
         
         instance = self.get_object()
         data = serializer.validated_data
         
-        # 1. Verificar se nova categoria pertence ao usuário (ou é categoria global)
         category = data.get('category')
         if category and category.user is not None and category.user != self.request.user:
             raise ValidationError({
                 'category': 'A categoria selecionada não pertence a você.'
             })
         
-        # 2. Verificar se transação tem vínculos ativos que seriam invalidados
         if 'amount' in data or 'type' in data:
             links_as_source = TransactionLink.objects.filter(source_transaction=instance).count()
             links_as_target = TransactionLink.objects.filter(target_transaction=instance).count()
             
             if links_as_source > 0 or links_as_target > 0:
-                # Avisar mas permitir (validações de TransactionLink.clean() vão prevenir inconsistências)
                 pass
         
-        # 3. Validar que transação paga (com links) não pode mudar para valor menor que já pago
         if 'amount' in data:
             new_amount = data['amount']
             paid_amount = TransactionLink.objects.filter(
@@ -455,12 +424,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
         invalidate_user_dashboard_cache(self.request.user)
     
     def perform_destroy(self, instance):
-        """
-        Deletar transação com validações de segurança.
-        """
         from rest_framework.exceptions import ValidationError
         
-        # 1. Verificar se transação tem vínculos ativos
         links_as_source = TransactionLink.objects.filter(source_transaction=instance).count()
         links_as_target = TransactionLink.objects.filter(target_transaction=instance).count()
         
@@ -474,7 +439,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Esta transação recebeu {links_as_target} pagamento(s). Remova os vínculos antes de excluir.'
             })
         
-        # 2. Verificar se transação está vinculada a metas
         goal_links = Goal.objects.filter(target_category=instance.category, user=instance.user).count()
         if goal_links > 0:
             # Permitir mas avisar via log
@@ -490,11 +454,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def details(self, request, pk=None):
-        """Retorna detalhes completos da transação com metadados."""
         transaction = self.get_object()
         serializer = self.get_serializer(transaction)
         
-        # Adicionar informações extras
         data = serializer.data
         
         # Calcular impacto nos indicadores (estimativa)
@@ -508,7 +470,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return Response(data)
     
     def _calculate_transaction_impact(self, transaction):
-        """Calcula impacto estimado da transação nos indicadores."""
         from .services import calculate_summary
         
         summary = calculate_summary(transaction.user)
@@ -544,7 +505,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
         }
     
     def _get_transaction_stats(self, transaction):
-        """Retorna estatísticas relacionadas à transação."""
         from django.db.models import Sum, Count, Avg
         
         # Estatísticas da mesma categoria
@@ -2308,8 +2268,92 @@ class MissionViewSet(viewsets.ModelViewSet):
                 'percent': 0,
                 'message': f'Estado: {task.state}'
             })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def generate_auto(self, request):
+        total = request.data.get('total', 100)
+        use_async = request.data.get('use_async', True)
         
-        # Se tier não fornecido, usar BEGINNER como padrão
+        if not isinstance(total, int) or total < 1 or total > 500:
+            return Response(
+                {'error': 'total deve ser entre 1 e 500'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        beginner_count = int(total * 0.4)
+        intermediate_count = int(total * 0.4)
+        advanced_count = total - beginner_count - intermediate_count
+        
+        import random
+        scenarios = ['ONBOARDING', 'SAVINGS', 'DEBT_REDUCTION', 'BUDGET_CONTROL', 'INVESTMENT']
+        
+        try:
+            if use_async:
+                from .tasks import generate_missions_async
+                tasks = []
+                
+                for tier, count in [('BEGINNER', beginner_count), ('INTERMEDIATE', intermediate_count), ('ADVANCED', advanced_count)]:
+                    if count > 0:
+                        scenario = random.choice(scenarios)
+                        task = generate_missions_async.delay(
+                            tier=tier,
+                            scenario_key=scenario,
+                            count=count,
+                            use_templates_first=True
+                        )
+                        tasks.append({'tier': tier, 'scenario': scenario, 'count': count, 'task_id': task.id})
+                
+                return Response({
+                    'success': True,
+                    'message': f'Geração automática de {total} missões iniciada',
+                    'distribution': {
+                        'beginner': beginner_count,
+                        'intermediate': intermediate_count,
+                        'advanced': advanced_count
+                    },
+                    'tasks': tasks
+                }, status=status.HTTP_202_ACCEPTED)
+            else:
+                created_total = 0
+                failed_total = 0
+                details = []
+                
+                for tier, count in [('BEGINNER', beginner_count), ('INTERMEDIATE', intermediate_count), ('ADVANCED', advanced_count)]:
+                    if count > 0:
+                        scenario = random.choice(scenarios)
+                        from .ai_services import generate_missions_by_scenario
+                        result = generate_missions_by_scenario(scenario, [tier])
+                        
+                        tier_created = len([m for m in result.get('created', []) if m])
+                        tier_failed = len(result.get('failed', []))
+                        
+                        created_total += tier_created
+                        failed_total += tier_failed
+                        details.append({
+                            'tier': tier,
+                            'scenario': scenario,
+                            'created': tier_created,
+                            'failed': tier_failed
+                        })
+                
+                return Response({
+                    'success': True,
+                    'total_created': created_total,
+                    'total_failed': failed_total,
+                    'distribution': {
+                        'beginner': beginner_count,
+                        'intermediate': intermediate_count,
+                        'advanced': advanced_count
+                    },
+                    'details': details
+                })
+        except Exception as e:
+            logger.error(f"Erro na geração automática: {e}", exc_info=True)
+            return Response(
+                {'success': False, 'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
         if not tier:
             tier = 'BEGINNER'
             logger.info(f"Tier não especificado, usando padrão: {tier}")
@@ -3221,6 +3265,127 @@ class UserProfileViewSet(
         return Response({
             'message': f'Conta {user_id} excluída permanentemente.',
         }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def dev_reset_account(self, request):
+        user = request.user
+        
+        Transaction.objects.filter(user=user).delete()
+        TransactionLink.objects.filter(
+            Q(source_transaction__user=user) | Q(target_transaction__user=user)
+        ).delete()
+        MissionProgress.objects.filter(user=user).delete()
+        Goal.objects.filter(user=user).delete()
+        
+        profile = UserProfile.objects.get(user=user)
+        profile.level = 1
+        profile.experience_points = 0
+        profile.save()
+        
+        invalidate_user_dashboard_cache(user)
+        
+        return Response({
+            'success': True,
+            'message': 'Conta resetada com sucesso',
+            'level': 1,
+            'xp': 0
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def dev_add_xp(self, request):
+        xp_amount = request.data.get('xp', 1000)
+        user = request.user
+        
+        profile = UserProfile.objects.get(user=user)
+        old_level = profile.level
+        profile.experience_points += xp_amount
+        
+        def _xp_threshold(level):
+            return 100 * (level ** 1.5)
+        
+        while profile.experience_points >= _xp_threshold(profile.level):
+            profile.experience_points -= _xp_threshold(profile.level)
+            profile.level += 1
+        
+        profile.save()
+        
+        return Response({
+            'success': True,
+            'xp_added': xp_amount,
+            'old_level': old_level,
+            'new_level': profile.level,
+            'current_xp': profile.experience_points
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def dev_complete_missions(self, request):
+        user = request.user
+        
+        active_missions = MissionProgress.objects.filter(
+            user=user,
+            status__in=['NOT_STARTED', 'IN_PROGRESS']
+        )
+        
+        count = 0
+        for mp in active_missions:
+            mp.status = 'COMPLETED'
+            mp.progress_percentage = 100.0
+            mp.completed_at = timezone.now()
+            mp.save()
+            count += 1
+        
+        return Response({
+            'success': True,
+            'completed_count': count
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def dev_clear_cache(self, request):
+        user = request.user
+        invalidate_user_dashboard_cache(user)
+        invalidate_indicators_cache(user)
+        
+        return Response({
+            'success': True,
+            'message': 'Cache limpo com sucesso'
+        })
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def dev_add_test_data(self, request):
+        user = request.user
+        count = request.data.get('count', 10)
+        
+        from decimal import Decimal
+        import random
+        from datetime import timedelta
+        
+        categories = list(Category.objects.filter(Q(user=user) | Q(user=None))[:5])
+        if not categories:
+            return Response({'error': 'Nenhuma categoria disponível'}, status=400)
+        
+        created = []
+        for i in range(count):
+            tx_type = random.choice(['INCOME', 'EXPENSE'])
+            amount = Decimal(random.randint(10, 500))
+            date = timezone.now().date() - timedelta(days=random.randint(0, 30))
+            
+            tx = Transaction.objects.create(
+                user=user,
+                type=tx_type,
+                description=f'Teste {tx_type} #{i+1}',
+                amount=amount,
+                date=date,
+                category=random.choice(categories)
+            )
+            created.append(tx.id)
+        
+        invalidate_user_dashboard_cache(user)
+        
+        return Response({
+            'success': True,
+            'created_count': len(created),
+            'transaction_ids': created[:5]
+        })
 
 
 class FriendshipViewSet(viewsets.ModelViewSet):

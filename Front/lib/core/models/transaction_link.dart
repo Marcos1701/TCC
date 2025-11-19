@@ -3,7 +3,6 @@ import 'transaction.dart';
 class TransactionLinkModel {
   const TransactionLinkModel({
     required this.id,
-    this.uuid,
     this.sourceTransaction,
     this.targetTransaction,
     required this.linkedAmount,
@@ -14,8 +13,7 @@ class TransactionLinkModel {
     required this.updatedAt,
   });
 
-  final int id;
-  final String? uuid;  // UUID para identificação segura
+  final String id;
   final TransactionModel? sourceTransaction;
   final TransactionModel? targetTransaction;
   final double linkedAmount;
@@ -26,13 +24,8 @@ class TransactionLinkModel {
   final DateTime updatedAt;
 
   factory TransactionLinkModel.fromMap(Map<String, dynamic> map) {
-    // Suporta tanto UUID quanto int como ID
-    final idValue = map['id'].toString();
-    final isUuid = idValue.contains('-') && idValue.length > 20;
-    
     return TransactionLinkModel(
-      id: isUuid ? idValue.hashCode : int.parse(idValue),
-      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
+      id: map['id'].toString(),
       sourceTransaction: map['source_transaction'] != null
           ? TransactionModel.fromMap(map['source_transaction'] as Map<String, dynamic>)
           : null,
@@ -71,11 +64,11 @@ class TransactionLinkModel {
     }
   }
 
-  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
-  dynamic get identifier => uuid ?? id;
+  /// Retorna o identificador preferencial
+  String get identifier => id;
   
   /// Verifica se possui UUID
-  bool get hasUuid => uuid != null;
+  bool get hasUuid => true;
 }
 
 class CreateTransactionLinkRequest {
@@ -88,8 +81,8 @@ class CreateTransactionLinkRequest {
     this.isRecurring,
   });
 
-  final dynamic sourceId;  // Aceita int ou String (UUID)
-  final dynamic targetId;  // Aceita int ou String (UUID)
+  final String sourceId;
+  final String targetId;
   final double amount;
   final String? linkType;
   final String? description;
@@ -97,11 +90,9 @@ class CreateTransactionLinkRequest {
 
   Map<String, dynamic> toMap() {
     return {
-      // Envia source_uuid se for String, senão source_id
-      if (sourceId is String) 'source_uuid': sourceId else 'source_id': sourceId,
-      // Envia target_uuid se for String, senão target_id
-      if (targetId is String) 'target_uuid': targetId else 'target_id': targetId,
-      'linked_amount': amount.toString(),
+      'source_uuid': sourceId,
+      'target_uuid': targetId,
+      'linked_amount': amount,
       if (linkType != null) 'link_type': linkType,
       if (description != null) 'description': description,
       if (isRecurring != null) 'is_recurring': isRecurring,

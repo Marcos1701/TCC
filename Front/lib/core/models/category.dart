@@ -25,4 +25,15 @@ class CategoryModel {
       isUserCreated: (map['is_user_created'] as bool?) ?? false,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'type': type,
+      'color': color,
+      'group': group,
+      'is_user_created': isUserCreated,
+    };
+  }
 }

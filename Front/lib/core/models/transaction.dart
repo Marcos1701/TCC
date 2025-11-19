@@ -3,7 +3,6 @@ import 'category.dart';
 class TransactionModel {
   const TransactionModel({
     required this.id,
-    this.uuid,
     required this.type,
     required this.description,
     required this.amount,
@@ -20,8 +19,7 @@ class TransactionModel {
     this.incomingLinksCount,
   });
 
-  final int id;
-  final String? uuid;  // UUID para identificação segura
+  final String id;
   final String type;
   final String description;
   final double amount;
@@ -40,13 +38,8 @@ class TransactionModel {
   final int? incomingLinksCount;
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
-    // Suporta tanto UUID quanto int como ID
-    final idValue = map['id'].toString();
-    final isUuid = idValue.contains('-') && idValue.length > 20;
-    
     return TransactionModel(
-      id: isUuid ? idValue.hashCode : int.parse(idValue),
-      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
+      id: map['id'].toString(),
       type: map['type'] as String,
       description: map['description'] as String,
       amount: double.parse(map['amount'].toString()),
@@ -85,11 +78,11 @@ class TransactionModel {
   bool get hasAvailableAmount => availableAmount != null && availableAmount! > 0;
   bool get isFullyLinked => linkPercentage != null && linkPercentage! >= 100.0;
 
-  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
-  dynamic get identifier => uuid ?? id;
+  /// Retorna o identificador preferencial
+  String get identifier => id;
   
-  /// Verifica se possui UUID
-  bool get hasUuid => uuid != null;
+  /// Verifica se possui UUID (sempre true agora)
+  bool get hasUuid => true;
 
   String? get recurrenceLabel {
     if (!isRecurring || recurrenceValue == null || recurrenceUnit == null) {

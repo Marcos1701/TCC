@@ -37,8 +37,8 @@ class _PaymentWizardState extends State<PaymentWizard> {
   bool _isLoadingData = false;
 
   // Seleções
-  final Map<int, double> _selectedIncomes = {}; // id -> valor selecionado
-  final Map<int, double> _selectedExpenses = {}; // id -> valor selecionado
+  final Map<String, double> _selectedIncomes = {}; // id -> valor selecionado
+  final Map<String, double> _selectedExpenses = {}; // id -> valor selecionado
 
   // Estado de criação
   bool _isCreating = false;
@@ -68,6 +68,8 @@ class _PaymentWizardState extends State<PaymentWizard> {
           _availableExpenses = expenses;
           _isLoadingData = false;
         });
+        
+        _applySuggestedIncome();
       }
     } catch (e) {
       if (mounted) {
@@ -76,6 +78,30 @@ class _PaymentWizardState extends State<PaymentWizard> {
           context,
           'Erro ao carregar transações: $e',
         );
+      }
+    }
+  }
+
+  void _applySuggestedIncome() {
+    if (_availableExpenses.length == 1 && _availableIncomes.isNotEmpty) {
+      final expense = _availableExpenses.first;
+      final neededAmount = expense.availableAmount ?? expense.amount;
+      
+      final sortedIncomes = _availableIncomes.toList()
+        ..sort((a, b) {
+          final aAvailable = a.availableAmount ?? a.amount;
+          final bAvailable = b.availableAmount ?? b.amount;
+          return bAvailable.compareTo(aAvailable);
+        });
+      
+      final bestIncome = sortedIncomes.first;
+      final incomeAvailable = bestIncome.availableAmount ?? bestIncome.amount;
+      
+      if (incomeAvailable >= neededAmount) {
+        setState(() {
+          _selectedIncomes[bestIncome.id] = neededAmount;
+          _selectedExpenses[expense.id] = neededAmount;
+        });
       }
     }
   }
@@ -176,8 +202,8 @@ class _PaymentWizardState extends State<PaymentWizard> {
           if (amount > 0.01) {
             // Evita valores muito pequenos
             payments.add({
-              'source_id': income.uuid ?? income.id.toString(),
-              'target_id': expense.uuid ?? expense.id.toString(),
+              'source_id': income.id,
+              'target_id': expense.id,
               'amount': amount,
             });
           }

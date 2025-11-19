@@ -336,5 +336,50 @@ class MissionModel {
 
   /// Indica se a missão é válida para exibição
   bool get isValid => !hasPlaceholders() && title.isNotEmpty && description.isNotEmpty;
-}
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'reward_points': rewardPoints,
+      'difficulty': difficulty,
+      'mission_type': missionType,
+      'priority': priority,
+      'is_active': isActive,
+      'target_tps': targetTps,
+      'target_rdr': targetRdr,
+      'min_ili': minIli,
+      'max_ili': maxIli,
+      'min_transactions': minTransactions,
+      'duration_days': durationDays,
+      'validation_type': validationType,
+      'requires_consecutive_days': requiresConsecutiveDays,
+      'min_consecutive_days': minConsecutiveDays,
+      'target_category': targetCategory,
+      'target_categories': targetCategories.map((c) => c.toMap()).toList(),
+      'target_reduction_percent': targetReductionPercent,
+      'category_spending_limit': categorySpendingLimit,
+      'target_goal': targetGoal,
+      'goal_progress_target': goalProgressTarget,
+      'savings_increase_amount': savingsIncreaseAmount,
+      'requires_daily_action': requiresDailyAction,
+      'min_daily_actions': minDailyActions,
+      'impacts': impacts,
+      'tips': tips,
+      'min_transaction_frequency': minTransactionFrequency,
+      'transaction_type_filter': transactionTypeFilter,
+      'requires_payment_tracking': requiresPaymentTracking,
+      'min_payments_count': minPaymentsCount,
+      'is_system_generated': isSystemGenerated,
+      'generation_context': generationContext,
+      'type_display': typeDisplay,
+      'difficulty_display': difficultyDisplay,
+      'validation_type_display': validationTypeDisplay,
+      'source': source,
+      'target_info': targetInfo,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+}

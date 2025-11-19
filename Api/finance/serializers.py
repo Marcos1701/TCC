@@ -1244,6 +1244,17 @@ class IndicatorInsightSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     next_level_threshold = serializers.IntegerField(read_only=True)
+    
+    cached_tps = serializers.DecimalField(
+        max_digits=5, decimal_places=2, read_only=True, required=False
+    )
+    cached_rdr = serializers.DecimalField(
+        max_digits=5, decimal_places=2, read_only=True, required=False
+    )
+    cached_ili = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True, required=False
+    )
+    cache_timestamp = serializers.DateTimeField(read_only=True, required=False)
 
     class Meta:
         model = UserProfile
@@ -1255,8 +1266,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "target_rdr",
             "target_ili",
             "is_first_access",
+            "cached_tps",
+            "cached_rdr",
+            "cached_ili",
+            "cache_timestamp",
         )
-        read_only_fields = ("level", "experience_points", "next_level_threshold")
+        read_only_fields = (
+            "level", 
+            "experience_points", 
+            "next_level_threshold",
+            "cached_tps",
+            "cached_rdr",
+            "cached_ili",
+            "cache_timestamp",
+        )
 
 
 class DashboardSerializer(serializers.Serializer):

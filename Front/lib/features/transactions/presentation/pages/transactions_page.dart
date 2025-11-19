@@ -59,17 +59,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
     if (created == null) return;
     
-    // Invalida cache após criar transação
     _cacheManager.invalidateAfterTransaction(action: 'transaction created');
     
     if (!mounted) return;
     
-    // Feedback melhorado e contextual
     FeedbackService.showTransactionCreated(
       context,
-      amount: created.amount,
-      type: created.type,
-      xpEarned: 50, // Pode vir do backend futuramente
+      amount: created['amount'] ?? 0.0,
+      type: created['type'] ?? 'EXPENSE',
+      xpEarned: created['xp_earned'] as int?,
     );
   }
 
@@ -98,19 +96,29 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
     if (!confirm) return;
 
+    final originalList = List<TransactionModel>.from(_viewModel.transactions);
+    
+    setState(() {
+      _viewModel.removeTransactionOptimistic(transaction.id);
+    });
+    
+    FeedbackService.showSuccess(
+      context,
+      'Transação removida',
+    );
+
     try {
       await _viewModel.deleteTransaction(transaction);
-      
-      if (!mounted) return;
-      FeedbackService.showSuccess(
-        context,
-        'Transação removida com sucesso.',
-      );
     } catch (e) {
       if (!mounted) return;
+      
+      setState(() {
+        _viewModel.restoreTransactions(originalList);
+      });
+      
       FeedbackService.showError(
         context,
-        'Não foi possível remover a transação. Tente novamente.',
+        'Erro ao remover transação. Desfeito.',
       );
     }
   }

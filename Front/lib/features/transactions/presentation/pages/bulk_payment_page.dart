@@ -57,16 +57,14 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
 
       if (!mounted) return;
       
-      // Filtrar apenas transações com UUID e saldo disponível
+      // Filtrar apenas transações com ID e saldo disponível
       final validIncomes = incomes.where((income) => 
-        income.uuid != null && 
-        income.uuid!.isNotEmpty &&
+        income.id.isNotEmpty &&
         (income.availableAmount ?? income.amount) > 0
       ).toList();
       
       final validExpenses = expenses.where((expense) => 
-        expense.uuid != null && 
-        expense.uuid!.isNotEmpty &&
+        expense.id.isNotEmpty &&
         (expense.availableAmount ?? expense.amount) > 0
       ).toList();
       
@@ -473,12 +471,12 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   }
 
   Widget _buildIncomeCard(TransactionModel income, ThemeData theme, AppDecorations tokens) {
-    // Validar UUID disponível
-    if (income.uuid == null || income.uuid!.isEmpty) {
-      return const SizedBox.shrink(); // Não exibir se não tiver UUID
+    // Validar ID disponível
+    if (income.id.isEmpty) {
+      return const SizedBox.shrink(); // Não exibir se não tiver ID
     }
     
-    final incomeKey = income.uuid!;
+    final incomeKey = income.id;
     final isSelected = _selectedIncomes.containsKey(incomeKey);
     final available = income.availableAmount ?? income.amount;
     final selectedAmount = _selectedIncomes[incomeKey] ?? available;
@@ -649,12 +647,12 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   }
 
   Widget _buildExpenseCard(TransactionModel expense, ThemeData theme, AppDecorations tokens) {
-    // Validar UUID disponível
-    if (expense.uuid == null || expense.uuid!.isEmpty) {
-      return const SizedBox.shrink(); // Não exibir se não tiver UUID
+    // Validar ID disponível
+    if (expense.id.isEmpty) {
+      return const SizedBox.shrink(); // Não exibir se não tiver ID
     }
     
-    final expenseKey = expense.uuid!;
+    final expenseKey = expense.id;
     final isSelected = _selectedExpenses.containsKey(expenseKey);
     final remaining = expense.availableAmount ?? expense.amount;
     final selectedAmount = _selectedExpenses[expenseKey] ?? remaining;

@@ -178,15 +178,13 @@ class _TransactionWizardState extends State<TransactionWizard> {
 
       if (!mounted) return;
 
-      // Invalida cache
       _cacheManager.invalidateAfterTransaction(action: 'transaction created');
 
-      // Feedback de sucesso
       FeedbackService.showTransactionCreated(
         context,
         amount: amount,
         type: _selectedType,
-        xpEarned: 50,
+        xpEarned: transaction['xp_earned'] as int?,
       );
 
       Navigator.of(context).pop(transaction);

@@ -2,7 +2,6 @@
 class FriendshipModel {
   const FriendshipModel({
     required this.id,
-    this.uuid,
     required this.userId,
     required this.friendId,
     required this.userInfo,
@@ -12,8 +11,7 @@ class FriendshipModel {
     this.acceptedAt,
   });
 
-  final int id;
-  final String? uuid;  // UUID para identificação segura
+  final String id;
   final int userId;
   final int friendId;
   final UserInfoModel userInfo;
@@ -23,13 +21,8 @@ class FriendshipModel {
   final DateTime? acceptedAt;
 
   factory FriendshipModel.fromMap(Map<String, dynamic> map) {
-    // Suporta tanto UUID quanto int como ID
-    final idValue = map['id'].toString();
-    final isUuid = idValue.contains('-') && idValue.length > 20;
-    
     return FriendshipModel(
-      id: isUuid ? idValue.hashCode : int.parse(idValue),
-      uuid: isUuid ? idValue : (map['uuid'] as String?),  // Usa o ID como UUID se for UUID
+      id: map['id'].toString(),
       userId: map['user'] as int,
       friendId: map['friend'] as int,
       userInfo: UserInfoModel.fromMap(map['user_info'] as Map<String, dynamic>),
@@ -55,8 +48,7 @@ class FriendshipModel {
   }
 
   FriendshipModel copyWith({
-    int? id,
-    String? uuid,
+    String? id,
     int? userId,
     int? friendId,
     UserInfoModel? userInfo,
@@ -67,7 +59,6 @@ class FriendshipModel {
   }) {
     return FriendshipModel(
       id: id ?? this.id,
-      uuid: uuid ?? this.uuid,
       userId: userId ?? this.userId,
       friendId: friendId ?? this.friendId,
       userInfo: userInfo ?? this.userInfo,
@@ -78,11 +69,11 @@ class FriendshipModel {
     );
   }
 
-  /// Retorna o identificador preferencial (UUID se disponível, senão ID)
-  dynamic get identifier => uuid ?? id;
+  /// Retorna o identificador preferencial
+  String get identifier => id;
   
   /// Verifica se possui UUID
-  bool get hasUuid => uuid != null;
+  bool get hasUuid => true;
 }
 
 /// Informações básicas de um usuário na amizade.
