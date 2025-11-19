@@ -41,25 +41,22 @@ class CategorySerializer(serializers.ModelSerializer):
             return False
     
     def validate_color(self, value):
-        """Valida que a cor está no formato hexadecimal correto."""
         import re
         if not value:
-            return '#808080'  # Cor padrão (cinza)
+            return '#808080'
         
-        # Permitir tanto #RGB quanto #RRGGBB
         if not re.match(r'^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$', value):
             raise serializers.ValidationError(
-                'Cor deve estar no formato hexadecimal (#RRGGBB ou #RGB). Exemplo: #FF5733'
+                'Cor deve estar no formato hexadecimal (#RRGGBB ou #RGB).'
             )
         
-        return value.upper()  # Padronizar para maiúsculas
+        return value.upper()
     
     def validate_name(self, value):
-        """Valida que o nome não está vazio e tem tamanho apropriado."""
         if not value or not value.strip():
-            raise serializers.ValidationError("O nome da categoria não pode estar vazio.")
+            raise serializers.ValidationError("Nome da categoria obrigatório.")
         if len(value) > 100:
-            raise serializers.ValidationError("O nome não pode ter mais de 100 caracteres.")
+            raise serializers.ValidationError("Nome não pode exceder 100 caracteres.")
         return value.strip()
 
 
@@ -202,18 +199,16 @@ class TransactionSerializer(serializers.ModelSerializer):
         attrs = super().validate(attrs)
         instance = getattr(self, "instance", None)
 
-        # Validar amount é positivo
         amount = attrs.get('amount', getattr(instance, 'amount', None))
         if amount is not None and amount <= 0:
             raise serializers.ValidationError({
-                'amount': 'O valor deve ser maior que zero.'
+                'amount': 'Valor deve ser maior que zero.'
             })
         
-        # Validar amount não é absurdamente grande (proteção contra erros)
-        max_amount = Decimal('999999999.99')  # ~1 bilhão
+        max_amount = Decimal('999999999.99')
         if amount is not None and amount > max_amount:
             raise serializers.ValidationError({
-                'amount': f'Valor muito alto. Máximo permitido: R$ {max_amount:,.2f}'
+                'amount': f'Valor excede o limite permitido: R$ {max_amount:,.2f}'
             })
 
         is_recurring = attrs.get("is_recurring")
@@ -232,12 +227,11 @@ class TransactionSerializer(serializers.ModelSerializer):
         if is_recurring:
             if not recurrence_value or recurrence_value <= 0 or not recurrence_unit:
                 raise serializers.ValidationError(
-                    "Informe a frequência para transações recorrentes.",
+                    "Frequência obrigatória para transações recorrentes.",
                 )
-            # Validar recurrence_value não é absurdo
             if recurrence_value > 365:
                 raise serializers.ValidationError({
-                    'recurrence_value': 'Valor de recorrência muito alto.'
+                    'recurrence_value': 'Valor de recorrência excede o limite.'
                 })
         else:
             attrs["recurrence_value"] = None
@@ -246,7 +240,6 @@ class TransactionSerializer(serializers.ModelSerializer):
             if "is_recurring" in attrs:
                 attrs["is_recurring"] = False
         
-        # Validar data não está muito no futuro (opcional, mas pode ajudar)
         from django.utils import timezone
         from datetime import timedelta
         
@@ -255,7 +248,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             max_future_date = timezone.now().date() + timedelta(days=365)
             if date > max_future_date:
                 raise serializers.ValidationError({
-                    'date': 'Data não pode estar mais de 1 ano no futuro.'
+                    'date': 'Data não pode exceder 1 ano no futuro.'
                 })
 
         return attrs

@@ -23,7 +23,7 @@ class AuthRepository {
       },
     );
     
-    // Verifica se a resposta é um erro (mesmo com validateStatus permitindo)
+    // Check if response is an error (even if validateStatus allows it)
     if (response.statusCode != null && response.statusCode! >= 400) {
       throw DioException(
         requestOptions: response.requestOptions,
@@ -51,7 +51,7 @@ class AuthRepository {
       },
     );
     
-    // Verifica se a resposta é um erro (mesmo com validateStatus permitindo)
+    // Check if response is an error (even if validateStatus allows it)
     if (response.statusCode != null && response.statusCode! >= 400) {
       throw DioException(
         requestOptions: response.requestOptions,
@@ -65,7 +65,7 @@ class AuthRepository {
     if (tokens is Map<String, dynamic>) {
       return AuthTokens.fromMap(tokens);
     }
-    throw StateError('Resposta de registro sem tokens.');
+    throw StateError('Registration response without tokens.');
   }
 
   Future<SessionData> fetchSession() async {

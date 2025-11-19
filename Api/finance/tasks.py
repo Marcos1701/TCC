@@ -1,10 +1,5 @@
 """
 Tasks Celery para sistema de snapshots e validação de missões.
-
-Este módulo contém todas as tasks automatizadas que rodam em background:
-- Snapshots diários de usuários (23:59)
-- Snapshots diários de missões ativas (23:59)
-- Snapshots mensais consolidados (último dia do mês 23:59)
 """
 
 import logging
@@ -32,25 +27,10 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# TASK 1: SNAPSHOTS DIÁRIOS DE USUÁRIOS
-# ============================================================================
-
 @shared_task(name='finance.create_daily_user_snapshots')
 def create_daily_user_snapshots():
     """
-    Task executada TODO DIA às 23:59 para criar snapshots de TODOS os usuários.
-    
-    Configurar no Celery Beat:
-    CELERY_BEAT_SCHEDULE = {
-        'create-daily-snapshots': {
-            'task': 'finance.create_daily_user_snapshots',
-            'schedule': crontab(hour=23, minute=59),
-        },
-    }
-    
-    Returns:
-        int: Número de snapshots criados
+    Task executada diariamente às 23:59 para criar snapshots de todos os usuários.
     """
     today = timezone.now().date()
     users = User.objects.filter(is_active=True)
@@ -59,22 +39,17 @@ def create_daily_user_snapshots():
     
     for user in users:
         try:
-            # Verificar se já existe snapshot de hoje
             if UserDailySnapshot.objects.filter(user=user, snapshot_date=today).exists():
                 logger.info(f"Snapshot já existe para {user.username} em {today}")
                 continue
             
-            # Calcular indicadores atuais
             summary = calculate_summary(user)
             
-            # Calcular gastos por categoria (mês atual)
             month_start = today.replace(day=1)
             category_spending = _calculate_category_spending(user, month_start, today)
             
-            # Calcular progresso de metas
             goals_progress = _calculate_goals_progress(user)
             
-            # Verificar se registrou transação hoje
             registered_today = Transaction.objects.filter(
                 user=user,
                 date=today
@@ -85,17 +60,13 @@ def create_daily_user_snapshots():
                 date=today
             ).count()
             
-            # Total de transações lifetime
             total_transactions = Transaction.objects.filter(user=user).count()
             
-            # Verificar violações de orçamento
             budget_exceeded, violations = _check_budget_violations(user, today)
             
-            # Poupança (transações de INCOME em categorias de investimento)
             savings_today = _calculate_savings_added_today(user, today)
             savings_total = _calculate_total_savings(user)
             
-            # Criar snapshot
             snapshot = UserDailySnapshot.objects.create(
                 user=user,
                 snapshot_date=today,

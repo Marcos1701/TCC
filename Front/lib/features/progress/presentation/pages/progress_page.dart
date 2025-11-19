@@ -48,24 +48,20 @@ class _ProgressPageState extends State<ProgressPage> {
     }
   }
 
-  /// Parse seguro de cor hexadecimal
   Color _parseColor(String? colorHex) {
     if (colorHex == null || colorHex.isEmpty) {
       return Colors.grey;
     }
     
     try {
-      // Remove # se existir
       final hex = colorHex.replaceAll('#', '');
       
-      // Valida se é hexadecimal válido
       if (hex.length != 6) {
         return Colors.grey;
       }
       
       return Color(int.parse('0xFF$hex', radix: 16));
     } catch (e) {
-      // Em caso de erro, retorna cor padrão
       return Colors.grey;
     }
   }
@@ -74,7 +70,6 @@ class _ProgressPageState extends State<ProgressPage> {
     final data = await _repository.fetchGoals();
     if (!mounted) return;
     
-    // Atualiza o estado DEPOIS de todo trabalho assíncrono
     if (mounted) {
       setState(() {
         _future = Future.value(data);
@@ -96,7 +91,6 @@ class _ProgressPageState extends State<ProgressPage> {
     );
     
     try {
-      // Novos controladores
       GoalType selectedGoalType = goal?.goalType ?? GoalType.custom;
     int? selectedCategoryId = goal?.targetCategory;
     Set<int> selectedTrackedCategoryIds = goal?.trackedCategories
@@ -108,36 +102,29 @@ class _ProgressPageState extends State<ProgressPage> {
     DateTime? deadline = goal?.deadline;
     bool isLoading = false;
     
-    // Buscar categorias disponíveis
     List<CategoryModel> categories = [];
     try {
       categories = await _repository.fetchCategories();
     } catch (e) {
-      // Ignora erro
     }
     
     if (!mounted) return;
     
-    // Função para filtrar categorias com base no tipo de meta
     List<CategoryModel> getFilteredCategories(GoalType goalType) {
-      // CUSTOM: mostra todas as categorias
       if (goalType == GoalType.custom) {
         return categories;
       }
       
-      // SAVINGS: apenas categorias de receita (INCOME) e categorias criadas pelo usuário
       if (goalType == GoalType.savings) {
         return categories.where((cat) {
           return cat.type == 'INCOME' || cat.isUserCreated;
         }).toList();
       }
       
-      // CATEGORY_EXPENSE: apenas categorias de despesa (EXPENSE)
       if (goalType == GoalType.categoryExpense) {
         return categories.where((cat) => cat.type == 'EXPENSE').toList();
       }
       
-      // CATEGORY_INCOME: apenas categorias de receita (INCOME)
       if (goalType == GoalType.categoryIncome) {
         return categories.where((cat) => cat.type == 'INCOME').toList();
       }
@@ -149,14 +136,11 @@ class _ProgressPageState extends State<ProgressPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          // Verifica se precisa de categoria única (CATEGORY_EXPENSE/INCOME)
           final needsSingleCategory = selectedGoalType == GoalType.categoryExpense ||
               selectedGoalType == GoalType.categoryIncome;
           
-          // Verifica se permite múltiplas categorias (SAVINGS apenas)
           final allowsMultipleCategories = selectedGoalType == GoalType.savings;
           
-          // Automaticamente define isReductionGoal para CATEGORY_EXPENSE
           if (selectedGoalType == GoalType.categoryExpense && !isReductionGoal) {
             isReductionGoal = true;
           }
@@ -198,7 +182,6 @@ class _ProgressPageState extends State<ProgressPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Seletor de Tipo de Meta
                   Text(
                     'Tipo de Meta',
                     style: TextStyle(
@@ -229,7 +212,6 @@ class _ProgressPageState extends State<ProgressPage> {
                         onChanged: isLoading ? null : (value) {
                           setState(() {
                             selectedGoalType = value!;
-                            // Limpar categorias quando mudar de tipo
                             if (!needsSingleCategory) {
                               selectedCategoryId = null;
                             }
@@ -264,7 +246,6 @@ class _ProgressPageState extends State<ProgressPage> {
                   ),
                   const SizedBox(height: 20),
                   
-                  // Seletor de Categoria Única (para CATEGORY_EXPENSE/INCOME)
                   if (needsSingleCategory) ...[
                     Text(
                       'Categoria',

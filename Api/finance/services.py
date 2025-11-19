@@ -126,7 +126,7 @@ def analyze_user_context(user) -> Dict[str, Any]:
         {
             'id': trans.id,
             'amount': float(trans.amount),
-            'category': trans.category.name if trans.category else 'Sem Categoria',
+            'category': trans.category.name if trans.category else 'Sem categoria',
             'date': trans.date.isoformat(),
             'description': trans.description
         }
@@ -192,7 +192,7 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
                 opportunities.append({
                     'type': 'CATEGORY_GROWTH',
                     'priority': 'HIGH' if growth_percent > 50 else 'MEDIUM',
-                    'description': f'Gasto em "{category_name}" cresceu {growth_percent:.1f}%',
+                    'description': f'Gastos em "{category_name}" aumentaram {growth_percent:.1f}%',
                     'data': {
                         'category_id': cat_id,
                         'category_name': category_name,
@@ -230,7 +230,7 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
             opportunities.append({
                 'type': 'GOAL_STAGNANT',
                 'priority': 'HIGH' if days_stagnant > 30 else 'MEDIUM',
-                'description': f'Meta "{goal.title}" sem progresso há {days_stagnant} dias',
+                'description': f'Meta "{goal.title}" estagnada há {days_stagnant} dias',
                 'data': {
                     'goal_id': goal.id,
                     'goal_name': goal.title,
@@ -253,7 +253,7 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
         opportunities.append({
             'type': 'INDICATOR_BELOW_TARGET',
             'priority': 'HIGH' if gap > 10 else 'MEDIUM',
-            'description': f'TPS abaixo da meta: {tps:.1f}% (meta: {profile.target_tps}%)',
+            'description': f'TPS inferior à meta: {tps:.1f}% (meta: {profile.target_tps}%)',
             'data': {
                 'indicator': 'TPS',
                 'current': tps,
@@ -268,7 +268,7 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
         opportunities.append({
             'type': 'INDICATOR_ABOVE_TARGET',
             'priority': 'HIGH' if gap > 20 else 'MEDIUM',
-            'description': f'RDR acima da meta: {rdr:.1f}% (meta: {profile.target_rdr}%)',
+            'description': f'RDR superior à meta: {rdr:.1f}% (meta: {profile.target_rdr}%)',
             'data': {
                 'indicator': 'RDR',
                 'current': rdr,
@@ -284,7 +284,7 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
         opportunities.append({
             'type': 'INDICATOR_BELOW_TARGET',
             'priority': 'HIGH' if gap > 3 else 'MEDIUM',
-            'description': f'ILI abaixo da meta: {ili:.1f} meses (meta: {target_ili:.1f})',
+            'description': f'ILI inferior à meta: {ili:.1f} meses (meta: {target_ili:.1f})',
             'data': {
                 'indicator': 'ILI',
                 'current': ili,

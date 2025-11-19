@@ -9,8 +9,6 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Formatador de moeda brasileiro para TextFields
-/// Permite digitar apenas números, formatando automaticamente como moeda
 class CurrencyInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -21,17 +19,14 @@ class CurrencyInputFormatter extends TextInputFormatter {
       return newValue.copyWith(text: '');
     }
 
-    // Remove tudo que não é número
     String cleanedText = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
     
     if (cleanedText.isEmpty) {
       return newValue.copyWith(text: '');
     }
 
-    // Converte para double (últimos 2 dígitos são centavos)
     final double value = double.parse(cleanedText) / 100;
 
-    // Formata como moeda brasileira sem símbolo
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
       symbol: '',
@@ -46,8 +41,6 @@ class CurrencyInputFormatter extends TextInputFormatter {
   }
 }
 
-/// Tela de configuração inicial para novos usuários
-/// Permite adicionar transações essenciais rapidamente no primeiro acesso
 class InitialSetupPage extends StatefulWidget {
   const InitialSetupPage({
     super.key,
@@ -66,10 +59,8 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
   int _currentPage = 0;
   bool _isSubmitting = false;
 
-  // Lista de transações essenciais a serem criadas
   final List<_EssentialTransaction> _transactions = [];
   
-  // Categorias disponíveis
   List<CategoryModel> _incomeCategories = [];
   List<CategoryModel> _expenseCategories = [];
   bool _loadingCategories = true;
@@ -103,7 +94,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
         _loadingCategories = false;
       });
       
-      // Atualiza categorias padrão nas transações
       _updateDefaultCategories();
     } catch (e) {
       if (!mounted) return;
@@ -118,7 +108,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
   }
 
   void _initializeDefaultTransactions() {
-    // Transações de receita sugeridas
     _transactions.addAll([
       _EssentialTransaction(
         description: 'Salário',
@@ -154,7 +143,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
       ),
     ]);
 
-    // Transações de despesa sugeridas
     _transactions.addAll([
       _EssentialTransaction(
         description: 'Alimentação',
@@ -197,13 +185,11 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
           ? _incomeCategories 
           : _expenseCategories;
       
-      // Tenta encontrar categoria do grupo correspondente
       transaction.categoryId = categories
           .where((c) => c.group == transaction.group)
           .firstOrNull
           ?.id;
       
-      // Se não encontrou, pega primeira categoria do tipo
       transaction.categoryId ??= categories.firstOrNull?.id;
     }
   }
@@ -230,15 +216,12 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
     setState(() => _isSubmitting = true);
     
     try {
-      // Marca como primeiro acesso concluído na API
       await _repository.completeFirstAccess();
       debugPrint('✅ Primeiro acesso marcado como concluído (pulado)');
       
       if (mounted) {
-        // Chama o callback de conclusão se fornecido
         widget.onComplete?.call();
         
-        // Fecha a página
         Navigator.of(context).pop(true);
       }
     } catch (e) {
@@ -255,7 +238,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
   }
 
   Future<void> _finishSetup() async {
-    // Valida se há pelo menos 5 transações preenchidas
     final filledTransactions = _transactions
         .where((t) => t.amountController.text.trim().isNotEmpty)
         .toList();
@@ -274,14 +256,12 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
       int successCount = 0;
       int errorCount = 0;
 
-      // Cria todas as transações preenchidas
       for (final transaction in filledTransactions) {
         try {
-          // Remove formatação e converte para double
           final amountText = transaction.amountController.text
               .trim()
-              .replaceAll('.', '') // Remove separador de milhares
-              .replaceAll(',', '.'); // Troca vírgula por ponto
+              .replaceAll('.', '')
+              .replaceAll(',', '.');
           final amount = double.tryParse(amountText);
 
           if (amount == null || amount <= 0) {

@@ -5,8 +5,8 @@ import '../../domain/models/category_form_model.dart';
 import 'color_picker_dialog.dart';
 
 class CategoryFormPage extends StatefulWidget {
-  final Map<String, dynamic>? category; // null = criar nova
-  final String initialType; // 'INCOME' ou 'EXPENSE'
+  final Map<String, dynamic>? category; // null = create new
+  final String initialType; // 'INCOME' or 'EXPENSE'
 
   const CategoryFormPage({
     super.key,
@@ -51,7 +51,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
       final updatedForm = _formData.copyWith(name: _nameController.text);
 
       if (widget.category == null) {
-        // Criar nova
+        // Create new
         await _repository.createCategory(
           name: updatedForm.name,
           type: updatedForm.type,
@@ -59,7 +59,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
           group: updatedForm.group,
         );
       } else {
-        // Atualizar existente
+        // Update existing
         await _repository.updateCategory(
           id: updatedForm.id!,
           name: updatedForm.name,
@@ -70,7 +70,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
       }
 
       if (mounted) {
-        Navigator.pop(context, true); // Retorna true para indicar sucesso
+        Navigator.pop(context, true); // Returns true to indicate success
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(widget.category == null
@@ -120,7 +120,7 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.lock, color: Colors.orange, size: 20),
+                    const Icon(Icons.lock, color: Colors.orange, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(

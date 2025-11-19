@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Página de ajuda e explicação de conceitos financeiros
+/// Help page and explanation of financial concepts
 class FinancialConceptsPage extends StatelessWidget {
   const FinancialConceptsPage({super.key});
 
@@ -29,7 +29,7 @@ class FinancialConceptsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Introdução
+          // Introduction
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -92,7 +92,7 @@ class FinancialConceptsPage extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Conceitos Básicos
+          // Basic Concepts
           _buildSectionTitle(
             icon: Icons.account_balance_wallet,
             title: 'Conceitos Básicos',
@@ -172,7 +172,7 @@ class FinancialConceptsPage extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Conceitos Avançados
+          // Advanced Concepts
           _buildSectionTitle(
             icon: Icons.trending_up,
             title: 'Conceitos Avançados',
@@ -250,7 +250,7 @@ class FinancialConceptsPage extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Indicadores Financeiros
+          // Financial Indicators
           _buildSectionTitle(
             icon: Icons.analytics_outlined,
             title: 'Indicadores Financeiros',

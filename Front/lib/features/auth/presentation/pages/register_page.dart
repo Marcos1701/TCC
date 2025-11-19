@@ -51,7 +51,7 @@ class _RegisterPageState extends State<RegisterPage> {
           if (mounted) {
             FeedbackService.showSuccess(
               context,
-              'Cadastro realizado com sucesso! Bem-vindo(a)! 🎉',
+              'Cadastro realizado com sucesso.',
             );
           }
         });
@@ -63,7 +63,6 @@ class _RegisterPageState extends State<RegisterPage> {
       FeedbackType type = FeedbackType.error;
       
       if (error is DioException) {
-        // Verifica tipo de erro
         if (error.type == DioExceptionType.connectionTimeout ||
             error.type == DioExceptionType.receiveTimeout ||
             error.type == DioExceptionType.sendTimeout) {
@@ -108,7 +107,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _validateName(String? value) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) {
-      return 'Como podemos te chamar?';
+      return 'Nome obrigatório.';
     }
     if (trimmed.length < 3) {
       return 'Informe nome e sobrenome.';

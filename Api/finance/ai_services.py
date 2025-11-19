@@ -1,5 +1,3 @@
-"""Serviços de IA para geração de missões e sugestões inteligentes usando Google Gemini."""
-
 import google.generativeai as genai
 from django.conf import settings
 from django.db.models import Avg, Count, Sum, Q
@@ -86,18 +84,16 @@ e estratégias de investimento.
 }
 
 
-# ==================== CENÁRIOS DE GERAÇÃO ====================
-
 MISSION_SCENARIOS = {
     'BEGINNER_ONBOARDING': {
         'name': 'Primeiros Passos',
         'description': 'Missões para usuários iniciantes com poucas transações',
         'focus': 'ONBOARDING',
-        'min_existing': 20,  # Gerar apenas se houver menos de 20 variações
+        'min_existing': 20,
         'distribution': {
-            'ONBOARDING': 12,  # Criar hábito de registro
-            'SAVINGS': 5,      # TPS básico
-            'EXPENSE_CONTROL': 3  # Controle inicial
+            'ONBOARDING': 12,
+            'SAVINGS': 5,
+            'EXPENSE_CONTROL': 3
         }
     },
     'TPS_LOW': {

@@ -1,25 +1,25 @@
 import 'package:flutter/foundation.dart';
 
-/// Gerenciador centralizado de cache e invalidação de dados
+/// Centralized cache and data invalidation manager
 /// 
-/// Este serviço notifica listeners quando dados precisam ser recarregados,
-/// garantindo que toda a UI seja atualizada após operações como:
-/// - Criar/editar/deletar transações
-/// - Pagar despesas
-/// - Completar missões
+/// This service notifies listeners when data needs to be reloaded,
+/// ensuring the entire UI is updated after operations like:
+/// - Create/edit/delete transactions
+/// - Pay expenses
+/// - Complete missions
 class CacheManager extends ChangeNotifier {
   static final CacheManager _instance = CacheManager._internal();
   factory CacheManager() => _instance;
   CacheManager._internal();
 
-  /// Timestamp da última invalidação global
+  /// Timestamp of the last global invalidation
   DateTime _lastInvalidation = DateTime.now();
   DateTime get lastInvalidation => _lastInvalidation;
 
-  /// Tipos de cache que podem ser invalidados individualmente
+  /// Cache types that can be invalidated individually
   final Set<CacheType> _invalidatedCaches = {};
 
-  /// Invalida todos os caches e notifica listeners
+  /// Invalidates all caches and notifies listeners
   void invalidateAll({String? reason}) {
     _lastInvalidation = DateTime.now();
     _invalidatedCaches.clear();
@@ -32,7 +32,7 @@ class CacheManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Invalida caches específicos
+  /// Invalidates specific caches
   void invalidate(List<CacheType> types, {String? reason}) {
     _lastInvalidation = DateTime.now();
     _invalidatedCaches.addAll(types);
@@ -44,17 +44,17 @@ class CacheManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Verifica se um tipo de cache específico foi invalidado
+  /// Checks if a specific cache type has been invalidated
   bool isInvalidated(CacheType type) {
     return _invalidatedCaches.contains(type);
   }
 
-  /// Limpa a marcação de invalidação (chamado após recarregamento)
+  /// Clears the invalidation flag (called after reloading)
   void clearInvalidation(CacheType type) {
     _invalidatedCaches.remove(type);
   }
 
-  /// Invalida cache após criar/editar/deletar transação
+  /// Invalidates cache after creating/editing/deleting transaction
   void invalidateAfterTransaction({String? action}) {
     invalidate(
       [
@@ -69,7 +69,7 @@ class CacheManager extends ChangeNotifier {
     );
   }
 
-  /// Invalida cache após pagar despesa (vincular transações)
+  /// Invalidates cache after paying expense (linking transactions)
   void invalidateAfterPayment() {
     invalidate(
       [
@@ -82,7 +82,7 @@ class CacheManager extends ChangeNotifier {
     );
   }
 
-  /// Invalida cache após completar missão
+  /// Invalidates cache after completing mission
   void invalidateAfterMissionComplete() {
     invalidate(
       [
@@ -95,7 +95,7 @@ class CacheManager extends ChangeNotifier {
     );
   }
 
-  /// Invalida cache após mudanças no perfil
+  /// Invalidates cache after profile changes
   void invalidateAfterProfileUpdate() {
     invalidate(
       [
@@ -107,7 +107,7 @@ class CacheManager extends ChangeNotifier {
     );
   }
 
-  /// Invalida cache após mudanças em metas
+  /// Invalidates cache after goal updates
   void invalidateAfterGoalUpdate() {
     invalidate(
       [
@@ -119,7 +119,7 @@ class CacheManager extends ChangeNotifier {
   }
 }
 
-/// Tipos de cache que podem ser invalidados
+/// Cache types that can be invalidated
 enum CacheType {
   dashboard,
   transactions,

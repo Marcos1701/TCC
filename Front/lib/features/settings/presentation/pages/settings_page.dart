@@ -38,7 +38,7 @@ class _SettingsPageState extends State<SettingsPage> {
             if (!context.mounted) return;
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Perfil atualizado com sucesso!')),
+              const SnackBar(content: Text('Perfil atualizado com sucesso.')),
             );
           } catch (e) {
             if (!context.mounted) return;
@@ -63,7 +63,7 @@ class _SettingsPageState extends State<SettingsPage> {
             if (!context.mounted) return;
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Senha alterada com sucesso!')),
+              const SnackBar(content: Text('Senha alterada com sucesso.')),
             );
           } catch (e) {
             if (!context.mounted) return;
@@ -136,7 +136,6 @@ class _SettingsPageState extends State<SettingsPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
           children: [
-            // Card de Perfil do Usuário (expandido)
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -247,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
 
-            // Seção de Conta
+            // Account Section
             Text(
               'Conta',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -314,7 +313,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 12),
             
-            // Recursos Administrativos (apenas para staff/superuser)
+            // Administrative Resources (staff/superuser only)
             if (user?.isAdmin == true) ...[
               _SettingsTile(
                 icon: Icons.admin_panel_settings,
@@ -341,7 +340,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 32),
 
-            // Botão de Logout
+            // Logout Button
             ElevatedButton.icon(
               onPressed: () => _confirmLogout(context),
               style: ElevatedButton.styleFrom(

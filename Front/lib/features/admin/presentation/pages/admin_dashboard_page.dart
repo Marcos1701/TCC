@@ -6,6 +6,8 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/admin_widgets.dart';
+import '../mixins/admin_page_mixin.dart';
 import 'admin_missions_management_page.dart';
 import 'admin_categories_management_page.dart';
 import 'admin_users_management_page.dart';
@@ -24,7 +26,7 @@ class AdminDashboardPage extends StatefulWidget {
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
 }
 
-class _AdminDashboardPageState extends State<AdminDashboardPage> {
+class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageMixin {
   final _apiClient = ApiClient();
   bool _isLoading = true;
   Map<String, dynamic>? _overviewStats;
@@ -309,56 +311,56 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       crossAxisSpacing: 10,
       childAspectRatio: 1.35, // Aumentado para deixar cards mais compactos verticalmente
       children: [
-        _MetricCard(
+        AdminMetricCard(
           title: 'Usuários',
           value: users.toString(),
           icon: Icons.people,
           color: Colors.blue,
           subtitle: 'Total cadastrados',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Ativos (7d)',
           value: activeUsers7d.toString(),
           icon: Icons.trending_up,
           color: Colors.green,
           subtitle: 'Usuários ativos',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Completas',
           value: completedMissions.toString(),
           icon: Icons.check_circle,
           color: Colors.purple,
           subtitle: 'Todas as faixas',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Ativas',
           value: activeMissions.toString(),
           icon: Icons.assignment,
           color: Colors.orange,
           subtitle: 'Em progresso',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Nível Médio',
           value: avgLevel.toStringAsFixed(1),
           icon: Icons.bar_chart,
           color: AppColors.primary,
           subtitle: 'Dos usuários',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Novos (7d)',
           value: newUsers7d.toString(),
           icon: Icons.person_add,
           color: Colors.teal,
           subtitle: 'Cadastros recentes',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Transações',
           value: totalTransactions.toString(),
           icon: Icons.attach_money,
           color: Colors.amber,
           subtitle: 'Total registradas',
         ),
-        _MetricCard(
+        AdminMetricCard(
           title: 'Metas Ativas',
           value: activeGoals.toString(),
           icon: Icons.flag,
@@ -443,7 +445,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     }
     
     // Função auxiliar para pegar valores com segurança
-    int getSafeValue(Map<String, dynamic>? map, String key) {
+    int getSafeInt(Map<String, dynamic>? map, String key) {
       if (map == null) return 0;
       final value = map[key];
       if (value == null) return 0;
@@ -475,56 +477,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             child: Column(
               children: [
                 if (missionsByDifficulty != null) ...[
-                  _buildStatRow('Fáceis', getSafeValue(missionsByDifficulty, 'EASY')),
-                  _buildStatRow('Médias', getSafeValue(missionsByDifficulty, 'MEDIUM')),
-                  _buildStatRow('Difíceis', getSafeValue(missionsByDifficulty, 'HARD')),
+                  AdminStatRow(label: 'Fácil', value: getSafeInt(missionsByDifficulty, 'EASY')),
+                  AdminStatRow(label: 'Média', value: getSafeInt(missionsByDifficulty, 'MEDIUM')),
+                  AdminStatRow(label: 'Difícil', value: getSafeInt(missionsByDifficulty, 'HARD')),
                   Divider(height: 24, color: Colors.grey[800]),
                 ],
                 if (missionsByType != null) ...[
-                  _buildStatRow('Onboarding', getSafeValue(missionsByType, 'ONBOARDING')),
-                  _buildStatRow('Melhoria TPS', getSafeValue(missionsByType, 'TPS_IMPROVEMENT')),
-                  _buildStatRow('Redução RDR', getSafeValue(missionsByType, 'RDR_REDUCTION')),
-                  _buildStatRow('Construção ILI', getSafeValue(missionsByType, 'ILI_BUILDING')),
-                  _buildStatRow('Avançadas', getSafeValue(missionsByType, 'ADVANCED')),
+                  AdminStatRow(label: 'Onboarding', value: getSafeInt(missionsByType, 'ONBOARDING')),
+                  AdminStatRow(label: 'Economia', value: getSafeInt(missionsByType, 'SAVINGS')),
+                  AdminStatRow(label: 'Controle de Despesas', value: getSafeInt(missionsByType, 'EXPENSE_CONTROL')),
+                  AdminStatRow(label: 'Redução de Dívidas', value: getSafeInt(missionsByType, 'DEBT_REDUCTION')),
+                  AdminStatRow(label: 'Especial', value: getSafeInt(missionsByType, 'SPECIAL')),
                 ],
               ],
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStatRow(String label, int value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 14,
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              value.toString(),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -842,10 +811,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     if (_systemHealth == null) {
       return const SizedBox.shrink();
     }
-    
-    // Função auxiliar para pegar valores com segurança
-    int getSafeInt(String key) {
-      final value = _systemHealth?[key];
+
+    int getSafeInt(Map<String, dynamic>? map, String key) {
+      if (map == null) return 0;
+      final value = map[key];
       if (value == null) return 0;
       if (value is int) return value;
       if (value is double) return value.toInt();
@@ -853,17 +822,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       return 0;
     }
 
-    final totalTransactions = getSafeInt('total_transactions');
-    final transactions7d = getSafeInt('transactions_7d');
-    final totalGoals = getSafeInt('total_goals');
-    final activeGoals = getSafeInt('active_goals');
-    final completedGoals = getSafeInt('completed_goals');
-    final categoriesCount = getSafeInt('categories_count');
-    final globalCategories = getSafeInt('global_categories');
-    final userCategories = getSafeInt('user_categories');
-    final totalMissions = getSafeInt('total_missions');
-    final aiMissions = getSafeInt('ai_generated_missions');
-    final defaultMissions = getSafeInt('default_missions');
+    final totalTransactions = getSafeInt(_systemHealth, 'total_transactions');
+    final transactions7d = getSafeInt(_systemHealth, 'transactions_7d');
+    final totalGoals = getSafeInt(_systemHealth, 'total_goals');
+    final activeGoals = getSafeInt(_systemHealth, 'active_goals');
+    final completedGoals = getSafeInt(_systemHealth, 'completed_goals');
+    final categoriesCount = getSafeInt(_systemHealth, 'categories_count');
+    final globalCategories = getSafeInt(_systemHealth, 'global_categories');
+    final userCategories = getSafeInt(_systemHealth, 'user_categories');
+    final totalMissions = getSafeInt(_systemHealth, 'total_missions');
+    final aiMissions = getSafeInt(_systemHealth, 'ai_generated_missions');
+    final defaultMissions = getSafeInt(_systemHealth, 'default_missions');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -943,100 +912,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 18),
-                ),
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                fontSize: 22,
-                height: 1.1,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 1),
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 8.5,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _ActionTile extends StatelessWidget {
   const _ActionTile({
@@ -1089,3 +964,9 @@ class _ActionTile extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
+

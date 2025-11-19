@@ -14,11 +14,6 @@ String _getFirstName(String fullName) {
 }
 
 /// Página de ranking focada apenas em amigos.
-/// 
-/// Dia 11-14: Removido ranking geral para:
-/// - Reduzir comparação social negativa
-/// - Focar em competição saudável entre amigos
-/// - Aumentar engajamento com amigos próximos
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
 
@@ -36,7 +31,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     _viewModel = LeaderboardViewModel();
     _cacheManager.addListener(_onCacheInvalidated);
     
-    // Carregar apenas ranking de amigos
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _viewModel.loadFriendsLeaderboard();
     });
@@ -80,7 +74,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                   builder: (_) => const FriendsPage(),
                 ),
               );
-              // Recarregar após voltar da página de amigos
               if (mounted) {
                 _viewModel.refresh();
               }
@@ -226,7 +219,6 @@ class _LeaderboardList extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
 
-    // Separar top 3 do resto
     final topThree = entries.take(3).toList();
     final rest = entries.skip(3).toList();
 
@@ -236,7 +228,6 @@ class _LeaderboardList extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
         children: [
-          // Card do usuário atual
           if (entries.any((e) => e.isCurrentUser))
             _CurrentUserRankCard(
               entry: entries.firstWhere((e) => e.isCurrentUser),
@@ -245,7 +236,6 @@ class _LeaderboardList extends StatelessWidget {
             ),
           if (entries.any((e) => e.isCurrentUser)) const SizedBox(height: 32),
 
-          // Top 3 Pódio (apenas se houver 3 ou mais pessoas)
           if (topThree.length >= 3) ...[
             Text(
               'Top 3',
@@ -264,7 +254,6 @@ class _LeaderboardList extends StatelessWidget {
             const SizedBox(height: 32),
           ],
 
-          // Se houver menos de 3 pessoas, mostrar lista simples
           if (topThree.length < 3 && topThree.isNotEmpty) ...[
             Text(
               'Ranking',
@@ -286,7 +275,6 @@ class _LeaderboardList extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // Mensagem incentivando a adicionar mais amigos
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(

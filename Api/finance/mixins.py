@@ -36,17 +36,15 @@ class UUIDLookupMixin:
         # Tentar interpretar como UUID primeiro
         try:
             uuid_obj = uuid_lib.UUID(lookup_value)
-            # É um UUID válido, buscar por uuid
             filter_kwargs = {'uuid': uuid_obj}
             obj = get_object_or_404(queryset, **filter_kwargs)
         except (ValueError, AttributeError):
-            # Não é UUID, tentar como ID numérico (retrocompatibilidade)
+            # Não é UUID, tentar como ID numérico
             try:
                 pk = int(lookup_value)
                 filter_kwargs = {'pk': pk}
                 obj = get_object_or_404(queryset, **filter_kwargs)
             except (ValueError, TypeError):
-                # Nem UUID nem int válido
                 from rest_framework.exceptions import NotFound
                 raise NotFound('Recurso não encontrado.')
         

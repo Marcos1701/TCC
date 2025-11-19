@@ -1,9 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Serviço que guarda info sensível usando o cofre nativo (Keychain, Keystore...).
+/// Service that stores sensitive info using native vault (Keychain, Keystore...).
 ///
-/// Tokens, salts e afins citados no documento ficam aqui. A API é curtinha,
-/// pronta pra crescer junto com o módulo de autenticação.
+/// Tokens, salts and similar items mentioned in the document stay here. The API is short,
+/// ready to grow along with the authentication module.
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();

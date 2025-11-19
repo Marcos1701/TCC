@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:convert';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../widgets/admin_widgets.dart';
+import '../mixins/admin_page_mixin.dart';
 
 /// Página unificada para gerenciar missões (CRUD + Geração IA)
 /// 
@@ -17,7 +19,7 @@ class AdminMissionsManagementPage extends StatefulWidget {
 }
 
 class _AdminMissionsManagementPageState
-    extends State<AdminMissionsManagementPage> {
+    extends State<AdminMissionsManagementPage> with AdminPageMixin {
   final _apiClient = ApiClient();
   final _searchController = TextEditingController();
   bool _isLoading = true;
@@ -25,7 +27,7 @@ class _AdminMissionsManagementPageState
   String? _error;
   String _filterType = 'ALL';
   String _filterDifficulty = 'ALL';
-  String _filterStatus = 'ALL'; // ALL, ACTIVE, PAUSED
+  final String _filterStatus = 'ALL'; // ALL, ACTIVE, PAUSED
   String _filterQuality = 'ALL'; // ALL, VALID, INVALID
   String _searchQuery = '';
   String _sortBy = 'xp_desc'; // xp_desc, xp_asc, difficulty_desc, difficulty_asc, date_desc, date_asc
@@ -236,25 +238,25 @@ class _AdminMissionsManagementPageState
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
-        title: Text(
+        title: const Text(
           'Confirmar ação em lote',
           style: TextStyle(color: Colors.white),
         ),
         content: Text(
           'Deseja $action $count missão(ões) selecionada(s)?',
-          style: TextStyle(color: Colors.white70),
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: activate ? AppColors.success : Colors.orange,
             ),
-            child: Text('Confirmar'),
+            child: const Text('Confirmar'),
           ),
         ],
       ),
@@ -288,8 +290,7 @@ class _AdminMissionsManagementPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '$successCount missão(ões) ${activate ? 'ativada(s)' : 'desativada(s)'}' +
-            (errorCount > 0 ? ' ($errorCount erro(s))' : '')
+            '$successCount missão(ões) ${activate ? 'ativada(s)' : 'desativada(s)'}${errorCount > 0 ? ' ($errorCount erro(s))' : ''}'
           ),
           backgroundColor: errorCount > 0 ? Colors.orange : AppColors.success,
         ),
@@ -309,29 +310,29 @@ class _AdminMissionsManagementPageState
         backgroundColor: const Color(0xFF1E1E1E),
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.alert),
-            SizedBox(width: 12),
+            const Icon(Icons.warning_amber_rounded, color: AppColors.alert),
+            const SizedBox(width: 12),
             Text(
               'Excluir $count missão(ões)?',
-              style: TextStyle(color: Colors.white),
+              style: const TextStyle(color: Colors.white),
             ),
           ],
         ),
-        content: Text(
+        content: const Text(
           'Esta ação não pode ser desfeita. Deseja continuar?',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.alert,
             ),
-            child: Text('Excluir'),
+            child: const Text('Excluir'),
           ),
         ],
       ),
@@ -362,8 +363,7 @@ class _AdminMissionsManagementPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '$successCount missão(ões) excluída(s)' +
-            (errorCount > 0 ? ' ($errorCount erro(s))' : '')
+            '$successCount missão(ões) excluída(s)${errorCount > 0 ? ' ($errorCount erro(s))' : ''}'
           ),
           backgroundColor: errorCount > 0 ? Colors.orange : AppColors.success,
         ),
@@ -454,7 +454,7 @@ class _AdminMissionsManagementPageState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Seção: Informações Básicas
-                    _buildSectionHeader('Informações Básicas', Icons.info_outline),
+                    const AdminSectionHeader(title: 'Informações Básicas', icon: Icons.info_outline),
                     const SizedBox(height: 12),
                     _buildTextField('Título', titleController),
                     const SizedBox(height: 16),
@@ -479,17 +479,17 @@ class _AdminMissionsManagementPageState
                     
                     const SizedBox(height: 24),
                     // Seção: Classificação
-                    _buildSectionHeader('Classificação', Icons.category),
+                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
                     const SizedBox(height: 12),
                     _buildLabeledDropdown(
                       'Tipo de Missão',
                       selectedType,
-                      const [
-                        DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
-                        DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
-                        DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
-                        DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
-                        DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                      [
+                        const DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
+                        const DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
+                        const DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
+                        const DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
+                        const DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
                       ],
                       (value) => setDialogState(() => selectedType = value!),
                     ),
@@ -497,10 +497,10 @@ class _AdminMissionsManagementPageState
                     _buildLabeledDropdown(
                       'Dificuldade',
                       selectedDifficulty,
-                      const [
-                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                        DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                      [
+                        const DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        const DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
+                        const DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
                       ],
                       (value) => setDialogState(() => selectedDifficulty = value!),
                     ),
@@ -508,20 +508,20 @@ class _AdminMissionsManagementPageState
                     _buildLabeledDropdown(
                       'Tipo de Validação',
                       selectedValidationType,
-                      const [
-                        DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
-                        DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
-                        DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
-                        DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
-                        DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
-                        DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
+                      [
+                        const DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
+                        const DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
+                        const DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
+                        const DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
+                        const DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
+                        const DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
                       ],
                       (value) => setDialogState(() => selectedValidationType = value!),
                     ),
                     
                     const SizedBox(height: 24),
                     // Seção: Critérios de Indicadores (Opcional)
-                    _buildSectionHeader('Critérios de Indicadores (Opcional)', Icons.insights),
+                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -557,7 +557,7 @@ class _AdminMissionsManagementPageState
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
+                      decoration: BoxDecoration(                     
                         color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: AppColors.primary.withOpacity(0.3)),
@@ -751,7 +751,7 @@ class _AdminMissionsManagementPageState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Seção: Informações Básicas
-                    _buildSectionHeader('Informações Básicas', Icons.info_outline),
+                    const AdminSectionHeader(title: 'Informações Básicas', icon: Icons.info_outline),
                     const SizedBox(height: 12),
                     _buildTextField('Título', titleController),
                     const SizedBox(height: 16),
@@ -776,17 +776,17 @@ class _AdminMissionsManagementPageState
                     
                     const SizedBox(height: 24),
                     // Seção: Classificação
-                    _buildSectionHeader('Classificação', Icons.category),
+                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
                     const SizedBox(height: 12),
                     _buildLabeledDropdown(
                       'Tipo de Missão',
                       selectedType,
-                      const [
-                        DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
-                        DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
-                        DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
-                        DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
-                        DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                      [
+                        const DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
+                        const DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
+                        const DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
+                        const DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
+                        const DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
                       ],
                       (value) => setDialogState(() => selectedType = value!),
                     ),
@@ -794,10 +794,10 @@ class _AdminMissionsManagementPageState
                     _buildLabeledDropdown(
                       'Dificuldade',
                       selectedDifficulty,
-                      const [
-                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                        DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                      [
+                        const DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        const DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
+                        const DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
                       ],
                       (value) => setDialogState(() => selectedDifficulty = value!),
                     ),
@@ -805,20 +805,20 @@ class _AdminMissionsManagementPageState
                     _buildLabeledDropdown(
                       'Tipo de Validação',
                       selectedValidationType,
-                      const [
-                        DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
-                        DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
-                        DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
-                        DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
-                        DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
-                        DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
+                      [
+                        const DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
+                        const DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
+                        const DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
+                        const DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
+                        const DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
+                        const DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
                       ],
                       (value) => setDialogState(() => selectedValidationType = value!),
                     ),
                     
                     const SizedBox(height: 24),
                     // Seção: Critérios de Indicadores (Opcional)
-                    _buildSectionHeader('Critérios de Indicadores (Opcional)', Icons.insights),
+                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -1255,45 +1255,6 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Widget para cabeçalho de seção nos formulários
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Icon(icon, color: AppColors.primary, size: 16),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withOpacity(0.3),
-                  Colors.transparent,
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   /// Widget para dropdown com label
   Widget _buildLabeledDropdown(
     String label,
@@ -1501,7 +1462,7 @@ class _AdminMissionsManagementPageState
                                 children: [
                                   Row(
                                     children: [
-                                      SizedBox(
+                                      const SizedBox(
                                         width: 20,
                                         height: 20,
                                         child: CircularProgressIndicator(
@@ -1528,7 +1489,7 @@ class _AdminMissionsManagementPageState
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              '${_generationProgress}/${_generationTotal} missões',
+                                              '$_generationProgress/$_generationTotal missões',
                                               style: TextStyle(
                                                 color: Colors.grey[400],
                                                 fontSize: 11,
@@ -1545,7 +1506,7 @@ class _AdminMissionsManagementPageState
                                       ? _generationProgress / _generationTotal 
                                       : 0,
                                     backgroundColor: Colors.grey[800],
-                                    valueColor: AlwaysStoppedAnimation(
+                                    valueColor: const AlwaysStoppedAnimation(
                                       AppColors.success,
                                     ),
                                     minHeight: 4,
@@ -2664,7 +2625,7 @@ class _AdminMissionsManagementPageState
               ),
               child: Row(
                 children: [
-                  Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                  const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -3479,3 +3440,4 @@ class _StatBadge extends StatelessWidget {
     );
   }
 }
+

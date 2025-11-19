@@ -3,10 +3,20 @@ from django.contrib import admin
 from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, XPTransaction, Friendship
 
 
+class MissionProgressInline(admin.TabularInline):
+    model = MissionProgress
+    extra = 0
+    readonly_fields = ("mission", "status", "progress", "completed_at", "updated_at")
+    can_delete = False
+    show_change_link = True
+    fields = ("mission", "status", "progress", "completed_at")
+
+
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "level", "experience_points", "target_tps", "target_rdr")
     search_fields = ("user__username", "user__email")
+    inlines = [MissionProgressInline]
 
 
 @admin.register(Category)
@@ -22,24 +32,17 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ("type", "date")
     search_fields = ("description", "user__username", "user__email")
     autocomplete_fields = ("category",)
+    date_hierarchy = "date"
 
 
 @admin.register(TransactionLink)
 class TransactionLinkAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'source_description', 'target_description', 'linked_amount', 'link_type', 'created_at')
+    list_display = ('id', 'user', 'source_transaction__description', 'target_transaction__description', 'linked_amount', 'link_type', 'created_at')
     list_filter = ('link_type', 'is_recurring', 'created_at')
     search_fields = ('user__username', 'description')
     readonly_fields = ('created_at', 'updated_at', 'source_transaction_uuid', 'target_transaction_uuid')
     date_hierarchy = 'created_at'
     autocomplete_fields = ('user',)
-    
-    def source_description(self, obj):
-        return obj.source_transaction.description
-    source_description.short_description = 'Origem'
-    
-    def target_description(self, obj):
-        return obj.target_transaction.description
-    target_description.short_description = 'Destino'
 
 
 @admin.register(Goal)
@@ -65,7 +68,7 @@ class MissionProgressAdmin(admin.ModelAdmin):
 
 @admin.register(XPTransaction)
 class XPTransactionAdmin(admin.ModelAdmin):
-    list_display = ("user", "mission_title", "points_awarded", "level_transition", "created_at")
+    list_display = ("user", "mission_progress__mission__title", "points_awarded", "level_transition", "created_at")
     list_filter = ("created_at", "level_after")
     search_fields = ("user__username", "user__email", "mission_progress__mission__title")
     readonly_fields = (
@@ -80,24 +83,16 @@ class XPTransactionAdmin(admin.ModelAdmin):
     )
     date_hierarchy = "created_at"
     
-    def mission_title(self, obj):
-        """Exibe o título da missão."""
-        return obj.mission_progress.mission.title
-    mission_title.short_description = "Missão"
-    
     def level_transition(self, obj):
-        """Exibe transição de nível de forma legível."""
         if obj.level_before == obj.level_after:
             return f"Nível {obj.level_after}"
         return f"{obj.level_before} → {obj.level_after}"
     level_transition.short_description = "Nível"
     
     def has_add_permission(self, request):
-        """Não permite criação manual de registros de XP."""
         return False
     
     def has_change_permission(self, request, obj=None):
-        """Não permite edição de registros de XP."""
         return False
 
 
@@ -111,6 +106,5 @@ class FriendshipAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     
     def get_queryset(self, request):
-        """Otimiza queries com select_related."""
         qs = super().get_queryset(request)
         return qs.select_related('user', 'friend')

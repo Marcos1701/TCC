@@ -1,29 +1,11 @@
-"""
-Sistema de templates para geração de missões contextualizadas.
-
-Este módulo define templates estruturados para cada tipo de missão,
-garantindo variedade, clareza e alinhamento com objetivos educacionais.
-
-Benefícios:
-- Reduz drasticamente duplicatas
-- Garante consistência e qualidade
-- Facilita localização e personalização
-- Acelera geração (menos dependência de IA)
-"""
-
 from typing import Dict, List, Any
 from decimal import Decimal
 import random
 
-
-# =============================================================================
-# TEMPLATES DE ONBOARDING (Integração Inicial)
-# =============================================================================
-
 ONBOARDING_TEMPLATES = [
     {
         'title': 'Seus Primeiros {count} Registros',
-        'description': 'Registre {count} transações para começar a entender para onde vai seu dinheiro. Cada registro é um passo rumo ao controle financeiro!',
+        'description': 'Registre {count} transações para mapear seu fluxo financeiro e iniciar o controle orçamentário.',
         'min_transactions': [5, 10, 15],
         'duration_days': 7,
         'xp_reward': 100,
@@ -31,7 +13,7 @@ ONBOARDING_TEMPLATES = [
     },
     {
         'title': 'Explorando Categorias',
-        'description': 'Organize suas primeiras {count} transações em categorias diferentes. Isso ajuda a identificar padrões de consumo.',
+        'description': 'Categorize suas primeiras {count} transações para identificar padrões de consumo.',
         'min_transactions': [10, 15, 20],
         'duration_days': 14,
         'xp_reward': 120,
@@ -39,7 +21,7 @@ ONBOARDING_TEMPLATES = [
     },
     {
         'title': 'Construindo o Hábito',
-        'description': 'Registre pelo menos {count} transações neste período. Consistência é a chave para o controle financeiro!',
+        'description': 'Mantenha a consistência registrando pelo menos {count} transações neste período.',
         'min_transactions': [20, 30, 40],
         'duration_days': 21,
         'xp_reward': 150,
@@ -47,7 +29,7 @@ ONBOARDING_TEMPLATES = [
     },
     {
         'title': 'Mapeando Suas Finanças',
-        'description': 'Registre {count} transações e comece a visualizar seus padrões de consumo. Conhecimento é poder!',
+        'description': 'Registre {count} transações para visualizar seus padrões de consumo.',
         'min_transactions': [15, 25, 35],
         'duration_days': 14,
         'xp_reward': 130,
@@ -55,7 +37,7 @@ ONBOARDING_TEMPLATES = [
     },
     {
         'title': 'Dominando o Básico',
-        'description': 'Alcance {count} transações registradas. Você está criando uma base sólida para decisões financeiras inteligentes.',
+        'description': 'Alcance {count} transações registradas para consolidar sua base de dados financeiros.',
         'min_transactions': [30, 40, 50],
         'duration_days': 30,
         'xp_reward': 200,
@@ -63,15 +45,10 @@ ONBOARDING_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES DE TPS (Melhoria de Poupança)
-# =============================================================================
-
 TPS_TEMPLATES = [
     {
         'title': 'Alcançando {target}% de Economia',
-        'description': 'Eleve sua Taxa de Poupança Pessoal para {target}%. Pequenos ajustes nos gastos fazem grande diferença!',
+        'description': 'Eleve sua Taxa de Poupança Pessoal para {target}%. Ajustes nos gastos geram resultados.',
         'target_tps_ranges': [(10, 15), (15, 20), (20, 25), (25, 30)],
         'duration_days': 30,
         'xp_reward': 200,
@@ -79,7 +56,7 @@ TPS_TEMPLATES = [
     },
     {
         'title': 'Desafio: {target}% de TPS',
-        'description': 'Atinja {target}% de Taxa de Poupança. Revise suas despesas não essenciais e encontre oportunidades de economia.',
+        'description': 'Atinja {target}% de Taxa de Poupança. Revise despesas não essenciais.',
         'target_tps_ranges': [(15, 20), (20, 25), (25, 30), (30, 35)],
         'duration_days': 30,
         'xp_reward': 250,
@@ -87,7 +64,7 @@ TPS_TEMPLATES = [
     },
     {
         'title': 'Construindo Reservas: Meta {target}%',
-        'description': 'Aumente sua poupança para {target}% da renda. Cada real economizado é um tijolo na sua segurança financeira.',
+        'description': 'Aumente sua poupança para {target}% da renda mensal.',
         'target_tps_ranges': [(10, 15), (15, 20), (20, 25)],
         'duration_days': 30,
         'xp_reward': 180,
@@ -95,7 +72,7 @@ TPS_TEMPLATES = [
     },
     {
         'title': 'Poupador Consistente: {target}%',
-        'description': 'Mantenha {target}% de TPS por todo o período. Consistência transforma hábitos em resultados duradouros.',
+        'description': 'Mantenha {target}% de TPS durante todo o período.',
         'target_tps_ranges': [(15, 20), (20, 25), (25, 30), (30, 40)],
         'duration_days': 30,
         'xp_reward': 300,
@@ -103,7 +80,7 @@ TPS_TEMPLATES = [
     },
     {
         'title': 'Primeiro Passo: {target}% de Economia',
-        'description': 'Comece sua jornada de poupança atingindo {target}% de TPS. Identifique gastos que podem ser reduzidos ou eliminados.',
+        'description': 'Inicie sua jornada de poupança atingindo {target}% de TPS.',
         'target_tps_ranges': [(5, 10), (10, 15), (15, 20)],
         'duration_days': 21,
         'xp_reward': 150,
@@ -111,15 +88,10 @@ TPS_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES DE RDR (Redução de Despesas Recorrentes)
-# =============================================================================
-
 RDR_TEMPLATES = [
     {
         'title': 'Controlando Gastos Fixos: Meta {target}%',
-        'description': 'Reduza suas despesas recorrentes para {target}% da renda. Revise assinaturas e compromissos fixos desnecessários.',
+        'description': 'Reduza despesas recorrentes para {target}% da renda. Revise assinaturas e custos fixos.',
         'target_rdr_ranges': [(30, 40), (40, 50), (20, 30)],
         'duration_days': 30,
         'xp_reward': 220,
@@ -127,7 +99,7 @@ RDR_TEMPLATES = [
     },
     {
         'title': 'Liberdade Financeira: RDR {target}%',
-        'description': 'Baixe seu RDR para {target}%. Quanto menos comprometida sua renda, mais liberdade você tem para escolhas.',
+        'description': 'Reduza seu RDR para {target}% para aumentar sua margem de manobra financeira.',
         'target_rdr_ranges': [(25, 35), (35, 45), (15, 25)],
         'duration_days': 30,
         'xp_reward': 250,
@@ -135,7 +107,7 @@ RDR_TEMPLATES = [
     },
     {
         'title': 'Otimizando Despesas Fixas',
-        'description': 'Alcance {target}% de RDR. Analise cada despesa recorrente e questione: "Isso ainda faz sentido para mim?"',
+        'description': 'Alcance {target}% de RDR através da análise crítica de despesas recorrentes.',
         'target_rdr_ranges': [(30, 40), (40, 50), (50, 60)],
         'duration_days': 30,
         'xp_reward': 200,
@@ -143,7 +115,7 @@ RDR_TEMPLATES = [
     },
     {
         'title': 'Redução Inteligente: {target}%',
-        'description': 'Mantenha suas despesas recorrentes em {target}% ou menos. Negocie contratos e elimine gastos supérfluos.',
+        'description': 'Mantenha despesas recorrentes em {target}% ou menos. Negocie contratos e elimine supérfluos.',
         'target_rdr_ranges': [(20, 30), (30, 40), (40, 50)],
         'duration_days': 30,
         'xp_reward': 230,
@@ -151,15 +123,10 @@ RDR_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES DE ILI (Construção de Reserva)
-# =============================================================================
-
 ILI_TEMPLATES = [
     {
         'title': 'Reserva de {target} Meses',
-        'description': 'Construa uma reserva capaz de cobrir {target} meses de despesas. Segurança financeira começa com planejamento.',
+        'description': 'Construa uma reserva equivalente a {target} meses de despesas.',
         'min_ili_ranges': [(3, 4), (4, 6), (6, 9), (9, 12)],
         'duration_days': 30,
         'xp_reward': 250,
@@ -167,7 +134,7 @@ ILI_TEMPLATES = [
     },
     {
         'title': 'Fortalecendo Sua Rede de Segurança',
-        'description': 'Aumente sua reserva de emergência para {target} meses. Imprevistos acontecem, estar preparado faz toda diferença.',
+        'description': 'Aumente sua reserva de emergência para cobrir {target} meses.',
         'min_ili_ranges': [(3, 5), (6, 8), (9, 12)],
         'duration_days': 30,
         'xp_reward': 280,
@@ -175,7 +142,7 @@ ILI_TEMPLATES = [
     },
     {
         'title': 'Primeiros Passos: {target} Meses de Reserva',
-        'description': 'Comece sua reserva de emergência com meta de {target} meses. Pequenas contribuições regulares geram grandes resultados.',
+        'description': 'Inicie sua reserva de emergência com meta de {target} meses.',
         'min_ili_ranges': [(1, 2), (2, 3), (3, 4)],
         'duration_days': 21,
         'xp_reward': 180,
@@ -183,7 +150,7 @@ ILI_TEMPLATES = [
     },
     {
         'title': 'Tranquilidade Financeira: {target} Meses',
-        'description': 'Alcance {target} meses de ILI. Durma tranquilo sabendo que está preparado para emergências.',
+        'description': 'Alcance {target} meses de ILI para maior segurança financeira.',
         'min_ili_ranges': [(6, 8), (9, 12), (12, 15)],
         'duration_days': 30,
         'xp_reward': 300,
@@ -191,15 +158,10 @@ ILI_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES DE CATEGORIAS (Controle de Gastos)
-# =============================================================================
-
 CATEGORY_TEMPLATES = [
     {
         'title': 'Reduzindo {percent}% em Gastos',
-        'description': 'Reduza seus gastos em uma categoria específica em {percent}%. Identifique oportunidades de economia.',
+        'description': 'Reduza gastos em uma categoria específica em {percent}%.',
         'reduction_percent_ranges': [(10, 15), (15, 20), (20, 30)],
         'duration_days': 30,
         'xp_reward': 180,
@@ -207,7 +169,7 @@ CATEGORY_TEMPLATES = [
     },
     {
         'title': 'Desafio de Economia: {percent}%',
-        'description': 'Corte {percent}% dos gastos em uma categoria. Pequenos ajustes geram grandes resultados.',
+        'description': 'Corte {percent}% dos gastos em uma categoria selecionada.',
         'reduction_percent_ranges': [(15, 20), (20, 30), (30, 40)],
         'duration_days': 30,
         'xp_reward': 220,
@@ -215,7 +177,7 @@ CATEGORY_TEMPLATES = [
     },
     {
         'title': 'Controle Inteligente',
-        'description': 'Reduza {percent}% em gastos desnecessários. Revise cada transação e questione sua necessidade.',
+        'description': 'Reduza {percent}% em gastos supérfluos através de revisão detalhada.',
         'reduction_percent_ranges': [(10, 15), (15, 25), (25, 35)],
         'duration_days': 30,
         'xp_reward': 200,
@@ -223,15 +185,10 @@ CATEGORY_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES DE METAS (Progresso e Contribuição)
-# =============================================================================
-
 GOAL_TEMPLATES = [
     {
         'title': 'Progresso de {percent}% na Meta',
-        'description': 'Alcance {percent}% de progresso em sua meta. Consistência é o caminho para o sucesso.',
+        'description': 'Alcance {percent}% de progresso na meta selecionada.',
         'progress_percent_ranges': [(30, 50), (50, 75), (75, 100)],
         'duration_days': 30,
         'xp_reward': 200,
@@ -239,7 +196,7 @@ GOAL_TEMPLATES = [
     },
     {
         'title': 'Rumo à Conquista: {percent}%',
-        'description': 'Atinja {percent}% de sua meta. Cada contribuição te aproxima do objetivo.',
+        'description': 'Atinja {percent}% da meta estabelecida.',
         'progress_percent_ranges': [(40, 60), (60, 80), (80, 100)],
         'duration_days': 30,
         'xp_reward': 250,
@@ -247,7 +204,7 @@ GOAL_TEMPLATES = [
     },
     {
         'title': 'Primeiros Passos: {percent}%',
-        'description': 'Complete {percent}% de sua meta. A jornada começa com o primeiro passo.',
+        'description': 'Complete {percent}% da meta inicial.',
         'progress_percent_ranges': [(10, 25), (25, 40), (40, 60)],
         'duration_days': 21,
         'xp_reward': 150,
@@ -255,15 +212,10 @@ GOAL_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES DE COMPORTAMENTO (Hábitos Financeiros)
-# =============================================================================
-
 BEHAVIOR_TEMPLATES = [
     {
         'title': 'Consistência de {days} Dias',
-        'description': 'Registre transações por {days} dias consecutivos. Construa o hábito de controlar suas finanças.',
+        'description': 'Registre transações por {days} dias consecutivos.',
         'consecutive_days_ranges': [(7, 10), (14, 21), (21, 30)],
         'duration_days': 30,
         'xp_reward': 180,
@@ -271,7 +223,7 @@ BEHAVIOR_TEMPLATES = [
     },
     {
         'title': 'Disciplina Financeira',
-        'description': 'Mantenha registros diários por {days} dias. Disciplina transforma hábitos em resultados.',
+        'description': 'Mantenha registros diários por {days} dias.',
         'consecutive_days_ranges': [(10, 14), (14, 21), (21, 30)],
         'duration_days': 30,
         'xp_reward': 220,
@@ -279,7 +231,7 @@ BEHAVIOR_TEMPLATES = [
     },
     {
         'title': 'Construindo o Hábito',
-        'description': 'Registre finanças por {days} dias seguidos. Pequenos passos geram grandes mudanças.',
+        'description': 'Registre finanças por {days} dias seguidos.',
         'consecutive_days_ranges': [(3, 7), (7, 14), (14, 21)],
         'duration_days': 21,
         'xp_reward': 150,
@@ -287,15 +239,10 @@ BEHAVIOR_TEMPLATES = [
     },
 ]
 
-
-# =============================================================================
-# TEMPLATES AVANÇADOS (Múltiplos Critérios)
-# =============================================================================
-
 ADVANCED_TEMPLATES = [
     {
         'title': 'Equilíbrio Financeiro Total',
-        'description': 'Atinja {tps}% de TPS, mantenha RDR abaixo de {rdr}% e construa {ili} meses de reserva. Desafio completo!',
+        'description': 'Atinja {tps}% de TPS, mantenha RDR abaixo de {rdr}% e construa {ili} meses de reserva.',
         'criteria': [
             {'target_tps': 20, 'target_rdr': 35, 'min_ili': 6},
             {'target_tps': 25, 'target_rdr': 30, 'min_ili': 9},

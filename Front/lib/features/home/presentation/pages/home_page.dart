@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-
-import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/profile.dart';
@@ -22,7 +20,6 @@ import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
-import '../../../transactions/presentation/pages/bulk_payment_page.dart';
 import 'finances_page.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 import '../../../transactions/presentation/widgets/transaction_action_selector.dart';
@@ -47,7 +44,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Escuta mudanças no cache para atualizar automaticamente
+    // Listen to cache changes to update automatically
     _cacheManager.addListener(_onCacheInvalidated);
   }
 
@@ -58,17 +55,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onCacheInvalidated() {
-    // Recarrega dados quando o cache é invalidado
+    // Reload data when cache is invalidated
     if (_cacheManager.isInvalidated(CacheType.dashboard) && mounted) {
       _cacheManager.clearInvalidation(CacheType.dashboard);
-      // Força o recarregamento imediato
+      // Force immediate reload
       setState(() {
         _future = _repository.fetchDashboard().then((data) {
           if (mounted) {
             final session = SessionScope.of(context);
             session.updateProfile(data.profile);
             
-            // Verificar celebrações de gamificação em background
+            // Check gamification celebrations in background
             GamificationService.checkLevelUp(
               context: context,
               profile: data.profile,
@@ -99,11 +96,11 @@ class _HomePageState extends State<HomePage> {
     final data = await _repository.fetchDashboard();
     if (!mounted) return;
     
-    // Atualizar sessão com o profile do dashboard (evita requisição extra)
+    // Update session with dashboard profile (avoids extra request)
     final session = SessionScope.of(context);
     session.updateProfile(data.profile);
     
-    // Verificar celebrações de gamificação
+    // Check gamification celebrations
     if (!mounted) return;
     await GamificationService.checkLevelUp(
       context: context,
@@ -116,21 +113,21 @@ class _HomePageState extends State<HomePage> {
       missions: data.activeMissions,
     );
     
-    // Verificar missões próximas de expirar
+    // Check missions close to expiring
     if (!mounted) return;
     await MissionNotificationService.checkExpiringMissions(
       context: context,
       missions: data.activeMissions,
     );
     
-    // Verificar novas missões
+    // Check new missions
     if (!mounted) return;
     await MissionNotificationService.checkNewMissions(
       context: context,
       missions: data.activeMissions,
     );
     
-    // Atualiza o estado DEPOIS de todo trabalho assíncrono
+    // Update state AFTER all async work
     if (mounted) {
       setState(() {
         _future = Future.value(data);
@@ -139,7 +136,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openTransactionSheet() async {
-    // Mostrar seletor de ação primeiro
+    // Show action selector first
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -166,10 +163,10 @@ class _HomePageState extends State<HomePage> {
 
     if (created == null || !mounted) return;
     
-    // Invalida cache globalmente após criar transação
+    // Invalidate cache globally after creating transaction
     _cacheManager.invalidateAfterTransaction(action: 'transaction created');
     
-    // Mostrar feedback de sucesso
+    // Show success feedback
     FeedbackService.showSuccess(
       context,
       '✅ Transação registrada! Confira seu progresso nos desafios.',
@@ -185,7 +182,7 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (result == true && mounted) {
-      // Atualiza o dashboard após criar pagamentos
+      // Update dashboard after creating payments
       _refresh();
     }
   }
@@ -387,487 +384,6 @@ class _HomePageState extends State<HomePage> {
               ),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeSummaryCard extends StatelessWidget {
-  const _HomeSummaryCard({
-    required this.userName,
-    required this.profile,
-    required this.summary,
-    required this.currency,
-    required this.onProfileTap,
-    required this.onProgressTap,
-    required this.onTransactionsTap,
-  });
-
-  final String userName;
-  final ProfileModel profile;
-  final SummaryMetrics summary;
-  final NumberFormat currency;
-  final VoidCallback onProfileTap;
-  final VoidCallback onProgressTap;
-  final VoidCallback onTransactionsTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final tokens = theme.extension<AppDecorations>()!;
-    final saldo = summary.totalIncome - summary.totalExpense;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.mediumShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header com foto e pontuação
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.grey[800],
-                child: const Icon(Icons.person, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      userName,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(
-                      'Nível ${profile.level}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[400],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    UxStrings.points,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[400],
-                      fontSize: 11,
-                    ),
-                  ),
-                  Text(
-                    '${profile.experiencePoints} pts',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          
-          // Saldo principal
-          Row(
-            children: [
-              Text(
-                'Saldo',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[400],
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: () => _showBalanceExplanation(context, summary, currency),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.info_outline,
-                    size: 16,
-                    color: Colors.white54,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            currency.format(saldo),
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 32,
-            ),
-          ),
-          const SizedBox(height: 20),
-          
-          // Cards de Receitas e Despesas
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A5E),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.arrow_upward_rounded,
-                            color: AppColors.support,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Receitas',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        currency.format(summary.totalIncome),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A5E),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.arrow_downward_rounded,
-                            color: AppColors.alert,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Despesas',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        currency.format(summary.totalExpense),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Botões de ação
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.person_outline,
-                  label: 'Perfil',
-                  onTap: onProfileTap,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.payment,
-                  label: 'Pagar Despesas',
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const BulkPaymentPage()),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.flag_outlined,
-                  label: 'Metas',
-                  onTap: onProgressTap,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.receipt_long_outlined,
-                  label: 'Transações',
-                  onTap: onTransactionsTap,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-  
-  static void _showBalanceExplanation(
-    BuildContext context,
-    SummaryMetrics summary,
-    NumberFormat currency,
-  ) {
-    final saldo = summary.totalIncome - summary.totalExpense;
-    
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.calculate_outlined,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'Como o Saldo é Calculado?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.white54),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _BalanceCalculationRow(
-                    label: 'Receitas',
-                    value: currency.format(summary.totalIncome),
-                    color: AppColors.support,
-                    icon: Icons.add,
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(color: Colors.white12, height: 1),
-                  ),
-                  _BalanceCalculationRow(
-                    label: 'Despesas',
-                    value: currency.format(summary.totalExpense),
-                    color: AppColors.alert,
-                    icon: Icons.remove,
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Divider(color: Colors.white24, height: 2, thickness: 2),
-                  ),
-                  _BalanceCalculationRow(
-                    label: 'Saldo Final',
-                    value: currency.format(saldo),
-                    color: saldo >= 0 ? AppColors.support : AppColors.alert,
-                    icon: Icons.account_balance_wallet,
-                    isBold: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.primary.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: const Row(
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Saldo = Receitas - Despesas. Use "Pagar Despesa" para vincular receitas a despesas pendentes.',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BalanceCalculationRow extends StatelessWidget {
-  const _BalanceCalculationRow({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.icon,
-    this.isBold = false,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-  final IconData icon;
-  final bool isBold;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isBold ? 16 : 14,
-              fontWeight: isBold ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: isBold ? 18 : 15,
-            fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: const Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: Colors.white,
-                fontSize: 10,
-                height: 1.2,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
         ),
       ),
     );

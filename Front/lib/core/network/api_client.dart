@@ -2,23 +2,23 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/secure_storage_service.dart';
 
-/// Callback chamado quando o token expirar e não puder ser renovado
+/// Callback called when token expires and cannot be refreshed
 typedef OnSessionExpired = void Function();
 
-/// Cliente único pra falar com a API.
-/// guarda token na memória e renova quando 401 pingar.
+/// Single client to talk to the API.
+/// Keeps token in memory and refreshes when 401 hits.
 class ApiClient {
   ApiClient._internal() {
     final options = BaseOptions(
       baseUrl: _normaliseBaseUrl(_resolveBaseUrl()),
-      connectTimeout: const Duration(seconds: 30),  // Aumentado para 30s
-      receiveTimeout: const Duration(minutes: 5),   // 5 minutos para geração de missões com IA
-      sendTimeout: const Duration(seconds: 60),     // 1 minuto para envio
+      connectTimeout: const Duration(seconds: 30),  // Increased to 30s
+      receiveTimeout: const Duration(minutes: 5),   // 5 minutes for AI mission generation
+      sendTimeout: const Duration(seconds: 60),     // 1 minute for sending
       contentType: 'application/json',
       headers: const {'Accept': 'application/json'},
       responseType: ResponseType.json,
-      // Apenas status 2xx são considerados sucesso
-      // Status 4xx e 5xx vão lançar DioException
+      // Only 2xx status are considered success
+      // 4xx and 5xx status will throw DioException
       validateStatus: (status) => status != null && status >= 200 && status < 300,
     );
 
@@ -26,19 +26,19 @@ class ApiClient {
       ..interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) async {
-            // Lista de endpoints públicos que não devem receber token
+            // List of public endpoints that should not receive token
             final publicEndpoints = [
               '/api/token/',
               '/api/token/refresh/',
               '/api/auth/register/',
             ];
             
-            // Verifica se o endpoint atual é público
+            // Check if current endpoint is public
             final isPublicEndpoint = publicEndpoints.any(
               (endpoint) => options.path.contains(endpoint),
             );
             
-            // Só adiciona o token se NÃO for endpoint público
+            // Only add token if NOT a public endpoint
             if (!isPublicEndpoint) {
               final token = _accessToken ?? await _storage.readToken();
               if (token != null) {
@@ -48,14 +48,14 @@ class ApiClient {
             handler.next(options);
           },
           onError: (error, handler) async {
-            // Tentar extrair mensagem de erro da API
+            // Try to extract error message from API
             if (error.response?.data != null) {
               try {
                 final data = error.response!.data;
                 String? errorMessage;
                 
                 if (data is Map<String, dynamic>) {
-                  // Tentar extrair mensagem de non_field_errors
+                  // Try to extract message from non_field_errors
                   if (data.containsKey('non_field_errors')) {
                     final errors = data['non_field_errors'];
                     if (errors is List && errors.isNotEmpty) {
@@ -70,8 +70,8 @@ class ApiClient {
                   }
                   
                   if (errorMessage != null) {
-                    debugPrint('🚨 Erro da API: $errorMessage');
-                    // Criar um novo DioException com a mensagem extraída
+                    debugPrint('🚨 API Error: $errorMessage');
+                    // Create a new DioException with the extracted message
                     final newError = DioException(
                       requestOptions: error.requestOptions,
                       response: error.response,
@@ -82,7 +82,7 @@ class ApiClient {
                   }
                 }
               } catch (e) {
-                debugPrint('⚠️ Erro ao extrair mensagem de erro: $e');
+                debugPrint('⚠️ Error extracting error message: $e');
               }
             }
             
@@ -112,12 +112,12 @@ class ApiClient {
 
   Dio get client => _dio;
 
-  /// Configura callback para quando a sessão expirar
+  /// Sets callback for when session expires
   void setOnSessionExpired(OnSessionExpired callback) {
     _onSessionExpired = callback;
   }
 
-  /// Remove o callback de sessão expirada
+  /// Removes session expired callback
   void clearOnSessionExpired() {
     _onSessionExpired = null;
   }
@@ -149,7 +149,7 @@ class ApiClient {
 
   Future<Response<dynamic>?> _refreshAndRetry(RequestOptions original) async {
     if (_refreshToken == null) {
-      debugPrint('🚨 Token de refresh não disponível, notificando expiração');
+      debugPrint('🚨 Refresh token not available, notifying expiration');
       await clearTokens();
       _notifySessionExpired();
       return null;
@@ -157,7 +157,7 @@ class ApiClient {
     
     try {
       _refreshing = true;
-      debugPrint('🔄 Tentando renovar token de acesso...');
+      debugPrint('🔄 Trying to refresh access token...');
       
       final response = await _dio.post<Map<String, dynamic>>(
         '/api/token/refresh/',
@@ -170,7 +170,7 @@ class ApiClient {
       final refreshValue = (data['refresh'] as String?) ?? _refreshToken;
       
       if (newAccess != null && refreshValue != null) {
-        debugPrint('✅ Token renovado com sucesso');
+        debugPrint('✅ Token refreshed successfully');
         await setTokens(access: newAccess, refresh: refreshValue);
         
         final opts = Options(
@@ -185,12 +185,12 @@ class ApiClient {
           options: opts,
         );
       } else {
-        debugPrint('🚨 Resposta de refresh inválida, notificando expiração');
+        debugPrint('🚨 Invalid refresh response, notifying expiration');
         await clearTokens();
         _notifySessionExpired();
       }
     } on DioException catch (e) {
-      debugPrint('🚨 Erro ao renovar token (${e.response?.statusCode}), notificando expiração');
+      debugPrint('🚨 Error refreshing token (${e.response?.statusCode}), notifying expiration');
       await clearTokens();
       _notifySessionExpired();
     } finally {
@@ -199,9 +199,9 @@ class ApiClient {
     return null;
   }
 
-  /// Notifica que a sessão expirou
+  /// Notifies that session expired
   void _notifySessionExpired() {
-    debugPrint('📢 Notificando expiração de sessão');
+    debugPrint('📢 Notifying session expiration');
     _onSessionExpired?.call();
   }
 

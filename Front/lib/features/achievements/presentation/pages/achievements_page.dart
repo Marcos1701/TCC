@@ -184,20 +184,17 @@ class _AchievementsPageState extends State<AchievementsPage> with SingleTickerPr
 
     return Column(
       children: [
-        // Estatísticas
         _buildStatsBar(),
         
-        // Filtros ativos
         if (_selectedCategory != null || _selectedTier != null)
           _buildActiveFilters(),
         
-        // Tabs de conquistas
         Expanded(
           child: TabBarView(
             controller: _tabController,
             children: [
               _buildAchievementsList(_unlockedAchievements, isEmpty: 'Nenhuma conquista desbloqueada ainda'),
-              _buildAchievementsList(_lockedAchievements, isEmpty: 'Todas as conquistas desbloqueadas! 🎉'),
+              _buildAchievementsList(_lockedAchievements, isEmpty: 'Todas as conquistas desbloqueadas.'),
             ],
           ),
         ),

@@ -21,7 +21,7 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
             user_model = get_user_model()
             try:
                 user = user_model.objects.only(user_model.USERNAME_FIELD).get(email__iexact=identifier)
-            except user_model.DoesNotExist as exc:  # pragma: no cover - feedback uniforme
+            except user_model.DoesNotExist as exc:
                 raise AuthenticationFailed("Credenciais inválidas.", code="authentication") from exc
             attrs["username"] = getattr(user, user_model.USERNAME_FIELD)
         else:

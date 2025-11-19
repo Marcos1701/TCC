@@ -21,9 +21,7 @@ from rest_framework.throttling import UserRateThrottle
 class BurstRateThrottle(UserRateThrottle):
     """
     Throttle para prevenir burst requests.
-    
-    Limita a 30 requests por minuto (complementa limitações por hora).
-    Previne scripts que tentam burlar limite horário com burst.
+    Limita a 30 requests por minuto.
     """
     rate = '30/minute'
     scope = 'burst'
@@ -32,12 +30,7 @@ class BurstRateThrottle(UserRateThrottle):
 class TransactionCreateThrottle(UserRateThrottle):
     """
     Rate limiting para criação de transações.
-    
     Limita um usuário a criar no máximo 100 transações por hora.
-    Previne:
-    - Criação massiva acidental
-    - Abuso de API
-    - Scripts maliciosos
     """
     rate = '100/hour'
     scope = 'transaction_create'
@@ -46,9 +39,7 @@ class TransactionCreateThrottle(UserRateThrottle):
 class CategoryCreateThrottle(UserRateThrottle):
     """
     Rate limiting para criação de categorias.
-    
     Limita a 20 categorias por hora.
-    Usuários normalmente não precisam criar muitas categorias.
     """
     rate = '20/hour'
     scope = 'category_create'
@@ -57,9 +48,7 @@ class CategoryCreateThrottle(UserRateThrottle):
 class LinkCreateThrottle(UserRateThrottle):
     """
     Rate limiting para criação de vinculações entre transações.
-    
     Limita a 50 vinculações por hora.
-    Operação cara com validações complexas.
     """
     rate = '50/hour'
     scope = 'link_create'
@@ -68,7 +57,6 @@ class LinkCreateThrottle(UserRateThrottle):
 class GoalCreateThrottle(UserRateThrottle):
     """
     Rate limiting para criação de metas.
-    
     Limita a 10 metas por hora.
     """
     rate = '10/hour'
@@ -78,11 +66,7 @@ class GoalCreateThrottle(UserRateThrottle):
 class DashboardRefreshThrottle(UserRateThrottle):
     """
     Rate limiting para refresh de dashboard/indicadores.
-    
-    Limita a 300 requests por hora (~5 por minuto).
-    Permite uso normal do app incluindo hot reloads durante desenvolvimento,
-    mas ainda previne abuso excessivo.
-    Cálculo de indicadores é computacionalmente caro.
+    Limita a 300 requests por hora.
     """
     rate = '300/hour'
     scope = 'dashboard_refresh'
@@ -90,8 +74,7 @@ class DashboardRefreshThrottle(UserRateThrottle):
 
 class SensitiveOperationThrottle(UserRateThrottle):
     """
-    Rate limiting mais restrito para operações muito sensíveis.
-    Exemplo: mudança de senha, exclusão de conta, operações financeiras grandes.
+    Rate limiting mais restrito para operações sensíveis.
     """
     rate = '10/hour'
     scope = 'sensitive'

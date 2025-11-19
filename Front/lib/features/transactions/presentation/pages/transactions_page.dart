@@ -80,7 +80,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     );
 
     if (result == true) {
-      // Atualiza a lista após criar pagamentos
+      // Update list after creating payments
       _viewModel.refreshSilently();
     }
   }
@@ -88,8 +88,8 @@ class _TransactionsPageState extends State<TransactionsPage> {
   Future<void> _deleteTransaction(TransactionModel transaction) async {
     final confirm = await FeedbackService.showConfirmationDialog(
       context: context,
-      title: 'Excluir transação',
-      message: 'Tem certeza que deseja excluir "${transaction.description}"?',
+      title: 'Confirmar exclusão',
+      message: 'Confirmar exclusão de "${transaction.description}"?',
       confirmText: 'Excluir',
       isDangerous: true,
     );
@@ -104,7 +104,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
     
     FeedbackService.showSuccess(
       context,
-      'Transação removida',
+      'Transação removida com sucesso.',
     );
 
     try {
@@ -118,14 +118,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
       
       FeedbackService.showError(
         context,
-        'Erro ao remover transação. Desfeito.',
+        'Não foi possível remover a transação. Operação desfeita.',
       );
     }
   }
 
   void _applyFilter(String? type) {
     setState(() {
-      // Força rebuild imediato para atualizar os chips visuais
+      // Force immediate rebuild to update visual chips
       _viewModel.updateFilter(type);
     });
   }
@@ -136,7 +136,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       'EXPENSE': 0,
     };
     
-    // Somar transações normais
+    // Sum normal transactions
     for (final tx in transactions) {
       totals.update(tx.type, (value) => value + tx.amount,
           ifAbsent: () => tx.amount);
@@ -154,17 +154,17 @@ class _TransactionsPageState extends State<TransactionsPage> {
         link: link,
         currency: _currency,
         onDelete: () async {
-          await _repository.deleteTransactionLink(link.identifier);  // Usar identifier
+          await _repository.deleteTransactionLink(link.identifier);  // Use identifier
           
-          // Fecha o bottom sheet
+          // Close bottom sheet
           if (sheetContext.mounted) {
             Navigator.of(sheetContext).pop();
           }
           
-          // Atualiza os dados
+          // Update data
           _viewModel.refreshSilently();
           
-          // Mostra feedback apenas se o widget principal ainda está montado
+          // Show feedback only if main widget is still mounted
           if (mounted && context.mounted) {
             FeedbackService.showSuccess(
               context,

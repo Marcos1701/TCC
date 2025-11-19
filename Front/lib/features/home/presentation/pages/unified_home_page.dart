@@ -9,9 +9,9 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
 import '../widgets/day4_5_widgets.dart';
 
-/// Página Inicial Unificada (Dia 8-10)
-/// Combina Home + Desafios em destaque
-/// Reduz navegação de 5 para 3 abas
+/// Unified Home Page
+/// Combines Home + Featured Challenges
+/// Reduces navigation from 5 to 3 tabs
 class UnifiedHomePage extends StatefulWidget {
   const UnifiedHomePage({super.key});
 
@@ -66,7 +66,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
     if (mounted) {
       FeedbackService.showSuccess(
         context,
-        '✅ Dados atualizados!',
+        'Dados atualizados com sucesso.',
       );
     }
   }
@@ -141,14 +141,12 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 1. Resumo do Mês
           MonthSummaryCard(
             summary: _data!.summary,
             currency: _currency,
           ),
           const SizedBox(height: 16),
 
-          // 2. Desafio da Semana (destaque)
           if (_data!.activeMissions.isNotEmpty) ...[
             WeeklyChallengeCard(
               mission: _data!.activeMissions.first,
@@ -157,12 +155,10 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
             const SizedBox(height: 16),
           ],
 
-          // 3. Botão "Ver todos os desafios"
           if (_data!.activeMissions.isNotEmpty)
             _buildViewAllChallengesButton(),
           const SizedBox(height: 16),
 
-          // 4. Quick Actions
           QuickActionsCard(
             onAddTransaction: _openTransactionSheet,
             onViewGoals: () => _navigateToGoals(context),
@@ -170,14 +166,13 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
           ),
           const SizedBox(height: 16),
 
-          // 5. Últimas Transações
           RecentTransactionsSection(
             repository: _repository,
             currency: _currency,
             onViewAll: () => _navigateToTransactions(context),
           ),
           
-          const SizedBox(height: 80), // Espaço para FAB
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -222,7 +217,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   }
 
   void _openTransactionSheet() {
-    // TODO: Implementar sheet de nova transação
+    // TODO: Implement new transaction sheet
     FeedbackService.showInfo(
       context,
       '💡 Sheet de transação será implementado',
@@ -236,7 +231,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   }
 
   void _navigateToGoals(BuildContext context) {
-    // Navega para a aba Finanças (índice 1)
+    // Navigates to Finances tab (index 1)
     FeedbackService.showInfo(
       context,
       '💡 Metas estão na aba Finanças',
@@ -244,7 +239,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   }
 
   void _navigateToAnalysis(BuildContext context) {
-    // Navega para a aba Finanças (índice 1)
+    // Navigates to Finances tab (index 1)
     FeedbackService.showInfo(
       context,
       '💡 Análises estão na aba Finanças',
@@ -252,7 +247,7 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   }
 
   void _navigateToTransactions(BuildContext context) {
-    // Navega para a aba Finanças (índice 1)
+    // Navigates to Finances tab (index 1)
     FeedbackService.showInfo(
       context,
       '💡 Transações estão na aba Finanças',

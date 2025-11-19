@@ -1,12 +1,7 @@
-/// Substitui termos técnicos por linguagem mais acessível.
 class UxStrings {
-  // Privado - não permitir instanciação
   UxStrings._();
 
-  // ========== Gamificação ==========
-  
-  /// "Desafios" ao invés de "Missões"
-  static const challenge = 'Desafio'; // Singular
+  static const challenge = 'Desafio';
   static const challenges = 'Desafios';
   static const activeChallenges = 'Desafios Ativos';
   static const completedChallenges = 'Desafios Concluídos';
@@ -16,46 +11,35 @@ class UxStrings {
   static const errorLoadingChallenges = 'Erro ao carregar desafios';
   static const unlockNewChallenges = 'desbloqueie novos desafios';
   
-  /// "Pontos" ao invés de "XP" ou "Experience Points"
   static const points = 'Pontos';
-  static const point = 'Ponto'; // Singular
+  static const point = 'Ponto';
   static const earnPoints = 'Ganhe pontos';
   static const pointsEarned = 'Pontos ganhos';
   static const adjustPoints = 'Ajustar Pontos';
-  static const pointsAdjusted = 'Pontos ajustados com sucesso!';
+  static const pointsAdjusted = 'Pontos ajustados com sucesso.';
   
-  /// Níveis
   static const level = 'Nível';
   static const nextLevel = 'Próximo nível';
-  
-  // ========== Transações ==========
   
   static const transactions = 'Transações';
   static const newTransaction = 'Nova transação';
   static const recentTransactions = 'Últimas transações';
   
-  /// Linguagem mais amigável para receitas e despesas
   static const income = 'Receita';
   static const expense = 'Despesa';
   static const balance = 'Saldo';
   
-  /// "Transferência" ao invés de "Vínculo"
   static const transfer = 'Transferência';
   static const transfers = 'Transferências';
   
-  // ========== Indicadores Financeiros ==========
+  static const savings = 'Poupança Mensal';
+  static const savingsAmount = 'Valor Poupado';
+  static const fixedExpenses = 'Gastos Fixos';
+  static const fixedExpensesMonthly = 'Total Gastos Fixos';
+  static const emergencyFund = 'Reserva de Emergência';
+  static const emergencyFundMonths = 'Meses de Reserva';
   
-  /// Indicadores com linguagem natural
-  static const savings = 'Você está guardando';
-  static const savingsAmount = 'Guardando por mês';
-  static const fixedExpenses = 'Gastos fixos';
-  static const fixedExpensesMonthly = 'Gastos fixos mensais';
-  static const emergencyFund = 'Reserva de emergência';
-  static const emergencyFundMonths = 'Reserva para emergências';
-  
-  // ========== Status e Badges ==========
-  
-  static const excellent = 'Excelente!';
+  static const excellent = 'Excelente';
   static const good = 'Bom';
   static const warning = 'Atenção';
   static const critical = 'Crítico';
@@ -63,15 +47,11 @@ class UxStrings {
   static const protected = 'Protegido';
   static const vulnerable = 'Vulnerável';
   
-  // ========== Metas ==========
-  
   static const goals = 'Metas';
   static const newGoal = 'Nova meta';
   static const activeGoals = 'Metas ativas';
   static const completedGoals = 'Metas concluídas';
   static const goalProgress = 'Progresso da meta';
-  
-  // ========== Ranking e Social ==========
   
   static const ranking = 'Ranking';
   static const friendsRanking = 'Ranking de Amigos';
@@ -79,16 +59,12 @@ class UxStrings {
   static const addFriends = 'Adicionar Amigos';
   static const inviteFriends = 'Convidar Amigos';
   
-  // ========== Navegação ==========
-  
   static const home = 'Início';
   static const finances = 'Finanças';
   static const profile = 'Perfil';
   static const settings = 'Configurações';
   static const analysis = 'Análise';
   static const myProgress = 'Meu Progresso';
-  
-  // ========== Ações ==========
   
   static const add = 'Adicionar';
   static const edit = 'Editar';

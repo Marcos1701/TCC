@@ -1,13 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-/// Formatador de entrada para valores monetários em Reais (BRL)
+/// Input formatter for monetary values in Reais (BRL)
 /// 
-/// Este formatador permite que o usuário digite valores monetários de forma intuitiva:
-/// - Aceita apenas números
-/// - Formata automaticamente com vírgula para decimais
-/// - Permite no máximo 2 casas decimais
-/// - Exemplo: usuário digita "12345" e vê "123,45"
+/// This formatter allows the user to type monetary values intuitively:
+/// - Accepts only numbers
+/// - Automatically formats with comma for decimals
+/// - Allows max 2 decimal places
+/// - Example: user types "12345" and sees "123,45"
 class CurrencyInputFormatter extends TextInputFormatter {
   CurrencyInputFormatter({this.maxDigits = 12});
 
@@ -23,15 +23,15 @@ class CurrencyInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Remove tudo que não é dígito
+    // Remove everything that is not a digit
     String newText = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Limita o número de dígitos
+    // Limit number of digits
     if (newText.length > maxDigits) {
       newText = newText.substring(0, maxDigits);
     }
 
-    // Se estiver vazio, retorna vazio
+    // If empty, return empty
     if (newText.isEmpty) {
       return const TextEditingValue(
         text: '',
@@ -39,29 +39,29 @@ class CurrencyInputFormatter extends TextInputFormatter {
       );
     }
 
-    // Converte para double (centavos)
+    // Convert to double (cents)
     final double value = double.parse(newText) / 100;
 
-    // Formata o valor
+    // Format value
     final String formatted = _formatter.format(value).trim();
 
-    // Retorna o novo valor formatado
+    // Return new formatted value
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 
-  /// Converte o texto formatado de volta para double
+  /// Converts formatted text back to double
   static double parse(String text) {
     if (text.isEmpty) return 0.0;
     
-    // Remove formatação e converte
+    // Remove formatting and convert
     final cleaned = text.replaceAll(RegExp(r'[^0-9,]'), '').replaceAll(',', '.');
     return double.tryParse(cleaned) ?? 0.0;
   }
 
-  /// Formata um valor double para exibição
+  /// Formats a double value for display
   static String format(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',

@@ -26,7 +26,6 @@ class _FriendsPageState extends State<FriendsPage>
     _tabController = TabController(length: 3, vsync: this);
     _viewModel = FriendsViewModel();
 
-    // Carregar dados iniciais
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _viewModel.loadFriends();
       _viewModel.loadRequests();
@@ -105,9 +104,7 @@ class _FriendsPageState extends State<FriendsPage>
       ),
       body: Column(
         children: [
-          // Card com username do usuário
           const _UsernameCard(),
-          // Tabs
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -267,7 +264,7 @@ class _FriendsTab extends StatelessWidget {
 
                           if (confirmed == true && context.mounted) {
                             final success = await viewModel.removeFriend(
-                              friendship.identifier,  // Usar identifier
+                              friendship.identifier,
                             );
                             if (success && context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(

@@ -1,4 +1,4 @@
-/// Endpoints centrais da API REST.
+/// Central REST API endpoints.
 class ApiEndpoints {
   const ApiEndpoints._();
 

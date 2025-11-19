@@ -1,44 +1,44 @@
-/// Utilitários para formatação e validação de indicadores financeiros
+/// Utilities for formatting and validating financial indicators
 library;
 
-/// Formata um valor de indicador com validação e tratamento de erros
+/// Formats an indicator value with validation and error handling
 String formatIndicator(double? value, {int decimals = 1, String suffix = '%'}) {
   if (value == null || value.isNaN || value.isInfinite) {
     return '0.0$suffix';
   }
   
-  // Garantir que o valor está dentro de limites razoáveis
+  // Ensure value is within reasonable limits
   final clampedValue = value.clamp(-9999.99, 9999.99);
   return '${clampedValue.toStringAsFixed(decimals)}$suffix';
 }
 
-/// Valida e sanitiza um valor de indicador
+/// Validates and sanitizes an indicator value
 double sanitizeIndicatorValue(double? value, {double defaultValue = 0.0}) {
   if (value == null || value.isNaN || value.isInfinite) {
     return defaultValue;
   }
   
-  // Limitar a valores razoáveis
+  // Limit to reasonable values
   return value.clamp(-9999.99, 9999.99);
 }
 
-/// Retorna a cor apropriada para um indicador baseado em sua severidade
+/// Returns appropriate color for an indicator based on severity
 String getIndicatorColor(String severity) {
   switch (severity) {
     case 'good':
-      return '#4CAF50'; // Verde
+      return '#4CAF50'; // Green
     case 'attention':
-      return '#FFC107'; // Amarelo
+      return '#FFC107'; // Yellow
     case 'warning':
-      return '#FF9800'; // Laranja
+      return '#FF9800'; // Orange
     case 'critical':
-      return '#F44336'; // Vermelho
+      return '#F44336'; // Red
     default:
-      return '#607D8B'; // Cinza
+      return '#607D8B'; // Gray
   }
 }
 
-/// Classe para armazenar dados formatados de um indicador
+/// Class to store formatted indicator data
 class FormattedIndicator {
   const FormattedIndicator({
     required this.value,
@@ -54,7 +54,7 @@ class FormattedIndicator {
   final String formattedTarget;
   final bool isValid;
 
-  /// Cria um FormattedIndicator a partir de valores brutos
+  /// Creates a FormattedIndicator from raw values
   factory FormattedIndicator.fromRaw({
     required double? value,
     required double? target,
@@ -74,20 +74,20 @@ class FormattedIndicator {
     );
   }
 
-  /// Verifica se o indicador está acima da meta (para TPS e ILI)
+  /// Checks if indicator is above target (for TPS and ILI)
   bool isAboveTarget() => value >= target;
 
-  /// Verifica se o indicador está abaixo da meta (para RDR)
+  /// Checks if indicator is below target (for RDR)
   bool isBelowTarget() => value <= target;
 
-  /// Calcula a diferença percentual em relação à meta
+  /// Calculates percentage difference from target
   double percentageDifferenceFromTarget() {
     if (target == 0) return 0.0;
     return ((value - target) / target) * 100;
   }
 }
 
-/// Classe específica para TPS (Taxa de Poupança Pessoal)
+/// Specific class for TPS (Personal Savings Rate)
 class TPSIndicator extends FormattedIndicator {
   const TPSIndicator({
     required super.value,

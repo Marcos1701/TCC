@@ -68,53 +68,49 @@ class UserProfile(models.Model):
     def __str__(self) -> str:
         return f"Perfil {self.user}"  # pragma: no cover
     
+    class Meta:
+        verbose_name_plural = "Perfis de Usuários"
+    
     def clean(self):
         """Validações de modelo para UserProfile."""
         from django.core.exceptions import ValidationError
         from decimal import Decimal
         
-        # 1. Validar level positivo
         if self.level < 1:
             raise ValidationError({
-                'level': 'O nível deve ser no mínimo 1.'
+                'level': 'Nível deve ser no mínimo 1.'
             })
         
-        # 2. Validar level máximo razoável
         if self.level > 1000:
             raise ValidationError({
-                'level': 'O nível não pode exceder 1000.'
+                'level': 'Nível não pode exceder 1000.'
             })
         
-        # 3. Validar experience_points não negativo
         if self.experience_points < 0:
             raise ValidationError({
-                'experience_points': 'Os pontos de experiência não podem ser negativos.'
+                'experience_points': 'Pontos de experiência não podem ser negativos.'
             })
         
-        # 4. Validar target_tps entre 0 e 100
         if self.target_tps < 0 or self.target_tps > 100:
             raise ValidationError({
-                'target_tps': 'A meta de TPS deve estar entre 0 e 100%.'
+                'target_tps': 'Meta de TPS deve estar entre 0 e 100%.'
             })
         
-        # 5. Validar target_rdr entre 0 e 100
         if self.target_rdr < 0 or self.target_rdr > 100:
             raise ValidationError({
-                'target_rdr': 'A meta de RDR deve estar entre 0 e 100%.'
+                'target_rdr': 'Meta de RDR deve estar entre 0 e 100%.'
             })
         
-        # 6. Validar target_ili não negativo e razoável
         if self.target_ili < Decimal('0'):
             raise ValidationError({
-                'target_ili': 'A meta de ILI não pode ser negativa.'
+                'target_ili': 'Meta de ILI não pode ser negativa.'
             })
         
         if self.target_ili > Decimal('100'):
             raise ValidationError({
-                'target_ili': 'A meta de ILI não deve exceder 100 meses.'
+                'target_ili': 'Meta de ILI não deve exceder 100 meses.'
             })
         
-        # 7. Validar cached indicators não negativos
         if self.cached_tps is not None and self.cached_tps < Decimal('0'):
             raise ValidationError({
                 'cached_tps': 'TPS em cache não pode ser negativo.'
@@ -130,7 +126,6 @@ class UserProfile(models.Model):
                 'cached_ili': 'ILI em cache não pode ser negativo.'
             })
         
-        # 8. Validar cached totals não negativos
         if self.cached_total_income is not None and self.cached_total_income < Decimal('0'):
             raise ValidationError({
                 'cached_total_income': 'Total de receitas em cache não pode ser negativo.'
@@ -141,7 +136,6 @@ class UserProfile(models.Model):
                 'cached_total_expense': 'Total de despesas em cache não pode ser negativo.'
             })
         
-        # 9. Validar que indicators_updated_at não é no futuro
         if self.indicators_updated_at:
             from django.utils import timezone
             if self.indicators_updated_at > timezone.now():
@@ -149,8 +143,6 @@ class UserProfile(models.Model):
                     'indicators_updated_at': 'Data de atualização dos indicadores não pode ser no futuro.'
                 })
         
-        # 10. Validar coerência entre level e experience_points
-        # Cada nível requer 150 + (level-1) * 50 XP
         expected_min_xp = 0
         for lvl in range(1, self.level):
             expected_min_xp += 150 + (lvl - 1) * 50
@@ -215,6 +207,7 @@ class Category(models.Model):
     class Meta:
         unique_together = ("user", "name", "type")
         ordering = ("name",)
+        verbose_name_plural = "Categorias"
         indexes = [
             models.Index(fields=['user', 'type']),
             models.Index(fields=['user', 'is_system_default']),
@@ -229,26 +222,22 @@ class Category(models.Model):
         from django.core.exceptions import ValidationError
         import re
         
-        # 1. Validar nome não vazio
         if not self.name or len(self.name.strip()) == 0:
             raise ValidationError({
-                'name': 'O nome da categoria não pode ser vazio.'
+                'name': 'Nome da categoria não pode ser vazio.'
             })
         
-        # 2. Validar comprimento máximo do nome
         if len(self.name) > 100:
             raise ValidationError({
-                'name': 'O nome da categoria não pode exceder 100 caracteres.'
+                'name': 'Nome da categoria não pode exceder 100 caracteres.'
             })
         
-        # 3. Validar formato de cor (hex)
         if self.color:
             if not re.match(r'^#[0-9A-Fa-f]{6}$', self.color):
                 raise ValidationError({
-                    'color': 'A cor deve estar no formato hexadecimal (#RRGGBB).'
+                    'color': 'Cor deve estar no formato hexadecimal (#RRGGBB).'
                 })
         
-        # 4. Validar coerência entre type e group
         type_group_map = {
             self.CategoryType.INCOME: [
                 self.CategoryGroup.REGULAR_INCOME,
@@ -269,14 +258,12 @@ class Category(models.Model):
             valid_groups = type_group_map[self.type]
             if self.group not in valid_groups:
                 raise ValidationError({
-                    'group': f'O grupo "{self.get_group_display()}" não é compatível com o tipo "{self.get_type_display()}".'
+                    'group': f'Grupo "{self.get_group_display()}" incompatível com tipo "{self.get_type_display()}".'
                 })
         
-        # 5. Validar que categoria de sistema não pode ser modificada pelo usuário
         if self.pk and self.is_system_default:
             try:
                 old_instance = Category.objects.get(pk=self.pk)
-                # Permitir apenas mudanças em color e group para categorias de sistema
                 if (old_instance.name != self.name or 
                     old_instance.type != self.type or
                     old_instance.user != self.user):
@@ -286,7 +273,6 @@ class Category(models.Model):
             except Category.DoesNotExist:
                 pass
         
-        # 6. Validar unicidade case-insensitive do nome para o mesmo usuário
         if self.user:
             existing = Category.objects.filter(
                 user=self.user,
@@ -338,6 +324,7 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ("-date", "-created_at")
+        verbose_name_plural = "Transações"
         indexes = [
             models.Index(fields=['user', 'date']),
             models.Index(fields=['user', 'type']),
@@ -602,6 +589,7 @@ class TransactionLink(models.Model):
     
     class Meta:
         ordering = ('-created_at',)
+        verbose_name_plural = "Vínculos de Transações"
         indexes = [
             models.Index(fields=['user', 'created_at']),
             models.Index(fields=['source_transaction_uuid']),
@@ -1250,6 +1238,7 @@ class Mission(models.Model):
 
     class Meta:
         ordering = ("priority", "title")
+        verbose_name_plural = "Missões"
 
     def __str__(self) -> str:  # pragma: no cover
         return self.title
@@ -1453,6 +1442,7 @@ class MissionProgress(models.Model):
     class Meta:
         unique_together = ("user", "mission")
         ordering = ("mission__priority", "mission__title")
+        verbose_name_plural = "Progressos de Missões"
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.user} - {self.mission}"
@@ -1612,6 +1602,7 @@ class XPTransaction(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+        verbose_name_plural = "Transações de XP"
         indexes = [
             models.Index(fields=['user', '-created_at']),
         ]
@@ -1980,6 +1971,7 @@ class Friendship(models.Model):
     class Meta:
         ordering = ("-created_at",)
         unique_together = [('user', 'friend')]
+        verbose_name_plural = "Amizades"
         indexes = [
             models.Index(fields=['user', 'status']),
             models.Index(fields=['friend', 'status']),

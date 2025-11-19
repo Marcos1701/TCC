@@ -32,7 +32,7 @@ class _MissionsPageState extends State<MissionsPage> {
     _viewModel.loadMissions();
     _cacheManager.addListener(_onCacheInvalidated);
 
-    // Observa celebrações de missões
+    // Observe mission celebrations
     _viewModel.addListener(_checkForCelebrations);
     AnalyticsService.trackScreenView('missions');
   }
@@ -54,7 +54,7 @@ class _MissionsPageState extends State<MissionsPage> {
   }
 
   void _checkForCelebrations() {
-    // Verifica se há missões recém completadas para celebrar
+    // Check for newly completed missions to celebrate
     if (_viewModel.newlyCompleted.isNotEmpty && mounted) {
       for (final missionId in _viewModel.newlyCompleted) {
         final mission = _viewModel.completedMissions.firstWhere(
@@ -68,7 +68,7 @@ class _MissionsPageState extends State<MissionsPage> {
           context,
           missionName: mission.mission.title,
           xpReward: mission.mission.rewardPoints,
-          coinsReward: null, // Pode ser adicionado futuramente
+          coinsReward: null, // Can be added in the future
         );
 
         _viewModel.markMissionAsViewed(missionId);
@@ -122,7 +122,7 @@ class _MissionsPageState extends State<MissionsPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Ops! Algo deu errado',
+                      'Não foi possível carregar os dados',
                       textAlign: TextAlign.center,
                       style: theme.textTheme.titleLarge?.copyWith(
                         color: Colors.white,
@@ -161,7 +161,7 @@ class _MissionsPageState extends State<MissionsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
                   Text(
-                    'Veja os desafios ativos. Atualizamos tudo após cada transação registrada.',
+                    'Acompanhe seus desafios ativos. O progresso é atualizado automaticamente.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[400],
                       height: 1.4,
@@ -254,21 +254,21 @@ class _ActiveMissionCard extends StatelessWidget {
 
   final MissionProgressModel mission;
 
-  /// Retorna cor baseada no tipo de missão
+  /// Returns color based on mission type
   Color _getMissionTypeColor(String type) {
     switch (type) {
       case 'ONBOARDING':
-        return const Color(0xFF9C27B0); // Roxo
+        return const Color(0xFF9C27B0); // Purple
       case 'TPS_IMPROVEMENT':
-        return const Color(0xFF4CAF50); // Verde
+        return const Color(0xFF4CAF50); // Green
       case 'RDR_REDUCTION':
-        return const Color(0xFFF44336); // Vermelho
+        return const Color(0xFFF44336); // Red
       case 'ILI_BUILDING':
-        return const Color(0xFF2196F3); // Azul
+        return const Color(0xFF2196F3); // Blue
       case 'ADVANCED':
-        return const Color(0xFFFF9800); // Laranja
+        return const Color(0xFFFF9800); // Orange
       default:
-        return const Color(0xFF607D8B); // Cinza
+        return const Color(0xFF607D8B); // Grey
     }
   }
 
@@ -295,7 +295,7 @@ class _ActiveMissionCard extends StatelessWidget {
     final progress = mission.progress.clamp(0, 100) / 100;
     final tokens = theme.extension<AppDecorations>()!;
 
-    // Calcular dias restantes
+    // Calculate remaining days
     String deadlineText = 'Sem prazo';
     Color deadlineColor = Colors.grey[400]!;
     if (mission.startedAt != null && mission.mission.durationDays > 0) {

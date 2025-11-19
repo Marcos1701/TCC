@@ -5,8 +5,6 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 
-/// Página de onboarding simplificado (3 passos)
-/// Dia 6-7: Reduzido de 8 transações para 2 inputs básicos
 class SimplifiedOnboardingPage extends StatefulWidget {
   const SimplifiedOnboardingPage({super.key});
 
@@ -32,7 +30,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
   @override
   void initState() {
     super.initState();
-    // Rastreia início do onboarding
     AnalyticsService.trackOnboardingStarted();
   }
 
@@ -49,7 +46,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Indicador de progresso
             LinearProgressIndicator(
               value: (_currentPage + 1) / 3,
               backgroundColor: Colors.grey[800],
@@ -96,7 +92,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Para personalizar sua experiência, necessitamos de duas informações básicas sobre sua situação financeira.',
+            'Para personalizar sua experiência, precisamos de algumas informações básicas.',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[400],

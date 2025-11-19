@@ -16,17 +16,12 @@ class IsOwnerPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         """
         Verifica se o usuário autenticado é o dono do objeto.
-
         """
-        # Verificar se o objeto tem atributo 'user'
         if not hasattr(obj, 'user'):
-            # Se não tem campo 'user', permitir (ex: categorias padrão)
             return True
         
-        # Verificar ownership
         is_owner = obj.user == request.user
         
-        # Log de tentativas de acesso não autorizado
         if not is_owner:
             logger.warning(
                 f"Unauthorized access attempt detected: "
@@ -46,11 +41,9 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
     """
     
     def has_object_permission(self, request, view, obj):
-        # Permitir métodos de leitura (GET, HEAD, OPTIONS)
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        # Para métodos de escrita, verificar ownership
         if not hasattr(obj, 'user'):
             return True
         
@@ -74,14 +67,12 @@ class IsFriendOrOwner(permissions.BasePermission):
     """
     
     def has_object_permission(self, request, view, obj):
-        # Se é o dono, permitir
         if not hasattr(obj, 'user'):
             return True
         
         if obj.user == request.user:
             return True
         
-        # Verificar se são amigos
         from .models import Friendship
         are_friends = Friendship.are_friends(request.user, obj.user)
         

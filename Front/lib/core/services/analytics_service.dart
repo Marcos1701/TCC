@@ -1,40 +1,40 @@
 import 'package:flutter/foundation.dart';
 
-/// Serviço simples de Analytics para rastreamento de eventos (Dia 21-25)
+/// Simple Analytics Service for event tracking
 /// 
-/// Implementação básica sem dependências externas.
-/// Em produção, poderia integrar com Firebase Analytics, Mixpanel, etc.
+/// Basic implementation without external dependencies.
+/// In production, could integrate with Firebase Analytics, Mixpanel, etc.
 /// 
-/// Eventos rastreados:
-/// - Visualizações de tela
-/// - Ações importantes do usuário
-/// - Métricas de engajamento
-/// - Tempos de permanência
+/// Tracked events:
+/// - Screen views
+/// - Important user actions
+/// - Engagement metrics
+/// - Dwell times
 class AnalyticsService {
   static final AnalyticsService _instance = AnalyticsService._internal();
   factory AnalyticsService() => _instance;
   AnalyticsService._internal();
 
-  /// Flag para habilitar/desabilitar logging em debug
+  /// Flag to enable/disable logging in debug
   static const bool _debugMode = kDebugMode;
 
-  /// Armazena eventos em memória (para debug/demonstração)
+  /// Stores events in memory (for debug/demo)
   final List<AnalyticsEvent> _events = [];
 
-  /// Timestamp de início de cada tela (para medir tempo de permanência)
+  /// Start timestamp of each screen (to measure dwell time)
   final Map<String, DateTime> _screenStartTimes = {};
 
   // ============================================================
-  // VISUALIZAÇÕES DE TELA
+  // SCREEN VIEWS
   // ============================================================
 
-  /// Rastreia visualização de tela
+  /// Tracks screen view
   static void trackScreenView(String screenName) {
     _instance._logEvent('screen_view', {'screen': screenName});
     _instance._screenStartTimes[screenName] = DateTime.now();
   }
 
-  /// Rastreia saída de tela (para calcular tempo de permanência)
+  /// Tracks screen exit (to calculate dwell time)
   static void trackScreenExit(String screenName) {
     if (_instance._screenStartTimes.containsKey(screenName)) {
       final startTime = _instance._screenStartTimes[screenName]!;
@@ -50,26 +50,26 @@ class AnalyticsService {
   }
 
   // ============================================================
-  // EVENTOS CUSTOMIZADOS
+  // CUSTOM EVENTS
   // ============================================================
 
-  /// Rastreia evento genérico
+  /// Tracks generic event
   static void trackEvent(String eventName, Map<String, dynamic> parameters) {
     _instance._logEvent(eventName, parameters);
   }
 
   // ============================================================
-  // EVENTOS DE ONBOARDING
+  // ONBOARDING EVENTS
   // ============================================================
 
-  /// Rastreia início do onboarding
+  /// Tracks onboarding start
   static void trackOnboardingStarted() {
     _instance._logEvent('onboarding_started', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  /// Rastreia conclusão do onboarding simplificado
+  /// Tracks simplified onboarding completion
   static void trackOnboardingCompleted({
     required int daysToComplete,
     required int stepsCompleted,
@@ -81,7 +81,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia etapa do onboarding
+  /// Tracks onboarding step
   static void trackOnboardingStep(int stepNumber, String stepName) {
     _instance._logEvent('onboarding_step', {
       'step_number': stepNumber,
@@ -90,15 +90,15 @@ class AnalyticsService {
   }
 
   // ============================================================
-  // EVENTOS DE METAS
+  // GOAL EVENTS
   // ============================================================
 
-  /// Rastreia criação de meta
+  /// Tracks goal creation
   static void trackGoalCreated({
     required String goalType,
     required double targetAmount,
     required bool hasDeadline,
-    required String creationMethod, // 'wizard' ou 'manual'
+    required String creationMethod, // 'wizard' or 'manual'
   }) {
     _instance._logEvent('goal_created', {
       'type': goalType,
@@ -109,7 +109,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia conclusão de meta
+  /// Tracks goal completion
   static void trackGoalCompleted({
     required String goalType,
     required int daysToComplete,
@@ -123,7 +123,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia exclusão de meta
+  /// Tracks goal deletion
   static void trackGoalDeleted(String goalType) {
     _instance._logEvent('goal_deleted', {
       'type': goalType,
@@ -132,10 +132,10 @@ class AnalyticsService {
   }
 
   // ============================================================
-  // EVENTOS DE MISSÕES
+  // MISSION EVENTS
   // ============================================================
 
-  /// Rastreia visualização de missão
+  /// Tracks mission view
   static void trackMissionViewed(String missionId, String missionType) {
     _instance._logEvent('mission_viewed', {
       'mission_id': missionId,
@@ -143,7 +143,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia carregamento das recomendações de missão
+  /// Tracks mission recommendations loading
   static void trackMissionRecommendationsLoaded({required int count}) {
     _instance._logEvent('mission_recommendations_loaded', {
       'count': count,
@@ -151,7 +151,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia interação com cartões recomendados
+  /// Tracks interaction with recommended cards
   static void trackMissionRecommendationSwiped({
     required String missionId,
     required String missionType,
@@ -165,7 +165,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia visualização detalhada de recomendação
+  /// Tracks detailed view of recommendation
   static void trackMissionRecommendationDetail({
     required String missionId,
     required String missionType,
@@ -181,7 +181,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia abertura de coleções (categoria/meta)
+  /// Tracks opening of collections (category/goal)
   static void trackMissionCollectionViewed({
     required String collectionType,
     required int targetId,
@@ -195,7 +195,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia snapshot da análise de contexto
+  /// Tracks context analysis snapshot
   static void trackMissionContextSnapshot({
     required int indicatorCount,
     required int opportunityCount,
@@ -209,14 +209,14 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia pedido de atualização manual da análise
+  /// Tracks manual analysis refresh request
   static void trackMissionContextRefreshRequested() {
     _instance._logEvent('mission_context_refresh_requested', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  /// Rastreia conclusão de missão
+  /// Tracks mission completion
   static void trackMissionCompleted({
     required String missionId,
     required String missionType,
@@ -231,10 +231,10 @@ class AnalyticsService {
   }
 
   // ============================================================
-  // EVENTOS SOCIAIS (AMIGOS)
+  // SOCIAL EVENTS (FRIENDS)
   // ============================================================
 
-  /// Rastreia adição de amigo
+  /// Tracks friend addition
   static void trackFriendAdded({required String method}) {
     _instance._logEvent('friend_added', {
       'method': method, // 'search', 'qr_code', 'suggestion'
@@ -242,14 +242,14 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia remoção de amigo
+  /// Tracks friend removal
   static void trackFriendRemoved() {
     _instance._logEvent('friend_removed', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  /// Rastreia visualização de ranking
+  /// Tracks leaderboard view
   static void trackLeaderboardViewed({required int friendsCount}) {
     _instance._logEvent('leaderboard_viewed', {
       'friends_count': friendsCount,
@@ -258,12 +258,12 @@ class AnalyticsService {
   }
 
   // ============================================================
-  // EVENTOS DE TRANSAÇÕES
+  // TRANSACTION EVENTS
   // ============================================================
 
-  /// Rastreia criação de transação
+  /// Tracks transaction creation
   static void trackTransactionCreated({
-    required String type, // 'income' ou 'expense'
+    required String type, // 'income' or 'expense'
     required double amount,
     required String category,
     required bool isRecurrent,
@@ -277,7 +277,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia edição de transação
+  /// Tracks transaction edit
   static void trackTransactionEdited({
     required String type,
     required String category,
@@ -289,7 +289,7 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia exclusão de transação
+  /// Tracks transaction deletion
   static void trackTransactionDeleted({
     required String type,
     required double amount,

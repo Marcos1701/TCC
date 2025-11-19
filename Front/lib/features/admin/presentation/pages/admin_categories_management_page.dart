@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../mixins/admin_page_mixin.dart';
 
 /// Página para gerenciar categorias globais
 class AdminCategoriesManagementPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class AdminCategoriesManagementPage extends StatefulWidget {
 }
 
 class _AdminCategoriesManagementPageState
-    extends State<AdminCategoriesManagementPage> {
+    extends State<AdminCategoriesManagementPage> with AdminPageMixin {
   final _apiClient = ApiClient();
   bool _isLoading = true;
   List<Map<String, dynamic>> _categories = [];

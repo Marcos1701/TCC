@@ -109,7 +109,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         
         if is_creating_global and not user.is_staff:
             raise ValidationError({
-                'is_system_default': 'Apenas administradores podem criar categorias de sistema.'
+                'is_system_default': 'Permissão negada para criar categorias de sistema.'
             })
         
         if is_creating_global and user.is_staff:
@@ -124,16 +124,16 @@ class CategoryViewSet(viewsets.ModelViewSet):
             
             if existing:
                 raise ValidationError({
-                    'name': f'Já existe uma categoria global "{name}" do tipo {category_type}.'
+                    'name': f'Categoria global "{name}" ({category_type}) já existe.'
                 })
             
             serializer.save(user=None, is_system_default=True)
             return
         
         custom_categories = Category.objects.filter(user=user, is_system_default=False).count()
-        if custom_categories >= 100:  # Limite razoável
+        if custom_categories >= 100:
             raise ValidationError({
-                'non_field_errors': 'Você atingiu o limite de 100 categorias personalizadas.'
+                'non_field_errors': 'Limite de 100 categorias personalizadas atingido.'
             })
         
         name = data.get('name', '').strip()
@@ -147,7 +147,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         
         if existing:
             raise ValidationError({
-                'name': f'Já existe uma categoria "{name}" do tipo {category_type} para você.'
+                'name': f'Categoria "{name}" ({category_type}) já existe.'
             })
         
         serializer.save(user=user, is_system_default=False)
@@ -160,12 +160,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
         
         if instance.user is None and not user.is_staff:
             raise ValidationError({
-                'non_field_errors': 'Apenas administradores podem editar categorias globais.'
+                'non_field_errors': 'Permissão negada para editar categorias globais.'
             })
         
         if instance.user is not None and instance.user != user:
             raise ValidationError({
-                'non_field_errors': 'Você não pode editar categorias de outros usuários.'
+                'non_field_errors': 'Permissão negada para editar categorias de outros usuários.'
             })
         
         data = serializer.validated_data
@@ -182,7 +182,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 
                 if existing:
                     raise ValidationError({
-                        'name': f'Já existe uma categoria global "{name}" do tipo {category_type}.'
+                        'name': f'Categoria global "{name}" ({category_type}) já existe.'
                     })
             else:
                 existing = Category.objects.filter(
@@ -193,12 +193,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 
                 if existing:
                     raise ValidationError({
-                        'name': f'Já existe uma categoria "{name}" do tipo {category_type} para você.'
+                        'name': f'Categoria "{name}" ({category_type}) já existe.'
                     })
         
         if 'is_system_default' in data and data['is_system_default'] != instance.is_system_default:
             raise ValidationError({
-                'is_system_default': 'Não é possível alterar o status de categoria de sistema.'
+                'is_system_default': 'Status de categoria de sistema imutável.'
             })
         
         serializer.save()
@@ -212,27 +212,27 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if instance.user is None and not user.is_staff:
             logger.warning(f"Usuário não-admin {user} tentou deletar categoria global: {instance.name}")
             raise ValidationError({
-                'non_field_errors': 'Apenas administradores podem excluir categorias globais.'
+                'non_field_errors': 'Permissão negada para excluir categorias globais.'
             })
         
         if instance.user is not None and instance.user != user:
             logger.warning(f"Usuário {user} tentou deletar categoria de outro usuário: {instance.user}")
             raise ValidationError({
-                'non_field_errors': 'Você não pode excluir categorias de outros usuários.'
+                'non_field_errors': 'Permissão negada para excluir categorias de outros usuários.'
             })
         
         transaction_count = Transaction.objects.filter(category=instance).count()
         if transaction_count > 0:
             logger.warning(f"Categoria {instance.name} possui {transaction_count} transações vinculadas")
             raise ValidationError({
-                'non_field_errors': f'Esta categoria possui {transaction_count} transação(ões) vinculada(s). Reatribua as transações antes de excluir.'
+                'non_field_errors': f'Categoria possui {transaction_count} transações vinculadas. Reatribua antes de excluir.'
             })
         
         goal_count = Goal.objects.filter(target_category=instance).count()
         if goal_count > 0:
             logger.warning(f"Categoria {instance.name} possui {goal_count} metas vinculadas")
             raise ValidationError({
-                'non_field_errors': f'Esta categoria possui {goal_count} meta(s) vinculada(s). Reatribua as metas antes de excluir.'
+                'non_field_errors': f'Categoria possui {goal_count} metas vinculadas. Reatribua antes de excluir.'
             })
         
         logger.info(f"Deletando categoria {instance.name}")

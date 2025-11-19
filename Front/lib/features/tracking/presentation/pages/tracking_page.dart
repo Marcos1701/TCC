@@ -10,8 +10,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
 /// Página de Análise Financeira
-/// 
-/// Exibe análise temporal de receitas e despesas com gráficos interativos
 class TrackingPage extends StatefulWidget {
   const TrackingPage({super.key});
 
@@ -114,19 +112,15 @@ class _TrackingPageState extends State<TrackingPage> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
       children: [
-        // Resumo Geral
         _buildSummaryCard(data.summary, theme, tokens),
         const SizedBox(height: 24),
 
-        // Gráfico de Evolução Temporal
         _buildCashflowChart(data.cashflow, theme, tokens),
         const SizedBox(height: 24),
 
-        // Gráfico de Saldo Mensal
         _buildBalanceChart(data.cashflow, theme, tokens),
         const SizedBox(height: 24),
 
-        // Distribuição por Categoria
         if (data.categories.isNotEmpty)
           _buildCategoryDistribution(data.categories, theme, tokens),
       ],
@@ -247,13 +241,11 @@ class _TrackingPageState extends State<TrackingPage> {
       return const SizedBox.shrink();
     }
 
-    // Calcular valores máximos para ajustar intervalos dinamicamente
     final maxValue = cashflow
         .expand((e) => [e.income, e.expense])
         .reduce((a, b) => a > b ? a : b);
     final interval = _calculateInterval(maxValue);
     
-    // Verificar se há projeções
     final hasProjections = cashflow.any((p) => p.isProjection);
 
     return Container(

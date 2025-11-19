@@ -9,33 +9,31 @@ abstract class Failure {
 }
 
 class NetworkFailure extends Failure {
-  const NetworkFailure([String message = 'Erro de conexão'])
-      : super(message, statusCode: null);
+  const NetworkFailure([super.message = 'Connection error'])
+      : super(statusCode: null);
 }
 
 class ServerFailure extends Failure {
-  const ServerFailure(String message, {int? statusCode})
-      : super(message, statusCode: statusCode);
+  const ServerFailure(super.message, {super.statusCode});
 }
 
 class ValidationFailure extends Failure {
   final Map<String, dynamic>? errors;
 
-  const ValidationFailure(String message, {this.errors})
-      : super(message, statusCode: 400);
+  const ValidationFailure(super.message, {this.errors})
+      : super(statusCode: 400);
 }
 
 class UnauthorizedFailure extends Failure {
-  const UnauthorizedFailure([String message = 'Sessão expirada'])
-      : super(message, statusCode: 401);
+  const UnauthorizedFailure([super.message = 'Session expired'])
+      : super(statusCode: 401);
 }
 
 class NotFoundFailure extends Failure {
-  const NotFoundFailure([String message = 'Recurso não encontrado'])
-      : super(message, statusCode: 404);
+  const NotFoundFailure([super.message = 'Resource not found'])
+      : super(statusCode: 404);
 }
 
 class ParseFailure extends Failure {
-  const ParseFailure([String message = 'Erro ao processar resposta'])
-      : super(message);
+  const ParseFailure([super.message = 'Error processing response']);
 }

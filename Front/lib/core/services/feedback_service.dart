@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../constants/user_friendly_strings.dart';
 
-/// Tipos de feedback disponíveis
+/// Available feedback types
 enum FeedbackType {
   success,
   error,
@@ -13,7 +13,7 @@ enum FeedbackType {
   serverError,
 }
 
-/// Severidade do feedback
+/// Feedback severity
 enum FeedbackSeverity {
   low,
   medium,
@@ -21,7 +21,7 @@ enum FeedbackSeverity {
   critical,
 }
 
-/// Configuração de um tipo de feedback
+/// Configuration for a feedback type
 class FeedbackConfig {
   final Color backgroundColor;
   final IconData icon;
@@ -34,7 +34,7 @@ class FeedbackConfig {
   });
 }
 
-/// Serviço centralizado para exibição de feedbacks ao usuário
+/// Centralized service for displaying feedback to the user
 class FeedbackService {
   static const Map<FeedbackType, FeedbackConfig> _configs = {
     FeedbackType.success: FeedbackConfig(
@@ -69,7 +69,7 @@ class FeedbackService {
     ),
   };
 
-  /// Exibe um snackbar com feedback ao usuário
+  /// Displays a snackbar with feedback to the user
   static void show(
     BuildContext context,
     String message, {
@@ -111,7 +111,7 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de sucesso
+  /// Displays success feedback
   static void showSuccess(
     BuildContext context,
     String message, {
@@ -120,7 +120,7 @@ class FeedbackService {
     show(context, message, type: FeedbackType.success, duration: duration);
   }
 
-  /// Exibe feedback de erro
+  /// Displays error feedback
   static void showError(
     BuildContext context,
     String message, {
@@ -136,7 +136,7 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de aviso
+  /// Displays warning feedback
   static void showWarning(
     BuildContext context,
     String message, {
@@ -145,7 +145,7 @@ class FeedbackService {
     show(context, message, type: FeedbackType.warning, duration: duration);
   }
 
-  /// Exibe feedback informativo
+  /// Displays info feedback
   static void showInfo(
     BuildContext context,
     String message, {
@@ -154,7 +154,7 @@ class FeedbackService {
     show(context, message, type: FeedbackType.info, duration: duration);
   }
 
-  /// Exibe diálogo de confirmação
+  /// Displays confirmation dialog
   static Future<bool> showConfirmationDialog({
     required BuildContext context,
     required String title,
@@ -220,7 +220,7 @@ class FeedbackService {
     return result ?? false;
   }
 
-  /// Exibe diálogo de loading
+  /// Displays loading dialog
   static void showLoadingDialog(
     BuildContext context, {
     String message = 'Processando...',
@@ -260,14 +260,14 @@ class FeedbackService {
     );
   }
 
-  /// Fecha o diálogo de loading
+  /// Hides loading dialog
   static void hideLoadingDialog(BuildContext context) {
     if (context.mounted) {
       Navigator.of(context).pop();
     }
   }
 
-  /// Exibe uma notificação in-app (banner no topo)
+  /// Displays an in-app notification (banner at the top)
   static void showBanner(
     BuildContext context,
     String message, {

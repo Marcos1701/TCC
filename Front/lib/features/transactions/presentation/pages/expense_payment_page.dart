@@ -100,7 +100,7 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vinculação criada com sucesso! ✅'),
+          content: Text('Vinculação criada com sucesso.'),
           backgroundColor: AppColors.success,
         ),
       );

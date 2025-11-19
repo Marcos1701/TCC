@@ -140,7 +140,7 @@ class _FakeFinanceRepository extends FinanceRepository {
 }
 
 MissionModel _buildMission() {
-  final category = CategoryModel(
+  const category = CategoryModel(
     id: 1,
     name: 'Alimentação',
     type: 'expense',

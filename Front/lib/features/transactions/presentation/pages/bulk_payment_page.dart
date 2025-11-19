@@ -230,7 +230,7 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       
       FeedbackService.showSuccess(
         context,
-        '✅ $createdCount pagamentos criados!\n${fullyPaidCount > 0 ? "$fullyPaidCount despesa(s) quitada(s)!" : ""}',
+        '$createdCount pagamentos criados.\n${fullyPaidCount > 0 ? "$fullyPaidCount despesa(s) quitada(s)." : ""}',
       );
 
       // Voltar para tela anterior

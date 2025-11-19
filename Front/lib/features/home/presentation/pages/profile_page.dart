@@ -7,9 +7,9 @@ import '../../../../core/services/feedback_service.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
-/// Página de Perfil Unificada (Dia 8-10)
-/// Combina Nível + XP + Configurações + Ranking
-/// Simplifica navegação de 5 para 3 abas principais
+/// Unified Profile Page
+/// Combines Level + XP + Settings + Ranking
+/// Simplifies navigation from 5 to 3 main tabs
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -129,19 +129,19 @@ class _ProfilePageState extends State<ProfilePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 1. Card de Nível e XP
+          // 1. Level and XP Card
           _buildLevelCard(),
           const SizedBox(height: 16),
 
-          // 2. Estatísticas rápidas
+          // 2. Quick Stats
           _buildQuickStats(),
           const SizedBox(height: 16),
 
-          // 3. Botões de ação
+          // 3. Action Buttons
           _buildActionButtons(context),
           const SizedBox(height: 16),
 
-          // 4. Seção de informações
+          // 4. Info Section
           _buildInfoSection(),
         ],
       ),
@@ -162,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Avatar/Ícone
+            // Avatar/Icon
             Container(
               width: 80,
               height: 80,
@@ -184,7 +184,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
 
-            // Nível
+            // Level
             Text(
               'Nível $level',
               style: const TextStyle(
@@ -195,7 +195,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 8),
 
-            // Pontos de experiência
+            // Experience Points
             Text(
               '${NumberFormat('#,###', 'pt_BR').format(xp)} pontos',
               style: TextStyle(
@@ -205,7 +205,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
 
-            // Barra de progresso
+            // Progress Bar
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -29,7 +29,7 @@ class FinanceRepository {
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
         case DioExceptionType.connectionError:
-          return const NetworkFailure('Verifique sua conexão com a internet');
+          return const NetworkFailure('Check your internet connection');
         
         case DioExceptionType.badResponse:
           final statusCode = error.response?.statusCode;
@@ -47,22 +47,22 @@ class FinanceRepository {
             final message = data['detail'] ?? 
                            data['error'] ?? 
                            data['message'] ?? 
-                           'Dados inválidos';
+                           'Invalid data';
             return ValidationFailure(message.toString(), errors: data);
           }
           
           if (data is Map<String, dynamic>) {
-            final message = data['detail'] ?? data['error'] ?? 'Erro no servidor';
+            final message = data['detail'] ?? data['error'] ?? 'Server error';
             return ServerFailure(message.toString(), statusCode: statusCode);
           }
           
           return ServerFailure(
-            'Erro no servidor (${statusCode ?? "desconhecido"})',
+            'Server error (${statusCode ?? "unknown"})',
             statusCode: statusCode,
           );
         
         default:
-          return NetworkFailure(error.message ?? 'Erro de conexão');
+          return NetworkFailure(error.message ?? 'Connection error');
       }
     }
     
@@ -71,7 +71,7 @@ class FinanceRepository {
 
   List<dynamic> _extractListFromResponse(dynamic data) {
     if (data == null) {
-      debugPrint('⚠️ _extractListFromResponse: data é null');
+      debugPrint('Warning: _extractListFromResponse: data is null');
       return [];
     }
     
@@ -87,7 +87,7 @@ class FinanceRepository {
       }
       
       if (data.containsKey('detail') || data.containsKey('error')) {
-        debugPrint('🚨 Resposta de erro detectada: $data');
+        debugPrint('Error response detected: $data');
       }
       return [];
     }
@@ -211,7 +211,7 @@ class FinanceRepository {
       return items
           .map((e) {
             if (e is! Map<String, dynamic>) {
-              throw const ParseFailure('Formato de transação inválido');
+              throw const ParseFailure('Invalid transaction format');
             }
             return TransactionModel.fromMap(e);
           })
@@ -343,7 +343,7 @@ class FinanceRepository {
     final invalidMissions = missions.where((m) => m.hasPlaceholders()).toList();
     if (invalidMissions.isNotEmpty) {
       debugPrint(
-        '⚠️ API retornou ${invalidMissions.length} missão(ões) com placeholders:\n'
+        '⚠️ API returned ${invalidMissions.length} mission(s) with placeholders:\n'
         '${invalidMissions.map((m) => '  - ID ${m.id}: "${m.title}" -> ${m.getPlaceholders()}').join('\n')}'
       );
     }
@@ -449,9 +449,9 @@ class FinanceRepository {
           ? Map<String, dynamic>.from(response.data!)
           : null;
     } on DioException catch (e) {
-      // Se endpoint não existe (404), retorna null silenciosamente
+      // If endpoint does not exist (404), return null silently
       if (e.response?.statusCode == 404) {
-        debugPrint('⚠️ Análise contextual não disponível (404)');
+        debugPrint('⚠️ Context analysis not available (404)');
         return null;
       }
       rethrow;
@@ -533,7 +533,7 @@ class FinanceRepository {
     return GoalModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Atualizar meta por ID ou UUID
+  /// Update goal by ID or UUID
   Future<GoalModel> updateGoal({
     required String goalId,
     String? title,
@@ -574,12 +574,12 @@ class FinanceRepository {
     return GoalModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Deletar meta por ID ou UUID
+  /// Delete goal by ID or UUID
   Future<void> deleteGoal(String id) async {
     await _client.client.delete('${ApiEndpoints.goals}$id/');
   }
 
-  /// Buscar transações relacionadas a uma meta por ID ou UUID
+  /// Fetch transactions related to a goal by ID or UUID
   Future<List<TransactionModel>> fetchGoalTransactions(String goalId) async {
     final response = await _client.client
         .get<dynamic>('${ApiEndpoints.goals}$goalId/transactions/');
@@ -590,14 +590,14 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Atualizar progresso da meta manualmente
+  /// Manually refresh goal progress
   Future<GoalModel> refreshGoalProgress(String goalId) async {
     final response = await _client.client
         .post<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/refresh/');
     return GoalModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Buscar insights sobre a meta
+  /// Fetch goal insights
   Future<Map<String, dynamic>> fetchGoalInsights(String goalId) async {
     final response = await _client.client
         .get<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/insights/');
@@ -614,7 +614,7 @@ class FinanceRepository {
   // TRANSACTION LINK METHODS
   // ============================================================================
 
-  /// Buscar receitas com saldo disponível
+  /// Fetch incomes with available balance
   Future<List<TransactionModel>> fetchAvailableIncomes({double? minAmount}) async {
     final queryParams = <String, dynamic>{};
     if (minAmount != null) {
@@ -632,7 +632,7 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Buscar despesas pendentes
+  /// Fetch pending expenses
   Future<List<TransactionModel>> fetchPendingExpenses({double? maxAmount}) async {
     final queryParams = <String, dynamic>{};
     if (maxAmount != null) {
@@ -650,7 +650,7 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Criar vinculação
+  /// Create link
   Future<TransactionLinkModel> createTransactionLink(
       CreateTransactionLinkRequest request) async {
     final response = await _client.client.post<Map<String, dynamic>>(
@@ -661,12 +661,12 @@ class FinanceRepository {
     return TransactionLinkModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Deletar vinculação por ID ou UUID
+  /// Delete link by ID or UUID
   Future<void> deleteTransactionLink(String linkId) async {
     await _client.client.delete('${ApiEndpoints.transactionLinks}$linkId/');
   }
 
-  /// Buscar resumo de despesas pendentes
+  /// Fetch pending expenses summary
   Future<Map<String, dynamic>> fetchPendingSummary({
     String sortBy = 'urgency',
   }) async {
@@ -677,7 +677,7 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
-  /// Criar pagamento em lote (múltiplas vinculações)
+  /// Create bulk payment (multiple links)
   Future<Map<String, dynamic>> createBulkPayment({
     required List<Map<String, dynamic>> payments,
     String? description,
@@ -692,14 +692,14 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
-  /// Listar vinculações
+  /// List links
   Future<List<TransactionLinkModel>> fetchTransactionLinks({
     String? linkType,
     String? dateFrom,
     String? dateTo,
   }) async {
     try {
-      debugPrint('🔗 Buscando transaction links...');
+      debugPrint('🔗 Fetching transaction links...');
       
       final queryParams = <String, dynamic>{};
       if (linkType != null) queryParams['link_type'] = linkType;
@@ -711,29 +711,29 @@ class FinanceRepository {
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
       
-      debugPrint('✅ Resposta de links recebida - Status: ${response.statusCode}');
-      debugPrint('📦 Tipo de response.data: ${response.data.runtimeType}');
+      debugPrint('✅ Links response received - Status: ${response.statusCode}');
+      debugPrint('📦 Response data type: ${response.data.runtimeType}');
       
       final items = _extractListFromResponse(response.data);
-      debugPrint('🔗 ${items.length} links encontrados');
+      debugPrint('🔗 ${items.length} links found');
       
       return items
           .map((e) {
             if (e is! Map<String, dynamic>) {
-              debugPrint('⚠️ Item de link não é Map<String, dynamic>: ${e.runtimeType}');
-              throw Exception('Formato de link inválido');
+              debugPrint('⚠️ Link item is not Map<String, dynamic>: ${e.runtimeType}');
+              throw Exception('Invalid link format');
             }
             return TransactionLinkModel.fromMap(e);
           })
           .toList();
     } catch (e, stackTrace) {
-      debugPrint('🚨 Erro ao buscar transaction links: $e');
+      debugPrint('🚨 Error fetching transaction links: $e');
       debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }
 
-  /// Buscar relatório de pagamentos
+  /// Fetch payment report
   Future<Map<String, dynamic>> fetchPaymentReport({
     String? startDate,
     String? endDate,
@@ -801,7 +801,7 @@ class FinanceRepository {
     return response.data ?? {};
   }
 
-  /// Marca o primeiro acesso como concluído no backend
+  /// Marks first access as completed in backend
   Future<void> completeFirstAccess() async {
     await _client.client.patch<Map<String, dynamic>>(
       ApiEndpoints.profile,
@@ -811,9 +811,9 @@ class FinanceRepository {
     );
   }
 
-  // ======= Métodos de Leaderboard =======
+  // ======= Leaderboard Methods =======
 
-  /// Busca o ranking geral de usuários
+  /// Fetches general user leaderboard
   Future<LeaderboardResponse> fetchLeaderboard({
     int page = 1,
     int pageSize = 50,
@@ -828,7 +828,7 @@ class FinanceRepository {
     return LeaderboardResponse.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Busca o ranking de amigos
+  /// Fetches friends leaderboard
   Future<LeaderboardResponse> fetchFriendsLeaderboard() async {
     final response = await _client.client.get<Map<String, dynamic>>(
       '${ApiEndpoints.leaderboard}friends/',
@@ -836,9 +836,9 @@ class FinanceRepository {
     return LeaderboardResponse.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  // ======= Métodos de Amizade =======
+  // ======= Friendship Methods =======
 
-  /// Lista amigos aceitos
+  /// Lists accepted friends
   Future<List<FriendshipModel>> fetchFriends() async {
     final response = await _client.client.get<dynamic>(
       ApiEndpoints.friendships,
@@ -849,7 +849,7 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Lista solicitações pendentes recebidas
+  /// Lists pending received requests
   Future<List<FriendshipModel>> fetchFriendRequests() async {
     final response = await _client.client.get<dynamic>(
       '${ApiEndpoints.friendships}requests/',
@@ -860,7 +860,7 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Envia solicitação de amizade
+  /// Sends friend request
   Future<FriendshipModel> sendFriendRequest({required int friendId}) async {
     final response = await _client.client.post<Map<String, dynamic>>(
       '${ApiEndpoints.friendships}send_request/',
@@ -869,7 +869,7 @@ class FinanceRepository {
     return FriendshipModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Aceita solicitação de amizade
+  /// Accepts friend request
   Future<FriendshipModel> acceptFriendRequest({required String requestId}) async {
     final response = await _client.client.post<Map<String, dynamic>>(
       '${ApiEndpoints.friendships}$requestId/accept/',
@@ -877,21 +877,21 @@ class FinanceRepository {
     return FriendshipModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Rejeita solicitação de amizade
+  /// Rejects friend request
   Future<void> rejectFriendRequest({required String requestId}) async {
     await _client.client.post(
       '${ApiEndpoints.friendships}$requestId/reject/',
     );
   }
 
-  /// Remove amizade por ID ou UUID
+  /// Removes friendship by ID or UUID
   Future<void> removeFriend({required String friendshipId}) async {
     await _client.client.delete(
       '${ApiEndpoints.friendships}$friendshipId/',
     );
   }
 
-  /// Busca usuários por nome ou email
+  /// Searches users by name or email
   Future<List<UserSearchModel>> searchUsers({required String query}) async {
     if (query.trim().length < 2) {
       return [];

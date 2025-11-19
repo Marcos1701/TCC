@@ -48,7 +48,7 @@ class _LoginPageState extends State<LoginPage> {
           if (mounted) {
             FeedbackService.showSuccess(
               context,
-              'Login realizado com sucesso! 🎉',
+              'Login realizado com sucesso.',
             );
           }
         });
@@ -60,7 +60,6 @@ class _LoginPageState extends State<LoginPage> {
       FeedbackType type = FeedbackType.error;
       
       if (error is DioException) {
-        // Verifica tipo de erro
         if (error.type == DioExceptionType.connectionTimeout ||
             error.type == DioExceptionType.receiveTimeout ||
             error.type == DioExceptionType.sendTimeout) {

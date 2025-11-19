@@ -55,7 +55,7 @@ class MissionQualityMonitor extends StatelessWidget {
                   children: [
                     Text(
                       'Qualidade dos Dados: ${stats['quality_rate']}%',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -65,7 +65,7 @@ class MissionQualityMonitor extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '$invalidCount missão(ões) com placeholders filtrada(s)',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                         ),

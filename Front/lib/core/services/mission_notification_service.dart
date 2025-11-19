@@ -5,21 +5,21 @@ import 'dart:convert';
 import '../models/mission_progress.dart';
 import 'feedback_service.dart';
 
-/// Serviço para notificar sobre status de missões
+/// Service to notify about mission status
 class MissionNotificationService {
   static const _storage = FlutterSecureStorage();
   static const _notifiedExpiringKey = 'notified_expiring_missions';
   static const _notifiedNewKey = 'notified_new_missions';
   static const _lastMissionCheckKey = 'last_mission_check';
 
-  /// Verifica missões próximas de expirar e notifica o usuário
+  /// Checks for missions close to expiring and notifies the user
   static Future<void> checkExpiringMissions({
     required BuildContext context,
     required List<MissionProgressModel> missions,
   }) async {
     if (!context.mounted) return;
 
-    // Obter lista de missões já notificadas
+    // Get list of already notified missions
     final notifiedStr = await _storage.read(key: _notifiedExpiringKey);
     final Set<int> alreadyNotified = notifiedStr != null
         ? (jsonDecode(notifiedStr) as List).cast<int>().toSet()
@@ -33,19 +33,16 @@ class MissionNotificationService {
         continue;
       }
 
-      // Calcular data de expiração: startedAt + durationDays
       final startedAt = mission.startedAt;
       if (startedAt == null) continue;
 
       final expiresAt = startedAt.add(Duration(days: mission.mission.durationDays));
       final timeUntilExpiry = expiresAt.difference(now);
 
-      // Notificar missões que expiram em menos de 24 horas
       if (timeUntilExpiry.inHours > 0 && timeUntilExpiry.inHours <= 24) {
         expiringMissions.add(mission);
         alreadyNotified.add(mission.id);
       }
-      // Notificar missões que expiram em menos de 3 dias (mas mais de 24h)
       else if (timeUntilExpiry.inHours > 24 && timeUntilExpiry.inDays <= 3) {
         if (!alreadyNotified.contains(mission.id)) {
           expiringMissions.add(mission);
@@ -54,15 +51,12 @@ class MissionNotificationService {
       }
     }
 
-    // Salvar lista atualizada
     await _storage.write(
       key: _notifiedExpiringKey,
       value: jsonEncode(alreadyNotified.toList()),
     );
 
-    // Exibir notificações
     for (final mission in expiringMissions) {
-      // Calcular data de expiração
       final startedAt = mission.startedAt;
       if (startedAt == null) continue;
 
@@ -88,26 +82,25 @@ class MissionNotificationService {
           duration: const Duration(seconds: 6),
         );
         
-        // Aguardar um pouco antes da próxima notificação
         await Future.delayed(const Duration(milliseconds: 500));
       }
     }
   }
 
-  /// Verifica se há novas missões disponíveis
+  /// Checks if there are new missions available
   static Future<void> checkNewMissions({
     required BuildContext context,
     required List<MissionProgressModel> missions,
   }) async {
     if (!context.mounted) return;
 
-    // Obter timestamp da última verificação
+    // Get timestamp of last check
     final lastCheckStr = await _storage.read(key: _lastMissionCheckKey);
     final lastCheck = lastCheckStr != null
         ? DateTime.tryParse(lastCheckStr)
         : null;
 
-    // Obter lista de missões já notificadas como novas
+    // Get list of already notified new missions
     final notifiedStr = await _storage.read(key: _notifiedNewKey);
     final Set<int> alreadyNotified = notifiedStr != null
         ? (jsonDecode(notifiedStr) as List).cast<int>().toSet()
@@ -117,7 +110,7 @@ class MissionNotificationService {
     final List<MissionProgressModel> newMissions = [];
 
     for (final mission in missions) {
-      // Verificar se é uma missão nova (iniciada recentemente)
+      // Check if it's a new mission (started recently)
       if (alreadyNotified.contains(mission.id)) {
         continue;
       }
@@ -125,32 +118,32 @@ class MissionNotificationService {
       final startedAt = mission.startedAt;
       if (startedAt == null) continue;
 
-      // Se é a primeira verificação, não notificar missões antigas
+      // If it's the first check, don't notify old missions
       if (lastCheck == null) {
         alreadyNotified.add(mission.id);
         continue;
       }
 
-      // Missão foi iniciada depois da última verificação
+      // Mission was started after the last check
       if (startedAt.isAfter(lastCheck)) {
         newMissions.add(mission);
         alreadyNotified.add(mission.id);
       }
     }
 
-    // Salvar timestamp da verificação atual
+    // Save current check timestamp
     await _storage.write(
       key: _lastMissionCheckKey,
       value: now.toIso8601String(),
     );
 
-    // Salvar lista atualizada de missões notificadas
+    // Save updated list of notified missions
     await _storage.write(
       key: _notifiedNewKey,
       value: jsonEncode(alreadyNotified.toList()),
     );
 
-    // Exibir notificações de novas missões
+    // Show notifications for new missions
     if (newMissions.isNotEmpty && context.mounted) {
       if (newMissions.length == 1) {
         FeedbackService.showBanner(
@@ -170,11 +163,11 @@ class MissionNotificationService {
     }
   }
 
-  /// Inicializa o serviço salvando o timestamp atual (primeira vez)
+  /// Initializes the service by saving the current timestamp (first time)
   static Future<void> initialize() async {
     final lastCheckStr = await _storage.read(key: _lastMissionCheckKey);
     if (lastCheckStr == null) {
-      // Primeira vez - salvar timestamp atual
+      // First time - save current timestamp
       await _storage.write(
         key: _lastMissionCheckKey,
         value: DateTime.now().toIso8601String(),
@@ -182,14 +175,14 @@ class MissionNotificationService {
     }
   }
 
-  /// Limpa histórico de notificações (útil para debug)
+  /// Clears notification history (useful for debug)
   static Future<void> clearNotificationHistory() async {
     await _storage.delete(key: _notifiedExpiringKey);
     await _storage.delete(key: _notifiedNewKey);
     await _storage.delete(key: _lastMissionCheckKey);
   }
 
-  /// Obtém resumo de missões críticas (para exibir em UI)
+  /// Gets summary of critical missions (to display in UI)
   static Future<MissionSummary> getMissionSummary(
     List<MissionProgressModel> missions,
   ) async {
@@ -213,7 +206,7 @@ class MissionNotificationService {
 
       activeCount++;
       
-      // Calcular data de expiração
+      // Calculate expiration date
       final startedAt = mission.startedAt;
       if (startedAt == null) continue;
 
@@ -236,7 +229,7 @@ class MissionNotificationService {
   }
 }
 
-/// Resumo do status das missões
+/// Summary of mission status
 class MissionSummary {
   final int activeCount;
   final int expiringSoon;

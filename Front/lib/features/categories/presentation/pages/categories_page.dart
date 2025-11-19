@@ -51,12 +51,12 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   void _applyFilters() {
     _filteredCategories = _allCategories.where((category) {
-      // Filtro de tipo
+      // Type filter
       if (_selectedType != 'ALL' && category.type != _selectedType) {
         return false;
       }
 
-      // Filtro de busca
+      // Search filter
       if (_searchQuery.isNotEmpty) {
         return category.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }
@@ -93,11 +93,11 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   Future<void> _editCategory(CategoryModel category) async {
-    // Verificar se é categoria global (não pode editar)
+    // Check if global category (cannot edit)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Categorias globais não podem ser editadas'),
+          content: Text('Categorias do sistema não podem ser editadas.'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -125,18 +125,18 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   Future<void> _deleteCategory(CategoryModel category) async {
-    // Verificar se é categoria global (não pode deletar)
+    // Check if global category (cannot delete)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Categorias globais não podem ser deletadas'),
+          content: Text('Categorias do sistema não podem ser deletadas.'),
           backgroundColor: AppColors.warning,
         ),
       );
       return;
     }
 
-    // Confirmação
+    // Confirmation
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -176,7 +176,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
       }
     } catch (e) {
       if (mounted) {
-        // Extrair mensagem de erro mais amigável
+        // Extract friendlier error message
         String errorMessage = 'Erro ao deletar categoria';
         final errorStr = e.toString().toLowerCase();
         
@@ -187,7 +187,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
         } else if (errorStr.contains('sistema') || errorStr.contains('system') || errorStr.contains('padrão')) {
           errorMessage = 'Categorias do sistema não podem ser excluídas.';
         } else if (errorStr.contains('vinculada')) {
-          // Capturar qualquer mensagem que mencione algo vinculado
+          // Capture any message mentioning something linked
           errorMessage = 'Esta categoria está em uso e não pode ser excluída.';
         } else if (errorStr.contains('400') || errorStr.contains('bad request')) {
           errorMessage = 'Não foi possível excluir esta categoria.\nEla pode estar em uso em transações ou metas.';
@@ -211,7 +211,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Separar categorias globais e personalizadas
+    // Separate global and custom categories
     final globalCategories = _filteredCategories
         .where((c) => !c.isUserCreated)
         .toList()
@@ -229,7 +229,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
       ),
       body: Column(
         children: [
-          // Barra de busca
+          // Search bar
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
@@ -245,7 +245,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
             ),
           ),
 
-          // Filtro de tipo
+          // Type filter
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -261,7 +261,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
           const SizedBox(height: 16),
 
-          // Lista de categorias
+          // Category list
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -275,7 +275,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        // Categorias Globais
+                        // Global Categories
                         if (globalCategories.isNotEmpty) ...[
                           const Text(
                             'Categorias do Sistema',
@@ -290,7 +290,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
                           const SizedBox(height: 24),
                         ],
 
-                        // Categorias Personalizadas
+                        // Custom Categories
                         if (userCategories.isNotEmpty) ...[
                           const Text(
                             'Minhas Categorias',
