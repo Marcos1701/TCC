@@ -11,7 +11,6 @@ urlpatterns = [
     path("api/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
 ]
 
-# Django Debug Toolbar URLs (apenas em DEBUG mode)
 if settings.DEBUG:
     import debug_toolbar
     urlpatterns = [

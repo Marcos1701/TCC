@@ -27,7 +27,6 @@ class TransactionsViewModel extends ChangeNotifier {
   String? _filter;
   String? _errorMessage;
   
-  // Paginação
   bool _hasMore = true;
   int _currentOffset = 0;
   final int _pageSize = 50;

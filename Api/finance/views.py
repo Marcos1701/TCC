@@ -59,22 +59,8 @@ from .services import (
 User = get_user_model()
 
 
-# ============================================================================
-# CACHE INVALIDATION HELPER
-# ============================================================================
 def invalidate_user_dashboard_cache(user):
-    """
-    Invalida todos os caches relacionados ao usuário.
-    
-    Deve ser chamado ao:
-    - Criar/editar/deletar Transaction
-    - Criar/editar/deletar TransactionLink
-    - Criar/editar/deletar Goal
-    - Completar missão
-    
-    Args:
-        user: Usuário cujo cache deve ser invalidado
-    """
+    """Invalida todos os caches relacionados ao usuário."""
     cache_keys = [
         f'dashboard_main_{user.id}',
         f'summary_{user.id}',
@@ -84,7 +70,6 @@ def invalidate_user_dashboard_cache(user):
     for key in cache_keys:
         cache.delete(key)
     
-    # Invalidar cache de indicadores também (UserProfile)
     invalidate_indicators_cache(user)
 
 
@@ -127,9 +112,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 'is_system_default': 'Apenas administradores podem criar categorias de sistema.'
             })
         
-        # Se for admin criando categoria global
         if is_creating_global and user.is_staff:
-            # Validar unicidade global
             name = data.get('name', '').strip()
             category_type = data.get('type')
             
@@ -144,7 +127,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
                     'name': f'Já existe uma categoria global "{name}" do tipo {category_type}.'
                 })
             
-            # Criar categoria global (sem user)
             serializer.save(user=None, is_system_default=True)
             return
         
@@ -176,25 +158,21 @@ class CategoryViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         user = self.request.user
         
-        # Apenas admins podem editar categorias globais/de sistema
         if instance.user is None and not user.is_staff:
             raise ValidationError({
                 'non_field_errors': 'Apenas administradores podem editar categorias globais.'
             })
         
-        # Se for categoria de usuário, validar que pertence ao usuário atual
         if instance.user is not None and instance.user != user:
             raise ValidationError({
                 'non_field_errors': 'Você não pode editar categorias de outros usuários.'
             })
         
-        # Validar unicidade ao atualizar nome
         data = serializer.validated_data
         if 'name' in data:
             name = data['name'].strip()
             category_type = data.get('type', instance.type)
             
-            # Para categorias globais
             if instance.user is None:
                 existing = Category.objects.filter(
                     user__isnull=True,
@@ -206,7 +184,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
                     raise ValidationError({
                         'name': f'Já existe uma categoria global "{name}" do tipo {category_type}.'
                     })
-            # Para categorias de usuário
             else:
                 existing = Category.objects.filter(
                     user=user,
@@ -219,7 +196,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
                         'name': f'Já existe uma categoria "{name}" do tipo {category_type} para você.'
                     })
         
-        # Não permitir mudança de is_system_default após criação
         if 'is_system_default' in data and data['is_system_default'] != instance.is_system_default:
             raise ValidationError({
                 'is_system_default': 'Não é possível alterar o status de categoria de sistema.'
@@ -233,21 +209,18 @@ class CategoryViewSet(viewsets.ModelViewSet):
         user = self.request.user
         logger.info(f"Tentando deletar categoria ID={instance.id}, name={instance.name}, user={instance.user}, is_system_default={instance.is_system_default}")
         
-        # Apenas admins podem deletar categorias globais
         if instance.user is None and not user.is_staff:
             logger.warning(f"Usuário não-admin {user} tentou deletar categoria global: {instance.name}")
             raise ValidationError({
                 'non_field_errors': 'Apenas administradores podem excluir categorias globais.'
             })
         
-        # Se for categoria de usuário, validar que pertence ao usuário atual
         if instance.user is not None and instance.user != user:
             logger.warning(f"Usuário {user} tentou deletar categoria de outro usuário: {instance.user}")
             raise ValidationError({
                 'non_field_errors': 'Você não pode excluir categorias de outros usuários.'
             })
         
-        # Verificar se categoria tem transações vinculadas
         transaction_count = Transaction.objects.filter(category=instance).count()
         if transaction_count > 0:
             logger.warning(f"Categoria {instance.name} possui {transaction_count} transações vinculadas")
@@ -255,7 +228,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Esta categoria possui {transaction_count} transação(ões) vinculada(s). Reatribua as transações antes de excluir.'
             })
         
-        # Verificar se categoria tem metas vinculadas
         goal_count = Goal.objects.filter(target_category=instance).count()
         if goal_count > 0:
             logger.warning(f"Categoria {instance.name} possui {goal_count} metas vinculadas")

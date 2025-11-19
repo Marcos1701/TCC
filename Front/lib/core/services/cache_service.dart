@@ -67,8 +67,8 @@ class CacheService {
     if (age > maxAgeMinutes * 60 * 1000) return null;
     
     final data = _dashboard.get('data');
-    if (data is Map) {
-      return Map<String, dynamic>.from(data as Map);
+    if (data is Map<String, dynamic>) {
+      return data;
     }
     return null;
   }

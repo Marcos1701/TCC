@@ -38,15 +38,12 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 if not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
-# Railway.app: Adiciona automaticamente o domínio do Railway
 railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
 if railway_domain and railway_domain not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(railway_domain)
 
-# Railway.app: Adiciona domínio interno se disponível
 railway_static_url = os.getenv("RAILWAY_STATIC_URL")
 if railway_static_url:
-    # Extrai o domínio da URL (ex: https://tcc-production-668a.up.railway.app -> tcc-production-668a.up.railway.app)
     try:
         from urllib.parse import urlparse
         domain = urlparse(railway_static_url).netloc
@@ -71,7 +68,6 @@ INSTALLED_APPS = [
     "finance",
 ]
 
-# Django Debug Toolbar (apenas em DEBUG mode)
 if DEBUG:
     INSTALLED_APPS += ["debug_toolbar"]
 
@@ -86,7 +82,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Django Debug Toolbar Middleware (apenas em DEBUG mode)
 if DEBUG:
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
@@ -168,8 +163,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # Não definir DEFAULT_PERMISSION_CLASSES permite que cada view defina suas próprias permissões
-    # Isso evita problemas com endpoints públicos como /api/token/ e /api/auth/register/
     "DEFAULT_RENDERER_CLASSES": (
         "rest_framework.renderers.JSONRenderer",
     ),
@@ -181,20 +174,16 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        # Taxas gerais
         "anon": f"{env_int('THROTTLE_ANON_RATE', 100)}/day",
         "user": f"{env_int('THROTTLE_USER_RATE', 2000)}/day",
-        
-        # Taxas específicas por operação (implementadas em throttling.py)
-        "burst": "30/minute",  # Prevenir burst attacks
-        "transaction_create": "100/hour",  # Criação de transações
-        "category_create": "20/hour",  # Criação de categorias
-        "link_create": "50/hour",  # Vinculação de transações
-        "goal_create": "10/hour",  # Criação de metas
-        "dashboard_refresh": "60/hour",  # Refresh de indicadores
-        "sensitive": "10/hour",  # Operações sensíveis
+        "burst": "30/minute",
+        "transaction_create": "100/hour",
+        "category_create": "20/hour",
+        "link_create": "50/hour",
+        "goal_create": "10/hour",
+        "dashboard_refresh": "60/hour",
+        "sensitive": "10/hour",
     },
-    # Paginação padrão para melhor performance
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 50,
 }
@@ -206,39 +195,19 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "UPDATE_LAST_LOGIN": True,
-    # Importante: Não levantar exceção para tokens inválidos em views públicas
-    # Isso permite que AllowAny funcione mesmo com tokens expirados
     "TOKEN_OBTAIN_SERIALIZER": "finance.authentication.EmailTokenObtainPairSerializer",
 }
 
-# ============================================================================
-# CACHE CONFIGURATION
-# ============================================================================
-# Usa database backend por padrão (fácil setup)
-# Para produção, recomenda-se Redis: pip install django-redis
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
         'LOCATION': 'django_cache_table',
-        'TIMEOUT': 300,  # 5 minutos padrão
+        'TIMEOUT': 300,
         'OPTIONS': {
             'MAX_ENTRIES': 1000,
         }
     }
 }
-
-# Para usar Redis em produção, descomente e configure:
-# CACHES = {
-#     'default': {
-#         'BACKEND': 'django_redis.cache.RedisCache',
-#         'LOCATION': env('REDIS_URL', 'redis://127.0.0.1:6379/1'),
-#         'OPTIONS': {
-#             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-#         },
-#         'KEY_PREFIX': 'finance',
-#         'TIMEOUT': 300,
-#     }
-# }
 
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",
@@ -247,35 +216,25 @@ CORS_ALLOWED_ORIGINS = env_list(
 CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL_ORIGINS", False)
 CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", True)
 
-# Gemini AI Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
-# Railway.app: Adiciona automaticamente os domínios do Railway ao CORS e CSRF
 if railway_static_url:
-    # RAILWAY_STATIC_URL já vem com o esquema completo (https://...)
-    # Garantir que está no formato correto
     if railway_static_url.startswith(("http://", "https://")):
-        # Adiciona ao CORS_ALLOWED_ORIGINS
         if railway_static_url not in CORS_ALLOWED_ORIGINS:
             CORS_ALLOWED_ORIGINS.append(railway_static_url)
-        
-        # Adiciona ao CSRF_TRUSTED_ORIGINS
         if railway_static_url not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(railway_static_url)
     else:
-        # Se não tiver esquema, assume https
         full_url = f"https://{railway_static_url}"
         if full_url not in CORS_ALLOWED_ORIGINS:
             CORS_ALLOWED_ORIGINS.append(full_url)
         if full_url not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(full_url)
 
-# Adiciona o domínio do frontend do Railway ao CORS
 frontend_url = os.getenv("FRONTEND_URL")
 if frontend_url:
-    # Garantir que tem esquema
     if not frontend_url.startswith(("http://", "https://")):
         frontend_url = f"https://{frontend_url}"
     
@@ -316,46 +275,28 @@ LOGGING = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-# ============================================================================
-# CELERY CONFIGURATION
-# ============================================================================
-
-# Broker e Backend - Railway usa variáveis de ambiente do Redis
-# Railway automaticamente injeta REDIS_URL quando você adiciona o serviço Redis
 CELERY_BROKER_URL = os.getenv('REDIS_URL', os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'))
 
-# Para Railway: usar mesma URL do Redis para results (mais simples)
-# Em desenvolvimento local: usar django-db
 if os.getenv('RAILWAY_ENVIRONMENT'):
-    # Produção no Railway - usar Redis para tudo
     CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 else:
-    # Desenvolvimento local - usar Django DB
     CELERY_RESULT_BACKEND = 'django-db'
 
-# Celery Beat Scheduler (usar Django DB em ambos os ambientes)
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-
-# Timezone
 CELERY_TIMEZONE = 'America/Sao_Paulo'
 CELERY_ENABLE_UTC = True
 
-# Serialização
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_RESULT_SERIALIZER = 'json'
 
-# Configurações de Task
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutos
-CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutos
-CELERY_TASK_ACKS_LATE = True  # Reconhecer task apenas após conclusão
+CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60
+CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 4
 
-# Resultados
 CELERY_RESULT_EXTENDED = True
-CELERY_RESULT_EXPIRES = 60 * 60 * 24  # Resultados expiram em 24 horas
+CELERY_RESULT_EXPIRES = 60 * 60 * 24
 
-# Worker
-CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000  # Reiniciar worker após 1000 tasks
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000

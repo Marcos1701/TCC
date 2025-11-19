@@ -2,31 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/user_friendly_strings.dart';
 
-/// Widget reutilizável para exibir indicadores financeiros de forma visual e amigável.
-/// 
-/// Substitui a exibição técnica de métricas (TPS, RDR, ILI) por cards visuais
-/// com badges de status, barras de progresso e mensagens contextuais.
 class FriendlyIndicatorCard extends StatelessWidget {
-  /// Título do indicador (ex: "Você está guardando")
   final String title;
-  
-  /// Valor atual do indicador
   final double value;
-  
-  /// Valor alvo/meta do indicador
   final double target;
-  
-  /// Tipo de formatação do valor
   final IndicatorType type;
-  
-  /// Subtítulo opcional com contexto adicional
   final String? subtitle;
-  
-  /// Ícone personalizado (opcional, usa ícone do status por padrão)
   final IconData? customIcon;
-  
-  /// Se true, valores BAIXOS são melhores (ex: RDR)
-  /// Se false, valores ALTOS são melhores (ex: TPS, ILI)
   final bool lowerIsBetter;
 
   const FriendlyIndicatorCard({

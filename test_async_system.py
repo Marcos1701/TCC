@@ -1,19 +1,10 @@
 #!/usr/bin/env python
-"""
-Script para testar o sistema de geração assíncrona de missões.
-
-Testa:
-1. Celery workers estão rodando
-2. Redis está acessível
-3. Task assíncrona funciona
-4. Polling de status funciona
-"""
+"""Script para testar o sistema de geração assíncrona de missões."""
 
 import os
 import sys
 import time
 
-# Setup Django
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Api'))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
@@ -89,7 +80,6 @@ def test_async_task():
         print(f"✅ Task iniciada: {task.id}")
         print("Aguardando conclusão (max 30s)...")
         
-        # Polling
         for i in range(30):
             time.sleep(1)
             

@@ -1,18 +1,4 @@
-"""
-Serviços de IA para geração de missões e sugestões inteligentes.
-
-Este módulo usa Google Gemini 2.5 Flash para:
-1. Gerar missões contextualizadas e inteligentes baseadas em diferentes cenários
-2. Sugerir categorias para transações baseado em descrição
-3. Personalizar experiência do usuário
-
-Estratégia de geração:
-- Cenários contextuais: Iniciante, TPS, RDR, ILI, Misto
-- Verificação de duplicação antes de gerar
-- Adaptação a diferentes faixas (BEGINNER, INTERMEDIATE, ADVANCED)
-- 20 missões por cenário/faixa
-- Custo estimado: ~$0.01/mês (tier gratuito até 1500 req/dia)
-"""
+"""Serviços de IA para geração de missões e sugestões inteligentes usando Google Gemini."""
 
 import google.generativeai as genai
 from django.conf import settings
@@ -22,11 +8,10 @@ from decimal import Decimal
 import json
 import datetime
 import logging
-import time  # Para adicionar delays entre requisições
+import time
 
 logger = logging.getLogger(__name__)
 
-# Configurar Gemini
 try:
     genai.configure(api_key=settings.GEMINI_API_KEY)
     model = genai.GenerativeModel('gemini-2.5-flash')
@@ -34,8 +19,6 @@ except Exception as e:
     logger.warning(f"Gemini API não configurada: {e}")
     model = None
 
-
-# ==================== DESCRIÇÕES DAS FAIXAS DE USUÁRIOS ====================
 
 USER_TIER_DESCRIPTIONS = {
     'BEGINNER': """

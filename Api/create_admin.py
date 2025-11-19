@@ -1,15 +1,9 @@
-"""
-Script para criar usuário administrador para testes de IA.
-
-Uso:
-    python create_admin.py
-"""
+"""Script para criar usuário administrador."""
 
 import os
 import sys
 import django
 
-# Setup Django
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
@@ -21,8 +15,6 @@ User = get_user_model()
 
 def create_admin_user():
     """Cria usuário admin para testes."""
-    
-    # Verificar se já existe admin
     if User.objects.filter(is_superuser=True).exists():
         print("✓ Já existe um superusuário no sistema.")
         admin = User.objects.filter(is_superuser=True).first()
@@ -35,7 +27,6 @@ def create_admin_user():
     
     print("\n=== Criar Usuário Administrador ===\n")
     
-    # Coletar dados
     email = input("Email: ").strip()
     username = input("Username (opcional, pressione Enter para usar email): ").strip()
     password = input("Senha: ").strip()
@@ -43,7 +34,6 @@ def create_admin_user():
     if not username:
         username = email.split('@')[0]
     
-    # Validações básicas
     if not email or not password:
         print("\n❌ Email e senha são obrigatórios!")
         return
@@ -56,7 +46,6 @@ def create_admin_user():
         print(f"\n❌ Já existe um usuário com o username {username}")
         return
     
-    # Criar usuário
     try:
         user = User.objects.create_user(
             username=username,
@@ -76,7 +65,6 @@ def create_admin_user():
         print("\n📝 Você pode usar estas credenciais para:")
         print("   1. Acessar o Django Admin: http://localhost:8000/admin/")
         print("   2. Gerar missões via API: POST /api/missions/generate_ai_missions/")
-        
     except Exception as e:
         print(f"\n❌ Erro ao criar usuário: {e}")
 

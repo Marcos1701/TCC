@@ -11,7 +11,6 @@ print("="*80)
 print("CORRIGINDO MISSÕES DO SISTEMA")
 print("="*80)
 
-# 1. Corrigir validation_type das missões ILI_BUILDING
 print("\n1️⃣  Corrigindo validation_type das missões ILI_BUILDING...")
 ili_missions = Mission.objects.filter(mission_type='ILI_BUILDING')
 for mission in ili_missions:
@@ -21,7 +20,6 @@ for mission in ili_missions:
         mission.save()
         print(f"   ✅ Missão {mission.id} '{mission.title}': {old_type} -> INDICATOR_THRESHOLD")
 
-# 2. Corrigir validation_type das missões TPS_IMPROVEMENT
 print("\n2️⃣  Corrigindo validation_type das missões TPS_IMPROVEMENT...")
 tps_missions = Mission.objects.filter(mission_type='TPS_IMPROVEMENT')
 for mission in tps_missions:
@@ -31,7 +29,6 @@ for mission in tps_missions:
         mission.save()
         print(f"   ✅ Missão {mission.id} '{mission.title}': {old_type} -> INDICATOR_IMPROVEMENT")
 
-# 3. Corrigir validation_type das missões RDR_REDUCTION
 print("\n3️⃣  Corrigindo validation_type das missões RDR_REDUCTION...")
 rdr_missions = Mission.objects.filter(mission_type='RDR_REDUCTION')
 for mission in rdr_missions:
@@ -41,7 +38,6 @@ for mission in rdr_missions:
         mission.save()
         print(f"   ✅ Missão {mission.id} '{mission.title}': {old_type} -> INDICATOR_IMPROVEMENT")
 
-# 4. Corrigir validation_type das missões CATEGORY_REDUCTION
 print("\n4️⃣  Corrigindo validation_type das missões CATEGORY_REDUCTION...")
 cat_missions = Mission.objects.filter(mission_type='CATEGORY_REDUCTION')
 for mission in cat_missions:
@@ -51,7 +47,6 @@ for mission in cat_missions:
         mission.save()
         print(f"   ✅ Missão {mission.id} '{mission.title}': {old_type} -> CATEGORY_REDUCTION")
 
-# 5. Corrigir validation_type das missões CATEGORY_SPENDING_LIMIT
 print("\n5️⃣  Corrigindo validation_type das missões CATEGORY_SPENDING_LIMIT...")
 limit_missions = Mission.objects.filter(mission_type='CATEGORY_SPENDING_LIMIT')
 for mission in limit_missions:
@@ -61,7 +56,6 @@ for mission in limit_missions:
         mission.save()
         print(f"   ✅ Missão {mission.id} '{mission.title}': {old_type} -> CATEGORY_LIMIT")
 
-# 6. Corrigir validation_type das missões GOAL_ACHIEVEMENT
 print("\n6️⃣  Corrigindo validation_type das missões GOAL_ACHIEVEMENT...")
 goal_missions = Mission.objects.filter(mission_type='GOAL_ACHIEVEMENT')
 for mission in goal_missions:
@@ -71,7 +65,6 @@ for mission in goal_missions:
         mission.save()
         print(f"   ✅ Missão {mission.id} '{mission.title}': {old_type} -> GOAL_PROGRESS")
 
-# 7. Configurar min_ili para missões ILI que não têm
 print("\n7️⃣  Configurando min_ili para missões ILI_BUILDING...")
 from decimal import Decimal
 ili_configs = [

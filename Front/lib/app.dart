@@ -3,7 +3,6 @@ import 'core/state/session_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/auth/auth_flow.dart';
 
-/// Casca raiz do app, responsável por iniciar sessão e aplicar o tema institucional.
 class GenApp extends StatefulWidget {
   const GenApp({super.key});
 
