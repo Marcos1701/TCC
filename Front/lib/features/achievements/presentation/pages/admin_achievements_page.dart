@@ -3,14 +3,6 @@ import '../../data/models/achievement.dart';
 import '../../data/services/achievement_service.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
 
-/// Página administrativa para gerenciar conquistas (CRUD + Geração IA)
-/// 
-/// Funcionalidades:
-/// - CRUD completo de conquistas
-/// - Geração automática com Google Gemini AI
-/// - Filtros por categoria, tier, origem (IA/manual)
-/// - Busca por título/descrição
-/// - Estatísticas administrativas
 class AdminAchievementsPage extends StatefulWidget {
   const AdminAchievementsPage({super.key});
 
@@ -26,15 +18,13 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
   List<Achievement> _achievements = [];
   String? _error;
   
-  // Filtros
   String _filterCategory = 'ALL';
   String _filterTier = 'ALL';
-  String _filterOrigin = 'ALL'; // ALL, AI, MANUAL
-  String _filterStatus = 'ALL'; // ALL, ACTIVE, INACTIVE
+  String _filterOrigin = 'ALL';
+  String _filterStatus = 'ALL';
   String _searchQuery = '';
-  String _sortBy = 'priority_asc'; // priority_asc, points_desc, points_asc, date_desc, date_asc
+  String _sortBy = 'priority_asc';
   
-  // Geração IA
   bool _isGeneratingAI = false;
   String _selectedAiCategory = 'ALL';
   String _selectedAiTier = 'ALL';
@@ -81,25 +71,20 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
 
   List<Achievement> get _filteredAndSortedAchievements {
     var filtered = _achievements.where((achievement) {
-      // Filtro por categoria
       if (_filterCategory != 'ALL' && achievement.category != _filterCategory) {
         return false;
       }
 
-      // Filtro por tier
       if (_filterTier != 'ALL' && achievement.tier != _filterTier) {
         return false;
       }
 
-      // Filtro por origem
       if (_filterOrigin == 'AI' && !achievement.isAiGenerated) return false;
       if (_filterOrigin == 'MANUAL' && achievement.isAiGenerated) return false;
 
-      // Filtro por status
       if (_filterStatus == 'ACTIVE' && !achievement.isActive) return false;
       if (_filterStatus == 'INACTIVE' && achievement.isActive) return false;
 
-      // Filtro por busca
       if (_searchQuery.isNotEmpty) {
         final query = _searchQuery.toLowerCase();
         final title = achievement.title.toLowerCase();
@@ -110,7 +95,6 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
       return true;
     }).toList();
 
-    // Ordenação
     filtered.sort((a, b) {
       switch (_sortBy) {
         case 'priority_asc':

@@ -231,31 +231,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Métricas principais
             _buildMetricsGrid(),
             const SizedBox(height: 24),
-
-            // Ações rápidas
             _buildQuickActions(),
             const SizedBox(height: 24),
-
-            // Estatísticas de missões
             _buildMissionStats(),
             const SizedBox(height: 24),
-
-            // Top Usuários
             _buildTopUsers(),
             const SizedBox(height: 24),
-
-            // Distribuição de Níveis
             _buildLevelDistribution(),
             const SizedBox(height: 24),
-
-            // Saúde do Sistema
             _buildSystemHealth(),
             const SizedBox(height: 24),
-
-            // Atividade recente
             _buildRecentActivity(),
           ],
         ),
@@ -382,7 +369,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
               _ActionTile(
                 icon: Icons.rocket_launch,
                 title: 'Gerenciar Missões',
-                subtitle: 'CRUD manual + Carga automática com IA',
+                subtitle: 'Criar, editar e gerar missões com IA',
                 color: AppColors.primary,
                 onTap: () => Navigator.push(
                   context,
@@ -408,7 +395,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
               _ActionTile(
                 icon: Icons.manage_accounts,
                 title: 'Gerenciar Usuários',
-                subtitle: 'Visualizar, ativar/desativar, ajustar XP',
+                subtitle: 'Visualizar e gerenciar contas de usuários',
                 color: Colors.deepPurple,
                 onTap: () => Navigator.push(
                   context,
@@ -463,9 +450,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
             child: Column(
               children: [
                 if (missionsByDifficulty != null) ...[
-                  AdminStatRow(label: 'Fácil', value: getInt(missionsByDifficulty, 'EASY')),
-                  AdminStatRow(label: 'Média', value: getInt(missionsByDifficulty, 'MEDIUM')),
-                  AdminStatRow(label: 'Difícil', value: getInt(missionsByDifficulty, 'HARD')),
+                  AdminStatRow(label: 'Fácil', value: getInt(missionsByDifficulty, 'easy')),
+                  AdminStatRow(label: 'Média', value: getInt(missionsByDifficulty, 'medium')),
+                  AdminStatRow(label: 'Difícil', value: getInt(missionsByDifficulty, 'hard')),
                   Divider(height: 24, color: Colors.grey[800]),
                 ],
                 if (missionsByType != null) ...[
@@ -948,7 +935,3 @@ class _ActionTile extends StatelessWidget {
     );
   }
 }
-
-
-
-

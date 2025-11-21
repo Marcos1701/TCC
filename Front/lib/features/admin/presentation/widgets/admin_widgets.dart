@@ -1,6 +1,3 @@
-/// Widgets compartilhados para interfaces administrativas
-/// 
-/// Exporta todos os widgets reutilizáveis para evitar imports duplicados
 library admin_widgets;
 
 export 'admin_section_header.dart';

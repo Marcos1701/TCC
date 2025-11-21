@@ -26,13 +26,11 @@ class _AdminMissionsManagementPageState
   final String _filterStatus = 'ALL'; // ALL, ACTIVE, PAUSED
   String _filterQuality = 'ALL'; // ALL, VALID, INVALID
   String _searchQuery = '';
-  String _sortBy = 'xp_desc'; // xp_desc, xp_asc, difficulty_desc, difficulty_asc, date_desc, date_asc
+  String _sortBy = 'xp_desc';
   
-  // Sele��o m�ltipla para a��es em lote
   final Set<String> _selectedMissions = {};
   bool _isSelectionMode = false;
   
-  // Controles para gera��o de miss�es IA
   bool _isGeneratingAI = false;
   String _selectedTier = 'ALL';
   int _generationProgress = 0;
@@ -40,10 +38,10 @@ class _AdminMissionsManagementPageState
   String _generationMessage = '';
   
   final _tierOptions = {
-    'ALL': 'Todas as Faixas (60 miss�es)',
-    'BEGINNER': 'Iniciantes (20 miss�es)',
-    'INTERMEDIATE': 'Intermedi�rios (20 miss�es)',
-    'ADVANCED': 'Avan�ados (20 miss�es)',
+    'ALL': 'Todas as Faixas (60 missões)',
+    'BEGINNER': 'Iniciantes (20 missões)',
+    'INTERMEDIATE': 'Intermediários (20 missões)',
+    'ADVANCED': 'Avançados (20 missões)',
   };
 
   @override
