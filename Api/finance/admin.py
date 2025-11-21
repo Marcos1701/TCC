@@ -3,20 +3,10 @@ from django.contrib import admin
 from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, XPTransaction, Friendship
 
 
-class MissionProgressInline(admin.TabularInline):
-    model = MissionProgress
-    extra = 0
-    readonly_fields = ("mission", "status", "progress", "completed_at", "updated_at")
-    can_delete = False
-    show_change_link = True
-    fields = ("mission", "status", "progress", "completed_at")
-
-
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "level", "experience_points", "target_tps", "target_rdr")
     search_fields = ("user__username", "user__email")
-    inlines = [MissionProgressInline]
 
 
 @admin.register(Category)
@@ -37,12 +27,30 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(TransactionLink)
 class TransactionLinkAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'source_transaction__description', 'target_transaction__description', 'linked_amount', 'link_type', 'created_at')
+    list_display = ('id', 'user', 'get_source_description', 'get_target_description', 'linked_amount', 'link_type', 'created_at')
     list_filter = ('link_type', 'is_recurring', 'created_at')
     search_fields = ('user__username', 'description')
     readonly_fields = ('created_at', 'updated_at', 'source_transaction_uuid', 'target_transaction_uuid')
     date_hierarchy = 'created_at'
     autocomplete_fields = ('user',)
+    
+    def get_source_description(self, obj):
+        """Obtém a descrição da transação de origem via UUID."""
+        try:
+            transaction = Transaction.objects.get(id=obj.source_transaction_uuid)
+            return transaction.description
+        except Transaction.DoesNotExist:
+            return "(não encontrada)"
+    get_source_description.short_description = "Transação Origem"
+    
+    def get_target_description(self, obj):
+        """Obtém a descrição da transação de destino via UUID."""
+        try:
+            transaction = Transaction.objects.get(id=obj.target_transaction_uuid)
+            return transaction.description
+        except Transaction.DoesNotExist:
+            return "(não encontrada)"
+    get_target_description.short_description = "Transação Destino"
 
 
 @admin.register(Goal)
@@ -68,9 +76,9 @@ class MissionProgressAdmin(admin.ModelAdmin):
 
 @admin.register(XPTransaction)
 class XPTransactionAdmin(admin.ModelAdmin):
-    list_display = ("user", "mission_progress__mission__title", "points_awarded", "level_transition", "created_at")
+    list_display = ("user", "get_mission_title", "points_awarded", "level_transition", "created_at")
     list_filter = ("created_at", "level_after")
-    search_fields = ("user__username", "user__email", "mission_progress__mission__title")
+    search_fields = ("user__username", "user__email")
     readonly_fields = (
         "user",
         "mission_progress",
@@ -82,6 +90,11 @@ class XPTransactionAdmin(admin.ModelAdmin):
         "created_at",
     )
     date_hierarchy = "created_at"
+    
+    def get_mission_title(self, obj):
+        """Obtém o título da missão relacionada."""
+        return obj.mission_progress.mission.title if obj.mission_progress and obj.mission_progress.mission else "(sem missão)"
+    get_mission_title.short_description = "Missão"
     
     def level_transition(self, obj):
         if obj.level_before == obj.level_after:
