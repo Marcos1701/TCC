@@ -114,13 +114,10 @@ class MissionsViewModel extends ChangeNotifier {
       } else {
         _errorMessage = UxStrings.errorLoadingChallenges;
       }
-
-      debugPrint('${UxStrings.errorLoadingChallenges}: ${e.toString()}');
     } catch (e) {
       _state = MissionsViewState.error;
       _errorMessage =
           'Erro inesperado ao carregar ${UxStrings.challenges.toLowerCase()}.';
-      debugPrint('${UxStrings.errorLoadingChallenges}: $e');
     } finally {
       notifyListeners();
     }
@@ -146,12 +143,6 @@ class MissionsViewModel extends ChangeNotifier {
       // Filtra missões com placeholders
       _recommendedMissions = missions.where((m) => m.isValid).toList();
       
-      final filteredCount = missions.length - _recommendedMissions.length;
-      if (filteredCount > 0) {
-        debugPrint(
-          '🔍 Filtradas $filteredCount missões recomendadas com placeholders'
-        );
-      }
     } on DioException catch (e) {
       _catalogError = _mapDioError(
         e,
@@ -190,13 +181,6 @@ class MissionsViewModel extends ChangeNotifier {
       
       // Filtra missões com placeholders
       final validMissions = missions.where((m) => m.isValid).toList();
-      final filteredCount = missions.length - validMissions.length;
-      
-      if (filteredCount > 0) {
-        debugPrint(
-          '🔍 Filtradas $filteredCount missões da categoria $categoryId com placeholders'
-        );
-      }
       
       _missionsByCategory[categoryId] = validMissions;
       return validMissions;

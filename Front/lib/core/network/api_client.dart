@@ -70,8 +70,6 @@ class ApiClient {
                   }
                   
                   if (errorMessage != null) {
-                    debugPrint('🚨 API Error: $errorMessage');
-                    // Create a new DioException with the extracted message
                     final newError = DioException(
                       requestOptions: error.requestOptions,
                       response: error.response,

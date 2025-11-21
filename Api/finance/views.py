@@ -52,7 +52,6 @@ from .services import (
     indicator_insights,
     invalidate_indicators_cache,
     profile_snapshot,
-    recommend_missions,
     update_mission_progress,
 )
 
@@ -253,15 +252,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return super().get_throttles()
 
     def get_queryset(self):
-        from django.db.models import Count
+        from django.db.models import Count, Q
         
+        # Não podemos fazer Count de properties, então fazemos contagem via subquery
+        # ou deixamos para o serializer/API fazer isso
         qs = Transaction.objects.filter(
             user=self.request.user
         ).select_related(
             "category"
-        ).annotate(
-            outgoing_links_count_annotated=Count('outgoing_links'),
-            incoming_links_count_annotated=Count('incoming_links')
         )
         
         tx_type = self.request.query_params.get("type")
@@ -295,6 +293,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return qs.order_by("-date", "-created_at")
     
     def create(self, request, *args, **kwargs):
+        """Criar transação com XP reward."""
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -306,60 +305,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
         response_data['xp_earned'] = XP_PER_TRANSACTION
         
         return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
-        """
-        Criar transação com validações adicionais.
-        """
-        from rest_framework.exceptions import ValidationError
-        from decimal import Decimal
-        import logging
-        
-        logger = logging.getLogger(__name__)
-        logger.info(f"[TRANSACTION CREATE] User: {self.request.user.username}")
-        logger.info(f"[TRANSACTION CREATE] Validated data: {serializer.validated_data}")
-        
-        # Validações extras antes de salvar
-        user = self.request.user
-        data = serializer.validated_data
-        
-        category = data.get('category')
-        if category and category.user is not None and category.user != user:
-            logger.error(f"[TRANSACTION CREATE] Category validation failed: category.user={category.user}, user={user}")
-            raise ValidationError({
-                'category': 'A categoria selecionada não pertence a você.'
-            })
-        
-        from django.utils import timezone
-        today = timezone.now().date()
-        today_transactions = Transaction.objects.filter(
-            user=user,
-            created_at__date=today
-        ).count()
-        
-        if today_transactions >= 500:  # Limite razoável
-            raise ValidationError({
-                'non_field_errors': 'Limite de 500 transações por dia atingido.'
-            })
-        
-        total_today = Transaction.objects.filter(
-            user=user,
-            created_at__date=today
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-        
-        amount = data.get('amount', Decimal('0'))
-        if total_today + amount > Decimal('100000000'):  # 100 milhões por dia
-            raise ValidationError({
-                'amount': 'Limite de valor total diário atingido (100 milhões).'
-            })
-        
-        try:
-            logger.info(f"[TRANSACTION CREATE] Attempting to save transaction...")
-            instance = serializer.save()
-            logger.info(f"[TRANSACTION CREATE] Transaction saved successfully with ID: {instance.id}")
-        except Exception as e:
-            logger.error(f"[TRANSACTION CREATE] Error saving transaction: {type(e).__name__}: {str(e)}")
-            raise
-        
-        invalidate_user_dashboard_cache(self.request.user)
     
     def perform_update(self, serializer):
         from rest_framework.exceptions import ValidationError
@@ -799,6 +744,17 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
             links = links.filter(target_transaction__category_id=category_id)
         
         # Agrupar por dívida
+        # Otimizar: Carregar transactions relacionadas de uma vez
+        links_list = list(links)
+        source_uuids = {link.source_transaction_uuid for link in links_list}
+        target_uuids = {link.target_transaction_uuid for link in links_list}
+        all_uuids = source_uuids | target_uuids
+        
+        transactions_map = {
+            tx.id: tx 
+            for tx in Transaction.objects.filter(id__in=all_uuids)
+        }
+        
         by_debt = defaultdict(lambda: {
             'debt_id': None,
             'debt_description': '',
@@ -811,8 +767,11 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         
         total_paid = Decimal('0')
         
-        for link in links:
-            debt = link.target_transaction
+        for link in links_list:
+            debt = transactions_map.get(link.target_transaction_uuid)
+            if not debt:
+                continue
+                
             debt_id = debt.id
             
             if by_debt[debt_id]['debt_id'] is None:
@@ -823,11 +782,12 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
             by_debt[debt_id]['paid_amount'] += link.linked_amount
             total_paid += link.linked_amount
             
+            source = transactions_map.get(link.source_transaction_uuid)
             by_debt[debt_id]['payments'].append({
                 'id': link.id,
                 'amount': float(link.linked_amount),
                 'date': link.created_at.isoformat(),
-                'source': link.source_transaction.description
+                'source': source.description if source else 'N/A'
             })
         
         # Calcular remaining e percentage
@@ -3949,13 +3909,24 @@ class AdminStatsViewSet(viewsets.ViewSet):
                 date_joined__gte=seven_days_ago
             ).count()
             
-            # Users by level (detailed)
+            # Users by level (detailed) - Otimizado: 1 query ao invés de 22
+            from django.db.models import Count, Case, When, IntegerField
+            level_counts = UserProfile.objects.values('level').annotate(count=Count('id')).order_by('level')
+            
             users_by_level = {}
-            for level in range(1, 21):
-                count = UserProfile.objects.filter(level=level).count()
-                if count > 0:
+            level_21_plus = 0
+            
+            for item in level_counts:
+                level = item['level']
+                count = item['count']
+                
+                if level <= 20:
                     users_by_level[f'Level {level}'] = count
-            users_by_level['Level 21+'] = UserProfile.objects.filter(level__gte=21).count()
+                else:
+                    level_21_plus += count
+            
+            if level_21_plus > 0:
+                users_by_level['Level 21+'] = level_21_plus
             
             # Top users by XP
             top_users = UserProfile.objects.select_related('user').order_by('-experience_points')[:10]
@@ -4602,7 +4573,7 @@ class AchievementViewSet(viewsets.ModelViewSet):
         - Para admin: todas as conquistas
         - Para usuário comum: apenas conquistas ativas
         """
-        queryset = Achievement.objects.all()
+        queryset = Achievement.objects.all().order_by('-created_at')
         
         # Usuários comuns veem apenas conquistas ativas
         if not self.request.user.is_staff:

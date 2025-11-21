@@ -106,6 +106,7 @@ class _ProgressPageState extends State<ProgressPage> {
     try {
       categories = await _repository.fetchCategories();
     } catch (e) {
+      // Usa lista vazia em caso de erro
     }
     
     if (!mounted) return;

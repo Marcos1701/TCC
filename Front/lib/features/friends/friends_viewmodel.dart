@@ -52,7 +52,6 @@ class FriendsViewModel extends ChangeNotifier {
       _friendsError = null;
     } catch (e) {
       _friendsError = 'Erro ao carregar amigos: ${e.toString()}';
-      debugPrint('Erro ao carregar amigos: $e');
     } finally {
       _isLoadingFriends = false;
       notifyListeners();
@@ -70,7 +69,6 @@ class FriendsViewModel extends ChangeNotifier {
       _requestsError = null;
     } catch (e) {
       _requestsError = 'Erro ao carregar solicitações: ${e.toString()}';
-      debugPrint('Erro ao carregar solicitações: $e');
     } finally {
       _isLoadingRequests = false;
       notifyListeners();
@@ -96,7 +94,6 @@ class FriendsViewModel extends ChangeNotifier {
       _searchError = null;
     } catch (e) {
       _searchError = 'Erro ao buscar usuários: ${e.toString()}';
-      debugPrint('Erro ao buscar usuários: $e');
     } finally {
       _isSearching = false;
       notifyListeners();
@@ -119,7 +116,6 @@ class FriendsViewModel extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint('Erro ao enviar solicitação: $e');
       return false;
     }
   }
@@ -137,7 +133,6 @@ class FriendsViewModel extends ChangeNotifier {
       
       return true;
     } catch (e) {
-      debugPrint('Erro ao aceitar solicitação: $e');
       return false;
     }
   }
@@ -153,7 +148,6 @@ class FriendsViewModel extends ChangeNotifier {
       
       return true;
     } catch (e) {
-      debugPrint('Erro ao rejeitar solicitação: $e');
       return false;
     }
   }
@@ -169,7 +163,6 @@ class FriendsViewModel extends ChangeNotifier {
       
       return true;
     } catch (e) {
-      debugPrint('Erro ao remover amigo: $e');
       return false;
     }
   }

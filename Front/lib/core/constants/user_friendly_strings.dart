@@ -131,4 +131,17 @@ class UxStrings {
   static const loading = 'Carregando...';
   static const noData = 'Nenhum dado disponível';
   static const tryAgain = 'Tentar novamente';
+  
+  // ========== Admin (Contexto TCC) ==========
+  
+  static const adminPanel = 'Painel Admin';
+  static const userManagement = 'Gestão de Usuários';
+  static const systemStats = 'Estatísticas do Sistema';
+  static const generateMissions = 'Gerar Missões';
+  
+  // Mensagens simples para admin
+  static const adminAccessDenied = 'Acesso restrito ao desenvolvedor';
+  static const dataUpdated = 'Dados atualizados';
+  static const operationSuccess = 'Operação concluída';
+  static const operationFailed = 'Falha na operação';
 }

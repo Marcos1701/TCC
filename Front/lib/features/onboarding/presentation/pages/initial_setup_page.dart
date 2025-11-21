@@ -217,7 +217,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
     
     try {
       await _repository.completeFirstAccess();
-      debugPrint('✅ Primeiro acesso marcado como concluído (pulado)');
       
       if (mounted) {
         widget.onComplete?.call();
@@ -278,7 +277,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
           );
           successCount++;
         } catch (e) {
-          debugPrint('Erro ao criar transação: $e');
           errorCount++;
         }
       }

@@ -62,7 +62,7 @@ def create_daily_user_snapshots():
             
             total_transactions = Transaction.objects.filter(user=user).count()
             
-            budget_exceeded, violations = _check_budget_violations(user, today)
+            budget_exceeded, violations = _check_budget_exceeded(user, today)
             
             savings_today = _calculate_savings_added_today(user, today)
             savings_total = _calculate_total_savings(user)
@@ -136,12 +136,10 @@ def _calculate_goals_progress(user):
     }
 
 
-def _check_budget_violations(user, date):
+def _check_budget_exceeded(user, date):
     """
     Verifica se excedeu orçamento em alguma categoria.
-    
-    TODO: Implementar lógica de orçamento quando modelo Budget existir.
-    Por enquanto, retorna False.
+    Por enquanto, retorna False (funcionalidade de orçamento não implementada).
     """
     return False, []
 

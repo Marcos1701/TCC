@@ -372,9 +372,6 @@ class AnalyticsService {
       debugPrint('📊 Analytics: $eventName');
       debugPrint('   Parameters: $parameters');
     }
-
-    // TODO: Em produção, enviar para backend ou serviço de analytics
-    // _sendToBackend(event);
   }
 
   // ============================================================

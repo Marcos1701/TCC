@@ -28,7 +28,6 @@ class TransactionsViewModel extends ChangeNotifier {
   String? _errorMessage;
   
   bool _hasMore = true;
-  int _currentOffset = 0;
   final int _pageSize = 50;
   bool _isLoadingMore = false;
   
@@ -58,7 +57,6 @@ class TransactionsViewModel extends ChangeNotifier {
     _filter = type;
     _state = TransactionsViewState.loading;
     _errorMessage = null;
-    _currentOffset = 0;
     _hasMore = true;
     notifyListeners();
 
@@ -66,13 +64,11 @@ class TransactionsViewModel extends ChangeNotifier {
       _transactions = await _repository.fetchTransactions(type: type);
       _links = await _repository.fetchTransactionLinks();
       _hasMore = _transactions.length >= _pageSize;
-      _currentOffset = _transactions.length;
       _state = TransactionsViewState.success;
       _errorMessage = null;
     } catch (e) {
       _state = TransactionsViewState.error;
       _errorMessage = 'Erro ao carregar transações: ${e.toString()}';
-      debugPrint('Erro ao carregar transações: $e');
     } finally {
       notifyListeners();
     }
@@ -95,9 +91,8 @@ class TransactionsViewModel extends ChangeNotifier {
       }
       
       _transactions.addAll(moreTransactions);
-      _currentOffset += moreTransactions.length;
     } catch (e) {
-      debugPrint('Erro ao carregar mais transações: $e');
+      // Mantém estado atual em caso de erro
     } finally {
       _isLoadingMore = false;
       notifyListeners();

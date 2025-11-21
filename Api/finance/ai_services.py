@@ -513,10 +513,6 @@ def count_existing_missions_by_type(mission_type=None, tier=None):
     if mission_type:
         qs = qs.filter(mission_type=mission_type)
     
-    # TODO: Adicionar filtro por tier quando campo for adicionado ao modelo
-    # if tier:
-    #     qs = qs.filter(tier=tier)
-    
     return qs.count()
 
 

@@ -44,7 +44,6 @@ class LeaderboardViewModel extends ChangeNotifier {
       _generalError = null;
     } catch (e) {
       _generalError = 'Erro ao carregar ranking: ${e.toString()}';
-      debugPrint('Erro ao carregar ranking geral: $e');
     } finally {
       _isLoadingGeneral = false;
       notifyListeners();
@@ -67,7 +66,6 @@ class LeaderboardViewModel extends ChangeNotifier {
       );
     } catch (e) {
       _friendsError = 'Erro ao carregar ranking de amigos: ${e.toString()}';
-      debugPrint('Erro ao carregar ranking de amigos: $e');
     } finally {
       _isLoadingFriends = false;
       notifyListeners();

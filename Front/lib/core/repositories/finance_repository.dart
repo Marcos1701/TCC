@@ -699,8 +699,6 @@ class FinanceRepository {
     String? dateTo,
   }) async {
     try {
-      debugPrint('🔗 Fetching transaction links...');
-      
       final queryParams = <String, dynamic>{};
       if (linkType != null) queryParams['link_type'] = linkType;
       if (dateFrom != null) queryParams['date_from'] = dateFrom;
@@ -711,24 +709,18 @@ class FinanceRepository {
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
       
-      debugPrint('✅ Links response received - Status: ${response.statusCode}');
-      debugPrint('📦 Response data type: ${response.data.runtimeType}');
-      
       final items = _extractListFromResponse(response.data);
-      debugPrint('🔗 ${items.length} links found');
       
       return items
           .map((e) {
             if (e is! Map<String, dynamic>) {
-              debugPrint('⚠️ Link item is not Map<String, dynamic>: ${e.runtimeType}');
               throw Exception('Invalid link format');
             }
             return TransactionLinkModel.fromMap(e);
           })
           .toList();
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint('🚨 Error fetching transaction links: $e');
-      debugPrint('Stack trace: $stackTrace');
       rethrow;
     }
   }

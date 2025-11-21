@@ -2127,7 +2127,6 @@ class _AdminMissionsManagementPageState
           }
         } catch (e) {
           // Erro no polling, mas continuar tentando
-          print('Erro no polling: $e');
         }
       }
 

@@ -102,6 +102,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
       _viewModel.removeTransactionOptimistic(transaction.id);
     });
     
+    if (!mounted) return;
     FeedbackService.showSuccess(
       context,
       'Transação removida com sucesso.',

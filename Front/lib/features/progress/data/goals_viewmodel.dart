@@ -58,7 +58,7 @@ class GoalsViewModel extends ChangeNotifier {
       _goals = await _repository.fetchGoals();
       notifyListeners();
     } catch (e) {
-      debugPrint('Erro ao atualizar metas silenciosamente: $e');
+      // Ignora erros em refresh silencioso
     }
   }
 

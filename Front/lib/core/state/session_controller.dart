@@ -28,9 +28,7 @@ class SessionController extends ChangeNotifier {
 
   ProfileModel? get profile => _session?.profile;
 
-  /// Callback chamado quando o ApiClient detectar que a sessão expirou
   void _handleSessionExpired() {
-    debugPrint('🚨 SessionController: Sessão expirou, limpando dados...');
     _sessionExpired = true;
     _session = null;
     _isNewRegistration = false;
@@ -111,9 +109,7 @@ class SessionController extends ChangeNotifier {
       _session = await _authRepository.fetchSession();
       notifyListeners();
     } catch (e) {
-      // Silenciosamente falhar se não conseguir atualizar
-      // Mantém sessão atual para não deslogar o usuário
-      debugPrint('Erro ao atualizar sessão: $e');
+      // Ignora erros em refresh silencioso de sessão
     }
   }
 

@@ -217,7 +217,6 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   }
 
   void _openTransactionSheet() {
-    // TODO: Implement new transaction sheet
     FeedbackService.showInfo(
       context,
       '💡 Sheet de transação será implementado',

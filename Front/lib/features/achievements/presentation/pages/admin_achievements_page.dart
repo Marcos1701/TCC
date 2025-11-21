@@ -592,9 +592,11 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
       );
 
       if (!mounted) return;
+      if (!dialogContext.mounted) return;
       
       Navigator.pop(dialogContext);
       
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -609,9 +611,11 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
       await _loadAchievements();
     } catch (e) {
       if (!mounted) return;
+      if (!dialogContext.mounted) return;
       
       Navigator.pop(dialogContext);
       
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao gerar conquistas: $e'),
@@ -619,19 +623,19 @@ class _AdminAchievementsPageState extends State<AdminAchievementsPage> {
         ),
       );
     } finally {
-      setState(() => _isGeneratingAI = false);
+      if (mounted) {
+        setState(() => _isGeneratingAI = false);
+      }
     }
   }
 
   void _showCreateDialog() {
-    // TODO: Implementar dialog de criação
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Criação manual em desenvolvimento')),
     );
   }
 
   void _showEditDialog(Achievement achievement) {
-    // TODO: Implementar dialog de edição
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Edição em desenvolvimento')),
     );

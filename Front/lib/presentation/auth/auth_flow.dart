@@ -25,9 +25,7 @@ class _AuthFlowState extends State<AuthFlow> {
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
   
-  /// Reseta as flags de onboarding quando necessário (ex: logout)
   static void resetOnboardingFlags() {
-    debugPrint('🔄 Resetando flags de onboarding');
     _onboardingCheckedThisSession = false;
     _lastUserIdChecked = null;
   }
@@ -36,33 +34,21 @@ class _AuthFlowState extends State<AuthFlow> {
     final session = SessionScope.of(context);
     final currentUserId = session.session?.user.id.toString();
     
-    // Se não há usuário autenticado, retorna
     if (currentUserId == null) return;
     
-    // Se já verificou para este usuário nesta sessão do app, não verifica novamente
     if (_onboardingCheckedThisSession && _lastUserIdChecked == currentUserId) {
-      debugPrint('ℹ️ Onboarding já verificado para este usuário nesta sessão');
       return;
     }
     
     try {
-      // Atualiza a sessão para garantir dados mais recentes
       await session.refreshSession();
       
-      // Verifica se é o primeiro acesso
       final isFirstAccess = session.profile?.isFirstAccess ?? false;
       
-      debugPrint('🔍 Verificando primeiro acesso: isFirstAccess=$isFirstAccess, userId=$currentUserId');
-      
       if (mounted && isFirstAccess) {
-        debugPrint('🎯 É primeiro acesso! Exibindo onboarding...');
-        
-        // Marca como verificado ANTES de mostrar o onboarding
-        // para evitar que apareça múltiplas vezes se houver rebuilds
         _onboardingCheckedThisSession = true;
         _lastUserIdChecked = currentUserId;
         
-        // Primeira vez que o usuário acessa - mostra setup inicial simplificado
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => const SimplifiedOnboardingPage(),
@@ -70,40 +56,22 @@ class _AuthFlowState extends State<AuthFlow> {
           ),
         );
         
-        // APÓS o Navigator.pop, atualiza a sessão e força rebuild
         if (mounted) {
-          debugPrint('✅ Onboarding concluído/pulado - atualizando sessão');
-          
-          // Atualiza a sessão para pegar o novo valor de isFirstAccess
           await session.refreshSession();
           
-          // Verifica se a sessão foi atualizada corretamente
-          final updatedFirstAccess = session.profile?.isFirstAccess ?? true;
-          debugPrint('✅ Sessão atualizada - novo isFirstAccess: $updatedFirstAccess');
-          
-          if (updatedFirstAccess) {
-            debugPrint('⚠️ ATENÇÃO: isFirstAccess ainda está true após refresh!');
-          }
-          
-          // Força rebuild completo
           setState(() {
-            // Força recriação do RootShell com nova key
             _rootShellKey.currentState?.setState(() {});
           });
         }
       } else {
-        debugPrint('ℹ️ Não é primeiro acesso, continuando normalmente');
-        // Marca como verificado para este usuário
         _onboardingCheckedThisSession = true;
         _lastUserIdChecked = currentUserId;
       }
       
-      // Reseta a flag de novo registro após verificar onboarding
       if (mounted && session.isNewRegistration) {
         session.clearNewRegistrationFlag();
       }
     } catch (e) {
-      // Se houver erro, marca como verificado para evitar loops
       debugPrint('❌ Erro ao verificar onboarding: $e');
       _onboardingCheckedThisSession = true;
       _lastUserIdChecked = currentUserId;
@@ -156,8 +124,6 @@ class _AuthFlowState extends State<AuthFlow> {
         final currentUserId = session.session?.user.id.toString();
         if (_lastAuthenticatedUserId != null && 
             _lastAuthenticatedUserId != currentUserId) {
-          // Usuário mudou (fez logout e/ou login com outra conta)
-          debugPrint('🔄 Usuário mudou de $_lastAuthenticatedUserId para $currentUserId - resetando flags');
           resetOnboardingFlags();
         }
         _lastAuthenticatedUserId = currentUserId;

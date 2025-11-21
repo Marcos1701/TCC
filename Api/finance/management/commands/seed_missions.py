@@ -116,10 +116,7 @@ class Command(BaseCommand):
 
             # Gerar missões usando templates
             if use_ai:
-                # Usar geração com IA
                 try:
-                    # TODO: Implementar chamada correta com métricas do usuário
-                    # Por enquanto, gerar sem IA
                     self.stdout.write(
                         self.style.WARNING('⚠️  Geração com IA não implementada ainda')
                     )

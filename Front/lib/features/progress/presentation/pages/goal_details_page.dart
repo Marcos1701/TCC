@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/goal.dart';
-import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
@@ -49,8 +48,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   final _repository = FinanceRepository();
   late final GoalsViewModel _viewModel;
   late GoalModel _currentGoal;
-  List<TransactionModel>? _transactions;
-  Map<int, CategoryStats>? _categoryStats;
   bool _isLoading = true;
   String? _error;
 
@@ -78,35 +75,12 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
       // Busca a meta atualizada
       final goals = await _repository.fetchGoals();
       final updatedGoal = goals.firstWhere(
-        (g) => g.id == widget.goal.id,  // Comparação por ID ainda é segura
+        (g) => g.id == widget.goal.id,
         orElse: () => widget.goal,
       );
 
-      final transactions = await _repository.fetchGoalTransactions(widget.goal.identifier);  // Usar identifier para API
-
-      // Calcular estatísticas por categoria
-      final stats = <int, CategoryStats>{};
-      for (final transaction in transactions) {
-        if (transaction.category != null) {
-          final catId = transaction.category!.id;
-          if (!stats.containsKey(catId)) {
-            stats[catId] = CategoryStats(
-              categoryId: catId,
-              categoryName: transaction.category!.name,
-              categoryColor: transaction.category!.color,
-              count: 0,
-              totalAmount: 0,
-            );
-          }
-          stats[catId]!.count++;
-          stats[catId]!.totalAmount += transaction.amount;
-        }
-      }
-
       setState(() {
         _currentGoal = updatedGoal;
-        _transactions = transactions;
-        _categoryStats = stats;
         _isLoading = false;
       });
     } catch (e) {
@@ -212,14 +186,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                         _buildProgressCard(theme, tokens),
                         const SizedBox(height: 20),
                         _buildInfoCard(theme, tokens),
-                        if (_categoryStats != null && _categoryStats!.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-                          _buildCategoryStatsCard(theme, tokens),
-                        ],
-                        if (_transactions != null && _transactions!.isNotEmpty) ...[
-                          const SizedBox(height: 20),
-                          _buildTransactionsSection(theme, tokens),
-                        ],
                         const SizedBox(height: 80), // Espaço para os botões flutuantes
                       ],
                     ),
@@ -690,219 +656,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                   ),
                 ],
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryStatsCard(ThemeData theme, AppDecorations tokens) {
-    final sortedStats = _categoryStats!.values.toList()
-      ..sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.mediumShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.pie_chart, color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Transações por Categoria',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...sortedStats.map((stat) => _buildCategoryStatRow(stat, theme)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryStatRow(CategoryStats stat, ThemeData theme) {
-    Color categoryColor = Colors.grey;
-    if (stat.categoryColor != null && stat.categoryColor!.isNotEmpty) {
-      try {
-        final hexColor = stat.categoryColor!.replaceAll('#', '');
-        if (hexColor.length == 6) {
-          categoryColor = Color(int.parse('FF$hexColor', radix: 16));
-        }
-      } catch (e) {
-        // Mantém cor padrão se falhar
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: categoryColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  stat.categoryName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                widget.currency.format(stat.totalAmount),
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const SizedBox(width: 24),
-              Icon(Icons.receipt, size: 14, color: Colors.grey[500]),
-              const SizedBox(width: 6),
-              Text(
-                '${stat.count} transaç${stat.count == 1 ? "ão" : "ões"}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(Icons.trending_up, size: 14, color: Colors.grey[500]),
-              const SizedBox(width: 6),
-              Text(
-                'Média: ${stat.count > 0 ? widget.currency.format(stat.totalAmount / stat.count) : "R\$ 0,00"}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[500],
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionsSection(ThemeData theme, AppDecorations tokens) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Icon(Icons.receipt_long, color: Colors.grey[400], size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Transações Relacionadas',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${_transactions!.length}',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        ..._transactions!.map((transaction) => _buildTransactionCard(transaction, theme, tokens)),
-      ],
-    );
-  }
-
-  Widget _buildTransactionCard(TransactionModel transaction, ThemeData theme, AppDecorations tokens) {
-    final isIncome = transaction.type.toUpperCase() == 'INCOME';
-    final amount = transaction.amount;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        boxShadow: tokens.softShadow,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: (isIncome ? AppColors.support : AppColors.alert).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-              color: isIncome ? AppColors.support : AppColors.alert,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  DateFormat('dd/MM/yyyy').format(transaction.date),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[500],
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${isIncome ? '+' : '-'} ${widget.currency.format(amount)}',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: isIncome ? AppColors.support : AppColors.alert,
-              fontWeight: FontWeight.w700,
             ),
           ),
         ],
