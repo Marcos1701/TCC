@@ -140,7 +140,7 @@ class UxStrings {
   static const generateMissions = 'Gerar Missões';
   
   // Mensagens simples para admin
-  static const adminAccessDenied = 'Acesso restrito ao desenvolvedor';
+  static const adminAccessDenied = 'Acesso restrito à área administrativa';
   static const dataUpdated = 'Dados atualizados';
   static const operationSuccess = 'Operação concluída';
   static const operationFailed = 'Falha na operação';

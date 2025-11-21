@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:convert';
 
 import '../../../../core/network/api_client.dart';
@@ -6,10 +6,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../widgets/admin_widgets.dart';
 import '../mixins/admin_page_mixin.dart';
 
-/// Página unificada para gerenciar missões (CRUD + Geração IA)
-/// 
-/// Combina o gerenciamento manual de missões com a funcionalidade
-/// de carga automática usando Google Gemini AI
 class AdminMissionsManagementPage extends StatefulWidget {
   const AdminMissionsManagementPage({super.key});
 
@@ -32,11 +28,11 @@ class _AdminMissionsManagementPageState
   String _searchQuery = '';
   String _sortBy = 'xp_desc'; // xp_desc, xp_asc, difficulty_desc, difficulty_asc, date_desc, date_asc
   
-  // Seleção múltipla para ações em lote
+  // Sele��o m�ltipla para a��es em lote
   final Set<String> _selectedMissions = {};
   bool _isSelectionMode = false;
   
-  // Controles para geração de missões IA
+  // Controles para gera��o de miss�es IA
   bool _isGeneratingAI = false;
   String _selectedTier = 'ALL';
   int _generationProgress = 0;
@@ -44,10 +40,10 @@ class _AdminMissionsManagementPageState
   String _generationMessage = '';
   
   final _tierOptions = {
-    'ALL': 'Todas as Faixas (60 missões)',
-    'BEGINNER': 'Iniciantes (20 missões)',
-    'INTERMEDIATE': 'Intermediários (20 missões)',
-    'ADVANCED': 'Avançados (20 missões)',
+    'ALL': 'Todas as Faixas (60 miss�es)',
+    'BEGINNER': 'Iniciantes (20 miss�es)',
+    'INTERMEDIATE': 'Intermedi�rios (20 miss�es)',
+    'ADVANCED': 'Avan�ados (20 miss�es)',
   };
 
   @override
@@ -70,7 +66,7 @@ class _AdminMissionsManagementPageState
     });
   }
 
-  /// Valida se uma missão contém placeholders não substituídos
+
   bool _hasPlaceholders(Map<String, dynamic> mission) {
     final placeholderPattern = RegExp(r'\{[^}]+\}');
     final title = mission['title']?.toString() ?? '';
@@ -78,7 +74,7 @@ class _AdminMissionsManagementPageState
     return placeholderPattern.hasMatch(title) || placeholderPattern.hasMatch(description);
   }
   
-  /// Extrai placeholders de uma missão
+
   List<String> _getPlaceholders(Map<String, dynamic> mission) {
     final placeholderPattern = RegExp(r'\{([^}]+)\}');
     final placeholders = <String>{};
@@ -95,7 +91,7 @@ class _AdminMissionsManagementPageState
     return placeholders.toList();
   }
   
-  /// Conta missões por qualidade
+
   Map<String, int> get _qualityStats {
     int valid = 0;
     int invalid = 0;
@@ -130,11 +126,11 @@ class _AdminMissionsManagementPageState
         final results = data['results'] as List?;
         final missions = results?.cast<Map<String, dynamic>>() ?? [];
         
-        // Log de missões com placeholders
+        // Log de miss�es com placeholders
         final invalidMissions = missions.where(_hasPlaceholders).toList();
         if (invalidMissions.isNotEmpty) {
           debugPrint(
-            '⚠️ Detectadas ${invalidMissions.length} missão(ões) com placeholders no admin'
+            '?? Detectadas ${invalidMissions.length} miss�o(�es) com placeholders no admin'
           );
         }
         
@@ -151,7 +147,7 @@ class _AdminMissionsManagementPageState
     }
   }
 
-  /// Filtra e ordena as missões baseado nos critérios selecionados
+
   List<Map<String, dynamic>> get _filteredAndSortedMissions {
     var filtered = _missions.where((mission) {
       // Filtro por tipo
@@ -192,7 +188,7 @@ class _AdminMissionsManagementPageState
       return true;
     }).toList();
 
-    // Ordenação
+    // Ordena��o
     filtered.sort((a, b) {
       switch (_sortBy) {
         case 'xp_desc':
@@ -227,7 +223,7 @@ class _AdminMissionsManagementPageState
     return filtered;
   }
 
-  /// Ativa/desativa missões em lote
+
   Future<void> _bulkToggleStatus(bool activate) async {
     if (_selectedMissions.isEmpty) return;
     
@@ -239,11 +235,11 @@ class _AdminMissionsManagementPageState
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         title: const Text(
-          'Confirmar ação em lote',
+          'Confirmar a��o em lote',
           style: TextStyle(color: Colors.white),
         ),
         content: Text(
-          'Deseja $action $count missão(ões) selecionada(s)?',
+          'Deseja $action $count miss�o(�es) selecionada(s)?',
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -290,7 +286,7 @@ class _AdminMissionsManagementPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '$successCount missão(ões) ${activate ? 'ativada(s)' : 'desativada(s)'}${errorCount > 0 ? ' ($errorCount erro(s))' : ''}'
+            '$successCount miss�o(�es) ${activate ? 'ativada(s)' : 'desativada(s)'}${errorCount > 0 ? ' ($errorCount erro(s))' : ''}'
           ),
           backgroundColor: errorCount > 0 ? Colors.orange : AppColors.success,
         ),
@@ -298,7 +294,7 @@ class _AdminMissionsManagementPageState
     }
   }
   
-  /// Deleta missões em lote
+
   Future<void> _bulkDelete() async {
     if (_selectedMissions.isEmpty) return;
     
@@ -313,13 +309,13 @@ class _AdminMissionsManagementPageState
             const Icon(Icons.warning_amber_rounded, color: AppColors.alert),
             const SizedBox(width: 12),
             Text(
-              'Excluir $count missão(ões)?',
+              'Excluir $count miss�o(�es)?',
               style: const TextStyle(color: Colors.white),
             ),
           ],
         ),
         content: const Text(
-          'Esta ação não pode ser desfeita. Deseja continuar?',
+          'Esta a��o n�o pode ser desfeita. Deseja continuar?',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -363,7 +359,7 @@ class _AdminMissionsManagementPageState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '$successCount missão(ões) excluída(s)${errorCount > 0 ? ' ($errorCount erro(s))' : ''}'
+            '$successCount miss�o(�es) exclu�da(s)${errorCount > 0 ? ' ($errorCount erro(s))' : ''}'
           ),
           backgroundColor: errorCount > 0 ? Colors.orange : AppColors.success,
         ),
@@ -382,7 +378,7 @@ class _AdminMissionsManagementPageState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isActive ? 'Missão desativada' : 'Missão ativada',
+              isActive ? 'Miss�o desativada' : 'Miss�o ativada',
             ),
             backgroundColor: AppColors.success,
           ),
@@ -402,7 +398,7 @@ class _AdminMissionsManagementPageState
     }
   }
 
-  /// Abre o dialog de edição de missão
+
   Future<void> _showEditMissionDialog(Map<String, dynamic> mission) async {
     final titleController = TextEditingController(text: mission['title']?.toString() ?? '');
     final descriptionController = TextEditingController(text: mission['description']?.toString() ?? '');
@@ -438,7 +434,7 @@ class _AdminMissionsManagementPageState
                 Icon(Icons.edit, color: AppColors.primary),
                 SizedBox(width: 12),
                 Text(
-                  'Editar Missão',
+                  'Editar Miss�o',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -453,12 +449,12 @@ class _AdminMissionsManagementPageState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Seção: Informações Básicas
-                    const AdminSectionHeader(title: 'Informações Básicas', icon: Icons.info_outline),
+                    // Se��o: Informa��es B�sicas
+                    const AdminSectionHeader(title: 'Informa��es B�sicas', icon: Icons.info_outline),
                     const SizedBox(height: 12),
-                    _buildTextField('Título', titleController),
+                    _buildTextField('T�tulo', titleController),
                     const SizedBox(height: 16),
-                    _buildTextField('Descrição', descriptionController, maxLines: 3),
+                    _buildTextField('Descri��o', descriptionController, maxLines: 3),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -468,7 +464,7 @@ class _AdminMissionsManagementPageState
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('Duração (dias)', durationController,
+                          child: _buildTextField('Dura��o (dias)', durationController,
                             keyboardType: TextInputType.number),
                         ),
                       ],
@@ -478,18 +474,18 @@ class _AdminMissionsManagementPageState
                       keyboardType: TextInputType.number),
                     
                     const SizedBox(height: 24),
-                    // Seção: Classificação
-                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
+                    // Se��o: Classifica��o
+                    const AdminSectionHeader(title: 'Classifica??o', icon: Icons.category),
                     const SizedBox(height: 12),
                     _buildLabeledDropdown(
-                      'Tipo de Missão',
+                      'Tipo de Miss�o',
                       selectedType,
                       [
-                        const DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
-                        const DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
-                        const DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
-                        const DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
-                        const DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                        const DropdownMenuItem(value: 'ONBOARDING', child: Text('Integra��o inicial')),
+                        const DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupan�a')),
+                        const DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redu��o de d�vidas')),
+                        const DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Constru��o de reserva')),
+                        const DropdownMenuItem(value: 'ADVANCED', child: Text('Avan�ado')),
                       ],
                       (value) => setDialogState(() => selectedType = value!),
                     ),
@@ -498,30 +494,30 @@ class _AdminMissionsManagementPageState
                       'Dificuldade',
                       selectedDifficulty,
                       [
-                        const DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                        const DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                        const DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                        const DropdownMenuItem(value: 'EASY', child: Text('F�cil')),
+                        const DropdownMenuItem(value: 'MEDIUM', child: Text('M�dia')),
+                        const DropdownMenuItem(value: 'HARD', child: Text('Dif�cil')),
                       ],
                       (value) => setDialogState(() => selectedDifficulty = value!),
                     ),
                     const SizedBox(height: 16),
                     _buildLabeledDropdown(
-                      'Tipo de Validação',
+                      'Tipo de Valida��o',
                       selectedValidationType,
                       [
-                        const DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
-                        const DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
-                        const DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
+                        const DropdownMenuItem(value: 'SNAPSHOT', child: Text('Compara��o pontual')),
+                        const DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter crit�rio por per�odo')),
+                        const DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redu��o de categoria')),
                         const DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
-                        const DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
-                        const DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
+                        const DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupan�a')),
+                        const DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consist�ncia')),
                       ],
                       (value) => setDialogState(() => selectedValidationType = value!),
                     ),
                     
                     const SizedBox(height: 24),
-                    // Seção: Critérios de Indicadores (Opcional)
-                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
+                    // Se��o: Crit�rios de Indicadores (Opcional)
+                    const AdminSectionHeader(title: 'Classifica??o', icon: Icons.category),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -531,7 +527,7 @@ class _AdminMissionsManagementPageState
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('RDR Máximo (%)', targetRDRController,
+                          child: _buildTextField('RDR M�ximo (%)', targetRDRController,
                             keyboardType: TextInputType.number),
                         ),
                       ],
@@ -540,18 +536,18 @@ class _AdminMissionsManagementPageState
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTextField('ILI Mínimo (meses)', minILIController,
+                          child: _buildTextField('ILI M�nimo (meses)', minILIController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('ILI Máximo (meses)', maxILIController,
+                          child: _buildTextField('ILI M�ximo (meses)', maxILIController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField('Transações Mínimas', minTransactionsController,
+                    _buildTextField('Transa��es M�nimas', minTransactionsController,
                       keyboardType: TextInputType.number),
                     
                     const SizedBox(height: 12),
@@ -568,7 +564,7 @@ class _AdminMissionsManagementPageState
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Deixe os campos vazios se não forem aplicáveis',
+                              'Deixe os campos vazios se n�o forem aplic�veis',
                               style: TextStyle(
                                 color: Colors.grey[400],
                                 fontSize: 11,
@@ -592,11 +588,11 @@ class _AdminMissionsManagementPageState
               ),
               ElevatedButton(
                 onPressed: () async {
-                  // Validações
+                  // Valida��es
                   if (titleController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('O título é obrigatório'),
+                        content: Text('O t�tulo � obrigat�rio'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -607,7 +603,7 @@ class _AdminMissionsManagementPageState
                   if (xpValue == null || xpValue <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('XP deve ser um número válido maior que zero'),
+                        content: Text('XP deve ser um n�mero v�lido maior que zero'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -658,7 +654,7 @@ class _AdminMissionsManagementPageState
                     if (!mounted) return;
                     messenger.showSnackBar(
                       const SnackBar(
-                        content: Text('Missão atualizada com sucesso!'),
+                        content: Text('Miss�o atualizada com sucesso!'),
                         backgroundColor: AppColors.success,
                       ),
                     );
@@ -685,7 +681,7 @@ class _AdminMissionsManagementPageState
       ),
     );
     
-    // Libera os controllers após o frame ser completamente renderizado
+    // Libera os controllers ap�s o frame ser completamente renderizado
     WidgetsBinding.instance.addPostFrameCallback((_) {
       titleController.dispose();
       descriptionController.dispose();
@@ -700,7 +696,7 @@ class _AdminMissionsManagementPageState
     });
   }
 
-  /// Abre o dialog para criar nova missão
+
   Future<void> _showCreateMissionDialog() async {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -735,7 +731,7 @@ class _AdminMissionsManagementPageState
                 Icon(Icons.add_task, color: AppColors.primary),
                 SizedBox(width: 12),
                 Text(
-                  'Nova Missão',
+                  'Nova Miss�o',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -750,12 +746,12 @@ class _AdminMissionsManagementPageState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Seção: Informações Básicas
-                    const AdminSectionHeader(title: 'Informações Básicas', icon: Icons.info_outline),
+                    // Se��o: Informa��es B�sicas
+                    const AdminSectionHeader(title: 'Informa��es B�sicas', icon: Icons.info_outline),
                     const SizedBox(height: 12),
-                    _buildTextField('Título', titleController),
+                    _buildTextField('T�tulo', titleController),
                     const SizedBox(height: 16),
-                    _buildTextField('Descrição', descriptionController, maxLines: 3),
+                    _buildTextField('Descri��o', descriptionController, maxLines: 3),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -765,7 +761,7 @@ class _AdminMissionsManagementPageState
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('Duração (dias)', durationController,
+                          child: _buildTextField('Dura��o (dias)', durationController,
                             keyboardType: TextInputType.number),
                         ),
                       ],
@@ -775,18 +771,18 @@ class _AdminMissionsManagementPageState
                       keyboardType: TextInputType.number),
                     
                     const SizedBox(height: 24),
-                    // Seção: Classificação
-                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
+                    // Se��o: Classifica��o
+                    const AdminSectionHeader(title: 'Classifica??o', icon: Icons.category),
                     const SizedBox(height: 12),
                     _buildLabeledDropdown(
-                      'Tipo de Missão',
+                      'Tipo de Miss�o',
                       selectedType,
                       [
-                        const DropdownMenuItem(value: 'ONBOARDING', child: Text('Integração inicial')),
-                        const DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupança')),
-                        const DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redução de dívidas')),
-                        const DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Construção de reserva')),
-                        const DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado')),
+                        const DropdownMenuItem(value: 'ONBOARDING', child: Text('Integra��o inicial')),
+                        const DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('Melhoria de poupan�a')),
+                        const DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('Redu��o de d�vidas')),
+                        const DropdownMenuItem(value: 'ILI_BUILDING', child: Text('Constru��o de reserva')),
+                        const DropdownMenuItem(value: 'ADVANCED', child: Text('Avan�ado')),
                       ],
                       (value) => setDialogState(() => selectedType = value!),
                     ),
@@ -795,30 +791,30 @@ class _AdminMissionsManagementPageState
                       'Dificuldade',
                       selectedDifficulty,
                       [
-                        const DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                        const DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                        const DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                        const DropdownMenuItem(value: 'EASY', child: Text('F�cil')),
+                        const DropdownMenuItem(value: 'MEDIUM', child: Text('M�dia')),
+                        const DropdownMenuItem(value: 'HARD', child: Text('Dif�cil')),
                       ],
                       (value) => setDialogState(() => selectedDifficulty = value!),
                     ),
                     const SizedBox(height: 16),
                     _buildLabeledDropdown(
-                      'Tipo de Validação',
+                      'Tipo de Valida��o',
                       selectedValidationType,
                       [
-                        const DropdownMenuItem(value: 'SNAPSHOT', child: Text('Comparação pontual')),
-                        const DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter critério por período')),
-                        const DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redução de categoria')),
+                        const DropdownMenuItem(value: 'SNAPSHOT', child: Text('Compara��o pontual')),
+                        const DropdownMenuItem(value: 'TEMPORAL', child: Text('Manter crit�rio por per�odo')),
+                        const DropdownMenuItem(value: 'CATEGORY_REDUCTION', child: Text('Redu��o de categoria')),
                         const DropdownMenuItem(value: 'CATEGORY_LIMIT', child: Text('Limite de categoria')),
-                        const DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupança')),
-                        const DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consistência')),
+                        const DropdownMenuItem(value: 'SAVINGS_INCREASE', child: Text('Aumento de poupan�a')),
+                        const DropdownMenuItem(value: 'CONSISTENCY', child: Text('Consist�ncia')),
                       ],
                       (value) => setDialogState(() => selectedValidationType = value!),
                     ),
                     
                     const SizedBox(height: 24),
-                    // Seção: Critérios de Indicadores (Opcional)
-                    const AdminSectionHeader(title: 'Classifica��o', icon: Icons.category),
+                    // Se��o: Crit�rios de Indicadores (Opcional)
+                    const AdminSectionHeader(title: 'Classifica??o', icon: Icons.category),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -828,7 +824,7 @@ class _AdminMissionsManagementPageState
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('RDR Máximo (%)', targetRDRController,
+                          child: _buildTextField('RDR M�ximo (%)', targetRDRController,
                             keyboardType: TextInputType.number),
                         ),
                       ],
@@ -837,18 +833,18 @@ class _AdminMissionsManagementPageState
                     Row(
                       children: [
                         Expanded(
-                          child: _buildTextField('ILI Mínimo (meses)', minILIController,
+                          child: _buildTextField('ILI M�nimo (meses)', minILIController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildTextField('ILI Máximo (meses)', maxILIController,
+                          child: _buildTextField('ILI M�ximo (meses)', maxILIController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildTextField('Transações Mínimas', minTransactionsController,
+                    _buildTextField('Transa��es M�nimas', minTransactionsController,
                       keyboardType: TextInputType.number),
                     
                     const SizedBox(height: 12),
@@ -865,7 +861,7 @@ class _AdminMissionsManagementPageState
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Deixe os campos vazios se não forem aplicáveis',
+                              'Deixe os campos vazios se n�o forem aplic�veis',
                               style: TextStyle(
                                 color: Colors.grey[400],
                                 fontSize: 11,
@@ -889,11 +885,11 @@ class _AdminMissionsManagementPageState
               ),
               ElevatedButton(
                 onPressed: () async {
-                  // Validações
+                  // Valida��es
                   if (titleController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('O título é obrigatório'),
+                        content: Text('O t�tulo � obrigat�rio'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -904,7 +900,7 @@ class _AdminMissionsManagementPageState
                   if (xpValue == null || xpValue <= 0) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('XP deve ser um número válido maior que zero'),
+                        content: Text('XP deve ser um n�mero v�lido maior que zero'),
                         backgroundColor: AppColors.alert,
                       ),
                     );
@@ -953,7 +949,7 @@ class _AdminMissionsManagementPageState
                     if (!mounted) return;
                     messenger.showSnackBar(
                       const SnackBar(
-                        content: Text('Missão criada com sucesso!'),
+                        content: Text('Miss�o criada com sucesso!'),
                         backgroundColor: AppColors.success,
                       ),
                     );
@@ -995,7 +991,7 @@ class _AdminMissionsManagementPageState
     });
   }
 
-  /// Duplica uma missão existente
+
   Future<void> _duplicateMission(String missionId, String missionTitle) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1013,7 +1009,7 @@ class _AdminMissionsManagementPageState
             Icon(Icons.content_copy, color: AppColors.primary),
             SizedBox(width: 12),
             Text(
-              'Duplicar Missão',
+              'Duplicar Miss�o',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -1026,7 +1022,7 @@ class _AdminMissionsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Deseja duplicar a missão:',
+              'Deseja duplicar a miss�o:',
               style: TextStyle(color: Colors.grey[400]),
             ),
             const SizedBox(height: 12),
@@ -1049,7 +1045,7 @@ class _AdminMissionsManagementPageState
             ),
             const SizedBox(height: 16),
             Text(
-              'A missão duplicada será criada como DESATIVADA para que você possa revisar antes de ativar.',
+              'A miss�o duplicada ser� criada como DESATIVADA para que voc� possa revisar antes de ativar.',
               style: TextStyle(
                 color: Colors.grey[500],
                 fontSize: 13,
@@ -1085,7 +1081,7 @@ class _AdminMissionsManagementPageState
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Missão duplicada com sucesso! (Status: Desativada)'),
+          content: Text('Miss�o duplicada com sucesso! (Status: Desativada)'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -1102,7 +1098,7 @@ class _AdminMissionsManagementPageState
     }
   }
 
-  /// Deleta uma missão com confirmação
+
   Future<void> _deleteMission(String missionId, String missionTitle) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1120,7 +1116,7 @@ class _AdminMissionsManagementPageState
             Icon(Icons.warning_amber_rounded, color: AppColors.alert),
             SizedBox(width: 12),
             Text(
-              'Confirmar Exclusão',
+              'Confirmar Exclus�o',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -1133,7 +1129,7 @@ class _AdminMissionsManagementPageState
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tem certeza que deseja excluir a missão:',
+              'Tem certeza que deseja excluir a miss�o:',
               style: TextStyle(color: Colors.grey[400]),
             ),
             const SizedBox(height: 12),
@@ -1156,7 +1152,7 @@ class _AdminMissionsManagementPageState
             ),
             const SizedBox(height: 12),
             const Text(
-              'Esta ação não pode ser desfeita.',
+              'Esta a��o n�o pode ser desfeita.',
               style: TextStyle(
                 color: AppColors.alert,
                 fontSize: 12,
@@ -1191,7 +1187,7 @@ class _AdminMissionsManagementPageState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Missão excluída com sucesso!'),
+              content: Text('Miss�o exclu�da com sucesso!'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -1255,7 +1251,7 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Widget para dropdown com label
+
   Widget _buildLabeledDropdown(
     String label,
     String value,
@@ -1303,7 +1299,7 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Abre o dialog de geração de missões com IA
+
   Future<void> _showAIGenerationDialog() async {
     return showDialog(
       context: context,
@@ -1362,7 +1358,7 @@ class _AdminMissionsManagementPageState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Carga de Missões IA',
+                            'Carga de Miss�es IA',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -1393,7 +1389,7 @@ class _AdminMissionsManagementPageState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    // Informações sobre o processo
+                    // Informa��es sobre o processo
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -1415,7 +1411,7 @@ class _AdminMissionsManagementPageState
                               ),
                               SizedBox(width: 10),
                               Text(
-                                'Como Funciona a Geração Inteligente',
+                                'Como Funciona a Gera��o Inteligente',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1428,19 +1424,19 @@ class _AdminMissionsManagementPageState
                           const SizedBox(height: 10),
                           _buildInfoRow(
                             Icons.psychology,
-                            'Gera missões com base nos padrões (TPS, RDR, ILI)',
+                            'Gera miss�es com base nos padr�es (TPS, RDR, ILI)',
                             Colors.blue,
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(
                             Icons.layers,
-                            'Cria missões em 3 níveis de dificuldade',
+                            'Cria miss�es em 3 n�veis de dificuldade',
                             Colors.orange,
                           ),
                           const SizedBox(height: 10),
                           _buildInfoRow(
                             Icons.insights,
-                            'Ajusta XP e critérios automaticamente (fornecidos pela IA)',
+                            'Ajusta XP e crit�rios automaticamente (fornecidos pela IA)',
                             Colors.green,
                           ),
                           const SizedBox(height: 14),
@@ -1480,7 +1476,7 @@ class _AdminMissionsManagementPageState
                                             Text(
                                               _generationMessage.isNotEmpty 
                                                 ? _generationMessage 
-                                                : 'Gerando missões...',
+                                                : 'Gerando miss�es...',
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 13,
@@ -1489,7 +1485,7 @@ class _AdminMissionsManagementPageState
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              '$_generationProgress/$_generationTotal missões',
+                                              '$_generationProgress/$_generationTotal miss�es',
                                               style: TextStyle(
                                                 color: Colors.grey[400],
                                                 fontSize: 11,
@@ -1533,7 +1529,7 @@ class _AdminMissionsManagementPageState
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'As missões são criadas DESATIVADAS por padrão para revisão',
+                                    'As miss�es s�o criadas DESATIVADAS por padr�o para revis�o',
                                     style: TextStyle(
                                       color: Colors.grey[300],
                                       fontSize: 11,
@@ -1549,7 +1545,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 24),
                     
-                    // Card explicativo sobre as faixas de usuários
+                    // Card explicativo sobre as faixas de usu�rios
                     Container(
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
@@ -1571,7 +1567,7 @@ class _AdminMissionsManagementPageState
                               ),
                               SizedBox(width: 10),
                               Text(
-                                'Classificação de Usuários em Faixas',
+                                'Classifica��o de Usu�rios em Faixas',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1582,23 +1578,23 @@ class _AdminMissionsManagementPageState
                           ),
                           const SizedBox(height: 14),
                           _buildUserTierInfo(
-                            '🌱 Iniciantes',
-                            'Usuários com menos de 30 transações',
-                            'Foco em aprendizado e formação de hábitos básicos',
+                            '?? Iniciantes',
+                            'Usu�rios com menos de 30 transa��es',
+                            'Foco em aprendizado e forma��o de h�bitos b�sicos',
                             Colors.green,
                           ),
                           const SizedBox(height: 12),
                           _buildUserTierInfo(
-                            '📈 Intermediários',
-                            'Entre 30 e 100 transações registradas',
-                            'Desafios para melhorar indicadores e consistência',
+                            '?? Intermedi�rios',
+                            'Entre 30 e 100 transa��es registradas',
+                            'Desafios para melhorar indicadores e consist�ncia',
                             Colors.blue,
                           ),
                           const SizedBox(height: 12),
                           _buildUserTierInfo(
-                            '🏆 Avançados',
-                            'Mais de 100 transações no histórico',
-                            'Missões complexas com metas financeiras ambiciosas',
+                            '?? Avan�ados',
+                            'Mais de 100 transa��es no hist�rico',
+                            'Miss�es complexas com metas financeiras ambiciosas',
                             Colors.orange,
                           ),
                           const SizedBox(height: 14),
@@ -1621,7 +1617,7 @@ class _AdminMissionsManagementPageState
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'A IA ajusta automaticamente a dificuldade e os critérios para cada faixa',
+                                    'A IA ajusta automaticamente a dificuldade e os crit�rios para cada faixa',
                                     style: TextStyle(
                                       color: Colors.grey[300],
                                       fontSize: 11,
@@ -1637,7 +1633,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 24),
                     
-                    // Estatísticas esperadas
+                    // Estat�sticas esperadas
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -1666,7 +1662,7 @@ class _AdminMissionsManagementPageState
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Distribuição de Missões',
+                                'Distribui��o de Miss�es',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -1680,7 +1676,7 @@ class _AdminMissionsManagementPageState
                             children: [
                               Expanded(
                                 child: _buildStatChip(
-                                  'Fácil',
+                                  'F�cil',
                                   '40%',
                                   Colors.green,
                                   Icons.sentiment_satisfied_alt,
@@ -1689,7 +1685,7 @@ class _AdminMissionsManagementPageState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _buildStatChip(
-                                  'Média',
+                                  'M�dia',
                                   '40%',
                                   Colors.orange,
                                   Icons.sentiment_neutral,
@@ -1698,7 +1694,7 @@ class _AdminMissionsManagementPageState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: _buildStatChip(
-                                  'Difícil',
+                                  'Dif�cil',
                                   '20%',
                                   Colors.red,
                                   Icons.sentiment_very_dissatisfied,
@@ -1711,7 +1707,7 @@ class _AdminMissionsManagementPageState
                     ),
                     const SizedBox(height: 24),
                     
-                    // Seleção de faixa
+                    // Sele��o de faixa
                     Row(
                       children: [
                         Icon(
@@ -1721,7 +1717,7 @@ class _AdminMissionsManagementPageState
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'Selecione a Faixa de Usuários',
+                          'Selecione a Faixa de Usu�rios',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -1830,7 +1826,7 @@ class _AdminMissionsManagementPageState
                             ),
                             const SizedBox(height: 16),
                             const Text(
-                              'Gerando missões com IA...',
+                              'Gerando miss�es com IA...',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -1839,7 +1835,7 @@ class _AdminMissionsManagementPageState
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'A IA está analisando e criando missões',
+                              'A IA est� analisando e criando miss�es',
                               style: TextStyle(
                                 color: Colors.grey[500],
                                 fontSize: 12,
@@ -1882,7 +1878,7 @@ class _AdminMissionsManagementPageState
                     onPressed: () => _generateMissionsWithAI(setDialogState),
                     icon: const Icon(Icons.auto_awesome, size: 20),
                     label: const Text(
-                      'Gerar Missões',
+                      'Gerar Miss�es',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -1907,7 +1903,7 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Widget helper para linhas de informação no dialog
+
   Widget _buildInfoRow(IconData icon, String text, Color color) {
     return Row(
       children: [
@@ -1933,7 +1929,7 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Widget para mostrar estatísticas no dialog de IA
+
   Widget _buildStatChip(String label, String value, Color color, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -1973,7 +1969,7 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Widget para mostrar informações sobre faixas de usuários
+
   Widget _buildUserTierInfo(String title, String criteria, String description, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -2030,17 +2026,17 @@ class _AdminMissionsManagementPageState
     );
   }
 
-  /// Executa a geração de missões com IA (assíncrona com polling)
+
   Future<void> _generateMissionsWithAI(StateSetter setDialogState) async {
     setDialogState(() {
       _isGeneratingAI = true;
     });
 
     try {
-      // ETAPA 1: Iniciar geração assíncrona
+      // ETAPA 1: Iniciar gera��o ass�ncrona
       final body = {
         if (_selectedTier != 'ALL') 'tier': _selectedTier,
-        'async': true,  // Usar modo assíncrono
+        'async': true,  // Usar modo ass�ncrono
         'count': 20,
       };
 
@@ -2055,7 +2051,7 @@ class _AdminMissionsManagementPageState
 
       final taskId = startResponse.data!['task_id'] as String?;
       if (taskId == null) {
-        throw Exception('task_id não retornado pelo servidor');
+        throw Exception('task_id n�o retornado pelo servidor');
       }
 
       // ETAPA 2: Polling de progresso
@@ -2101,7 +2097,7 @@ class _AdminMissionsManagementPageState
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Sucesso! $totalCreated missões criadas com IA',
+                            'Sucesso! $totalCreated miss�es criadas com IA',
                             style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -2131,7 +2127,7 @@ class _AdminMissionsManagementPageState
       }
 
       if (!completed) {
-        throw Exception('Timeout: geração excedeu 5 minutos');
+        throw Exception('Timeout: gera��o excedeu 5 minutos');
       }
 
     } catch (e) {
@@ -2145,7 +2141,7 @@ class _AdminMissionsManagementPageState
                 const Icon(Icons.error_outline, color: Colors.white),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Erro ao gerar missões: ${e.toString()}'),
+                  child: Text('Erro ao gerar miss�es: ${e.toString()}'),
                 ),
               ],
             ),
@@ -2169,14 +2165,14 @@ class _AdminMissionsManagementPageState
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text(
-          'Gerenciar Missões',
+          'Gerenciar Miss�es',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
-          // Botão de Carga IA (apenas em telas maiores)
+          // Bot�o de Carga IA (apenas em telas maiores)
           if (isLargeScreen)
             Container(
               margin: const EdgeInsets.only(right: 8),
@@ -2224,13 +2220,13 @@ class _AdminMissionsManagementPageState
           ),
         ],
       ),
-      // FAB com menu para criar missão manual ou via IA
+      // FAB com menu para criar miss�o manual ou via IA
       floatingActionButton: !isLargeScreen
           ? Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // Botão Criar Missão Manual
+                // Bot�o Criar Miss�o Manual
                 FloatingActionButton.extended(
                   onPressed: _showCreateMissionDialog,
                   heroTag: 'create_mission',
@@ -2239,12 +2235,12 @@ class _AdminMissionsManagementPageState
                   elevation: 4,
                   icon: const Icon(Icons.add_task),
                   label: const Text(
-                    'Nova Missão',
+                    'Nova Miss�o',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Botão Carga IA
+                // Bot�o Carga IA
                 FloatingActionButton.extended(
                   onPressed: _showAIGenerationDialog,
                   heroTag: 'ai_generation',
@@ -2300,7 +2296,7 @@ class _AdminMissionsManagementPageState
                   ),
                 ),
                 child: Text(
-                  '$filteredCount de $totalCount missões',
+                  '$filteredCount de $totalCount miss�es',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -2317,7 +2313,7 @@ class _AdminMissionsManagementPageState
             controller: _searchController,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
-              hintText: 'Buscar por título ou descrição...',
+              hintText: 'Buscar por t�tulo ou descri��o...',
               hintStyle: TextStyle(color: Colors.grey[600]),
               prefixIcon: const Icon(Icons.search, color: AppColors.primary),
               suffixIcon: _searchQuery.isNotEmpty
@@ -2397,7 +2393,7 @@ class _AdminMissionsManagementPageState
                         ),
                         DropdownMenuItem(
                           value: 'DEBT_REDUCTION',
-                          child: Text('Dívidas'),
+                          child: Text('D�vidas'),
                         ),
                         DropdownMenuItem(
                           value: 'ONBOARDING',
@@ -2448,12 +2444,12 @@ class _AdminMissionsManagementPageState
                       style: const TextStyle(color: Colors.white),
                       items: const [
                         DropdownMenuItem(value: 'ALL', child: Text('Todas')),
-                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        DropdownMenuItem(value: 'EASY', child: Text('F�cil')),
                         DropdownMenuItem(
                           value: 'MEDIUM',
-                          child: Text('Média'),
+                          child: Text('M�dia'),
                         ),
-                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                        DropdownMenuItem(value: 'HARD', child: Text('Dif�cil')),
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -2468,7 +2464,7 @@ class _AdminMissionsManagementPageState
           ),
           const SizedBox(height: 12),
           
-          // Terceira linha: Qualidade e Ordenação
+          // Terceira linha: Qualidade e Ordena��o
           Row(
             children: [
               Expanded(
@@ -2505,7 +2501,7 @@ class _AdminMissionsManagementPageState
                       style: const TextStyle(color: Colors.white),
                       items: [
                         const DropdownMenuItem(value: 'ALL', child: Text('Todas')),
-                        const DropdownMenuItem(value: 'VALID', child: Text('✓ Válidas')),
+                        const DropdownMenuItem(value: 'VALID', child: Text('? V�lidas')),
                         DropdownMenuItem(
                           value: 'INVALID',
                           child: Row(
@@ -2560,10 +2556,10 @@ class _AdminMissionsManagementPageState
                       ),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                       items: const [
-                        DropdownMenuItem(value: 'xp_desc', child: Text('XP ↓')),
-                        DropdownMenuItem(value: 'xp_asc', child: Text('XP ↑')),
-                        DropdownMenuItem(value: 'difficulty_desc', child: Text('Dificuldade ↓')),
-                        DropdownMenuItem(value: 'difficulty_asc', child: Text('Dificuldade ↑')),
+                        DropdownMenuItem(value: 'xp_desc', child: Text('XP ?')),
+                        DropdownMenuItem(value: 'xp_asc', child: Text('XP ?')),
+                        DropdownMenuItem(value: 'difficulty_desc', child: Text('Dificuldade ?')),
+                        DropdownMenuItem(value: 'difficulty_asc', child: Text('Dificuldade ?')),
                         DropdownMenuItem(value: 'date_desc', child: Text('Mais recentes')),
                         DropdownMenuItem(value: 'date_asc', child: Text('Mais antigas')),
                       ],
@@ -2579,7 +2575,7 @@ class _AdminMissionsManagementPageState
             ],
           ),
           
-          // Estatísticas de qualidade
+          // Estat�sticas de qualidade
           if (_qualityStats['invalid']! > 0) ...[
             const SizedBox(height: 16),
             Container(
@@ -2595,7 +2591,7 @@ class _AdminMissionsManagementPageState
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '${_qualityStats['invalid']} missão(ões) com placeholders não substituídos',
+                      '${_qualityStats['invalid']} miss�o(�es) com placeholders n�o substitu�dos',
                       style: const TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ),
@@ -2612,7 +2608,7 @@ class _AdminMissionsManagementPageState
             ),
           ],
           
-          // Modo de seleção
+          // Modo de sele��o
           if (_isSelectionMode) ...[
             const SizedBox(height: 16),
             Container(
@@ -2628,7 +2624,7 @@ class _AdminMissionsManagementPageState
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '${_selectedMissions.length} missão(ões) selecionada(s)',
+                      '${_selectedMissions.length} miss�o(�es) selecionada(s)',
                       style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -2655,7 +2651,7 @@ class _AdminMissionsManagementPageState
                         _isSelectionMode = false;
                       });
                     },
-                    tooltip: 'Cancelar seleção',
+                    tooltip: 'Cancelar sele��o',
                   ),
                 ],
               ),
@@ -2680,7 +2676,7 @@ class _AdminMissionsManagementPageState
             ),
             const SizedBox(height: 16),
             Text(
-              'Erro ao carregar missões',
+              'Erro ao carregar miss�es',
               style: TextStyle(
                 color: Colors.grey[400],
                 fontSize: 18,
@@ -2730,7 +2726,7 @@ class _AdminMissionsManagementPageState
             ),
             const SizedBox(height: 24),
             const Text(
-              'Nenhuma missão encontrada',
+              'Nenhuma miss�o encontrada',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -2749,7 +2745,7 @@ class _AdminMissionsManagementPageState
             ElevatedButton.icon(
               onPressed: _showAIGenerationDialog,
               icon: const Icon(Icons.auto_awesome, size: 20),
-              label: const Text('Gerar Missões com IA'),
+              label: const Text('Gerar Miss�es com IA'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -2767,13 +2763,13 @@ class _AdminMissionsManagementPageState
       );
     }
 
-    // Estatísticas das missões filtradas
+    // Estat�sticas das miss�es filtradas
     final activeMissions = _filteredAndSortedMissions.where((m) => m['is_active'] == true).length;
     final inactiveMissions = _filteredAndSortedMissions.length - activeMissions;
 
     return Column(
       children: [
-        // Card de estatísticas
+        // Card de estat�sticas
         if (_filteredAndSortedMissions.isNotEmpty)
           Container(
             margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -2847,7 +2843,7 @@ class _AdminMissionsManagementPageState
             ),
           ),
 
-        // Lista de missões
+        // Lista de miss�es
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -2859,7 +2855,7 @@ class _AdminMissionsManagementPageState
               final hasPlaceholders = _hasPlaceholders(mission);
               final isSelected = _selectedMissions.contains(missionId);
               
-              // Animação de entrada suave
+              // Anima��o de entrada suave
               return TweenAnimationBuilder<double>(
                 duration: Duration(milliseconds: 300 + (index * 50)),
                 tween: Tween(begin: 0.0, end: 1.0),
@@ -2882,11 +2878,11 @@ class _AdminMissionsManagementPageState
                   onEdit: () => _showEditMissionDialog(mission),
                   onDuplicate: () => _duplicateMission(
                     missionId,
-                    mission['title']?.toString() ?? 'Missão sem título',
+                    mission['title']?.toString() ?? 'Miss�o sem t�tulo',
                   ),
                   onDelete: () => _deleteMission(
                     missionId,
-                    mission['title']?.toString() ?? 'Missão sem título',
+                    mission['title']?.toString() ?? 'Miss�o sem t�tulo',
                   ),
                   onLongPress: () {
                     setState(() {
@@ -3013,7 +3009,7 @@ class _MissionCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Placeholders não substituídos: ${placeholders.join(", ")}',
+                            'Placeholders n�o substitu�dos: ${placeholders.join(", ")}',
                             style: const TextStyle(color: Colors.orange, fontSize: 11),
                           ),
                         ),
@@ -3024,7 +3020,7 @@ class _MissionCard extends StatelessWidget {
                 ],
                 Row(
                   children: [
-                    // Checkbox de seleção
+                    // Checkbox de sele��o
                     if (isSelected || onTap != null)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
@@ -3036,7 +3032,7 @@ class _MissionCard extends StatelessWidget {
                           side: BorderSide(color: Colors.grey[600]!),
                         ),
                       ),
-                    // Ícone de status
+                    // �cone de status
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -3078,7 +3074,7 @@ class _MissionCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Botão de editar
+                    // Bot�o de editar
                     IconButton(
                       onPressed: onEdit,
                       icon: const Icon(
@@ -3086,7 +3082,7 @@ class _MissionCard extends StatelessWidget {
                         color: AppColors.primary,
                         size: 20,
                       ),
-                      tooltip: 'Editar missão',
+                      tooltip: 'Editar miss�o',
                       padding: const EdgeInsets.all(8),
                       constraints: const BoxConstraints(),
                     ),
@@ -3165,11 +3161,11 @@ class _MissionCard extends StatelessWidget {
                     ],
                   ),
                 ],
-                // Botões de ação
+                // Bot�es de a��o
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    // Botão de duplicar
+                    // Bot�o de duplicar
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: onDuplicate,
@@ -3183,7 +3179,7 @@ class _MissionCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // Botão de excluir
+                    // Bot�o de excluir
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: onDelete,
@@ -3213,7 +3209,7 @@ class _MissionCard extends StatelessWidget {
       case 'EXPENSE_CONTROL':
         return 'Controle';
       case 'DEBT_REDUCTION':
-        return 'Dívidas';
+        return 'D�vidas';
       case 'ONBOARDING':
         return 'Onboarding';
       default:
@@ -3239,11 +3235,11 @@ class _MissionCard extends StatelessWidget {
   String _getDifficultyLabel(String difficulty) {
     switch (difficulty) {
       case 'EASY':
-        return 'Fácil';
+        return 'F�cil';
       case 'MEDIUM':
-        return 'Média';
+        return 'M�dia';
       case 'HARD':
-        return 'Difícil';
+        return 'Dif�cil';
       default:
         return difficulty;
     }

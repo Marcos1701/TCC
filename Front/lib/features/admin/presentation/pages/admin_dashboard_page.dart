@@ -12,13 +12,6 @@ import 'admin_missions_management_page.dart';
 import 'admin_categories_management_page.dart';
 import 'admin_users_management_page.dart';
 
-/// Dashboard principal de administração
-/// 
-/// Exibe métricas gerais do sistema:
-/// - Total de usuários
-/// - Missões completadas
-/// - Evolução de usuários
-/// - Estatísticas gerais
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
 
@@ -47,7 +40,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
     });
 
     try {
-      // Carregar todos os 3 endpoints em paralelo
       final results = await Future.wait([
         _apiClient.client.get('/api/admin-stats/overview/'),
         _apiClient.client.get('/api/admin-stats/user_analytics/'),
@@ -65,7 +57,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
       
       if (e.response != null) {
         if (e.response?.statusCode == 403) {
-          errorMsg = 'Acesso negado. Você precisa ser administrador.';
+          errorMsg = 'Acesso negado. Privilégios administrativos necessários.';
         } else if (e.response?.statusCode == 500) {
           final errorData = e.response?.data;
           if (errorData is Map) {
@@ -272,36 +264,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
   }
 
   Widget _buildMetricsGrid() {
-    // Função auxiliar para pegar valores com fallback seguro
-    int getIntValue(Map<String, dynamic>? map, String key, [int fallback = 0]) {
+    int getInt(Map<String, dynamic>? map, String key, [int fallback = 0]) {
       if (map == null) return fallback;
       final value = map[key];
-      if (value == null) return fallback;
       if (value is int) return value;
       if (value is double) return value.toInt();
       if (value is String) return int.tryParse(value) ?? fallback;
       return fallback;
     }
     
-    double getDoubleValue(Map<String, dynamic>? map, String key, [double fallback = 0.0]) {
+    double getDouble(Map<String, dynamic>? map, String key, [double fallback = 0.0]) {
       if (map == null) return fallback;
       final value = map[key];
-      if (value == null) return fallback;
       if (value is double) return value;
       if (value is int) return value.toDouble();
       if (value is String) return double.tryParse(value) ?? fallback;
       return fallback;
     }
     
-    final users = getIntValue(_overviewStats, 'total_users');
-    final completedMissions = getIntValue(_overviewStats, 'completed_missions');
-    final activeMissions = getIntValue(_overviewStats, 'active_missions');
-    final avgLevel = getDoubleValue(_overviewStats, 'avg_user_level');
-    
-    final activeUsers7d = getIntValue(_userAnalytics, 'active_users_7d');
-    final newUsers7d = getIntValue(_userAnalytics, 'new_users_7d');
-    final totalTransactions = getIntValue(_systemHealth, 'total_transactions');
-    final activeGoals = getIntValue(_systemHealth, 'active_goals');
+    final totalUsers = getInt(_overviewStats, 'total_users');
+    final completedMissions = getInt(_overviewStats, 'completed_missions');
+    final activeMissions = getInt(_overviewStats, 'active_missions');
+    final avgLevel = getDouble(_overviewStats, 'avg_user_level');
+    final activeUsers7d = getInt(_userAnalytics, 'active_users_7d');
+    final newUsers7d = getInt(_userAnalytics, 'new_users_7d');
+    final totalTransactions = getInt(_systemHealth, 'total_transactions');
+    final activeGoals = getInt(_systemHealth, 'active_goals');
 
     return GridView.count(
       shrinkWrap: true,
@@ -309,11 +297,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
       crossAxisCount: 2,
       mainAxisSpacing: 10,
       crossAxisSpacing: 10,
-      childAspectRatio: 1.35, // Aumentado para deixar cards mais compactos verticalmente
+      childAspectRatio: 1.35,
       children: [
         AdminMetricCard(
           title: 'Usuários',
-          value: users.toString(),
+          value: totalUsers.toString(),
           icon: Icons.people,
           color: Colors.blue,
           subtitle: 'Total cadastrados',
@@ -330,7 +318,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
           value: completedMissions.toString(),
           icon: Icons.check_circle,
           color: Colors.purple,
-          subtitle: 'Todas as faixas',
+          subtitle: 'Missões finalizadas',
         ),
         AdminMetricCard(
           title: 'Ativas',
@@ -444,11 +432,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
       return const SizedBox.shrink();
     }
     
-    // Função auxiliar para pegar valores com segurança
-    int getSafeInt(Map<String, dynamic>? map, String key) {
+    int getInt(Map<String, dynamic>? map, String key) {
       if (map == null) return 0;
       final value = map[key];
-      if (value == null) return 0;
       if (value is int) return value;
       if (value is double) return value.toInt();
       if (value is String) return int.tryParse(value) ?? 0;
@@ -477,17 +463,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
             child: Column(
               children: [
                 if (missionsByDifficulty != null) ...[
-                  AdminStatRow(label: 'Fácil', value: getSafeInt(missionsByDifficulty, 'EASY')),
-                  AdminStatRow(label: 'Média', value: getSafeInt(missionsByDifficulty, 'MEDIUM')),
-                  AdminStatRow(label: 'Difícil', value: getSafeInt(missionsByDifficulty, 'HARD')),
+                  AdminStatRow(label: 'Fácil', value: getInt(missionsByDifficulty, 'EASY')),
+                  AdminStatRow(label: 'Média', value: getInt(missionsByDifficulty, 'MEDIUM')),
+                  AdminStatRow(label: 'Difícil', value: getInt(missionsByDifficulty, 'HARD')),
                   Divider(height: 24, color: Colors.grey[800]),
                 ],
                 if (missionsByType != null) ...[
-                  AdminStatRow(label: 'Onboarding', value: getSafeInt(missionsByType, 'ONBOARDING')),
-                  AdminStatRow(label: 'Economia', value: getSafeInt(missionsByType, 'SAVINGS')),
-                  AdminStatRow(label: 'Controle de Despesas', value: getSafeInt(missionsByType, 'EXPENSE_CONTROL')),
-                  AdminStatRow(label: 'Redução de Dívidas', value: getSafeInt(missionsByType, 'DEBT_REDUCTION')),
-                  AdminStatRow(label: 'Especial', value: getSafeInt(missionsByType, 'SPECIAL')),
+                  AdminStatRow(label: 'Onboarding', value: getInt(missionsByType, 'ONBOARDING')),
+                  AdminStatRow(label: 'Melhoria TPS', value: getInt(missionsByType, 'TPS_IMPROVEMENT')),
+                  AdminStatRow(label: 'Redução RDR', value: getInt(missionsByType, 'RDR_REDUCTION')),
+                  AdminStatRow(label: 'Construção ILI', value: getInt(missionsByType, 'ILI_BUILDING')),
+                  AdminStatRow(label: 'Avançadas', value: getInt(missionsByType, 'ADVANCED')),
                 ],
               ],
             ),
@@ -812,27 +798,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
       return const SizedBox.shrink();
     }
 
-    int getSafeInt(Map<String, dynamic>? map, String key) {
+    int getInt(Map<String, dynamic>? map, String key) {
       if (map == null) return 0;
       final value = map[key];
-      if (value == null) return 0;
       if (value is int) return value;
       if (value is double) return value.toInt();
       if (value is String) return int.tryParse(value) ?? 0;
       return 0;
     }
 
-    final totalTransactions = getSafeInt(_systemHealth, 'total_transactions');
-    final transactions7d = getSafeInt(_systemHealth, 'transactions_7d');
-    final totalGoals = getSafeInt(_systemHealth, 'total_goals');
-    final activeGoals = getSafeInt(_systemHealth, 'active_goals');
-    final completedGoals = getSafeInt(_systemHealth, 'completed_goals');
-    final categoriesCount = getSafeInt(_systemHealth, 'categories_count');
-    final globalCategories = getSafeInt(_systemHealth, 'global_categories');
-    final userCategories = getSafeInt(_systemHealth, 'user_categories');
-    final totalMissions = getSafeInt(_systemHealth, 'total_missions');
-    final aiMissions = getSafeInt(_systemHealth, 'ai_generated_missions');
-    final defaultMissions = getSafeInt(_systemHealth, 'default_missions');
+    final totalTransactions = getInt(_systemHealth, 'total_transactions');
+    final transactions7d = getInt(_systemHealth, 'transactions_7d');
+    final totalGoals = getInt(_systemHealth, 'total_goals');
+    final activeGoals = getInt(_systemHealth, 'active_goals');
+    final completedGoals = getInt(_systemHealth, 'completed_goals');
+    final categoriesCount = getInt(_systemHealth, 'categories_count');
+    final globalCategories = getInt(_systemHealth, 'global_categories');
+    final userCategories = getInt(_systemHealth, 'user_categories');
+    final totalMissions = getInt(_systemHealth, 'total_missions');
+    final aiMissions = getInt(_systemHealth, 'ai_generated_missions');
+    final defaultMissions = getInt(_systemHealth, 'default_missions');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -912,7 +897,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> with AdminPageM
   }
 }
 
-
 class _ActionTile extends StatelessWidget {
   const _ActionTile({
     required this.icon,
@@ -964,8 +948,6 @@ class _ActionTile extends StatelessWidget {
     );
   }
 }
-
-
 
 
 

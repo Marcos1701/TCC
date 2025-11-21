@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Widget reutilizável para cabeçalhos de seção em páginas admin
-/// 
-/// Substitui múltiplas implementações do método _buildSectionHeader
-/// encontradas em admin_missions_management_page e outras páginas
 class AdminSectionHeader extends StatelessWidget {
   final String title;
   final IconData icon;

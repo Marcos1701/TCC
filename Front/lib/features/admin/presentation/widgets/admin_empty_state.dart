@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Widget reutilizável para estados vazios em listas admin
-/// 
-/// Substitui múltiplas implementações de estados vazios
 class AdminEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -33,6 +30,10 @@ class AdminEmptyState extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.grey[850],
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.grey[800]!,
+                  width: 2,
+                ),
               ),
               child: Icon(
                 icon,
@@ -65,12 +66,13 @@ class AdminEmptyState extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.add),
+                icon: const Icon(Icons.add, size: 20),
                 label: Text(actionLabel!),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  elevation: 2,
                 ),
               ),
             ],

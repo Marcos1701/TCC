@@ -72,7 +72,7 @@ class _DevToolsPageState extends State<DevToolsPage> {
                         const Icon(Icons.warning, color: Colors.red, size: 48),
                         const SizedBox(height: 8),
                         const Text(
-                          'FERRAMENTAS DE DESENVOLVEDOR',
+                          'FERRAMENTAS DE TESTES E DIAGNÓSTICO',
                           style: TextStyle(
                             color: Colors.red,
                             fontWeight: FontWeight.bold,

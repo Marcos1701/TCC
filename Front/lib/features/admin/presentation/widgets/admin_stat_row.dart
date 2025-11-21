@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Widget reutilizável para exibir linhas de estatísticas
-/// 
-/// Substitui o método _buildStatRow duplicado em várias páginas admin
 class AdminStatRow extends StatelessWidget {
   final String label;
   final dynamic value;

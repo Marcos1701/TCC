@@ -1,26 +1,26 @@
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 
-/// Serviço para gerenciamento administrativo de usuários
-/// 
-/// Endpoints disponíveis:
-/// - GET /api/admin/users/ - Lista usuários com filtros
-/// - GET /api/admin/users/{id}/ - Detalhes do usuário
-/// - POST /api/admin/users/{id}/deactivate/ - Desativar usuário
-/// - POST /api/admin/users/{id}/reactivate/ - Reativar usuário
-/// - POST /api/admin/users/{id}/adjust_xp/ - Ajustar XP
-/// - GET /api/admin/users/{id}/admin_actions/ - Histórico de ações
+
+
+
+
+
+
+
+
+
 class AdminUserService {
   final ApiClient _apiClient = ApiClient();
 
-  /// Lista todos os usuários com filtros opcionais
-  /// 
-  /// Parâmetros:
-  /// - [tier]: BEGINNER, INTERMEDIATE, ADVANCED
-  /// - [isActive]: true/false
-  /// - [search]: busca por username/email
-  /// - [ordering]: campo de ordenação (ex: -date_joined, level, experience_points)
-  /// - [page]: número da página
+
+
+
+
+
+
+
+
   Future<Map<String, dynamic>> listUsers({
     String? tier,
     bool? isActive,
@@ -49,15 +49,15 @@ class AdminUserService {
     }
   }
 
-  /// Obtém detalhes completos de um usuário
-  /// 
-  /// Retorna:
-  /// - Dados básicos (username, email, etc)
-  /// - Perfil (level, XP, metas)
-  /// - Estatísticas (TPS, RDR, ILI)
-  /// - Transações recentes (últimas 10)
-  /// - Missões ativas (até 5)
-  /// - Histórico de ações admin (últimas 20)
+
+
+
+
+
+
+
+
+
   Future<Map<String, dynamic>> getUserDetails(int userId) async {
     try {
       final response = await _apiClient.client.get(
@@ -70,10 +70,10 @@ class AdminUserService {
     }
   }
 
-  /// Desativa um usuário
-  /// 
-  /// Requer:
-  /// - [reason]: Motivo obrigatório para auditoria
+
+
+
+
   Future<Map<String, dynamic>> deactivateUser({
     required int userId,
     required String reason,
@@ -90,10 +90,10 @@ class AdminUserService {
     }
   }
 
-  /// Reativa um usuário
-  /// 
-  /// Requer:
-  /// - [reason]: Motivo obrigatório para auditoria
+
+
+
+
   Future<Map<String, dynamic>> reactivateUser({
     required int userId,
     required String reason,
@@ -110,16 +110,16 @@ class AdminUserService {
     }
   }
 
-  /// Ajusta XP de um usuário
-  /// 
-  /// Requer:
-  /// - [amount]: Valor entre -500 e +500
-  /// - [reason]: Motivo obrigatório para auditoria
-  /// 
-  /// Retorna:
-  /// - XP antigo e novo
-  /// - Level antigo e novo
-  /// - Flag se o level mudou
+
+
+
+
+
+
+
+
+
+
   Future<Map<String, dynamic>> adjustXp({
     required int userId,
     required int amount,
@@ -140,11 +140,11 @@ class AdminUserService {
     }
   }
 
-  /// Obtém histórico de ações administrativas de um usuário
-  /// 
-  /// Parâmetros:
-  /// - [actionType]: Filtro opcional por tipo de ação
-  /// - [page]: Número da página (50 itens por página)
+
+
+
+
+
   Future<Map<String, dynamic>> getAdminActions({
     required int userId,
     String? actionType,
@@ -172,7 +172,7 @@ class AdminUserService {
 
   String _handleError(DioException e) {
     if (e.response?.statusCode == 403) {
-      return 'Acesso negado. Apenas administradores podem acessar esta funcionalidade.';
+      return 'Acesso negado. Privilégios administrativos necessários.';
     }
     if (e.response?.statusCode == 404) {
       return 'Usuário não encontrado.';

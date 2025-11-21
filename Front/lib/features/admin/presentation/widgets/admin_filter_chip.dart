@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Widget reutilizável para chips de filtro em páginas admin
-/// 
-/// Substitui múltiplas implementações do método _buildChipFilter
 class AdminFilterChip extends StatelessWidget {
   final String label;
   final IconData icon;

@@ -1,11 +1,11 @@
-/// Funções auxiliares compartilhadas para páginas admin
-/// 
-/// Evita duplicação de lógica comum entre diferentes páginas administrativas
+
+
+
 library;
 
-/// Obtém valor inteiro de forma segura de um mapa dinâmico
-/// 
-/// Substitui múltiplas implementações do método getSafeInt/getSafeValue
+
+
+
 int getSafeInt(Map<String, dynamic>? map, String key) {
   if (map == null) return 0;
   final value = map[key];
@@ -16,7 +16,7 @@ int getSafeInt(Map<String, dynamic>? map, String key) {
   return 0;
 }
 
-/// Obtém valor double de forma segura de um mapa dinâmico
+
 double getSafeDouble(Map<String, dynamic>? map, String key) {
   if (map == null) return 0.0;
   final value = map[key];
@@ -27,7 +27,7 @@ double getSafeDouble(Map<String, dynamic>? map, String key) {
   return 0.0;
 }
 
-/// Obtém string de forma segura de um mapa dinâmico
+
 String getSafeString(Map<String, dynamic>? map, String key, {String defaultValue = ''}) {
   if (map == null) return defaultValue;
   final value = map[key];
@@ -35,7 +35,7 @@ String getSafeString(Map<String, dynamic>? map, String key, {String defaultValue
   return value.toString();
 }
 
-/// Obtém lista de forma segura de um mapa dinâmico
+
 List<T> getSafeList<T>(Map<String, dynamic>? map, String key) {
   if (map == null) return [];
   final value = map[key];

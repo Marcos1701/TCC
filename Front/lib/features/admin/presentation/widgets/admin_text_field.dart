@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Widget reutilizável para campos de texto em formulários admin
-/// 
-/// Substitui o método _buildTextField duplicado
 class AdminTextField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -33,8 +30,9 @@ class AdminTextField extends StatelessWidget {
           label,
           style: TextStyle(
             color: Colors.grey[400],
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 8),
@@ -51,11 +49,23 @@ class AdminTextField extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[800]!, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF00D4AA), width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[600]),
+            hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
           ),
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
         ),
       ],
     );

@@ -2,19 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../../core/network/api_client.dart';
 
-/// Mixin para comportamentos comuns em páginas admin
-/// 
-/// Fornece funcionalidades compartilhadas:
-/// - Gerenciamento de estado de loading/error
-/// - Métodos auxiliares para API
-/// - Parsing de resposta padrão
 mixin AdminPageMixin<T extends StatefulWidget> on State<T> {
   final apiClient = ApiClient();
   
   bool isLoading = true;
   String? errorMessage;
 
-  /// Inicia estado de loading
   void startLoading() {
     setState(() {
       isLoading = true;
@@ -22,7 +15,6 @@ mixin AdminPageMixin<T extends StatefulWidget> on State<T> {
     });
   }
 
-  /// Define estado de erro
   void setError(String error) {
     setState(() {
       isLoading = false;
@@ -30,7 +22,6 @@ mixin AdminPageMixin<T extends StatefulWidget> on State<T> {
     });
   }
 
-  /// Define estado de sucesso
   void setSuccess() {
     setState(() {
       isLoading = false;
@@ -38,9 +29,6 @@ mixin AdminPageMixin<T extends StatefulWidget> on State<T> {
     });
   }
 
-  /// Parse de resposta JSON da API
-  /// 
-  /// Substitui o método _parseResponse duplicado
   Map<String, dynamic> parseResponse(dynamic response) {
     if (response.data == null) {
       return {};
@@ -64,7 +52,6 @@ mixin AdminPageMixin<T extends StatefulWidget> on State<T> {
     return {};
   }
 
-  /// Executa ação async com tratamento de erro padrão
   Future<void> executeAdminAction(
     Future<void> Function() action, {
     String? successMessage,

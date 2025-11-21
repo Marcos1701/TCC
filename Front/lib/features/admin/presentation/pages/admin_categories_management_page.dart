@@ -710,9 +710,9 @@ class _AdminCategoriesManagementPageState
           if (match != null) {
             errorMessage = match.group(1) ?? errorMessage;
           } else if (e.toString().contains('400')) {
-            errorMessage = 'Dados inválidos. Verifique os campos e tente novamente.';
+            errorMessage = 'Dados inválidos. Verifique os campos.';
           } else if (e.toString().contains('403')) {
-            errorMessage = 'Você não tem permissão para criar esta categoria.';
+            errorMessage = 'Permissão negada para criar categoria.';
           }
         }
         
@@ -752,9 +752,9 @@ class _AdminCategoriesManagementPageState
         // Tentar extrair mensagem de erro específica
         if (e.toString().contains('DioException')) {
           if (e.toString().contains('400')) {
-            errorMessage = 'Dados inválidos. Verifique os campos e tente novamente.';
+            errorMessage = 'Dados inválidos. Verifique os campos.';
           } else if (e.toString().contains('403')) {
-            errorMessage = 'Você não tem permissão para editar esta categoria.';
+            errorMessage = 'Permissão negada para editar categoria.';
           } else if (e.toString().contains('404')) {
             errorMessage = 'Categoria não encontrada.';
           }
@@ -795,11 +795,11 @@ class _AdminCategoriesManagementPageState
         // Tentar extrair mensagem de erro específica
         if (e.toString().contains('DioException')) {
           if (e.toString().contains('transação')) {
-            errorMessage = 'Esta categoria possui transações vinculadas. Reatribua-as antes de excluir.';
+            errorMessage = 'Categoria com transações vinculadas. Reatribua antes de excluir.';
           } else if (e.toString().contains('meta')) {
-            errorMessage = 'Esta categoria possui metas vinculadas. Reatribua-as antes de excluir.';
+            errorMessage = 'Categoria com metas vinculadas. Reatribua antes de excluir.';
           } else if (e.toString().contains('403')) {
-            errorMessage = 'Você não tem permissão para excluir esta categoria.';
+            errorMessage = 'Permissão negada para excluir categoria.';
           } else if (e.toString().contains('404')) {
             errorMessage = 'Categoria não encontrada.';
           }

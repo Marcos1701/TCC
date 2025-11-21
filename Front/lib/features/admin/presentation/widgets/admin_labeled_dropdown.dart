@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Widget reutilizável para dropdown com label em formulários admin
-/// 
-/// Substitui o método _buildLabeledDropdown duplicado
 class AdminLabeledDropdown<T> extends StatelessWidget {
   final String label;
   final T value;
@@ -28,8 +25,9 @@ class AdminLabeledDropdown<T> extends StatelessWidget {
           label,
           style: TextStyle(
             color: Colors.grey[400],
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 8),
@@ -44,11 +42,20 @@ class AdminLabeledDropdown<T> extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[800]!, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF00D4AA), width: 1.5),
+            ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             hintText: hint,
           ),
           dropdownColor: const Color(0xFF2A2A2A),
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+          icon: Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
         ),
       ],
     );

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Widget reutilizável para cards de métricas no dashboard admin
-/// 
-/// Substitui a classe interna _MetricCard
 class AdminMetricCard extends StatelessWidget {
   final String title;
   final String value;
@@ -26,6 +23,10 @@ class AdminMetricCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

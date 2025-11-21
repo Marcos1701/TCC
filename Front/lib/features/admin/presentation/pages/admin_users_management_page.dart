@@ -6,13 +6,6 @@ import '../../../../core/constants/user_friendly_strings.dart';
 import '../../data/services/admin_user_service.dart';
 import 'admin_user_details_page.dart';
 
-/// Página de listagem e gerenciamento de usuários (Admin)
-/// 
-/// Recursos:
-/// - Lista paginada de usuários
-/// - Filtros: tier, status, busca
-/// - Ordenação por data, nível, pontos
-/// - Navegação para detalhes
 class AdminUsersManagementPage extends StatefulWidget {
   const AdminUsersManagementPage({super.key});
 
