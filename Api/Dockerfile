@@ -27,8 +27,7 @@ FROM python:3.11-slim
 
 # Definir variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PATH=/home/appuser/.local/bin:$PATH
+    PYTHONDONTWRITEBYTECODE=1
 
 # Instalar apenas dependências de runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -43,6 +42,9 @@ RUN useradd -m -u 1000 appuser && \
 
 # Copiar dependências instaladas do builder para o diretório do appuser
 COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
+
+# Atualizar PATH para incluir binários do Python instalados pelo usuário
+ENV PATH=/home/appuser/.local/bin:$PATH
 
 # Definir diretório de trabalho
 WORKDIR /app
