@@ -3317,10 +3317,6 @@ class UserProfileViewSet(
         })
 
 
-
-    """
-    ViewSet para gerenciar amizades entre usuários.
-    Usa UUID como identificador primário.
     
     Endpoints:
     - GET /friendships/ - Listar amigos aceitos
@@ -3529,10 +3525,6 @@ class UserProfileViewSet(
             status=status.HTTP_200_OK
         )
 
-
-
-    """
-    ViewSet para rankings de usuários.
     
     Endpoints:
     - GET /leaderboard/ - DEPRECATED (usar /leaderboard/friends/)
@@ -4526,10 +4518,6 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         
         return paginator.get_paginated_response(actions_data)
 
-
-
-    """
-    ViewSet para CRUD completo de conquistas.
     
     - LIST/RETRIEVE: Qualquer usuário autenticado (apenas conquistas ativas)
     - CREATE/UPDATE/DELETE: Apenas admins
