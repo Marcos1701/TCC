@@ -14,7 +14,6 @@ import '../../../../core/services/mission_notification_service.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
 import '../../../missions/presentation/widgets/mission_details_sheet.dart';
 import '../../../progress/presentation/pages/progress_page.dart';
@@ -280,11 +279,7 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Configurações',
             onPressed: () => _openPage(const SettingsPage()),
           ),
-          IconButton(
-            icon: const Icon(Icons.leaderboard, color: Colors.white),
-            tooltip: 'Ranking',
-            onPressed: () => _openPage(const LeaderboardPage()),
-          ),
+
         ],
       ),
       floatingActionButton: FloatingActionButton(

@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
-import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
 /// Unified Profile Page
@@ -300,20 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
-        // Ranking de Amigos
-        Card(
-          color: Colors.purple[900]?.withOpacity(0.3),
-          child: ListTile(
-            leading: const Icon(Icons.leaderboard, color: Colors.purple),
-            title: const Text(
-              'Ranking de Amigos',
-              style: TextStyle(color: Colors.white),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-            onTap: () => _navigateToLeaderboard(context),
-          ),
-        ),
-        const SizedBox(height: 8),
+
 
         // Configurações
         Card(
@@ -385,11 +371,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _navigateToLeaderboard(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const LeaderboardPage()),
-    );
-  }
+
 
   void _navigateToSettings(BuildContext context) {
     Navigator.of(context).push(
