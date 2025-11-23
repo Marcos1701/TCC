@@ -5,8 +5,11 @@ from rest_framework import serializers
 
 from .models import (
     Category,
-    UserDailySnapshot,
-    UserMonthlySnapshot,
+    Goal,
+    Mission,
+    MissionProgress,
+    Transaction,
+    TransactionLink,
     UserProfile,
 )
 
@@ -1114,85 +1117,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             validated_data.setdefault("completed_at", timezone.now())
         return super().update(instance, validated_data)
 
-
-class UserDailySnapshotSerializer(serializers.ModelSerializer):
-    """Serializer para snapshots diários do usuário."""
-    
-    class Meta:
-        model = UserDailySnapshot
-        fields = (
-            "id",
-            "snapshot_date",
-            "tps",
-            "rdr",
-            "ili",
-            "total_income",
-            "total_expense",
-            "total_debt",
-            "available_balance",
-            "category_spending",
-            "savings_added_today",
-            "savings_total",
-            "goals_progress",
-            "transactions_registered_today",
-            "transaction_count_today",
-            "total_transactions_lifetime",
-            "budget_exceeded",
-            "budget_violations",
-            "created_at",
-            "updated_at",
-        )
-        read_only_fields = ("id", "created_at", "updated_at")
-
-
-class UserMonthlySnapshotSerializer(serializers.ModelSerializer):
-    """Serializer para snapshots mensais consolidados."""
-    
-    class Meta:
-        model = UserMonthlySnapshot
-        fields = (
-            "id",
-            "year",
-            "month",
-            "avg_tps",
-            "avg_rdr",
-            "avg_ili",
-            "total_income",
-            "total_expense",
-            "total_savings",
-            "top_category",
-            "top_category_amount",
-            "category_spending",
-            "days_with_transactions",
-            "days_in_month",
-            "consistency_rate",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")
-
-
-class MissionProgressSnapshotSerializer(serializers.ModelSerializer):
-    """Serializer para snapshots de progresso de missões."""
-    
-    class Meta:
-        model = MissionProgressSnapshot
-        fields = (
-            "id",
-            "snapshot_date",
-            "tps_value",
-            "rdr_value",
-            "ili_value",
-            "category_spending",
-            "goal_progress",
-            "goal_current_amount",
-            "savings_amount",
-            "met_criteria",
-            "criteria_details",
-            "consecutive_days_met",
-            "progress_percentage",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")
 
 
 class DashboardSummarySerializer(serializers.Serializer):

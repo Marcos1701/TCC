@@ -4,7 +4,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
     
     dependencies = [
-        ('finance', '0039_auto_20241120_1420'),
+        ('finance', '0039_add_mission_impacts_and_tips'),
+        ('finance', '0039_remove_debt_reduction_goal_type'),
     ]
     
     operations = [
