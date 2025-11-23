@@ -12,7 +12,7 @@ import '../../data/transactions_viewmodel.dart';
 import '../../presentation/widgets/transaction_details_sheet.dart';
 import '../../presentation/widgets/transaction_wizard.dart';
 import '../../presentation/widgets/payment_wizard.dart';
-import '../../../shared/presentation/pages/financial_concepts_page.dart';
+
 
 class TransactionsPage extends StatefulWidget {
   const TransactionsPage({super.key});
@@ -196,17 +196,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         ),
         automaticallyImplyLeading: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.white),
-            tooltip: 'Ajuda e Conceitos',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const FinancialConceptsPage(),
-                ),
-              );
-            },
-          ),
+
           IconButton(
             icon: const Icon(Icons.swap_horiz, color: Colors.white),
             tooltip: 'Novo Pagamento',
