@@ -224,12 +224,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Categoria possui {transaction_count} transações vinculadas. Reatribua antes de excluir.'
             })
         
-        goal_count = Goal.objects.filter(target_category=instance).count()
-        if goal_count > 0:
-            logger.warning(f"Categoria {instance.name} possui {goal_count} metas vinculadas")
-            raise ValidationError({
-                'non_field_errors': f'Categoria possui {goal_count} metas vinculadas. Reatribua antes de excluir.'
-            })
+        # target_category foi removido do modelo Goal
+        # Não é mais necessário validar metas vinculadas
+        
         
         logger.info(f"Deletando categoria {instance.name}")
         instance.delete()
@@ -353,14 +350,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Esta transação recebeu {links_as_target} pagamento(s). Remova os vínculos antes de excluir.'
             })
         
-        goal_links = Goal.objects.filter(target_category=instance.category, user=instance.user).count()
-        if goal_links > 0:
-            # Permitir mas avisar via log
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(
-                f"Transação {instance.id} excluída mas tinha categoria vinculada a {goal_links} meta(s)."
-            )
+        # target_category foi removido do modelo Goal
+        # Warnings de metas vinculadas não são mais necessários
+        
         
         instance.delete()
         # Invalidar todos os caches após deletar transação
@@ -1207,15 +1199,11 @@ class GoalViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Otimizado: Adiciona select_related para category e prefetch_related
-        para tracked_categories para evitar N+1 queries.
+        Otimizado: Adiciona prefetch_related para tracked_categories (se ainda existir)
+        para evitar N+1 queries.
         """
         return Goal.objects.filter(
             user=self.request.user
-        ).select_related(
-            'target_category'
-        ).prefetch_related(
-            'tracked_categories'
         ).order_by("-created_at")
     
     def perform_create(self, serializer):
@@ -1250,12 +1238,9 @@ class GoalViewSet(viewsets.ModelViewSet):
                 'non_field_errors': 'Você atingiu o limite de 50 metas ativas. Complete ou exclua metas antigas.'
             })
         
-        # 2. Validar categoria pertence ao usuário (ou é global)
-        target_category = data.get('target_category')
-        if target_category and target_category.user is not None and target_category.user != user:
-            raise ValidationError({
-                'target_category': 'A categoria selecionada não pertence a você.'
-            })
+        # target_category foi removido do modelo Goal
+        # Validação não é mais necessária
+        
         
         # 3. Validar que não existe meta duplicada (mesmo título e tipo)
         title = data.get('title', '').strip()
@@ -1294,18 +1279,6 @@ class GoalViewSet(viewsets.ModelViewSet):
         """
         Atualizar meta com validações adicionais.
         """
-        from rest_framework.exceptions import ValidationError
-        
-        instance = self.get_object()
-        data = serializer.validated_data
-        
-        # 1. Validar nova categoria pertence ao usuário (ou é global)
-        target_category = data.get('target_category')
-        if target_category and target_category.user is not None and target_category.user != self.request.user:
-            raise ValidationError({
-                'target_category': 'A categoria selecionada não pertence a você.'
-            })
-        
         serializer.save()
     
     def perform_destroy(self, instance):

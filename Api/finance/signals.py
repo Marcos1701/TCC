@@ -129,8 +129,8 @@ def update_goals_on_transaction_change(sender, instance, **kwargs):
                 if goal.tracked_categories.exists():
                     if instance.category in goal.tracked_categories.all():
                         should_update = True
-                elif goal.target_category == instance.category:
-                    should_update = True
+                # target_category foi removido - não há mais essa validação
+                pass
         
         elif goal.goal_type == Goal.GoalType.CATEGORY_INCOME:
             # Atualiza APENAS se é INCOME nas categorias monitoradas
@@ -138,8 +138,8 @@ def update_goals_on_transaction_change(sender, instance, **kwargs):
                 if goal.tracked_categories.exists():
                     if instance.category in goal.tracked_categories.all():
                         should_update = True
-                elif goal.target_category == instance.category:
-                    should_update = True
+                # target_category foi removido - não há mais essa validação
+                pass
         
         elif goal.goal_type == Goal.GoalType.CUSTOM:
             # Atualiza se transação está em tracked_categories
