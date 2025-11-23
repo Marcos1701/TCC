@@ -15,7 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship, Achievement, UserAchievement
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile
 from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
 from .mixins import UUIDLookupMixin, UUIDResponseMixin
 from .throttling import (
@@ -35,9 +35,6 @@ from .serializers import (
     TransactionSerializer,
     TransactionLinkSerializer,
     UserProfileSerializer,
-    FriendshipSerializer,
-    AchievementSerializer,
-    UserAchievementSerializer,
 )
 from .services import (
     analyze_user_context,
@@ -3320,7 +3317,7 @@ class UserProfileViewSet(
         })
 
 
-class FriendshipViewSet(viewsets.ModelViewSet):
+
     """
     ViewSet para gerenciar amizades entre usuários.
     Usa UUID como identificador primário.
@@ -3533,7 +3530,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         )
 
 
-class LeaderboardViewSet(viewsets.ViewSet):
+
     """
     ViewSet para rankings de usuários.
     
@@ -4530,7 +4527,7 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         return paginator.get_paginated_response(actions_data)
 
 
-class AchievementViewSet(viewsets.ModelViewSet):
+
     """
     ViewSet para CRUD completo de conquistas.
     
