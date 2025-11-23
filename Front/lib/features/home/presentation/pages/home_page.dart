@@ -24,7 +24,6 @@ import '../../../transactions/presentation/widgets/transaction_details_sheet.dar
 import '../../../transactions/presentation/widgets/transaction_action_selector.dart';
 import '../../../transactions/presentation/widgets/transaction_wizard.dart';
 import '../../../transactions/presentation/widgets/payment_wizard.dart';
-import '../../../shared/presentation/pages/financial_concepts_page.dart';
 import '../widgets/day4_5_widgets.dart';
 
 class HomePage extends StatefulWidget {
@@ -269,11 +268,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.black,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline, color: Colors.white),
-            tooltip: 'Ajuda e Conceitos',
-            onPressed: () => _openPage(const FinancialConceptsPage()),
-          ),
+
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white),
             tooltip: 'Configurações',
