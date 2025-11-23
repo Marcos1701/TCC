@@ -1286,29 +1286,28 @@ class DashboardSerializer(serializers.Serializer):
 
 
 class TransactionLinkSerializer(serializers.ModelSerializer):
-    """Serializer para TransactionLink."""
     
-    # Campos read-only nested
     source_transaction = TransactionSerializer(read_only=True)
     target_transaction = TransactionSerializer(read_only=True)
     
-    # Campos write-only para criação (agora apenas UUID)
     source_uuid = serializers.UUIDField(write_only=True, required=True)
     target_uuid = serializers.UUIDField(write_only=True, required=True)
     
-    # Campos calculados
     source_description = serializers.SerializerMethodField()
     target_description = serializers.SerializerMethodField()
     formatted_amount = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
+    payment_status = serializers.SerializerMethodField()
+    urgency_score = serializers.SerializerMethodField()
     
     class Meta:
         model = TransactionLink
         fields = (
-            'id',  # Agora é UUID (primary key)
+            'id',
             'source_transaction',
             'target_transaction',
-            'source_uuid',  # Aceita UUID (write-only)
-            'target_uuid',  # Aceita UUID (write-only)
+            'source_uuid',
+            'target_uuid',
             'linked_amount',
             'link_type',
             'description',
@@ -1318,14 +1317,20 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'source_description',
             'target_description',
             'formatted_amount',
+            'display_name',
+            'payment_status',
+            'urgency_score',
         )
         read_only_fields = (
-            'id',  # UUID é read-only (primary key)
+            'id',
             'created_at',
             'updated_at',
             'source_description',
             'target_description',
             'formatted_amount',
+            'display_name',
+            'payment_status',
+            'urgency_score',
         )
     
     def get_source_description(self, obj):
@@ -1337,81 +1342,138 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
     def get_formatted_amount(self, obj):
         return f"R$ {obj.linked_amount:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
     
+    def get_display_name(self, obj):
+        link_type_labels = {
+            TransactionLink.LinkType.EXPENSE_PAYMENT: "Pagamento",
+            TransactionLink.LinkType.INTERNAL_TRANSFER: "Transferência",
+            TransactionLink.LinkType.SAVINGS_ALLOCATION: "Poupança",
+        }
+        
+        type_label = link_type_labels.get(obj.link_type, "Vinculação")
+        source_name = obj.source_transaction.description[:30] if obj.source_transaction else "Origem"
+        target_name = obj.target_transaction.description[:30] if obj.target_transaction else "Destino"
+        
+        return f"{type_label}: {source_name} → {target_name}"
+    
+    def get_payment_status(self, obj):
+        if not obj.target_transaction:
+            return "unknown"
+        
+        target = obj.target_transaction
+        if target.type != Transaction.TransactionType.EXPENSE:
+            return "not_applicable"
+        
+        available = target.available_amount
+        if available == 0:
+            return "complete"
+        elif available < target.amount * Decimal('0.5'):
+            return "partial_high"
+        else:
+            return "partial_low"
+    
+    def get_urgency_score(self, obj):
+        from django.utils import timezone
+        
+        if not obj.target_transaction:
+            return 0
+        
+        target = obj.target_transaction
+        if target.type != Transaction.TransactionType.EXPENSE:
+            return 0
+        
+        score = 0
+        
+        days_old = (timezone.now() - target.created_at).days
+        if days_old >= 30:
+            score += 40
+        elif days_old >= 15:
+            score += 25
+        elif days_old >= 7:
+            score += 10
+        
+        payment_pct = float(target.link_percentage)
+        if payment_pct >= 80:
+            score += 30
+        elif payment_pct >= 50:
+            score += 20
+        elif payment_pct >= 25:
+            score += 10
+        
+        amount = float(target.amount)
+        if amount >= 1000:
+            score += 20
+        elif amount >= 500:
+            score += 15
+        elif amount >= 100:
+            score += 10
+        
+        if target.is_recurring:
+            score += 10
+        
+        return min(100, score)
+    
     def validate(self, attrs):
-        """Validações customizadas usando UUIDs."""
+        from .payment_validator import PaymentValidator
+        
         request = self.context.get('request')
         if not request:
-            raise serializers.ValidationError("Request context is required.")
+            raise serializers.ValidationError("Contexto de requisição não disponível")
         
         user = request.user
-        
         source_uuid = attrs.get('source_uuid')
         target_uuid = attrs.get('target_uuid')
         linked_amount = attrs.get('linked_amount')
+        link_type = attrs.get('link_type', TransactionLink.LinkType.EXPENSE_PAYMENT)
         
-        # Validar que source existe e pertence ao usuário
         try:
             source = Transaction.objects.get(id=source_uuid, user=user)
         except Transaction.DoesNotExist:
-            raise serializers.ValidationError({"source_uuid": "Transação de origem não encontrada."})
+            raise serializers.ValidationError({
+                "source_uuid": "Transação de origem não encontrada ou não autorizada"
+            })
         
-        # Validar que target existe e pertence ao usuário
         try:
             target = Transaction.objects.get(id=target_uuid, user=user)
         except Transaction.DoesNotExist:
-            raise serializers.ValidationError({"target_uuid": "Transação de destino não encontrada."})
-        
-        # Validar que linked_amount não excede disponível na source
-        if linked_amount > source.available_amount:
             raise serializers.ValidationError({
-                "linked_amount": f"Valor excede o disponível na receita (R$ {source.available_amount})"
+                "target_uuid": "Transação de destino não encontrada ou não autorizada"
             })
         
-        # Validar que linked_amount não excede devido na target (se for dívida)
-        if target.category and target.category.type == 'DEBT':
-            if linked_amount > target.available_amount:
-                raise serializers.ValidationError({
-                    "linked_amount": f"Valor excede o devido na dívida (R$ {target.available_amount})"
-                })
+        validator = PaymentValidator(user)
+        is_valid, errors = validator.validate_payment(source, target, linked_amount, link_type)
         
-        # Adicionar UUIDs ao attrs para uso no create()
+        if not is_valid:
+            raise serializers.ValidationError(errors)
+        
         attrs['source_transaction_uuid'] = source.id
         attrs['target_transaction_uuid'] = target.id
         
         return attrs
     
     def create(self, validated_data):
-        """Criar vinculação usando UUIDs."""
         from .services import invalidate_indicators_cache
         
-        # Remover campos write-only temporários (não são campos do modelo)
         validated_data.pop('source_uuid', None)
         validated_data.pop('target_uuid', None)
         
-        # source_transaction_uuid e target_transaction_uuid já estão em validated_data
-        # (foram adicionados pelo validate())
-        
-        # Adicionar usuário
         request = self.context.get('request')
         validated_data['user'] = request.user
         
-        # Criar link com UUIDs
         link = TransactionLink.objects.create(**validated_data)
         
-        # Invalidar cache de indicadores
         invalidate_indicators_cache(request.user)
         
         return link
 
 
 class TransactionLinkSummarySerializer(serializers.Serializer):
-    """Serializer para resumo de vinculações por transação."""
-    transaction_id = serializers.IntegerField()
+    transaction_id = serializers.UUIDField()
     transaction_description = serializers.CharField()
     transaction_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     linked_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     available_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     link_percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
+
 
 
 class FriendshipSerializer(serializers.ModelSerializer):
