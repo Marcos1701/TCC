@@ -5,7 +5,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 import uuid
 
-from .models import Category, Transaction, TransactionLink, Goal, Friendship, UserProfile
+from .models import Category, Transaction, TransactionLink, Goal, UserProfile
 
 
 def _ensure_default_categories(user):
@@ -196,12 +196,6 @@ def ensure_transaction_link_uuid(sender, instance, **kwargs):
         instance.id = uuid.uuid4()
 
 
-@receiver(pre_save, sender=Friendship)
-def ensure_friendship_uuid(sender, instance, **kwargs):
-    """Garante que toda amizade tenha UUID antes de salvar."""
-    if not instance.id:
-        instance.id = uuid.uuid4()
-
 
 # ======= Signals para validação automática de conquistas =======
 
@@ -266,21 +260,4 @@ def check_achievements_on_goal_complete(sender, instance, **kwargs):
             check_achievements_for_user(instance.user, event_type='goal')
 
 
-@receiver(post_save, sender=Friendship)
-def check_achievements_on_friendship(sender, instance, created, **kwargs):
-    """
-    Valida conquistas e atualiza missões quando uma amizade é aceita.
-    
-    Conquistas verificadas:
-    - Contagem de amigos (1, 5, 10, 20, etc.)
-    - Interações sociais
-    """
-    if instance.status == Friendship.FriendshipStatus.ACCEPTED:
-        from .services import check_achievements_for_user, update_mission_progress
-        # Verificar para ambos os usuários (user = quem enviou, friend = quem aceitou)
-        check_achievements_for_user(instance.user, event_type='social')
-        check_achievements_for_user(instance.friend, event_type='social')
-        
-        # Atualizar progresso de missões (importante para missão "Adicione seu primeiro amigo")
-        update_mission_progress(instance.user)
-        update_mission_progress(instance.friend)
+

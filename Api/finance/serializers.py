@@ -4,18 +4,12 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .models import (
-    Achievement,
     Category,
-    Friendship,
     Goal,
     Mission,
     MissionProgress,
-    MissionProgressSnapshot,
     Transaction,
     TransactionLink,
-    UserAchievement,
-    UserDailySnapshot,
-    UserMonthlySnapshot,
     UserProfile,
 )
 
@@ -1124,85 +1118,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
-class UserDailySnapshotSerializer(serializers.ModelSerializer):
-    """Serializer para snapshots diários do usuário."""
-    
-    class Meta:
-        model = UserDailySnapshot
-        fields = (
-            "id",
-            "snapshot_date",
-            "tps",
-            "rdr",
-            "ili",
-            "total_income",
-            "total_expense",
-            "total_debt",
-            "available_balance",
-            "category_spending",
-            "savings_added_today",
-            "savings_total",
-            "goals_progress",
-            "transactions_registered_today",
-            "transaction_count_today",
-            "total_transactions_lifetime",
-            "budget_exceeded",
-            "budget_violations",
-            "created_at",
-            "updated_at",
-        )
-        read_only_fields = ("id", "created_at", "updated_at")
-
-
-class UserMonthlySnapshotSerializer(serializers.ModelSerializer):
-    """Serializer para snapshots mensais consolidados."""
-    
-    class Meta:
-        model = UserMonthlySnapshot
-        fields = (
-            "id",
-            "year",
-            "month",
-            "avg_tps",
-            "avg_rdr",
-            "avg_ili",
-            "total_income",
-            "total_expense",
-            "total_savings",
-            "top_category",
-            "top_category_amount",
-            "category_spending",
-            "days_with_transactions",
-            "days_in_month",
-            "consistency_rate",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")
-
-
-class MissionProgressSnapshotSerializer(serializers.ModelSerializer):
-    """Serializer para snapshots de progresso de missões."""
-    
-    class Meta:
-        model = MissionProgressSnapshot
-        fields = (
-            "id",
-            "snapshot_date",
-            "tps_value",
-            "rdr_value",
-            "ili_value",
-            "category_spending",
-            "goal_progress",
-            "goal_current_amount",
-            "savings_amount",
-            "met_criteria",
-            "criteria_details",
-            "consecutive_days_met",
-            "progress_percentage",
-            "created_at",
-        )
-        read_only_fields = ("id", "created_at")
-
 
 class DashboardSummarySerializer(serializers.Serializer):
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
@@ -1476,143 +1391,4 @@ class TransactionLinkSummarySerializer(serializers.Serializer):
 
 
 
-class FriendshipSerializer(serializers.ModelSerializer):
-    """Serializer para relacionamentos de amizade."""
-    user_info = serializers.SerializerMethodField()
-    friend_info = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Friendship
-        fields = (
-            'id',  # Agora é UUID (primary key)
-            'user',
-            'friend',
-            'user_info',
-            'friend_info',
-            'status',
-            'created_at',
-            'accepted_at',
-        )
-        read_only_fields = ('id', 'user', 'status', 'created_at', 'accepted_at')  # UUID é read-only (primary key)
-    
-    def get_user_info(self, obj):
-        """Retorna informações básicas do usuário que enviou."""
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
-        user = obj.user
-        try:
-            profile = UserProfile.objects.get(user=user)
-        except UserProfile.DoesNotExist:
-            profile = None
-        
-        # Construir nome completo ou usar first_name, fallback para username
-        full_name = f"{user.first_name} {user.last_name}".strip() if user.first_name or user.last_name else user.username
-        
-        return {
-            'id': user.id,
-            'username': user.username,
-            'name': full_name,
-            'email': user.email,
-            'level': profile.level if profile else 1,
-            'xp': profile.experience_points if profile else 0,
-        }
-    
-    def get_friend_info(self, obj):
-        """Retorna informações básicas do amigo."""
-        friend = obj.friend
-        try:
-            profile = UserProfile.objects.get(user=friend)
-        except UserProfile.DoesNotExist:
-            profile = None
-        
-        # Construir nome completo ou usar first_name, fallback para username
-        full_name = f"{friend.first_name} {friend.last_name}".strip() if friend.first_name or friend.last_name else friend.username
-        
-        return {
-            'id': friend.id,
-            'username': friend.username,
-            'name': full_name,
-            'email': friend.email,
-            'level': profile.level if profile else 1,
-            'xp': profile.experience_points if profile else 0,
-        }
 
-
-class FriendRequestSerializer(serializers.Serializer):
-    """Serializer para enviar solicitação de amizade."""
-    friend_id = serializers.IntegerField()
-    
-    def validate_friend_id(self, value):
-        """Valida se o usuário existe e não é o próprio usuário."""
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
-        request = self.context.get('request')
-        if not request or not request.user:
-            raise serializers.ValidationError("Usuário não autenticado.")
-        
-        if value == request.user.id:
-            raise serializers.ValidationError("Você não pode enviar solicitação para si mesmo.")
-        
-        try:
-            User.objects.get(id=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Usuário não encontrado.")
-        
-        return value
-
-
-class UserSearchSerializer(serializers.Serializer):
-    """Serializer para busca de usuários."""
-    id = serializers.IntegerField()
-    username = serializers.CharField()
-    name = serializers.CharField()
-    email = serializers.EmailField()
-    level = serializers.IntegerField()
-    xp = serializers.IntegerField()
-    is_friend = serializers.BooleanField()
-    has_pending_request = serializers.BooleanField()
-
-
-class LeaderboardEntrySerializer(serializers.Serializer):
-    """Serializer para entrada no ranking."""
-    rank = serializers.IntegerField()
-    user_id = serializers.IntegerField()
-    username = serializers.CharField()
-    name = serializers.CharField()
-    level = serializers.IntegerField()
-    xp = serializers.IntegerField()
-    is_current_user = serializers.BooleanField()
-
-
-class AchievementSerializer(serializers.ModelSerializer):
-    """Serializer para conquistas do sistema."""
-    
-    class Meta:
-        model = Achievement
-        fields = [
-            'id', 'title', 'description', 'category', 'tier',
-            'xp_reward', 'icon', 'criteria', 'is_active',
-            'is_ai_generated', 'priority', 'created_at'
-        ]
-        read_only_fields = ['created_at']
-
-
-class UserAchievementSerializer(serializers.ModelSerializer):
-    """Serializer para conquistas do usuário com progresso."""
-    achievement = AchievementSerializer(read_only=True)
-    progress_percentage = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = UserAchievement
-        fields = [
-            'id', 'achievement', 'is_unlocked', 'progress',
-            'progress_max', 'progress_percentage', 'unlocked_at',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
-    
-    def get_progress_percentage(self, obj):
-        """Retorna progresso em porcentagem."""
-        return obj.progress_percentage()
