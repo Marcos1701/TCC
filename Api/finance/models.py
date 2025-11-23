@@ -708,27 +708,17 @@ class TransactionLink(models.Model):
 
 class Goal(models.Model):
     """
-    Modelo de Metas Financeiras.
+    Modelo de Metas Financeiras Simplificado.
     
     Tipos de metas:
-    - SAVINGS: Juntar dinheiro (pode monitorar categorias específicas via tracked_categories)
-    - CATEGORY_EXPENSE: Reduzir gastos em categoria específica
-    - CATEGORY_INCOME: Aumentar receita em categoria específica
+    - SAVINGS: Juntar dinheiro
     - CUSTOM: Meta personalizada (atualização manual)
     """
     
     class GoalType(models.TextChoices):
         SAVINGS = "SAVINGS", "Juntar Dinheiro"
-        CATEGORY_EXPENSE = "CATEGORY_EXPENSE", "Reduzir Gastos"
-        CATEGORY_INCOME = "CATEGORY_INCOME", "Aumentar Receita"
         CUSTOM = "CUSTOM", "Personalizada"
     
-    class TrackingPeriod(models.TextChoices):
-        MONTHLY = "MONTHLY", "Mensal"
-        QUARTERLY = "QUARTERLY", "Trimestral"
-        TOTAL = "TOTAL", "Total"
-    
-    # UUID como Primary Key
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
@@ -736,7 +726,6 @@ class Goal(models.Model):
         help_text="Identificador único universal (UUID v4)"
     )
     
-    # Campos básicos
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="goals")
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
@@ -750,43 +739,13 @@ class Goal(models.Model):
     )
     deadline = models.DateField(null=True, blank=True)
     
-    # Novos campos para metas avançadas
     goal_type = models.CharField(
         max_length=20,
         choices=GoalType.choices,
         default=GoalType.CUSTOM,
         help_text="Tipo da meta"
     )
-    target_category = models.ForeignKey(
-        Category,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="goals",
-        help_text="Categoria principal vinculada (para metas CATEGORY_* - retrocompatibilidade)"
-    )
-    tracked_categories = models.ManyToManyField(
-        Category,
-        blank=True,
-        related_name="tracked_in_goals",
-        help_text="Categorias monitoradas para atualização automática (usado em metas como Juntar Dinheiro)"
-    )
-    auto_update = models.BooleanField(
-        default=False,
-        help_text="Atualizar automaticamente com base nas transações"
-    )
-    tracking_period = models.CharField(
-        max_length=10,
-        choices=TrackingPeriod.choices,
-        default=TrackingPeriod.TOTAL,
-        help_text="Período de rastreamento"
-    )
-    is_reduction_goal = models.BooleanField(
-        default=False,
-        help_text="True se o objetivo é reduzir (gastos/dívidas)"
-    )
     
-    # Metadados
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
