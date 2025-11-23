@@ -14,11 +14,7 @@ from .views import (
     TransactionViewSet,
     UserProfileViewSet,
     XPHistoryView,
-    FriendshipViewSet,
-    LeaderboardViewSet,
-    AdminStatsViewSet,
-    AdminUserManagementViewSet,
-    AchievementViewSet,
+    XPHistoryView,
 )
 
 router = DefaultRouter()
