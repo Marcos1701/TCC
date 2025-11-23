@@ -15,7 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile, Friendship, Achievement, UserAchievement
+from .models import Category, Goal, Mission, MissionProgress, Transaction, TransactionLink, UserProfile
 from .permissions import IsOwnerPermission, IsOwnerOrReadOnly
 from .mixins import UUIDLookupMixin, UUIDResponseMixin
 from .throttling import (
@@ -35,9 +35,6 @@ from .serializers import (
     TransactionSerializer,
     TransactionLinkSerializer,
     UserProfileSerializer,
-    FriendshipSerializer,
-    AchievementSerializer,
-    UserAchievementSerializer,
 )
 from .services import (
     analyze_user_context,
@@ -589,6 +586,71 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(links_list, many=True)
         return Response(serializer.data)
     
+    def create(self, request, *args, **kwargs):
+        from decimal import Decimal
+        
+        source_uuid = request.data.get('source_uuid')
+        target_uuid = request.data.get('target_uuid')
+        
+        try:
+            source = Transaction.objects.get(id=source_uuid, user=request.user)
+            target = Transaction.objects.get(id=target_uuid, user=request.user)
+        except Transaction.DoesNotExist:
+            return Response(
+                {'error': 'Transação não encontrada'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        source_before = source.available_amount
+        target_before = target.available_amount
+        
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        source.refresh_from_db()
+        target.refresh_from_db()
+        
+        source_after = source.available_amount
+        target_after = target.available_amount
+        
+        is_complete = target.available_amount == 0
+        
+        suggestions = []
+        if source_after > 0:
+            fmt_source = f"{source_after:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            suggestions.append(f"Você ainda tem R$ {fmt_source} disponíveis nesta receita")
+        
+        if not is_complete:
+            fmt_target = f"{target_after:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            suggestions.append(f"Faltam R$ {fmt_target} para quitar esta despesa")
+        else:
+            suggestions.append("Despesa quitada com sucesso!")
+            
+        headers = self.get_success_headers(serializer.data)
+        return Response({
+            'success': True,
+            'payment': serializer.data,
+            'impact': {
+                'source': {
+                    'id': str(source.id),
+                    'description': source.description,
+                    'before': float(source_before),
+                    'after': float(source_after),
+                    'difference': float(source_before - source_after),
+                },
+                'target': {
+                    'id': str(target.id),
+                    'description': target.description,
+                    'before': float(target_before),
+                    'after': float(target_after),
+                    'difference': float(target_before - target_after),
+                    'fully_paid': is_complete,
+                },
+            },
+            'next_suggestions': suggestions,
+        }, status=status.HTTP_201_CREATED, headers=headers)
+    
     def perform_create(self, serializer):
         """Ao criar link, invalidar cache."""
         serializer.save(user=self.request.user)
@@ -1055,7 +1117,6 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                     target_id = payment.get('target_id')
                     amount = Decimal(str(payment.get('amount')))
                     
-                    # Verificar se as transações existem e pertencem ao usuário
                     try:
                         source = Transaction.objects.select_for_update().get(
                             id=source_id,
@@ -1070,30 +1131,14 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
                             f"Pagamento #{idx+1}: transação não encontrada ou não autorizada"
                         )
                     
-                    # Validar tipos de transação
-                    if source.type != Transaction.TransactionType.INCOME:
-                        raise ValueError(
-                            f"Pagamento #{idx+1}: source deve ser uma receita (INCOME), "
-                            f"mas '{source.description}' é {source.type}"
-                        )
+                    from .payment_validator import PaymentValidator
+                    validator = PaymentValidator(request.user)
+                    is_valid, errors = validator.validate_payment(source, target, amount)
                     
-                    if target.type != Transaction.TransactionType.EXPENSE:
+                    if not is_valid:
+                        error_messages = [f"{k}: {v}" for k, v in errors.items()]
                         raise ValueError(
-                            f"Pagamento #{idx+1}: target deve ser uma despesa (EXPENSE), "
-                            f"mas '{target.description}' é {target.type}"
-                        )
-                    
-                    # Validar saldo disponível
-                    if amount > source.available_amount:
-                        raise ValueError(
-                            f"Pagamento #{idx+1}: valor R$ {amount} excede saldo disponível "
-                            f"de '{source.description}' (R$ {source.available_amount})"
-                        )
-                    
-                    if amount > target.available_amount:
-                        raise ValueError(
-                            f"Pagamento #{idx+1}: valor R$ {amount} excede saldo pendente "
-                            f"de '{target.description}' (R$ {target.available_amount})"
+                            f"Pagamento #{idx+1}: {'; '.join(error_messages)}"
                         )
                     
                     # Criar link (usar EXPENSE_PAYMENT para despesas comuns)
@@ -3320,10 +3365,6 @@ class UserProfileViewSet(
         })
 
 
-class FriendshipViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gerenciar amizades entre usuários.
-    Usa UUID como identificador primário.
     
     Endpoints:
     - GET /friendships/ - Listar amigos aceitos
@@ -3532,10 +3573,6 @@ class FriendshipViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-
-class LeaderboardViewSet(viewsets.ViewSet):
-    """
-    ViewSet para rankings de usuários.
     
     Endpoints:
     - GET /leaderboard/ - DEPRECATED (usar /leaderboard/friends/)
@@ -4529,10 +4566,6 @@ class AdminUserManagementViewSet(viewsets.ReadOnlyModelViewSet):
         
         return paginator.get_paginated_response(actions_data)
 
-
-class AchievementViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para CRUD completo de conquistas.
     
     - LIST/RETRIEVE: Qualquer usuário autenticado (apenas conquistas ativas)
     - CREATE/UPDATE/DELETE: Apenas admins

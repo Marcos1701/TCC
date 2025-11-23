@@ -4,7 +4,6 @@ import '../../core/state/session_controller.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/onboarding/presentation/pages/simplified_onboarding_page.dart';
-import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../shell/root_shell.dart';
 
 class AuthFlow extends StatefulWidget {
@@ -130,14 +129,6 @@ class _AuthFlowState extends State<AuthFlow> {
 
         // Se autenticado, vai para a home
         if (session.isAuthenticated) {
-          // Verifica se é admin
-          final isAdmin = session.session?.user.isAdmin ?? false;
-          
-          // Se for admin, vai direto para o painel administrativo
-          if (isAdmin) {
-            return const AdminDashboardPage();
-          }
-          
           // Se for novo cadastro, permite nova verificação de onboarding
           if (session.isNewRegistration) {
             if (currentUserId != null && currentUserId != _lastUserIdChecked) {

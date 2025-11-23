@@ -5,11 +5,8 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../admin/presentation/pages/admin_dashboard_page.dart';
 import '../../../categories/presentation/pages/categories_page.dart';
 import '../../../home/presentation/pages/home_page.dart';
-import '../../../leaderboard/presentation/pages/leaderboard_page.dart';
-import '../../../shared/presentation/pages/financial_concepts_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -289,46 +286,11 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 12),
             
-            _SettingsTile(
-              icon: Icons.leaderboard,
-              title: 'Ranking',
-              subtitle: 'Veja sua posição no ranking',
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LeaderboardPage()),
-              ),
-              tokens: tokens,
-              theme: theme,
-            ),
-            const SizedBox(height: 12),
+
             
-            _SettingsTile(
-              icon: Icons.help_outline,
-              title: 'Ajuda e Conceitos',
-              subtitle: 'Aprenda sobre educação financeira',
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const FinancialConceptsPage()),
-              ),
-              tokens: tokens,
-              theme: theme,
-            ),
-            const SizedBox(height: 12),
+
             
-            // Administrative Resources (staff/superuser only)
-            if (user?.isAdmin == true) ...[
-              _SettingsTile(
-                icon: Icons.admin_panel_settings,
-                title: 'Administração',
-                subtitle: 'Dashboard e gerenciamento do sistema',
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AdminDashboardPage(),
-                  ),
-                ),
-                tokens: tokens,
-                theme: theme,
-              ),
-              const SizedBox(height: 12),
-            ],
+
             
             _SettingsTile(
               icon: Icons.delete_forever_outlined,
