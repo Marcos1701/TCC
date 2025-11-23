@@ -30,6 +30,7 @@ urlpatterns = [
     path("", include(router.urls)),
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/profile/", ProfileView.as_view(), name="profile"),
+    path("profile/", ProfileView.as_view(), name="profile-alias"),  # Alias para compatibilidade
     path("onboarding/simplified/", SimplifiedOnboardingView.as_view(), name="simplified-onboarding"),
     path("xp-history/", XPHistoryView.as_view(), name="xp-history"),
 ]
