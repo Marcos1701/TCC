@@ -13,7 +13,7 @@ class GoalRepository extends BaseRepository {
   /// Creates a [GoalRepository] instance.
   ///
   /// Optionally accepts an [ApiClient] for dependency injection.
-  GoalRepository({ApiClient? client}) : super(client: client);
+  GoalRepository({super.client});
 
   // ===========================================================================
   // GOAL CRUD OPERATIONS

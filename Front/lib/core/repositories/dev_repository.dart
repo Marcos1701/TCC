@@ -7,7 +7,7 @@ class DevRepository extends BaseRepository {
   /// Creates a [DevRepository] instance.
   ///
   /// Optionally accepts an [ApiClient] for dependency injection.
-  DevRepository({ApiClient? client}) : super(client: client);
+  DevRepository({super.client});
 
   /// Resets the current user's account to initial state.
   Future<Map<String, dynamic>> resetAccount() async {

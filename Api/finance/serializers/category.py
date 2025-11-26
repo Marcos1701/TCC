@@ -10,14 +10,19 @@ class CategorySerializer(serializers.ModelSerializer):
     
     transaction_count = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
+    is_user_created = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
         fields = [
-            'id', 'name', 'type', 'icon', 'color',
-            'is_active', 'transaction_count', 'total_amount'
+            'id', 'name', 'type', 'color', 'group',
+            'is_user_created', 'transaction_count', 'total_amount'
         ]
-        read_only_fields = ['id', 'transaction_count', 'total_amount']
+        read_only_fields = ['id', 'is_user_created', 'transaction_count', 'total_amount']
+
+    def get_is_user_created(self, obj):
+        """Retorna True se a categoria foi criada pelo usuário (não é padrão do sistema)."""
+        return obj.user is not None and not obj.is_system_default
 
     def validate_color(self, value):
         if value and not value.startswith('#'):

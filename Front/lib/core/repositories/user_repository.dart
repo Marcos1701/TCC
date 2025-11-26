@@ -10,7 +10,7 @@ class UserRepository extends BaseRepository {
   /// Creates a [UserRepository] instance.
   ///
   /// Optionally accepts an [ApiClient] for dependency injection.
-  UserRepository({ApiClient? client}) : super(client: client);
+  UserRepository({super.client});
 
   // ===========================================================================
   // PROFILE OPERATIONS
