@@ -231,33 +231,6 @@ class AnalyticsService {
   }
 
   // ============================================================
-  // SOCIAL EVENTS (FRIENDS)
-  // ============================================================
-
-  /// Tracks friend addition
-  static void trackFriendAdded({required String method}) {
-    _instance._logEvent('friend_added', {
-      'method': method, // 'search', 'qr_code', 'suggestion'
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  /// Tracks friend removal
-  static void trackFriendRemoved() {
-    _instance._logEvent('friend_removed', {
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  /// Tracks leaderboard view
-  static void trackLeaderboardViewed({required int friendsCount}) {
-    _instance._logEvent('leaderboard_viewed', {
-      'friends_count': friendsCount,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  // ============================================================
   // TRANSACTION EVENTS
   // ============================================================
 

@@ -61,7 +61,11 @@ class TransactionsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _transactions = await _repository.fetchTransactions(type: type);
+      _transactions = await _repository.fetchTransactions(
+        type: type,
+        limit: _pageSize,
+        offset: 0,
+      );
       _links = await _repository.fetchTransactionLinks();
       _hasMore = _transactions.length >= _pageSize;
       _state = TransactionsViewState.success;
@@ -82,8 +86,11 @@ class TransactionsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final currentOffset = _transactions.length;
       final moreTransactions = await _repository.fetchTransactions(
         type: _filter,
+        limit: _pageSize,
+        offset: currentOffset,
       );
       
       if (moreTransactions.isEmpty || moreTransactions.length < _pageSize) {
@@ -92,7 +99,7 @@ class TransactionsViewModel extends ChangeNotifier {
       
       _transactions.addAll(moreTransactions);
     } catch (e) {
-      // Mantém estado atual em caso de erro
+      // Mantém estado atual em caso de erro de paginação
     } finally {
       _isLoadingMore = false;
       notifyListeners();
@@ -106,7 +113,9 @@ class TransactionsViewModel extends ChangeNotifier {
       _links = await _repository.fetchTransactionLinks();
       notifyListeners();
     } catch (e) {
-      debugPrint('Erro ao atualizar transações silenciosamente: $e');
+      if (kDebugMode) {
+        debugPrint('Erro ao atualizar transações silenciosamente: $e');
+      }
     }
   }
 
@@ -167,7 +176,9 @@ class TransactionsViewModel extends ChangeNotifier {
       // 7. Rollback em caso de erro
       _pendingTransactions.remove(tempId);
       notifyListeners();
-      debugPrint('Erro ao criar transação: $e');
+      if (kDebugMode) {
+        debugPrint('Erro ao criar transação: $e');
+      }
       rethrow;
     }
   }
@@ -193,7 +204,9 @@ class TransactionsViewModel extends ChangeNotifier {
       // 4. Rollback em caso de erro
       _transactions.insert(index, removed);
       notifyListeners();
-      debugPrint('Erro ao deletar transação: $e');
+      if (kDebugMode) {
+        debugPrint('Erro ao deletar transação: $e');
+      }
       rethrow;
     }
   }
@@ -212,7 +225,9 @@ class TransactionsViewModel extends ChangeNotifier {
     } catch (e) {
       _state = TransactionsViewState.error;
       _errorMessage = 'Erro ao aplicar filtro: ${e.toString()}';
-      debugPrint('Erro ao aplicar filtro: $e');
+      if (kDebugMode) {
+        debugPrint('Erro ao aplicar filtro: $e');
+      }
     } finally {
       notifyListeners();
     }

@@ -82,7 +82,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 32),
           const Text(
-            'Bem-vindo ao Sistema',
+            'Bem-vindo ao GenApp',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -92,7 +92,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Para personalizar sua experiência, precisamos de algumas informações básicas.',
+            'Para personalizar sua experiência financeira, precisamos de algumas informações básicas.',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[400],
@@ -279,7 +279,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 32),
           const Text(
-            'Configuração Concluída',
+            'Configuração Concluída!',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
@@ -288,7 +288,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Com base nos dados informados, foram calculados os seguintes indicadores:',
+            'Com base nos dados informados, calculamos seus indicadores financeiros iniciais:',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[400],
@@ -325,7 +325,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 backgroundColor: Colors.purple,
               ),
               child: const Text(
-                'Acessar Sistema',
+                'Começar a usar',
                 style: TextStyle(fontSize: 16),
               ),
             ),

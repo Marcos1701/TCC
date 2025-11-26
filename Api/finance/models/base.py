@@ -1,0 +1,23 @@
+"""
+Módulo base com imports comuns e constantes para todos os models.
+"""
+
+from decimal import Decimal
+import uuid
+
+from django.conf import settings
+from django.db import models
+from django.utils import timezone
+
+MAX_AMOUNT = Decimal('999999999.99')
+MAX_LEVEL = 1000
+MIN_LEVEL = 1
+CACHE_EXPIRATION_SECONDS = 300
+MAX_RECURRENCE_VALUE = 365
+MAX_DESCRIPTION_LENGTH = 255
+MAX_TITLE_LENGTH = 150
+MAX_CATEGORY_NAME_LENGTH = 100
+MAX_DURATION_DAYS = 365
+MAX_REWARD_POINTS = 10000
+MAX_DEADLINE_YEARS = 10
+MAX_FUTURE_DATE_YEARS = 5

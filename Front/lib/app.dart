@@ -19,7 +19,7 @@ class _GenAppState extends State<GenApp> {
     return SessionScope(
       controller: _sessionController,
       child: MaterialApp(
-        title: 'GenApp',
+        title: 'GenApp - Gestão Financeira',
         theme: AppTheme.dark,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.dark,

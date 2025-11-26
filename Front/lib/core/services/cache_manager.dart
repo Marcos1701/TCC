@@ -26,7 +26,7 @@ class CacheManager extends ChangeNotifier {
     _invalidatedCaches.addAll(CacheType.values);
     
     if (kDebugMode) {
-      print('🔄 Cache invalidated: ${reason ?? "manual"}');
+      debugPrint('🔄 Cache invalidated: ${reason ?? "manual"}');
     }
     
     notifyListeners();
@@ -38,7 +38,7 @@ class CacheManager extends ChangeNotifier {
     _invalidatedCaches.addAll(types);
     
     if (kDebugMode) {
-      print('🔄 Cache invalidated [${types.map((t) => t.name).join(", ")}]: ${reason ?? "manual"}');
+      debugPrint('🔄 Cache invalidated [${types.map((t) => t.name).join(", ")}]: ${reason ?? "manual"}');
     }
     
     notifyListeners();
@@ -63,7 +63,6 @@ class CacheManager extends ChangeNotifier {
         CacheType.missions,
         CacheType.profile,
         CacheType.progress,
-        CacheType.leaderboard,
       ],
       reason: action ?? 'transaction modified',
     );
@@ -89,7 +88,6 @@ class CacheManager extends ChangeNotifier {
         CacheType.dashboard,
         CacheType.missions,
         CacheType.profile,
-        CacheType.leaderboard,
       ],
       reason: 'mission completed',
     );
@@ -101,7 +99,6 @@ class CacheManager extends ChangeNotifier {
       [
         CacheType.profile,
         CacheType.dashboard,
-        CacheType.leaderboard,
       ],
       reason: 'profile updated',
     );
@@ -126,5 +123,4 @@ enum CacheType {
   missions,
   profile,
   progress,
-  leaderboard,
 }

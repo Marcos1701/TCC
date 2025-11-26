@@ -8,9 +8,6 @@ import '../models/mission_progress.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../models/transaction_link.dart';
-import '../models/friendship.dart';
-import '../models/leaderboard.dart';
-import '../models/user_search.dart';
 import '../network/api_client.dart';
 import '../network/endpoints.dart';
 import '../services/cache_service.dart';
@@ -199,11 +196,20 @@ class FinanceRepository {
     }
   }
 
-  Future<List<TransactionModel>> fetchTransactions({String? type}) async {
+  Future<List<TransactionModel>> fetchTransactions({
+    String? type,
+    int? limit,
+    int? offset,
+  }) async {
     try {
+      final queryParams = <String, dynamic>{};
+      if (type != null) queryParams['type'] = type;
+      if (limit != null) queryParams['limit'] = limit;
+      if (offset != null) queryParams['offset'] = offset;
+      
       final response = await _client.client.get<dynamic>(
         ApiEndpoints.transactions,
-        queryParameters: type != null ? {'type': type} : null,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
       
       final items = _extractListFromResponse(response.data);
@@ -801,102 +807,6 @@ class FinanceRepository {
         'complete_first_access': true,
       },
     );
-  }
-
-  // ======= Leaderboard Methods =======
-
-  /// Fetches general user leaderboard
-  Future<LeaderboardResponse> fetchLeaderboard({
-    int page = 1,
-    int pageSize = 50,
-  }) async {
-    final response = await _client.client.get<Map<String, dynamic>>(
-      ApiEndpoints.leaderboard,
-      queryParameters: {
-        'page': page.toString(),
-        'page_size': pageSize.toString(),
-      },
-    );
-    return LeaderboardResponse.fromMap(response.data ?? <String, dynamic>{});
-  }
-
-  /// Fetches friends leaderboard
-  Future<LeaderboardResponse> fetchFriendsLeaderboard() async {
-    final response = await _client.client.get<Map<String, dynamic>>(
-      '${ApiEndpoints.leaderboard}friends/',
-    );
-    return LeaderboardResponse.fromMap(response.data ?? <String, dynamic>{});
-  }
-
-  // ======= Friendship Methods =======
-
-  /// Lists accepted friends
-  Future<List<FriendshipModel>> fetchFriends() async {
-    final response = await _client.client.get<dynamic>(
-      ApiEndpoints.friendships,
-    );
-    final items = _extractListFromResponse(response.data);
-    return items
-        .map((e) => FriendshipModel.fromMap(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Lists pending received requests
-  Future<List<FriendshipModel>> fetchFriendRequests() async {
-    final response = await _client.client.get<dynamic>(
-      '${ApiEndpoints.friendships}requests/',
-    );
-    final items = _extractListFromResponse(response.data);
-    return items
-        .map((e) => FriendshipModel.fromMap(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Sends friend request
-  Future<FriendshipModel> sendFriendRequest({required int friendId}) async {
-    final response = await _client.client.post<Map<String, dynamic>>(
-      '${ApiEndpoints.friendships}send_request/',
-      data: {'friend_id': friendId},
-    );
-    return FriendshipModel.fromMap(response.data ?? <String, dynamic>{});
-  }
-
-  /// Accepts friend request
-  Future<FriendshipModel> acceptFriendRequest({required String requestId}) async {
-    final response = await _client.client.post<Map<String, dynamic>>(
-      '${ApiEndpoints.friendships}$requestId/accept/',
-    );
-    return FriendshipModel.fromMap(response.data ?? <String, dynamic>{});
-  }
-
-  /// Rejects friend request
-  Future<void> rejectFriendRequest({required String requestId}) async {
-    await _client.client.post(
-      '${ApiEndpoints.friendships}$requestId/reject/',
-    );
-  }
-
-  /// Removes friendship by ID or UUID
-  Future<void> removeFriend({required String friendshipId}) async {
-    await _client.client.delete(
-      '${ApiEndpoints.friendships}$friendshipId/',
-    );
-  }
-
-  /// Searches users by name or email
-  Future<List<UserSearchModel>> searchUsers({required String query}) async {
-    if (query.trim().length < 2) {
-      return [];
-    }
-
-    final response = await _client.client.get<List<dynamic>>(
-      '${ApiEndpoints.friendships}search_users/',
-      queryParameters: {'q': query},
-    );
-    final items = response.data ?? <dynamic>[];
-    return items
-        .map((e) => UserSearchModel.fromMap(e as Map<String, dynamic>))
-        .toList();
   }
 
   Future<Map<String, dynamic>> completeSimplifiedOnboarding({

@@ -9,6 +9,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
+import 'goal_wizard_components.dart';
 
 /// Wizard simplificado para criação de metas (Dia 15-20)
 /// 
@@ -316,7 +317,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
           const SizedBox(height: 32),
           
           // Opção: Juntar dinheiro
-          _GoalTypeCard(
+          GoalTypeCard(
             icon: Icons.savings_outlined,
             iconColor: Colors.green,
             title: 'Juntar dinheiro',
@@ -332,7 +333,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
           const SizedBox(height: 16),
           
           // Opção: Reduzir gastos
-          _GoalTypeCard(
+          GoalTypeCard(
             icon: Icons.trending_down_outlined,
             iconColor: Colors.orange,
             title: 'Reduzir gastos',
@@ -937,97 +938,6 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Card para seleção de tipo de meta
-class _GoalTypeCard extends StatelessWidget {
-  const _GoalTypeCard({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.description,
-    required this.examples,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String description;
-  final String examples;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: isSelected 
-          ? AppColors.primary.withOpacity(0.2)
-          : const Color(0xFF1E1E1E),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey[800]!,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 32),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      examples,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                const Icon(Icons.check_circle, color: AppColors.primary, size: 28),
-            ],
-          ),
-        ),
       ),
     );
   }

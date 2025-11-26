@@ -612,9 +612,9 @@ def validate_generated_mission(mission_data):
     Valida missão gerada pela IA ANTES de salvar no banco.
     
     Verifica:
-    - mission_type válido
+    - mission_type válido (6 tipos)
     - Campos obrigatórios por tipo
-    - Ranges de valores (TPS 0-100, RDR 0-200, ILI 0-24)
+    - Ranges de valores
     - Difficulty vs XP coerente
     - duration_days válido
     
@@ -627,59 +627,79 @@ def validate_generated_mission(mission_data):
     errors = []
     mission_type = mission_data.get('mission_type')
     
-    # 1. Validar mission_type
-    valid_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
+    # 1. Validar mission_type (6 tipos)
+    valid_types = [
+        'ONBOARDING',           # Primeiros passos - requer min_transactions
+        'TPS_IMPROVEMENT',      # Aumentar poupança - requer target_tps
+        'RDR_REDUCTION',        # Reduzir gastos recorrentes - requer target_rdr
+        'ILI_BUILDING',         # Construir reserva - requer min_ili
+        'CATEGORY_REDUCTION',   # Reduzir gastos em categoria - requer target_reduction_percent
+        'GOAL_ACHIEVEMENT',     # Progredir em meta - requer goal_progress_target
+    ]
     if mission_type not in valid_types:
-        errors.append(f"mission_type inválido: '{mission_type}'. Deve ser um de: {', '.join(valid_types)}")
-        return (False, errors)  # Retorna imediatamente se tipo inválido
+        errors.append(f"mission_type inválido: '{mission_type}'. Tipos válidos: {', '.join(valid_types)}")
+        return (False, errors)
     
     # 2. Validar campos obrigatórios por tipo
     if mission_type == 'TPS_IMPROVEMENT':
         if not mission_data.get('target_tps'):
-            errors.append("TPS_IMPROVEMENT requer campo 'target_tps' (float, 0-100)")
-        elif not (0 <= float(mission_data['target_tps']) <= 100):
-            errors.append(f"target_tps deve estar entre 0 e 100, recebeu: {mission_data['target_tps']}")
+            errors.append("TPS_IMPROVEMENT requer campo 'target_tps' (float, 5-50)")
+        elif not (5 <= float(mission_data['target_tps']) <= 50):
+            errors.append(f"target_tps deve estar entre 5 e 50, recebeu: {mission_data['target_tps']}")
     
-    if mission_type == 'RDR_REDUCTION':
+    elif mission_type == 'RDR_REDUCTION':
         if not mission_data.get('target_rdr'):
-            errors.append("RDR_REDUCTION requer campo 'target_rdr' (float, 0-200)")
-        elif not (0 <= float(mission_data['target_rdr']) <= 200):
-            errors.append(f"target_rdr deve estar entre 0 e 200, recebeu: {mission_data['target_rdr']}")
+            errors.append("RDR_REDUCTION requer campo 'target_rdr' (float, 10-80)")
+        elif not (10 <= float(mission_data['target_rdr']) <= 80):
+            errors.append(f"target_rdr deve estar entre 10 e 80, recebeu: {mission_data['target_rdr']}")
     
-    if mission_type == 'ILI_BUILDING':
+    elif mission_type == 'ILI_BUILDING':
         if not mission_data.get('min_ili'):
-            errors.append("ILI_BUILDING requer campo 'min_ili' (float, 0-24)")
-        elif not (0 <= float(mission_data['min_ili']) <= 24):
-            errors.append(f"min_ili deve estar entre 0 e 24 meses, recebeu: {mission_data['min_ili']}")
+            errors.append("ILI_BUILDING requer campo 'min_ili' (float, 1-12)")
+        elif not (1 <= float(mission_data['min_ili']) <= 12):
+            errors.append(f"min_ili deve estar entre 1 e 12 meses, recebeu: {mission_data['min_ili']}")
     
-    if mission_type == 'ONBOARDING':
+    elif mission_type == 'ONBOARDING':
         if not mission_data.get('min_transactions'):
             errors.append("ONBOARDING requer campo 'min_transactions' (int, 5-50)")
         elif not (5 <= int(mission_data['min_transactions']) <= 50):
             errors.append(f"min_transactions deve estar entre 5 e 50, recebeu: {mission_data['min_transactions']}")
     
+    elif mission_type == 'CATEGORY_REDUCTION':
+        if not mission_data.get('target_reduction_percent'):
+            errors.append("CATEGORY_REDUCTION requer campo 'target_reduction_percent' (float, 5-50)")
+        elif not (5 <= float(mission_data['target_reduction_percent']) <= 50):
+            errors.append(f"target_reduction_percent deve estar entre 5 e 50, recebeu: {mission_data['target_reduction_percent']}")
+    
+    elif mission_type == 'GOAL_ACHIEVEMENT':
+        if not mission_data.get('goal_progress_target'):
+            errors.append("GOAL_ACHIEVEMENT requer campo 'goal_progress_target' (float, 10-100)")
+        elif not (10 <= float(mission_data['goal_progress_target']) <= 100):
+            errors.append(f"goal_progress_target deve estar entre 10 e 100, recebeu: {mission_data['goal_progress_target']}")
+    
     # 3. Validar difficulty
     if mission_data.get('difficulty') not in ['EASY', 'MEDIUM', 'HARD']:
         errors.append(f"difficulty inválida: '{mission_data.get('difficulty')}'. Deve ser EASY, MEDIUM ou HARD")
     
-    # 4. Validar duration_days
+    # 4. Validar duration_days (mais flexível)
     duration = mission_data.get('duration_days')
-    if duration not in [7, 14, 21, 30]:
-        errors.append(f"duration_days deve ser 7, 14, 21 ou 30, recebeu: {duration}")
+    if not duration or duration < 7 or duration > 60:
+        errors.append(f"duration_days deve estar entre 7 e 60, recebeu: {duration}")
     
-    # 5. Validar XP por dificuldade
-    xp = mission_data.get('xp_reward', 0)
+    # 5. Validar XP por dificuldade (ranges ajustados)
+    xp = mission_data.get('xp_reward', mission_data.get('reward_points', 0))
     difficulty = mission_data.get('difficulty')
     
-    if difficulty == 'EASY' and not (50 <= xp <= 150):
-        errors.append(f"XP para dificuldade EASY deve ser 50-150, recebeu: {xp}")
-    elif difficulty == 'MEDIUM' and not (100 <= xp <= 250):
-        errors.append(f"XP para dificuldade MEDIUM deve ser 100-250, recebeu: {xp}")
-    elif difficulty == 'HARD' and not (200 <= xp <= 500):
-        errors.append(f"XP para dificuldade HARD deve ser 200-500, recebeu: {xp}")
+    if difficulty == 'EASY' and not (25 <= xp <= 100):
+        errors.append(f"XP para dificuldade EASY deve ser 25-100, recebeu: {xp}")
+    elif difficulty == 'MEDIUM' and not (75 <= xp <= 200):
+        errors.append(f"XP para dificuldade MEDIUM deve ser 75-200, recebeu: {xp}")
+    elif difficulty == 'HARD' and not (150 <= xp <= 400):
+        errors.append(f"XP para dificuldade HARD deve ser 150-400, recebeu: {xp}")
     
     # 6. Validar campos obrigatórios básicos
-    if not mission_data.get('title') or len(mission_data.get('title', '')) > 150:
+    title = mission_data.get('title', '')
+    if not title or len(title) > 150:
         errors.append("title é obrigatório e deve ter no máximo 150 caracteres")
     
     if not mission_data.get('description'):

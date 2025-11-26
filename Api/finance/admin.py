@@ -1,55 +1,97 @@
+"""
+Painel Administrativo - Sistema de Educação Financeira Gamificada
+
+Este módulo configura o painel administrativo do Django para gerenciamento
+do sistema. Projetado para uso pelo desenvolvedor durante o desenvolvimento
+e apresentação do TCC.
+
+Modelos registrados:
+    - UserProfile: Perfis de usuários e dados de gamificação
+    - Category: Categorias de transações financeiras
+    - Transaction: Transações financeiras (receitas/despesas)
+    - TransactionLink: Vínculos entre transações
+    - Goal: Metas financeiras dos usuários
+    - Mission: Missões do sistema de gamificação
+    - MissionProgress: Progresso dos usuários nas missões
+    - XPTransaction: Histórico de XP ganho (somente leitura)
+    - AdminActionLog: Log de ações administrativas (somente leitura)
+"""
+
 from django.contrib import admin
-from django.utils.html import format_html
-from django.db.models import Count, Sum, Q
 from django.utils import timezone
 
 from .models import (
-    Category, 
-    Goal, 
-    Mission, 
-    MissionProgress, 
-    Transaction, 
-    TransactionLink, 
-    UserProfile, 
-    XPTransaction, 
+    Category,
+    Goal,
+    Mission,
+    MissionProgress,
+    Transaction,
+    TransactionLink,
+    UserProfile,
+    XPTransaction,
     AdminActionLog,
 )
 
 
+# =============================================================================
+# CONFIGURAÇÃO DO SITE ADMIN
+# =============================================================================
+
+admin.site.site_header = "Sistema de Educação Financeira - TCC"
+admin.site.site_title = "Admin TCC"
+admin.site.index_title = "Painel de Gerenciamento"
+
+
+# =============================================================================
+# USUÁRIOS E GAMIFICAÇÃO
+# =============================================================================
+
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
+    """
+    Gerenciamento de perfis de usuários.
+    
+    Exibe informações de gamificação (nível, XP) e indicadores financeiros
+    calculados (TPS, RDR, ILI).
+    """
+    
     list_display = (
-        "user", 
-        "level_badge", 
-        "experience_points", 
-        "targets_summary",
-        "indicators_status",
-        "first_access_badge",
+        "user",
+        "nivel",
+        "experience_points",
+        "metas_usuario",
+        "is_first_access",
     )
-    list_filter = ("level", "is_first_access", "indicators_updated_at")
+    list_filter = ("level", "is_first_access")
     search_fields = ("user__username", "user__email")
     readonly_fields = (
         "experience_points",
         "level",
         "cached_tps",
-        "cached_rdr", 
+        "cached_rdr",
         "cached_ili",
         "cached_total_income",
         "cached_total_expense",
         "indicators_updated_at",
     )
-    
+
     fieldsets = (
         ("Usuário", {
-            "fields": ("user", "is_first_access")
+            "fields": ("user", "is_first_access"),
         }),
         ("Gamificação", {
             "fields": ("level", "experience_points"),
+            "description": "Nível e experiência acumulada pelo usuário.",
         }),
-        ("Metas", {
+        ("Metas Pessoais", {
             "fields": ("target_tps", "target_rdr", "target_ili"),
+            "description": (
+                "TPS = Taxa de Poupança (%), "
+                "RDR = Razão de Despesas Recorrentes (%), "
+                "ILI = Índice de Liquidez Imediata (meses)"
+            ),
         }),
-        ("Indicadores em Cache", {
+        ("Cache de Indicadores", {
             "fields": (
                 "cached_tps",
                 "cached_rdr",
@@ -59,347 +101,206 @@ class UserProfileAdmin(admin.ModelAdmin):
                 "indicators_updated_at",
             ),
             "classes": ("collapse",),
+            "description": "Valores calculados em cache para performance.",
         }),
     )
-    
-    def level_badge(self, obj):
-        if obj.level >= 50:
-            color = "#d4af37"
-        elif obj.level >= 25:
-            color = "#c0c0c0"
-        elif obj.level >= 10:
-            color = "#cd7f32"
-        else:
-            color = "#6c757d"
-        
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; '
-            'border-radius: 3px; font-weight: bold;">Nv. {}</span>',
-            color, obj.level
-        )
-    level_badge.short_description = "Nível"
-    level_badge.admin_order_field = "level"
-    
-    def targets_summary(self, obj):
-        return format_html(
-            'TPS: {}% | RDR: {}% | ILI: {} meses',
-            obj.target_tps, obj.target_rdr, obj.target_ili
-        )
-    targets_summary.short_description = "Metas"
-    
-    def indicators_status(self, obj):
-        if not obj.indicators_updated_at:
-            return format_html(
-                '<span style="color: #dc3545;">Não calculado</span>'
-            )
-        
-        now = timezone.now()
-        delta = now - obj.indicators_updated_at
-        
-        if delta.days > 1:
-            color = "#ffc107"
-            status = f"{delta.days} dias atrás"
-        elif delta.seconds > 3600:
-            color = "#28a745"
-            status = f"{delta.seconds // 3600}h atrás"
-        else:
-            color = "#28a745"
-            status = "Atualizado"
-        
-        return format_html(
-            '<span style="color: {};">{}</span>',
-            color, status
-        )
-    indicators_status.short_description = "Cache"
-    indicators_status.admin_order_field = "indicators_updated_at"
-    
-    def first_access_badge(self, obj):
-        if obj.is_first_access:
-            return format_html(
-                '<span style="background-color: #007bff; color: white; padding: 3px 8px; '
-                'border-radius: 3px; font-size: 11px;">Novo</span>'
-            )
-        return ""
-    first_access_badge.short_description = "Status"
-    first_access_badge.admin_order_field = "is_first_access"
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user')
 
+    @admin.display(description="Nível", ordering="level")
+    def nivel(self, obj):
+        """Exibe o nível do usuário."""
+        return f"Nv. {obj.level}"
+
+    @admin.display(description="Metas")
+    def metas_usuario(self, obj):
+        """Exibe as metas do usuário de forma resumida."""
+        return f"TPS: {obj.target_tps}% | RDR: {obj.target_rdr}% | ILI: {obj.target_ili}m"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+
+
+# =============================================================================
+# CATEGORIAS E TRANSAÇÕES
+# =============================================================================
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
+    """
+    Gerenciamento de categorias de transações.
+    
+    Categorias podem ser de receita (income) ou despesa (expense).
+    Categorias padrão do sistema são marcadas como is_system_default.
+    """
+    
     list_display = (
-        "name", 
-        "type_badge", 
-        "user", 
-        "transactions_count",
-        "is_default_badge",
+        "name",
+        "tipo",
+        "user",
+        "is_system_default",
         "created_at",
     )
-    list_filter = ("type", "is_system_default", "created_at")
-    search_fields = ("name", "user__username", "user__email")
+    list_filter = ("type", "is_system_default")
+    search_fields = ("name", "user__username")
     readonly_fields = ("created_at",)
-    
+
     fieldsets = (
-        ("Dados Básicos", {
-            "fields": ("name", "type", "user")
+        ("Categoria", {
+            "fields": ("name", "type", "user"),
         }),
-        ("Configurações", {
+        ("Sistema", {
             "fields": ("is_system_default",),
-            "description": "Categorias criadas automaticamente"
+            "description": "Categorias padrão são criadas automaticamente para novos usuários.",
         }),
-        ("Auditoria", {
+        ("Datas", {
             "fields": ("created_at",),
-            "classes": ("collapse",)
+            "classes": ("collapse",),
         }),
     )
-    
-    def type_badge(self, obj):
-        if obj.type == "income":
-            return format_html(
-                '<span style="background-color: #28a745; color: white; padding: 3px 8px; '
-                'border-radius: 3px; font-weight: bold;">Receita</span>'
-            )
-        else:
-            return format_html(
-                '<span style="background-color: #dc3545; color: white; padding: 3px 8px; '
-                'border-radius: 3px; font-weight: bold;">Despesa</span>'
-            )
-    type_badge.short_description = "Tipo"
-    type_badge.admin_order_field = "type"
-    
-    def is_default_badge(self, obj):
-        if obj.is_system_default:
-            return format_html(
-                '<span style="color: #007bff;">Padrão</span>'
-            )
-        return ""
-    is_default_badge.short_description = "Sistema"
-    is_default_badge.admin_order_field = "is_system_default"
-    
-    def transactions_count(self, obj):
-        count = obj.transaction_set.count()
-        if count > 0:
-            return format_html(
-                '<span style="color: #007bff; font-weight: bold;">{} transações</span>',
-                count
-            )
-        return format_html('<span style="color: #6c757d;">-</span>')
-    transactions_count.short_description = "Uso"
-    
+
+    @admin.display(description="Tipo", ordering="type")
+    def tipo(self, obj):
+        """Exibe o tipo da categoria."""
+        return "Receita" if obj.type == "income" else "Despesa"
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user').prefetch_related('transaction_set')
+        return super().get_queryset(request).select_related('user')
 
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
+    """
+    Gerenciamento de transações financeiras.
+    
+    Transações podem ser receitas (INCOME) ou despesas (EXPENSE).
+    Suporta recorrência para transações periódicas.
+    """
+    
     list_display = (
-        "description", 
-        "type_badge", 
-        "amount_display", 
-        "date", 
+        "description",
+        "tipo",
+        "valor",
+        "date",
         "user",
         "category",
-        "recurrence_badge",
-    )
-    list_filter = (
-        "type", 
-        "date", 
         "is_recurring",
-        "category__type",
     )
-    search_fields = (
-        "description", 
-        "user__username", 
-        "user__email",
-        "category__name",
-    )
+    list_filter = ("type", "is_recurring", "date")
+    search_fields = ("description", "user__username", "category__name")
     autocomplete_fields = ("category",)
     date_hierarchy = "date"
     readonly_fields = ("created_at", "updated_at")
-    
+
     fieldsets = (
-        ("Dados da Transação", {
-            "fields": ("description", "type", "amount", "date", "user", "category")
+        ("Transação", {
+            "fields": ("description", "type", "amount", "date", "user", "category"),
         }),
         ("Recorrência", {
             "fields": ("is_recurring", "recurrence_value", "recurrence_unit", "recurrence_end_date"),
             "classes": ("collapse",),
-            "description": "Configuração de repetição"
+            "description": "Configure para transações que se repetem periodicamente.",
         }),
-        ("Auditoria", {
+        ("Datas", {
             "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
+            "classes": ("collapse",),
         }),
     )
-    
-    def type_badge(self, obj):
-        if obj.type == "INCOME":
-            return format_html(
-                '<span style="background-color: #28a745; color: white; padding: 2px 6px; '
-                'border-radius: 3px; font-size: 11px;">Receita</span>'
-            )
-        else:
-            return format_html(
-                '<span style="background-color: #dc3545; color: white; padding: 2px 6px; '
-                'border-radius: 3px; font-size: 11px;">Despesa</span>'
-            )
-    type_badge.short_description = "Tipo"
-    type_badge.admin_order_field = "type"
-    
-    def amount_display(self, obj):
-        color = "#28a745" if obj.type == "INCOME" else "#dc3545"
-        symbol = "+" if obj.type == "INCOME" else "-"
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{} R$ {:.2f}</span>',
-            color, symbol, obj.amount
-        )
-    amount_display.short_description = "Valor"
-    amount_display.admin_order_field = "amount"
-    
-    def recurrence_badge(self, obj):
-        if obj.is_recurring and obj.recurrence_unit:
-            labels = {
-                "DAYS": "Dias",
-                "WEEKS": "Semanas",
-                "MONTHS": "Meses",
-            }
-            label = labels.get(obj.recurrence_unit, obj.recurrence_unit)
-            if obj.recurrence_value:
-                label = f"{obj.recurrence_value} {label}"
-            return format_html(
-                '<span style="background-color: #17a2b8; color: white; padding: 2px 6px; '
-                'border-radius: 3px; font-size: 11px;">{}</span>',
-                label
-            )
-        return ""
-    recurrence_badge.short_description = "Recorrência"
-    
+
+    @admin.display(description="Tipo", ordering="type")
+    def tipo(self, obj):
+        """Exibe o tipo da transação."""
+        return "Receita" if obj.type == "INCOME" else "Despesa"
+
+    @admin.display(description="Valor", ordering="amount")
+    def valor(self, obj):
+        """Exibe o valor formatado."""
+        sinal = "+" if obj.type == "INCOME" else "-"
+        return f"{sinal} R$ {obj.amount:.2f}"
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user', 'category')
+        return super().get_queryset(request).select_related('user', 'category')
 
 
 @admin.register(TransactionLink)
 class TransactionLinkAdmin(admin.ModelAdmin):
-    list_display = (
-        'id', 
-        'user', 
-        'get_source_description', 
-        'get_target_description', 
-        'linked_amount_display', 
-        'link_type_badge', 
-        'recurring_badge',
-        'created_at',
-    )
-    list_filter = ('link_type', 'is_recurring', 'created_at')
-    search_fields = ('user__username', 'description', 'id')
-    readonly_fields = ('created_at', 'updated_at', 'source_transaction_uuid', 'target_transaction_uuid')
-    date_hierarchy = 'created_at'
-    autocomplete_fields = ('user',)
+    """
+    Gerenciamento de vínculos entre transações.
     
+    Usado para representar transferências, pagamentos, 
+    investimentos ou empréstimos entre contas/categorias.
+    """
+    
+    list_display = (
+        "id",
+        "user",
+        "link_type",
+        "valor_vinculado",
+        "is_recurring",
+        "created_at",
+    )
+    list_filter = ("link_type", "is_recurring")
+    search_fields = ("user__username", "description")
+    readonly_fields = ("created_at", "updated_at", "source_transaction_uuid", "target_transaction_uuid")
+    date_hierarchy = "created_at"
+
     fieldsets = (
-        ("Dados do Vínculo", {
-            "fields": ("user", "description", "link_type", "linked_amount")
+        ("Vínculo", {
+            "fields": ("user", "description", "link_type", "linked_amount"),
         }),
-        ("Transações Vinculadas", {
+        ("Transações", {
             "fields": ("source_transaction_uuid", "target_transaction_uuid"),
-            "description": "Origem e destino"
+            "description": "UUIDs das transações de origem e destino.",
         }),
-        ("Configurações", {
+        ("Configuração", {
             "fields": ("is_recurring",),
         }),
-        ("Auditoria", {
+        ("Datas", {
             "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
+            "classes": ("collapse",),
         }),
     )
-    
-    def get_source_description(self, obj):
-        try:
-            transaction = Transaction.objects.get(id=obj.source_transaction_uuid)
-            return format_html(
-                '<span title="{}">{}</span>',
-                f"R$ {transaction.amount:.2f} em {transaction.date}",
-                transaction.description[:50]
-            )
-        except Transaction.DoesNotExist:
-            return format_html('<span style="color: #dc3545;">-</span>')
-    get_source_description.short_description = "Origem"
-    
-    def get_target_description(self, obj):
-        try:
-            transaction = Transaction.objects.get(id=obj.target_transaction_uuid)
-            return format_html(
-                '<span title="{}">{}</span>',
-                f"R$ {transaction.amount:.2f} em {transaction.date}",
-                transaction.description[:50]
-            )
-        except Transaction.DoesNotExist:
-            return format_html('<span style="color: #dc3545;">-</span>')
-    get_target_description.short_description = "Destino"
-    
-    def linked_amount_display(self, obj):
-        return format_html(
-            '<span style="font-weight: bold;">R$ {:.2f}</span>',
-            obj.linked_amount
-        )
-    linked_amount_display.short_description = "Valor"
-    linked_amount_display.admin_order_field = "linked_amount"
-    
-    def link_type_badge(self, obj):
-        labels = {
-            "transfer": ("Transferência", "#17a2b8"),
-            "payment": ("Pagamento", "#28a745"),
-            "investment": ("Investimento", "#ffc107"),
-            "loan": ("Empréstimo", "#dc3545"),
-        }
-        label, color = labels.get(obj.link_type, (obj.link_type, "#6c757d"))
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 2px 6px; '
-            'border-radius: 3px; font-size: 11px;">{}</span>',
-            color, label
-        )
-    link_type_badge.short_description = "Tipo"
-    link_type_badge.admin_order_field = "link_type"
-    
-    def recurring_badge(self, obj):
-        if obj.is_recurring:
-            return format_html(
-                '<span style="color: #007bff;">Recorrente</span>'
-            )
-        return ""
-    recurring_badge.short_description = "Recorrente"
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user')
 
+    @admin.display(description="Valor", ordering="linked_amount")
+    def valor_vinculado(self, obj):
+        """Exibe o valor vinculado formatado."""
+        return f"R$ {obj.linked_amount:.2f}"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+
+
+# =============================================================================
+# METAS FINANCEIRAS
+# =============================================================================
 
 @admin.register(Goal)
 class GoalAdmin(admin.ModelAdmin):
+    """
+    Gerenciamento de metas financeiras.
+    
+    Metas possuem valor alvo, prazo e podem rastrear
+    categorias específicas para calcular o progresso.
+    """
+    
     list_display = (
-        "title", 
-        "user", 
-        "progress_bar", 
-        "target_amount_display",
+        "title",
+        "user",
+        "progresso",
+        "valor_alvo",
         "deadline",
-        "status_badge",
+        "status",
     )
-    list_filter = ("deadline", "created_at")
-    search_fields = ("title", "user__username", "user__email", "description")
+    list_filter = ("deadline",)
+    search_fields = ("title", "user__username", "description")
     readonly_fields = ("created_at", "updated_at", "current_amount")
     date_hierarchy = "deadline"
-    
+
     fieldsets = (
-        ("Dados da Meta", {
-            "fields": ("user", "title", "description")
+        ("Meta", {
+            "fields": ("user", "title", "description"),
         }),
         ("Valores", {
             "fields": ("target_amount", "current_amount", "initial_amount"),
+            "description": "Valor alvo e progresso atual.",
         }),
         ("Prazo", {
             "fields": ("deadline",),
@@ -407,264 +308,218 @@ class GoalAdmin(admin.ModelAdmin):
         ("Categorias Rastreadas", {
             "fields": ("tracked_categories",),
             "classes": ("collapse",),
+            "description": "Categorias que contribuem para esta meta.",
         }),
-        ("Auditoria", {
+        ("Datas", {
             "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
+            "classes": ("collapse",),
         }),
     )
-    
-    def target_amount_display(self, obj):
-        return format_html(
-            '<span style="font-weight: bold;">R$ {:.2f}</span>',
-            obj.target_amount
-        )
-    target_amount_display.short_description = "Valor Alvo"
-    target_amount_display.admin_order_field = "target_amount"
-    
-    def progress_bar(self, obj):
-        if obj.target_amount <= 0:
-            percentage = 0
-        else:
-            percentage = min((obj.current_amount / obj.target_amount) * 100, 100)
-        
-        if percentage >= 100:
-            color = "#28a745"
-        elif percentage >= 75:
-            color = "#17a2b8"
-        elif percentage >= 50:
-            color = "#ffc107"
-        else:
-            color = "#dc3545"
-        
-        return format_html(
-            '<div style="width: 100px; background-color: #e9ecef; border-radius: 3px; overflow: hidden;">'
-            '<div style="width: {}%; background-color: {}; color: white; text-align: center; '
-            'padding: 2px 0; font-size: 10px; font-weight: bold;">{:.0f}%</div>'
-            '</div>',
-            percentage, color, percentage
-        )
-    progress_bar.short_description = "Progresso"
-    
-    def status_badge(self, obj):
-        now = timezone.now().date()
-        percentage = (obj.current_amount / obj.target_amount * 100) if obj.target_amount > 0 else 0
-        
-        if percentage >= 100:
-            return format_html(
-                '<span style="background-color: #28a745; color: white; padding: 3px 8px; '
-                'border-radius: 3px; font-weight: bold;">Concluída</span>'
-            )
-        elif obj.deadline and obj.deadline < now:
-            return format_html(
-                '<span style="background-color: #dc3545; color: white; padding: 3px 8px; '
-                'border-radius: 3px; font-weight: bold;">Vencida</span>'
-            )
-        elif obj.deadline and (obj.deadline - now).days <= 7:
-            return format_html(
-                '<span style="background-color: #ffc107; color: black; padding: 3px 8px; '
-                'border-radius: 3px; font-weight: bold;">Urgente</span>'
-            )
-        else:
-            return format_html(
-                '<span style="background-color: #17a2b8; color: white; padding: 3px 8px; '
-                'border-radius: 3px; font-weight: bold;">Em Andamento</span>'
-            )
-    status_badge.short_description = "Status"
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user').prefetch_related('tracked_categories')
 
+    @admin.display(description="Valor Alvo", ordering="target_amount")
+    def valor_alvo(self, obj):
+        """Exibe o valor alvo formatado."""
+        return f"R$ {obj.target_amount:.2f}"
+
+    @admin.display(description="Progresso")
+    def progresso(self, obj):
+        """Exibe o progresso percentual da meta."""
+        if obj.target_amount <= 0:
+            return "0%"
+        percentual = min((obj.current_amount / obj.target_amount) * 100, 100)
+        return f"{percentual:.0f}%"
+
+    @admin.display(description="Status")
+    def status(self, obj):
+        """Exibe o status da meta."""
+        if obj.target_amount <= 0:
+            return "Inválida"
+        
+        percentual = (obj.current_amount / obj.target_amount) * 100
+        now = timezone.now().date()
+        
+        if percentual >= 100:
+            return "Concluída"
+        elif obj.deadline and obj.deadline < now:
+            return "Vencida"
+        elif obj.deadline and (obj.deadline - now).days <= 7:
+            return "Urgente"
+        return "Em andamento"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user')
+
+
+# =============================================================================
+# SISTEMA DE MISSÕES (GAMIFICAÇÃO)
+# =============================================================================
 
 @admin.register(Mission)
 class MissionAdmin(admin.ModelAdmin):
-    list_display = (
-        "title", 
-        "difficulty_badge", 
-        "reward_points_display",
-        "type_info",
-        "active_badge",
-        "users_progress",
-    )
-    list_filter = ("difficulty", "is_active", "mission_type", "created_at")
-    search_fields = ("title", "description", "mission_type")
-    readonly_fields = ("created_at", "updated_at")
+    """
+    Gerenciamento de missões do sistema de gamificação.
     
+    Tipos de Missão:
+        - ONBOARDING: Primeiros passos (registrar transações iniciais)
+        - TPS_IMPROVEMENT: Aumentar Taxa de Poupança
+        - RDR_REDUCTION: Reduzir gastos recorrentes  
+        - ILI_BUILDING: Construir reserva de emergência
+        - CATEGORY_REDUCTION: Reduzir gastos em categoria específica
+        - GOAL_ACHIEVEMENT: Progredir em meta financeira
+    """
+    
+    list_display = (
+        "title",
+        "mission_type",
+        "difficulty",
+        "recompensa",
+        "duracao",
+        "is_active",
+        "usuarios",
+    )
+    list_filter = ("difficulty", "is_active", "mission_type", "is_system_generated")
+    search_fields = ("title", "description")
+    readonly_fields = ("created_at", "updated_at", "is_system_generated", "generation_context")
+    autocomplete_fields = ("target_category", "target_goal")
+
     fieldsets = (
-        ("Dados Básicos", {
-            "fields": ("title", "description", "difficulty", "is_active")
+        ("Informações Básicas", {
+            "fields": ("title", "description", "difficulty", "is_active"),
         }),
-        ("Configuração da Missão", {
-            "fields": (
-                "mission_type",
-                "target_value",
-                "reward_points",
-                "duration_days",
+        ("Tipo e Recompensa", {
+            "fields": ("mission_type", "reward_points", "duration_days"),
+            "description": (
+                "Guia de XP: Fácil (25-75 XP), Média (75-150 XP), Difícil (150-300 XP). "
+                "Duração: Fácil (7-14 dias), Média (14-30 dias), Difícil (30-60 dias)."
             ),
         }),
         ("Critérios de Indicadores", {
-            "fields": ("min_ili", "max_ili", "min_tps", "max_tps", "min_rdr", "max_rdr"),
+            "fields": ("target_tps", "target_rdr", "min_ili", "max_ili", "min_transactions"),
             "classes": ("collapse",),
+            "description": (
+                "TPS_IMPROVEMENT: target_tps | "
+                "RDR_REDUCTION: target_rdr | "
+                "ILI_BUILDING: min_ili | "
+                "ONBOARDING: min_transactions"
+            ),
         }),
-        ("Dicas e Orientações", {
+        ("Missões de Categoria", {
+            "fields": ("target_category", "target_reduction_percent"),
+            "classes": ("collapse",),
+            "description": "Para missões do tipo CATEGORY_REDUCTION.",
+        }),
+        ("Missões de Meta", {
+            "fields": ("target_goal", "goal_progress_target"),
+            "classes": ("collapse",),
+            "description": "Para missões do tipo GOAL_ACHIEVEMENT.",
+        }),
+        ("Dicas", {
             "fields": ("tips",),
             "classes": ("collapse",),
+            "description": 'JSON: [{"title": "Título", "description": "Texto"}]',
         }),
-        ("Auditoria", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",)
+        ("Sistema", {
+            "fields": ("is_system_generated", "generation_context", "created_at", "updated_at"),
+            "classes": ("collapse",),
         }),
     )
-    
-    def difficulty_badge(self, obj):
-        badges = {
-            "easy": ("Fácil", "#28a745"),
-            "medium": ("Média", "#ffc107"),
-            "hard": ("Difícil", "#dc3545"),
-            "expert": ("Expert", "#6f42c1"),
-        }
-        label, color = badges.get(obj.difficulty, (obj.difficulty.upper(), "#6c757d"))
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; '
-            'border-radius: 3px; font-weight: bold;">{}</span>',
-            color, label
-        )
-    difficulty_badge.short_description = "Dificuldade"
-    difficulty_badge.admin_order_field = "difficulty"
-    
-    def reward_points_display(self, obj):
-        return format_html(
-            '<span style="color: #ffc107; font-weight: bold;">{} XP</span>',
-            obj.reward_points
-        )
-    reward_points_display.short_description = "Recompensa"
-    reward_points_display.admin_order_field = "reward_points"
-    
-    def type_info(self, obj):
-        info = obj.mission_type
-        if obj.target_value:
-            info += f" ({obj.target_value})"
-        
-        return format_html('<span>{}</span>', info)
-    type_info.short_description = "Tipo"
-    
-    def active_badge(self, obj):
-        if obj.is_active:
-            return format_html(
-                '<span style="color: #28a745; font-weight: bold;">Ativa</span>'
-            )
-        return format_html(
-            '<span style="color: #6c757d;">Inativa</span>'
-        )
-    active_badge.short_description = "Status"
-    active_badge.admin_order_field = "is_active"
-    
-    def users_progress(self, obj):
-        count = obj.missionprogress_set.count()
-        completed = obj.missionprogress_set.filter(status='completed').count()
-        
-        if count > 0:
-            return format_html(
-                '<span title="{} concluídas">{} usuários</span>',
-                completed, count
-            )
-        return format_html('<span style="color: #6c757d;">-</span>')
-    users_progress.short_description = "Usuários"
-    
+
+    @admin.display(description="Recompensa", ordering="reward_points")
+    def recompensa(self, obj):
+        """Exibe a recompensa em XP."""
+        return f"{obj.reward_points} XP"
+
+    @admin.display(description="Duração", ordering="duration_days")
+    def duracao(self, obj):
+        """Exibe a duração em dias."""
+        return f"{obj.duration_days} dias"
+
+    @admin.display(description="Usuários")
+    def usuarios(self, obj):
+        """Exibe quantidade de usuários que iniciaram/completaram a missão."""
+        total = obj.missionprogress_set.count()
+        concluidas = obj.missionprogress_set.filter(status='completed').count()
+        if total > 0:
+            return f"{total} ({concluidas} concl.)"
+        return "-"
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.prefetch_related('missionprogress_set')
+        return super().get_queryset(request).prefetch_related('missionprogress_set')
 
 
 @admin.register(MissionProgress)
 class MissionProgressAdmin(admin.ModelAdmin):
+    """
+    Gerenciamento do progresso de usuários nas missões.
+    
+    Status:
+        - not_started: Não iniciada
+        - in_progress: Em progresso
+        - completed: Concluída
+        - failed: Falhou
+    """
+    
     list_display = (
-        "user", 
-        "mission_info", 
-        "status_badge",
-        "progress_bar", 
+        "user",
+        "missao",
+        "status",
+        "progresso",
         "updated_at",
     )
-    list_filter = ("status", "mission__difficulty", "updated_at")
+    list_filter = ("status", "mission__difficulty")
     search_fields = ("user__username", "mission__title")
     autocomplete_fields = ("user", "mission")
     readonly_fields = ("started_at", "completed_at", "updated_at")
     date_hierarchy = "updated_at"
-    
+
     fieldsets = (
         ("Progresso", {
-            "fields": ("user", "mission", "status", "progress")
+            "fields": ("user", "mission", "status", "progress"),
         }),
         ("Datas", {
             "fields": ("started_at", "completed_at", "updated_at"),
         }),
     )
-    
-    def mission_info(self, obj):
-        return format_html(
-            '<strong>{}</strong><br/>'
-            '<span style="font-size: 11px; color: #6c757d;">{} - {} XP</span>',
-            obj.mission.title[:50],
-            obj.mission.get_difficulty_display(),
-            obj.mission.reward_points
-        )
-    mission_info.short_description = "Missão"
-    
-    def status_badge(self, obj):
-        badges = {
-            "not_started": ("Não Iniciada", "#6c757d"),
-            "in_progress": ("Em Progresso", "#007bff"),
-            "completed": ("Concluída", "#28a745"),
-            "failed": ("Falhou", "#dc3545"),
-        }
-        label, color = badges.get(obj.status, (obj.status, "#6c757d"))
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; '
-            'border-radius: 3px; font-weight: bold;">{}</span>',
-            color, label
-        )
-    status_badge.short_description = "Status"
-    status_badge.admin_order_field = "status"
-    
-    def progress_bar(self, obj):
-        percentage = min(obj.progress, 100)
-        
-        if percentage >= 100:
-            color = "#28a745"
-        elif percentage >= 75:
-            color = "#17a2b8"
-        elif percentage >= 50:
-            color = "#ffc107"
-        else:
-            color = "#007bff"
-        
-        return format_html(
-            '<div style="width: 120px; background-color: #e9ecef; border-radius: 3px; overflow: hidden;">'
-            '<div style="width: {}%; background-color: {}; color: white; text-align: center; '
-            'padding: 2px 0; font-size: 10px; font-weight: bold;">{:.0f}%</div>'
-            '</div>',
-            percentage, color, percentage
-        )
-    progress_bar.short_description = "Progresso"
-    progress_bar.admin_order_field = "progress"
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user', 'mission')
 
+    @admin.display(description="Missão")
+    def missao(self, obj):
+        """Exibe informações resumidas da missão."""
+        return f"{obj.mission.title} ({obj.mission.reward_points} XP)"
+
+    @admin.display(description="Progresso", ordering="progress")
+    def progresso(self, obj):
+        """Exibe o progresso percentual."""
+        return f"{min(obj.progress, 100):.0f}%"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'mission')
+
+
+# =============================================================================
+# LOGS E HISTÓRICO (SOMENTE LEITURA)
+# =============================================================================
 
 @admin.register(XPTransaction)
 class XPTransactionAdmin(admin.ModelAdmin):
+    """
+    Histórico de transações de XP.
+    
+    Registra cada ganho de XP por completar missões,
+    incluindo transição de nível quando aplicável.
+    
+    Este modelo é somente leitura - registros são criados
+    automaticamente pelo sistema.
+    """
+    
     list_display = (
-        "user", 
-        "get_mission_title", 
-        "points_display",
-        "level_transition", 
+        "user",
+        "missao",
+        "xp_ganho",
+        "transicao_nivel",
         "created_at",
     )
-    list_filter = ("created_at", "level_after", "level_before")
-    search_fields = ("user__username", "user__email")
+    list_filter = ("created_at",)
+    search_fields = ("user__username",)
     readonly_fields = (
         "user",
         "mission_progress",
@@ -676,103 +531,79 @@ class XPTransactionAdmin(admin.ModelAdmin):
         "created_at",
     )
     date_hierarchy = "created_at"
-    
+
     fieldsets = (
         ("Dados", {
             "fields": ("user", "mission_progress"),
         }),
         ("XP", {
-            "fields": (
-                "points_awarded",
-                ("xp_before", "xp_after"),
-            ),
+            "fields": ("points_awarded", "xp_before", "xp_after"),
         }),
         ("Nível", {
-            "fields": (
-                ("level_before", "level_after"),
-            ),
+            "fields": ("level_before", "level_after"),
         }),
-        ("Auditoria", {
+        ("Data", {
             "fields": ("created_at",),
         }),
     )
-    
-    def get_mission_title(self, obj):
+
+    @admin.display(description="Missão")
+    def missao(self, obj):
+        """Exibe o título da missão relacionada."""
         if obj.mission_progress and obj.mission_progress.mission:
-            return format_html(
-                '<span title="{}">{}</span>',
-                obj.mission_progress.mission.description[:100],
-                obj.mission_progress.mission.title
-            )
-        return format_html('<span style="color: #6c757d;">-</span>')
-    get_mission_title.short_description = "Missão"
-    
-    def points_display(self, obj):
-        return format_html(
-            '<span style="color: #ffc107; font-weight: bold;">+{} XP</span>',
-            obj.points_awarded
-        )
-    points_display.short_description = "Pontos"
-    points_display.admin_order_field = "points_awarded"
-    
-    def level_transition(self, obj):
+            return obj.mission_progress.mission.title
+        return "-"
+
+    @admin.display(description="XP Ganho", ordering="points_awarded")
+    def xp_ganho(self, obj):
+        """Exibe o XP ganho."""
+        return f"+{obj.points_awarded} XP"
+
+    @admin.display(description="Nível")
+    def transicao_nivel(self, obj):
+        """Exibe a transição de nível, se houver."""
         if obj.level_before == obj.level_after:
-            return format_html(
-                '<span style="color: #6c757d;">Nível {}</span>',
-                obj.level_after
-            )
-        return format_html(
-            '<span style="color: #28a745; font-weight: bold;">{} → {}</span>',
-            obj.level_before, obj.level_after
-        )
-    level_transition.short_description = "Nível"
-    
+            return f"Nível {obj.level_after}"
+        return f"{obj.level_before} → {obj.level_after}"
+
     def has_add_permission(self, request):
+        """Desabilita criação manual."""
         return False
-    
+
     def has_change_permission(self, request, obj=None):
+        """Desabilita edição."""
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
+        """Permite exclusão apenas para superusuários."""
         return request.user.is_superuser
-    
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user', 'mission_progress__mission')
-
-
-
-
-
-
-
-
-
-    def has_add_permission(self, request):
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        return False
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user')
+        return super().get_queryset(request).select_related('user', 'mission_progress__mission')
 
 
 @admin.register(AdminActionLog)
 class AdminActionLogAdmin(admin.ModelAdmin):
+    """
+    Log de ações administrativas.
+    
+    Registra ações realizadas por administradores,
+    como desativação de usuários ou ajustes de XP.
+    
+    Este modelo é somente leitura - registros são criados
+    automaticamente pelo sistema.
+    """
+    
     list_display = (
         "admin_user",
-        "action_type_badge",
+        "action_type",
         "target_user",
         "timestamp",
     )
     list_filter = ("action_type", "timestamp")
     search_fields = (
         "admin_user__username",
-        "admin_user__email",
         "target_user__username",
-        "target_user__email",
         "reason",
     )
     readonly_fields = (
@@ -786,10 +617,10 @@ class AdminActionLogAdmin(admin.ModelAdmin):
         "ip_address",
     )
     date_hierarchy = "timestamp"
-    
+
     fieldsets = (
         ("Ação", {
-            "fields": ("admin_user", "action_type", "reason")
+            "fields": ("admin_user", "action_type", "reason"),
         }),
         ("Alvo", {
             "fields": ("target_user",),
@@ -803,40 +634,18 @@ class AdminActionLogAdmin(admin.ModelAdmin):
             "classes": ("collapse",),
         }),
     )
-    
-    def action_type_badge(self, obj):
-        badges = {
-            "USER_DEACTIVATED": ("Desativado", "#dc3545"),
-            "USER_REACTIVATED": ("Reativado", "#28a745"),
-            "XP_ADJUSTED": ("XP Ajustado", "#ffc107"),
-            "LEVEL_ADJUSTED": ("Nível Ajustado", "#17a2b8"),
-            "PROFILE_UPDATED": ("Perfil Atualizado", "#007bff"),
-            "MISSIONS_RESET": ("Missões Resetadas", "#6f42c1"),
-            "TRANSACTIONS_DELETED": ("Transações Deletadas", "#dc3545"),
-            "OTHER": ("Outro", "#6c757d"),
-        }
-        label, color = badges.get(obj.action_type, (obj.action_type, "#6c757d"))
-        return format_html(
-            '<span style="background-color: {}; color: white; padding: 3px 8px; '
-            'border-radius: 3px; font-size: 11px;">{}</span>',
-            color, label
-        )
-    action_type_badge.short_description = "Tipo"
-    action_type_badge.admin_order_field = "action_type"
-    
+
     def has_add_permission(self, request):
+        """Desabilita criação manual."""
         return False
-    
+
     def has_change_permission(self, request, obj=None):
+        """Desabilita edição."""
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
+        """Permite exclusão apenas para superusuários."""
         return request.user.is_superuser
-    
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('admin_user', 'target_user')
-
-
-
-
+        return super().get_queryset(request).select_related('admin_user', 'target_user')

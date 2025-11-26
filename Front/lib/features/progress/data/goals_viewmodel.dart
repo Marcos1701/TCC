@@ -46,7 +46,9 @@ class GoalsViewModel extends ChangeNotifier {
     } catch (e) {
       _state = GoalsViewState.error;
       _errorMessage = 'Erro ao carregar metas: ${e.toString()}';
-      debugPrint('Erro ao carregar metas: $e');
+      if (kDebugMode) {
+        debugPrint('Erro ao carregar metas: $e');
+      }
     } finally {
       notifyListeners();
     }

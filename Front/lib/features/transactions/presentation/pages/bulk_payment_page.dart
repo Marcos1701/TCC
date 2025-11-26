@@ -8,7 +8,7 @@ import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
-import '../../../../core/utils/currency_input_formatter.dart';
+import '../widgets/bulk_payment_components.dart';
 
 /// Página de Pagamento em Lote
 /// 
@@ -398,473 +398,108 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           const SizedBox(height: 24),
           
           // Seção de Receitas
-          _buildSectionHeader(
+          const TransactionSectionHeader(
             icon: Icons.account_balance_wallet,
             title: 'Receitas Disponíveis',
             color: AppColors.success,
-            theme: theme,
           ),
           const SizedBox(height: 12),
           
           if (_availableIncomes.isEmpty)
-            _buildEmptyCard('Nenhuma receita disponível', theme, tokens)
+            EmptyTransactionCard(
+              message: 'Nenhuma receita disponível',
+              tokens: tokens,
+            )
           else
-            ..._availableIncomes.map((income) => _buildIncomeCard(income, theme, tokens)),
+            ..._availableIncomes.map((income) => _buildIncomeCard(income, tokens)),
           
           const SizedBox(height: 24),
           
           // Seção de Despesas
-          _buildSectionHeader(
+          const TransactionSectionHeader(
             icon: Icons.receipt_long,
             title: 'Despesas Pendentes',
             color: AppColors.alert,
-            theme: theme,
           ),
           const SizedBox(height: 12),
           
           if (_pendingExpenses.isEmpty)
-            _buildEmptyCard('Nenhuma despesa pendente', theme, tokens)
+            EmptyTransactionCard(
+              message: 'Nenhuma despesa pendente',
+              tokens: tokens,
+            )
           else
-            ..._pendingExpenses.map((expense) => _buildExpenseCard(expense, theme, tokens)),
+            ..._pendingExpenses.map((expense) => _buildExpenseCard(expense, tokens)),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    required Color color,
-    required ThemeData theme,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyCard(String message, ThemeData theme, AppDecorations tokens) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-      ),
-      child: Center(
-        child: Text(
-          message,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.grey[600],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIncomeCard(TransactionModel income, ThemeData theme, AppDecorations tokens) {
-    // Validar ID disponível
-    if (income.id.isEmpty) {
-      return const SizedBox.shrink(); // Não exibir se não tiver ID
-    }
-    
+  Widget _buildIncomeCard(TransactionModel income, AppDecorations tokens) {
     final incomeKey = income.id;
     final isSelected = _selectedIncomes.containsKey(incomeKey);
     final available = income.availableAmount ?? income.amount;
     final selectedAmount = _selectedIncomes[incomeKey] ?? available;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isSelected 
-            ? AppColors.success.withOpacity(0.15) 
-            : const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        border: Border.all(
-          color: isSelected ? AppColors.success : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: tokens.cardRadius,
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                _selectedIncomes.remove(incomeKey);
-              } else {
-                _selectedIncomes[incomeKey] = available;
-              }
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: isSelected,
-                      onChanged: (value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedIncomes[incomeKey] = available;
-                          } else {
-                            _selectedIncomes.remove(incomeKey);
-                          }
-                        });
-                      },
-                      activeColor: AppColors.success,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            income.description,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Disponível: ${_currency.format(available)}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppColors.success,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      _currency.format(income.amount),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // Campo de valor quando selecionado
-                if (isSelected) ...[
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white12, height: 1),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Text(
-                        'Usar:',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            CurrencyInputFormatter(maxDigits: 12),
-                          ],
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          decoration: InputDecoration(
-                            prefixText: 'R\$ ',
-                            prefixStyle: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
-                            ),
-                            hintText: '0,00',
-                            filled: true,
-                            fillColor: Colors.black.withOpacity(0.3),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          controller: TextEditingController(
-                            text: CurrencyInputFormatter.format(selectedAmount),
-                          )..selection = TextSelection.collapsed(
-                              offset: CurrencyInputFormatter.format(selectedAmount).length,
-                            ),
-                          onChanged: (value) {
-                            final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
-                            final amount = double.tryParse(cleanValue) ?? 0.0;
-                            
-                            // Validar limites
-                            if (amount < 0) return;
-                            if (amount > 999999999.99) return;
-                            
-                            setState(() {
-                              final limitedAmount = amount > available ? available : amount;
-                              // Não permitir valor zero se selecionado
-                              if (limitedAmount > 0) {
-                                _selectedIncomes[incomeKey] = limitedAmount;
-                              } else {
-                                _selectedIncomes.remove(incomeKey);
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedIncomes[incomeKey] = available;
-                          });
-                        },
-                        child: const Text('Máx'),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
+    
+    return PaymentTransactionCard(
+      transaction: income,
+      type: PaymentCardType.income,
+      isSelected: isSelected,
+      selectedAmount: selectedAmount,
+      tokens: tokens,
+      onToggle: () {
+        setState(() {
+          if (isSelected) {
+            _selectedIncomes.remove(incomeKey);
+          } else {
+            _selectedIncomes[incomeKey] = available;
+          }
+        });
+      },
+      onAmountChanged: (amount) {
+        setState(() {
+          if (amount > 0) {
+            _selectedIncomes[incomeKey] = amount;
+          } else {
+            _selectedIncomes.remove(incomeKey);
+          }
+        });
+      },
+      onMaxPressed: () => setState(() => _selectedIncomes[incomeKey] = available),
     );
   }
 
-  Widget _buildExpenseCard(TransactionModel expense, ThemeData theme, AppDecorations tokens) {
-    // Validar ID disponível
-    if (expense.id.isEmpty) {
-      return const SizedBox.shrink(); // Não exibir se não tiver ID
-    }
-    
+  Widget _buildExpenseCard(TransactionModel expense, AppDecorations tokens) {
     final expenseKey = expense.id;
     final isSelected = _selectedExpenses.containsKey(expenseKey);
     final remaining = expense.availableAmount ?? expense.amount;
     final selectedAmount = _selectedExpenses[expenseKey] ?? remaining;
-    final paymentPercentage = expense.linkPercentage ?? 0.0;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isSelected 
-            ? AppColors.alert.withOpacity(0.15) 
-            : const Color(0xFF1E1E1E),
-        borderRadius: tokens.cardRadius,
-        border: Border.all(
-          color: isSelected ? AppColors.alert : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: tokens.cardRadius,
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                _selectedExpenses.remove(expenseKey);
-              } else {
-                _selectedExpenses[expenseKey] = remaining;
-              }
-            });
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: isSelected,
-                      onChanged: (value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedExpenses[expenseKey] = remaining;
-                          } else {
-                            _selectedExpenses.remove(expenseKey);
-                          }
-                        });
-                      },
-                      activeColor: AppColors.alert,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            expense.description,
-                            style: theme.textTheme.titleSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                'Pendente: ${_currency.format(remaining)}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: AppColors.alert,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              if (paymentPercentage > 0) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: paymentPercentage >= 80
-                                        ? AppColors.success.withOpacity(0.2)
-                                        : AppColors.highlight.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    '${paymentPercentage.toStringAsFixed(0)}% pago',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: paymentPercentage >= 80
-                                          ? AppColors.success
-                                          : AppColors.highlight,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      _currency.format(expense.amount),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                
-                // Barra de progresso
-                if (paymentPercentage > 0) ...[
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: paymentPercentage / 100,
-                      backgroundColor: Colors.white12,
-                      valueColor: AlwaysStoppedAnimation(
-                        paymentPercentage >= 80 ? AppColors.success : AppColors.highlight,
-                      ),
-                      minHeight: 6,
-                    ),
-                  ),
-                ],
-                
-                // Campo de valor quando selecionado
-                if (isSelected) ...[
-                  const SizedBox(height: 12),
-                  const Divider(color: Colors.white12, height: 1),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Text(
-                        'Pagar:',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.white70,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            CurrencyInputFormatter(maxDigits: 12),
-                          ],
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          decoration: InputDecoration(
-                            prefixText: 'R\$ ',
-                            prefixStyle: theme.textTheme.bodyMedium?.copyWith(
-                              color: Colors.white70,
-                            ),
-                            hintText: '0,00',
-                            filled: true,
-                            fillColor: Colors.black.withOpacity(0.3),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                          ),
-                          controller: TextEditingController(
-                            text: CurrencyInputFormatter.format(selectedAmount),
-                          )..selection = TextSelection.collapsed(
-                              offset: CurrencyInputFormatter.format(selectedAmount).length,
-                            ),
-                          onChanged: (value) {
-                            final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
-                            final amount = double.tryParse(cleanValue) ?? 0.0;
-                            
-                            // Validar limites
-                            if (amount < 0) return;
-                            if (amount > 999999999.99) return;
-                            
-                            setState(() {
-                              final limitedAmount = amount > remaining ? remaining : amount;
-                              // Não permitir valor zero se selecionado
-                              if (limitedAmount > 0) {
-                                _selectedExpenses[expenseKey] = limitedAmount;
-                              } else {
-                                _selectedExpenses.remove(expenseKey);
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _selectedExpenses[expenseKey] = remaining;
-                          });
-                        },
-                        child: const Text('Quitar'),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
+    
+    return PaymentTransactionCard(
+      transaction: expense,
+      type: PaymentCardType.expense,
+      isSelected: isSelected,
+      selectedAmount: selectedAmount,
+      tokens: tokens,
+      onToggle: () {
+        setState(() {
+          if (isSelected) {
+            _selectedExpenses.remove(expenseKey);
+          } else {
+            _selectedExpenses[expenseKey] = remaining;
+          }
+        });
+      },
+      onAmountChanged: (amount) {
+        setState(() {
+          if (amount > 0) {
+            _selectedExpenses[expenseKey] = amount;
+          } else {
+            _selectedExpenses.remove(expenseKey);
+          }
+        });
+      },
+      onMaxPressed: () => setState(() => _selectedExpenses[expenseKey] = remaining),
     );
   }
 
@@ -889,62 +524,10 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Resumo
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total Selecionado',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          _currency.format(_totalIncomeSelected),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward, color: Colors.white38, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          _currency.format(_totalExpensesSelected),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.alert,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'Saldo',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _currency.format(_balance),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: _balance >= 0 ? AppColors.success : AppColors.alert,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            PaymentSummaryRow(
+              incomeTotal: _totalIncomeSelected,
+              expenseTotal: _totalExpensesSelected,
+              balance: _balance,
             ),
             
             const SizedBox(height: 16),

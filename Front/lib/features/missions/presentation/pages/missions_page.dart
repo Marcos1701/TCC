@@ -161,7 +161,7 @@ class _MissionsPageState extends State<MissionsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
                   Text(
-                    'Acompanhe seus desafios ativos. O progresso é atualizado automaticamente.',
+                    'Seus desafios ativos e recomendações personalizadas. Complete desafios para ganhar XP.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[400],
                       height: 1.4,
@@ -214,7 +214,7 @@ class _MissionsPageState extends State<MissionsPage> {
                   if (_viewModel.activeMissions.isEmpty)
                     const _EmptyState(
                       message:
-                          'Sem desafios ativos no momento.\nContinue realizando transações para receber novos desafios!',
+                          'Nenhum desafio ativo no momento.\nRegistre transações para receber novos desafios personalizados!',
                     )
                   else
                     ..._viewModel.activeMissions.map(

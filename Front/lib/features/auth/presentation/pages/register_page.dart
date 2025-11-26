@@ -197,7 +197,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Entre com seu nome, Email e senha',
+                        'Informe seu nome, e-mail e senha para criar sua conta.',
                         style: textTheme.bodyMedium?.copyWith(
                           color: Colors.white70,
                           fontFamily: 'Montserrat',

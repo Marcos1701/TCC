@@ -348,7 +348,7 @@ class MissionsViewModel extends ChangeNotifier {
       final validMissions = missions.where((m) => m.isValid).toList();
       final filteredCount = missions.length - validMissions.length;
       
-      if (filteredCount > 0) {
+      if (filteredCount > 0 && kDebugMode) {
         debugPrint(
           '🔍 Filtradas $filteredCount missões da meta $goalId com placeholders'
         );
@@ -407,12 +407,16 @@ class MissionsViewModel extends ChangeNotifier {
         e,
         fallback: 'Erro ao analisar contexto para missões.',
       );
-      debugPrint('Erro ao buscar análise de contexto: ${e.message}');
+      if (kDebugMode) {
+        debugPrint('Erro ao buscar análise de contexto: ${e.message}');
+      }
       return null;
     } catch (e) {
       _contextError =
           'Erro inesperado ao analisar contexto de missões: ${e.toString()}';
-      debugPrint('Erro inesperado ao analisar contexto: $e');
+      if (kDebugMode) {
+        debugPrint('Erro inesperado ao analisar contexto: $e');
+      }
       return null;
     } finally {
       _contextLoading = false;
@@ -422,25 +426,25 @@ class MissionsViewModel extends ChangeNotifier {
 
   /// Atualiza missões verificando se há novas completadas
   void _updateMissions(List<MissionProgressModel> missions) {
-    // Filtra missões com placeholders não substituídos
     final validMissions = <MissionProgressModel>[];
     final invalidMissions = <MissionProgressModel>[];
     
     for (final mission in missions) {
       if (mission.mission.hasPlaceholders()) {
         invalidMissions.add(mission);
-        debugPrint(
-          '⚠️ Missão inválida detectada: ID=${mission.mission.id} '
-          'Título="${mission.mission.title}" '
-          'Placeholders: ${mission.mission.getPlaceholders().join(", ")}'
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '⚠️ Missão inválida detectada: ID=${mission.mission.id} '
+            'Título="${mission.mission.title}" '
+            'Placeholders: ${mission.mission.getPlaceholders().join(", ")}'
+          );
+        }
       } else {
         validMissions.add(mission);
       }
     }
     
-    // Log resumido se houver missões filtradas
-    if (invalidMissions.isNotEmpty) {
+    if (invalidMissions.isNotEmpty && kDebugMode) {
       debugPrint(
         '🔍 Filtradas ${invalidMissions.length} missões com placeholders. '
         'IDs: ${invalidMissions.map((m) => m.mission.id).join(", ")}'
