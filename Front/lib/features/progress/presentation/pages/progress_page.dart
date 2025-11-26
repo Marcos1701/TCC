@@ -167,11 +167,41 @@ class _ProgressPageState extends State<ProgressPage> {
       ),
     );
     if (confirm == true) {
-      await _repository.deleteGoal(goal.identifier);  // Usar identifier
-      if (!mounted) return;
-      
-      // Invalida cache após deletar meta
-      _cacheManager.invalidateAfterGoalUpdate();
+      try {
+        await _repository.deleteGoal(goal.identifier);
+        if (!mounted) return;
+        
+        // Invalida cache e atualiza lista
+        _cacheManager.invalidateAfterGoalUpdate();
+        _refresh();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Text('Meta removida com sucesso'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Erro ao remover meta: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
