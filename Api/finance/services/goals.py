@@ -13,38 +13,45 @@ from .base import _decimal
 
 def update_goal_progress(goal) -> None:
     """
-    Atualiza o progresso de uma meta baseado nas transações relacionadas.
-    Chamado automaticamente após criar/atualizar/deletar transação
-    quando goal.auto_update=True.
+    Atualiza o progresso de uma meta SAVINGS baseado nas transações relacionadas.
+    
+    Para metas SAVINGS:
+    - Soma transações em categorias SAVINGS/INVESTMENT
+    - Adiciona ao valor inicial
     """
-    if not goal.auto_update:
+    # Apenas metas SAVINGS são atualizadas automaticamente
+    if goal.goal_type != Goal.GoalType.SAVINGS:
         return
     
-    transactions = goal.get_related_transactions()
+    from ..models import Category, Transaction
+    
+    # Buscar transações em categorias de poupança/investimento
+    transactions = Transaction.objects.filter(
+        user=goal.user,
+        category__group__in=[
+            Category.CategoryGroup.SAVINGS,
+            Category.CategoryGroup.INVESTMENT
+        ]
+    )
     
     total = _decimal(
         transactions.aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
     )
     
     total_with_initial = total + goal.initial_amount
-    
-    if goal.is_reduction_goal:
-        if total < goal.target_amount:
-            goal.current_amount = goal.target_amount - total
-        else:
-            goal.current_amount = Decimal('0.00')
-    else:
-        goal.current_amount = total_with_initial
+    goal.current_amount = total_with_initial
     
     goal.save(update_fields=['current_amount', 'updated_at'])
 
 
 def update_all_active_goals(user) -> None:
     """
-    Atualiza todas as metas ativas do usuário que têm auto_update=True.
+    Atualiza todas as metas SAVINGS do usuário.
     Chamado após criar/atualizar/deletar qualquer transação.
+    
+    Nota: Metas CUSTOM não são atualizadas automaticamente (update manual).
     """
-    goals = Goal.objects.filter(user=user, auto_update=True)
+    goals = Goal.objects.filter(user=user, goal_type=Goal.GoalType.SAVINGS)
     for goal in goals:
         update_goal_progress(goal)
 

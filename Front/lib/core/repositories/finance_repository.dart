@@ -510,11 +510,6 @@ class FinanceRepository {
     double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
-    int? targetCategoryId,
-    List<int>? trackedCategoryIds,
-    bool autoUpdate = false,
-    String trackingPeriod = 'TOTAL',
-    bool isReductionGoal = false,
   }) async {
     final payload = {
       'title': title,
@@ -525,12 +520,6 @@ class FinanceRepository {
       if (deadline != null)
         'deadline': DateFormatter.toApiFormat(deadline),
       'goal_type': goalType,
-      if (targetCategoryId != null) 'target_category': targetCategoryId,
-      if (trackedCategoryIds != null && trackedCategoryIds.isNotEmpty)
-        'tracked_category_ids': trackedCategoryIds,
-      'auto_update': autoUpdate,
-      'tracking_period': trackingPeriod,
-      'is_reduction_goal': isReductionGoal,
     };
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.goals,
@@ -549,11 +538,6 @@ class FinanceRepository {
     double? initialAmount,
     DateTime? deadline,
     String? goalType,
-    int? targetCategoryId,
-    List<int>? trackedCategoryIds,
-    bool? autoUpdate,
-    String? trackingPeriod,
-    bool? isReductionGoal,
   }) async {
     final payload = <String, dynamic>{};
     if (title != null) payload['title'] = title;
@@ -565,13 +549,6 @@ class FinanceRepository {
       payload['deadline'] = DateFormatter.toApiFormat(deadline);
     }
     if (goalType != null) payload['goal_type'] = goalType;
-    if (targetCategoryId != null) payload['target_category'] = targetCategoryId;
-    if (trackedCategoryIds != null) {
-      payload['tracked_category_ids'] = trackedCategoryIds;
-    }
-    if (autoUpdate != null) payload['auto_update'] = autoUpdate;
-    if (trackingPeriod != null) payload['tracking_period'] = trackingPeriod;
-    if (isReductionGoal != null) payload['is_reduction_goal'] = isReductionGoal;
     
     final response = await _client.client.patch<Map<String, dynamic>>(
       '${ApiEndpoints.goals}$goalId/',

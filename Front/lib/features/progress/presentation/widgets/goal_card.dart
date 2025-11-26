@@ -184,16 +184,6 @@ class GoalBadges extends StatelessWidget {
       runSpacing: 4,
       children: [
         GoalBadge(text: goal.goalType.label, color: AppColors.primary),
-        if (goal.autoUpdate)
-          const GoalBadge(text: 'Auto', color: AppColors.support, icon: Icons.sync),
-        if (goal.categoryName != null)
-          GoalBadge(
-            text: goal.categoryName!,
-            color: Colors.grey[300]!,
-            backgroundColor: Colors.grey[800],
-          ),
-        if (goal.trackingPeriod != TrackingPeriod.total)
-          GoalBadge(text: goal.trackingPeriod.label, color: const Color(0xFFFF9800)),
       ],
     );
   }

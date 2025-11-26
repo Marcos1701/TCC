@@ -1,52 +1,12 @@
 /// Tipos de metas financeiras
 enum GoalType {
   savings('SAVINGS', 'Juntar Dinheiro', '💰'),
-  categoryExpense('CATEGORY_EXPENSE', 'Reduzir Gastos', '📉'),
-  categoryIncome('CATEGORY_INCOME', 'Aumentar Receita', '📈'),
   custom('CUSTOM', 'Personalizada', '✏️');
 
   const GoalType(this.value, this.label, this.icon);
   final String value;
   final String label;
   final String icon;
-}
-
-/// Período de rastreamento da meta
-enum TrackingPeriod {
-  monthly('MONTHLY', 'Mensal'),
-  quarterly('QUARTERLY', 'Trimestral'),
-  total('TOTAL', 'Total');
-
-  const TrackingPeriod(this.value, this.label);
-  final String value;
-  final String label;
-}
-
-/// Categoria monitorada em uma meta
-class TrackedCategory {
-  const TrackedCategory({
-    required this.id,
-    required this.name,
-    required this.color,
-    required this.type,
-    this.group,
-  });
-
-  final int id;
-  final String name;
-  final String color;
-  final String type;
-  final String? group;
-
-  factory TrackedCategory.fromMap(Map<String, dynamic> map) {
-    return TrackedCategory(
-      id: int.parse(map['id'].toString()),
-      name: map['name'] as String,
-      color: (map['color'] as String?) ?? '#808080',
-      type: map['type'] as String,
-      group: map['group'] as String?,
-    );
-  }
 }
 
 /// Modelo de Meta Financeira
@@ -60,12 +20,6 @@ class GoalModel {
     this.initialAmount = 0.0,
     this.deadline,
     required this.goalType,
-    this.targetCategory,
-    this.categoryName,
-    this.trackedCategories = const [],
-    required this.autoUpdate,
-    required this.trackingPeriod,
-    required this.isReductionGoal,
     required this.progressPercentage,
     required this.createdAt,
     required this.updatedAt,
@@ -79,26 +33,11 @@ class GoalModel {
   final double initialAmount;
   final DateTime? deadline;
   final GoalType goalType;
-  final int? targetCategory;
-  final String? categoryName;
-  final List<TrackedCategory> trackedCategories;
-  final bool autoUpdate;
-  final TrackingPeriod trackingPeriod;
-  final bool isReductionGoal;
   final double progressPercentage;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   factory GoalModel.fromMap(Map<String, dynamic> map) {
-    // Parse tracked categories
-    List<TrackedCategory> trackedCats = [];
-    if (map['tracked_categories_data'] != null) {
-      final List<dynamic> catsData = map['tracked_categories_data'] as List<dynamic>;
-      trackedCats = catsData
-          .map((cat) => TrackedCategory.fromMap(cat as Map<String, dynamic>))
-          .toList();
-    }
-
     return GoalModel(
       id: map['id'].toString(),
       title: map['title'] as String,
@@ -112,12 +51,6 @@ class GoalModel {
           ? DateTime.parse(map['deadline'] as String)
           : null,
       goalType: _parseGoalType(map['goal_type'] as String?),
-      targetCategory: map['target_category'] as int?,
-      categoryName: map['category_name'] as String?,
-      trackedCategories: trackedCats,
-      autoUpdate: (map['auto_update'] as bool?) ?? false,
-      trackingPeriod: _parseTrackingPeriod(map['tracking_period'] as String?),
-      isReductionGoal: (map['is_reduction_goal'] as bool?) ?? false,
       progressPercentage:
           double.parse(map['progress_percentage']?.toString() ?? '0'),
       createdAt: DateTime.parse(map['created_at'] as String),
@@ -129,23 +62,8 @@ class GoalModel {
     switch (value?.toUpperCase()) {
       case 'SAVINGS':
         return GoalType.savings;
-      case 'CATEGORY_EXPENSE':
-        return GoalType.categoryExpense;
-      case 'CATEGORY_INCOME':
-        return GoalType.categoryIncome;
       default:
         return GoalType.custom;
-    }
-  }
-
-  static TrackingPeriod _parseTrackingPeriod(String? value) {
-    switch (value?.toUpperCase()) {
-      case 'MONTHLY':
-        return TrackingPeriod.monthly;
-      case 'QUARTERLY':
-        return TrackingPeriod.quarterly;
-      default:
-        return TrackingPeriod.total;
     }
   }
 

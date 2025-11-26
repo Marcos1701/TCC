@@ -42,24 +42,6 @@ class _ProgressPageState extends State<ProgressPage> {
     }
   }
 
-  Color _parseColor(String? colorHex) {
-    if (colorHex == null || colorHex.isEmpty) {
-      return Colors.grey;
-    }
-    
-    try {
-      final hex = colorHex.replaceAll('#', '');
-      
-      if (hex.length != 6) {
-        return Colors.grey;
-      }
-      
-      return Color(int.parse('0xFF$hex', radix: 16));
-    } catch (e) {
-      return Colors.grey;
-    }
-  }
-
   Future<void> _refresh() async {
     final data = await _repository.fetchGoals();
     if (!mounted) return;
@@ -72,15 +54,9 @@ class _ProgressPageState extends State<ProgressPage> {
   }
 
   Future<void> _openGoalDialog({GoalModel? goal}) async {
-    // Busca categorias para o diálogo
-    final categories = await _repository.fetchCategories();
-    if (!mounted) return;
-
     final result = await GoalEditDialog.show(
       context: context,
       goal: goal,
-      categories: categories,
-      parseColor: _parseColor,
     );
 
     if (result == null || !mounted) return;
@@ -94,11 +70,6 @@ class _ProgressPageState extends State<ProgressPage> {
           initialAmount: result.initialAmount,
           deadline: result.deadline,
           goalType: result.goalType.value,
-          targetCategoryId: result.targetCategoryId,
-          trackedCategoryIds: result.trackedCategoryIds,
-          autoUpdate: result.autoUpdate,
-          trackingPeriod: result.trackingPeriod.value,
-          isReductionGoal: result.isReductionGoal,
         );
       } else {
         await _repository.updateGoal(
@@ -109,11 +80,6 @@ class _ProgressPageState extends State<ProgressPage> {
           initialAmount: result.initialAmount,
           deadline: result.deadline,
           goalType: result.goalType.value,
-          targetCategoryId: result.targetCategoryId,
-          trackedCategoryIds: result.trackedCategoryIds,
-          autoUpdate: result.autoUpdate,
-          trackingPeriod: result.trackingPeriod.value,
-          isReductionGoal: result.isReductionGoal,
         );
       }
 

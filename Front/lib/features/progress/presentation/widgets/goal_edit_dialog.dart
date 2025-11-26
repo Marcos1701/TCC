@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/models/category.dart';
 import '../../../../core/models/goal.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 
 /// Resultado do diálogo de edição de meta.
 class GoalDialogResult {
+  /// Cria um resultado do diálogo de edição de meta.
   const GoalDialogResult({
     required this.title,
     required this.description,
@@ -16,38 +16,37 @@ class GoalDialogResult {
     required this.initialAmount,
     required this.deadline,
     required this.goalType,
-    required this.targetCategoryId,
-    required this.trackedCategoryIds,
-    required this.autoUpdate,
-    required this.trackingPeriod,
-    required this.isReductionGoal,
   });
 
+  /// Título da meta.
   final String title;
+
+  /// Descrição da meta.
   final String description;
+
+  /// Valor alvo da meta.
   final double targetAmount;
+
+  /// Valor inicial da meta.
   final double initialAmount;
+
+  /// Prazo da meta.
   final DateTime? deadline;
+
+  /// Tipo da meta.
   final GoalType goalType;
-  final int? targetCategoryId;
-  final List<int>? trackedCategoryIds;
-  final bool autoUpdate;
-  final TrackingPeriod trackingPeriod;
-  final bool isReductionGoal;
 }
 
 /// Diálogo para criar ou editar uma meta.
 class GoalEditDialog extends StatefulWidget {
+  /// Cria um diálogo de edição de meta.
   const GoalEditDialog({
     super.key,
     this.goal,
-    required this.categories,
-    required this.parseColor,
   });
 
+  /// Meta existente para edição.
   final GoalModel? goal;
-  final List<CategoryModel> categories;
-  final Color Function(String?) parseColor;
 
   @override
   State<GoalEditDialog> createState() => _GoalEditDialogState();
@@ -56,16 +55,10 @@ class GoalEditDialog extends StatefulWidget {
   static Future<GoalDialogResult?> show({
     required BuildContext context,
     GoalModel? goal,
-    required List<CategoryModel> categories,
-    required Color Function(String?) parseColor,
   }) {
     return showDialog<GoalDialogResult>(
       context: context,
-      builder: (context) => GoalEditDialog(
-        goal: goal,
-        categories: categories,
-        parseColor: parseColor,
-      ),
+      builder: (context) => GoalEditDialog(goal: goal),
     );
   }
 }
@@ -77,13 +70,9 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
   late final TextEditingController _initialAmountController;
 
   late GoalType _selectedGoalType;
-  int? _selectedCategoryId;
-  late Set<int> _selectedTrackedCategoryIds;
-  late bool _autoUpdate;
-  late TrackingPeriod _trackingPeriod;
-  late bool _isReductionGoal;
   DateTime? _deadline;
-  final bool _isLoading = false;
+
+  bool get _isEditing => widget.goal != null;
 
   @override
   void initState() {
@@ -91,7 +80,8 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     final goal = widget.goal;
 
     _titleController = TextEditingController(text: goal?.title ?? '');
-    _descriptionController = TextEditingController(text: goal?.description ?? '');
+    _descriptionController =
+        TextEditingController(text: goal?.description ?? '');
     _targetController = TextEditingController(
       text: goal != null ? CurrencyInputFormatter.format(goal.targetAmount) : '',
     );
@@ -101,13 +91,7 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
           : '',
     );
 
-    _selectedGoalType = goal?.goalType ?? GoalType.custom;
-    _selectedCategoryId = goal?.targetCategory;
-    _selectedTrackedCategoryIds =
-        goal?.trackedCategories.map((cat) => cat.id).toSet() ?? {};
-    _autoUpdate = goal?.autoUpdate ?? false;
-    _trackingPeriod = goal?.trackingPeriod ?? TrackingPeriod.total;
-    _isReductionGoal = goal?.isReductionGoal ?? false;
+    _selectedGoalType = goal?.goalType ?? GoalType.savings;
     _deadline = goal?.deadline;
   }
 
@@ -118,46 +102,6 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     _targetController.dispose();
     _initialAmountController.dispose();
     super.dispose();
-  }
-
-  bool get _needsSingleCategory =>
-      _selectedGoalType == GoalType.categoryExpense ||
-      _selectedGoalType == GoalType.categoryIncome;
-
-  bool get _allowsMultipleCategories => _selectedGoalType == GoalType.savings;
-
-  List<CategoryModel> get _filteredCategories {
-    if (_selectedGoalType == GoalType.custom) {
-      return widget.categories;
-    }
-    if (_selectedGoalType == GoalType.savings) {
-      return widget.categories
-          .where((cat) => cat.type == 'INCOME' || cat.isUserCreated)
-          .toList();
-    }
-    if (_selectedGoalType == GoalType.categoryExpense) {
-      return widget.categories.where((cat) => cat.type == 'EXPENSE').toList();
-    }
-    if (_selectedGoalType == GoalType.categoryIncome) {
-      return widget.categories.where((cat) => cat.type == 'INCOME').toList();
-    }
-    return widget.categories;
-  }
-
-  void _onGoalTypeChanged(GoalType? value) {
-    if (value == null) return;
-    setState(() {
-      _selectedGoalType = value;
-      if (!_needsSingleCategory) {
-        _selectedCategoryId = null;
-      }
-      if (!_allowsMultipleCategories) {
-        _selectedTrackedCategoryIds.clear();
-      }
-      if (_selectedGoalType == GoalType.categoryExpense && !_isReductionGoal) {
-        _isReductionGoal = true;
-      }
-    });
   }
 
   void _onSubmit() {
@@ -182,16 +126,6 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
       return;
     }
 
-    if (_needsSingleCategory && _selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione uma categoria para este tipo de meta'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     final initialAmount =
         CurrencyInputFormatter.parse(_initialAmountController.text);
 
@@ -204,13 +138,6 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
         initialAmount: initialAmount,
         deadline: _deadline,
         goalType: _selectedGoalType,
-        targetCategoryId: _selectedCategoryId,
-        trackedCategoryIds: _selectedTrackedCategoryIds.isNotEmpty
-            ? _selectedTrackedCategoryIds.toList()
-            : null,
-        autoUpdate: _autoUpdate,
-        trackingPeriod: _trackingPeriod,
-        isReductionGoal: _isReductionGoal,
       ),
     );
   }
@@ -230,9 +157,6 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
           children: [
             _buildGoalTypeSelector(),
             const SizedBox(height: 20),
-            if (_needsSingleCategory) _buildCategorySelector(),
-            if (_allowsMultipleCategories && _autoUpdate)
-              _buildMultipleCategoriesSelector(),
             _buildTitleField(),
             const SizedBox(height: 16),
             _buildDescriptionField(),
@@ -241,10 +165,6 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
             const SizedBox(height: 16),
             _buildInitialAmountField(),
             const SizedBox(height: 20),
-            _buildAutoUpdateToggle(),
-            if (_autoUpdate && (_needsSingleCategory || _allowsMultipleCategories))
-              _buildTrackingPeriodSelector(),
-            const SizedBox(height: 16),
             _buildDeadlineSelector(),
           ],
         ),
@@ -252,29 +172,20 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancelar', style: TextStyle(color: Colors.grey[400])),
+          child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
-          onPressed: _isLoading ? null : _onSubmit,
+          onPressed: _onSubmit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            disabledBackgroundColor: Colors.grey[800],
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : const Text('Salvar',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+          child: Text(
+            _isEditing ? 'Salvar' : 'Criar',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -290,20 +201,16 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
-            widget.goal == null ? Icons.add_circle_outline : Icons.edit_outlined,
+            _isEditing ? Icons.edit : Icons.add_circle_outline,
             color: AppColors.primary,
-            size: 24,
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            widget.goal == null ? 'Nova Meta' : 'Editar Meta',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 18,
-            ),
+        Text(
+          _isEditing ? 'Editar Meta' : 'Nova Meta',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
@@ -314,184 +221,77 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Tipo de Meta',
           style: TextStyle(
-            color: Colors.grey[300],
-            fontSize: 12,
+            color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[700]!, width: 1),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<GoalType>(
-              value: _selectedGoalType,
-              isExpanded: true,
-              dropdownColor: const Color(0xFF1E1E1E),
-              icon: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildGoalTypeOption(
+                type: GoalType.savings,
+                icon: Icons.savings_outlined,
+                label: 'Juntar',
               ),
-              onChanged: _isLoading ? null : _onGoalTypeChanged,
-              items: GoalType.values.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    child: Row(
-                      children: [
-                        Text(type.icon, style: const TextStyle(fontSize: 20)),
-                        const SizedBox(width: 12),
-                        Text(type.label,
-                            style: const TextStyle(color: Colors.white)),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildGoalTypeOption(
+                type: GoalType.custom,
+                icon: Icons.edit_outlined,
+                label: 'Personalizada',
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildCategorySelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Categoria',
-          style: TextStyle(
-            color: Colors.grey[300],
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[700]!, width: 1),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<int>(
-              value: _selectedCategoryId,
-              isExpanded: true,
-              dropdownColor: const Color(0xFF1E1E1E),
-              hint: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Selecione uma categoria',
-                  style: TextStyle(color: Colors.grey[500]),
-                ),
-              ),
-              icon: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
-              ),
-              onChanged: _isLoading
-                  ? null
-                  : (value) => setState(() => _selectedCategoryId = value),
-              items: _filteredCategories.map<DropdownMenuItem<int>>((cat) {
-                return DropdownMenuItem<int>(
-                  value: cat.id,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    child: Text(cat.name,
-                        style: const TextStyle(color: Colors.white)),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-      ],
-    );
-  }
+  Widget _buildGoalTypeOption({
+    required GoalType type,
+    required IconData icon,
+    required String label,
+  }) {
+    final isSelected = _selectedGoalType == type;
 
-  Widget _buildMultipleCategoriesSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Categorias Monitoradas (Opcional)',
-          style: TextStyle(
-            color: Colors.grey[300],
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+    return GestureDetector(
+      onTap: () => setState(() => _selectedGoalType = type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? AppColors.primary.withOpacity(0.2) : Colors.grey[900],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.grey[700]!,
+            width: isSelected ? 2 : 1,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Deixe vazio para monitorar todas as categorias padrão',
-          style: TextStyle(color: Colors.grey[500], fontSize: 10),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.primary : Colors.grey,
+              size: 28,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[700]!, width: 1),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _filteredCategories.map((cat) {
-              final isSelected = _selectedTrackedCategoryIds.contains(cat.id);
-              return CheckboxListTile(
-                value: isSelected,
-                onChanged: _isLoading
-                    ? null
-                    : (value) {
-                        setState(() {
-                          if (value == true) {
-                            _selectedTrackedCategoryIds.add(cat.id);
-                          } else {
-                            _selectedTrackedCategoryIds.remove(cat.id);
-                          }
-                        });
-                      },
-                title: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: widget.parseColor(cat.color),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        cat.name,
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 14),
-                      ),
-                    ),
-                  ],
-                ),
-                activeColor: AppColors.primary,
-                checkColor: Colors.white,
-                tileColor: isSelected
-                    ? AppColors.primary.withOpacity(0.1)
-                    : Colors.transparent,
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 20),
-      ],
+      ),
     );
   }
 
@@ -502,8 +302,10 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
       decoration: InputDecoration(
         labelText: 'Título',
         labelStyle: TextStyle(color: Colors.grey[400]),
+        hintText: 'Ex: Celular novo',
+        hintStyle: TextStyle(color: Colors.grey[600]),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
+        fillColor: Colors.grey[900],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[700]!),
@@ -528,8 +330,10 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
       decoration: InputDecoration(
         labelText: 'Descrição (opcional)',
         labelStyle: TextStyle(color: Colors.grey[400]),
+        hintText: 'Descreva sua meta',
+        hintStyle: TextStyle(color: Colors.grey[600]),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
+        fillColor: Colors.grey[900],
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[700]!),
@@ -550,18 +354,20 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     return TextField(
       controller: _targetController,
       style: const TextStyle(color: Colors.white),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      keyboardType: TextInputType.number,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
-        CurrencyInputFormatter(maxDigits: 12),
+        LengthLimitingTextInputFormatter(12),
+        CurrencyInputFormatter(),
       ],
       decoration: InputDecoration(
-        labelText: 'Valor alvo',
+        labelText: 'Valor Alvo',
         labelStyle: TextStyle(color: Colors.grey[400]),
-        prefixText: 'R\$ ',
-        prefixStyle: const TextStyle(color: Colors.white),
+        hintText: 'R\$ 0,00',
+        hintStyle: TextStyle(color: Colors.grey[600]),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.3),
+        fillColor: Colors.grey[900],
+        prefixIcon: Icon(Icons.attach_money, color: Colors.grey[500]),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[700]!),
@@ -581,29 +387,21 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
   Widget _buildInitialAmountField() {
     return TextField(
       controller: _initialAmountController,
-      enabled: !_autoUpdate,
-      style: TextStyle(color: _autoUpdate ? Colors.grey[600] : Colors.white),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      style: const TextStyle(color: Colors.white),
+      keyboardType: TextInputType.number,
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
-        CurrencyInputFormatter(maxDigits: 12),
+        LengthLimitingTextInputFormatter(12),
+        CurrencyInputFormatter(),
       ],
       decoration: InputDecoration(
-        labelText: _autoUpdate
-            ? 'Valor inicial (preenchido automaticamente)'
-            : 'Valor inicial (opcional)',
+        labelText: 'Valor Inicial (opcional)',
         labelStyle: TextStyle(color: Colors.grey[400]),
-        hintText: _autoUpdate
-            ? 'Será calculado automaticamente'
-            : 'Transações antes da criação da meta',
-        hintStyle: TextStyle(color: Colors.grey[600], fontSize: 12),
-        prefixText: 'R\$ ',
-        prefixStyle:
-            TextStyle(color: _autoUpdate ? Colors.grey[600] : Colors.white),
+        hintText: 'Quanto você já tem?',
+        hintStyle: TextStyle(color: Colors.grey[600]),
         filled: true,
-        fillColor: _autoUpdate
-            ? Colors.grey[900]!.withOpacity(0.5)
-            : Colors.black.withOpacity(0.3),
+        fillColor: Colors.grey[900],
+        prefixIcon: Icon(Icons.account_balance_wallet, color: Colors.grey[500]),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[700]!),
@@ -611,10 +409,6 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[700]!),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[800]!),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -624,148 +418,73 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     );
   }
 
-  Widget _buildAutoUpdateToggle() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[700]!),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Icon(
-            _autoUpdate ? Icons.sync : Icons.sync_disabled,
-            color: _autoUpdate ? AppColors.support : Colors.grey[500],
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Atualização Automática',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  _autoUpdate
-                      ? 'Progresso atualizado com transações'
-                      : 'Controle manual do progresso',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: _autoUpdate,
-            onChanged: _selectedGoalType == GoalType.custom
-                ? null
-                : (value) => setState(() => _autoUpdate = value),
-            activeThumbColor: AppColors.support,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrackingPeriodSelector() {
+  Widget _buildDeadlineSelector() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 16),
-        Text(
-          'Período de Rastreamento',
+        const Text(
+          'Prazo (opcional)',
           style: TextStyle(
-            color: Colors.grey[300],
-            fontSize: 12,
+            color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: TrackingPeriod.values.map((period) {
-            final isSelected = _trackingPeriod == period;
-            return ChoiceChip(
-              label: Text(period.label),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() => _trackingPeriod = period);
-                }
-              },
-              selectedColor: AppColors.primary.withOpacity(0.3),
-              backgroundColor: Colors.black.withOpacity(0.3),
-              labelStyle: TextStyle(
-                color: isSelected ? AppColors.primary : Colors.white,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-              side: BorderSide(
-                color: isSelected ? AppColors.primary : Colors.grey[700]!,
-              ),
-            );
-          }).toList(),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: _selectDeadline,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[700]!),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, color: Colors.grey[500], size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _deadline != null
+                        ? DateFormat('dd/MM/yyyy').format(_deadline!)
+                        : 'Selecionar data',
+                    style: TextStyle(
+                      color: _deadline != null ? Colors.white : Colors.grey[500],
+                    ),
+                  ),
+                ),
+                if (_deadline != null)
+                  IconButton(
+                    icon: Icon(Icons.close, color: Colors.grey[500], size: 20),
+                    onPressed: () => setState(() => _deadline = null),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildDeadlineSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[700]!),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          const Icon(Icons.calendar_today, color: AppColors.primary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _deadline == null
-                  ? 'Sem prazo definido'
-                  : 'Prazo: ${DateFormat('dd/MM/yyyy').format(_deadline!)}',
-              style: TextStyle(
-                color: _deadline == null ? Colors.grey[500] : Colors.white,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _deadline ?? DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime(2035),
-                builder: (context, child) {
-                  return Theme(
-                    data: ThemeData.dark().copyWith(
-                      colorScheme: const ColorScheme.dark(
-                        primary: AppColors.primary,
-                        surface: Color(0xFF1E1E1E),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
-              );
-              if (picked != null) {
-                setState(() => _deadline = picked);
-              }
-            },
-            child: Text(
-              _deadline == null ? 'Definir' : 'Alterar',
-              style: const TextStyle(color: AppColors.primary),
-            ),
-          ),
-        ],
+  Future<void> _selectDeadline() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _deadline ?? DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      builder: (context, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(primary: AppColors.primary),
+        ),
+        child: child!,
       ),
     );
+    if (picked != null) {
+      setState(() => _deadline = picked);
+    }
   }
 }

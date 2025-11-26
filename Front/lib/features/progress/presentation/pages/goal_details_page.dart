@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/goal.dart';
 import '../../../../core/repositories/finance_repository.dart';
-import '../../../../core/services/cache_manager.dart';
-import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
@@ -91,37 +89,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
     }
   }
 
-  Future<void> _refreshProgress() async {
-    try {
-      await _repository.refreshGoalProgress(widget.goal.identifier);  // Usar identifier
-      
-      // Recarrega dados
-      await _loadData();
-      
-      if (!mounted) return;
-      
-      // Feedback contextual melhorado
-      FeedbackService.showSuccess(
-        context,
-        'Progresso da meta atualizado com sucesso!',
-      );
-      
-      // Invalida cache para outras telas
-      CacheManager().invalidateAfterGoalUpdate();
-      
-      // Atualiza o ViewModel global (se necessário)
-      _viewModel.refreshSilently();
-    } catch (e) {
-      if (!mounted) return;
-      
-      FeedbackService.showErrorWithRetry(
-        context,
-        'Não foi possível atualizar o progresso.',
-        onRetry: _refreshProgress,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -140,14 +107,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           'Detalhes da Meta',
           style: TextStyle(color: Colors.white),
         ),
-        actions: [
-          if (_currentGoal.autoUpdate)
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              tooltip: 'Atualizar progresso',
-              onPressed: _refreshProgress,
-            ),
-        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -378,9 +337,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           currentAmount: result,
         );
 
-        // Invalida cache
-        CacheManager().invalidateAfterGoalUpdate();
-
         if (mounted) {
           // Remove loading
           Navigator.pop(context);
@@ -568,26 +524,6 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
           ),
           const SizedBox(height: 16),
           _buildInfoRow(Icons.category, 'Tipo', _currentGoal.goalType.label, theme),
-          if (_currentGoal.categoryName != null)
-            _buildInfoRow(Icons.label, 'Categoria', _currentGoal.categoryName!, theme),
-          if (_currentGoal.trackedCategories.isNotEmpty)
-            _buildInfoRow(
-              Icons.folder_special,
-              'Categorias monitoradas',
-              '${_currentGoal.trackedCategories.length} selecionada${_currentGoal.trackedCategories.length > 1 ? "s" : ""}',
-              theme,
-              subtitle: _currentGoal.trackedCategories.map((c) => c.name).join(', '),
-              color: AppColors.primary,
-            ),
-          _buildInfoRow(
-            Icons.sync,
-            'Atualização',
-            _currentGoal.autoUpdate ? 'Automática' : 'Manual',
-            theme,
-            color: _currentGoal.autoUpdate ? AppColors.support : null,
-          ),
-          if (widget.goal.trackingPeriod != TrackingPeriod.total)
-            _buildInfoRow(Icons.calendar_today, 'Período', widget.goal.trackingPeriod.label, theme),
           if (_currentGoal.deadline != null)
             _buildInfoRow(
               Icons.event,
