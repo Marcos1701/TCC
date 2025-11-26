@@ -128,7 +128,7 @@ class CategoryAdmin(admin.ModelAdmin):
     """
     Gerenciamento de categorias de transações.
     
-    Categorias podem ser de receita (income) ou despesa (expense).
+    Categorias podem ser de receita (INCOME) ou despesa (EXPENSE).
     Categorias padrão do sistema são marcadas como is_system_default.
     """
     
@@ -136,16 +136,17 @@ class CategoryAdmin(admin.ModelAdmin):
         "name",
         "tipo",
         "user",
+        "group",
         "is_system_default",
         "created_at",
     )
-    list_filter = ("type", "is_system_default")
+    list_filter = ("type", "group", "is_system_default")
     search_fields = ("name", "user__username")
     readonly_fields = ("created_at",)
 
     fieldsets = (
         ("Categoria", {
-            "fields": ("name", "type", "user"),
+            "fields": ("name", "type", "group", "color", "user"),
         }),
         ("Sistema", {
             "fields": ("is_system_default",),
@@ -160,7 +161,7 @@ class CategoryAdmin(admin.ModelAdmin):
     @admin.display(description="Tipo", ordering="type")
     def tipo(self, obj):
         """Exibe o tipo da categoria."""
-        return "Receita" if obj.type == "income" else "Despesa"
+        return "Receita" if obj.type == "INCOME" else "Despesa"
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
@@ -277,38 +278,35 @@ class GoalAdmin(admin.ModelAdmin):
     """
     Gerenciamento de metas financeiras.
     
-    Metas possuem valor alvo, prazo e podem rastrear
-    categorias específicas para calcular o progresso.
+    Tipos de Meta:
+        - SAVINGS: Juntar dinheiro
+        - CUSTOM: Meta personalizada
     """
     
     list_display = (
         "title",
         "user",
+        "goal_type",
         "progresso",
         "valor_alvo",
         "deadline",
         "status",
     )
-    list_filter = ("deadline",)
+    list_filter = ("goal_type", "deadline")
     search_fields = ("title", "user__username", "description")
-    readonly_fields = ("created_at", "updated_at", "current_amount")
+    readonly_fields = ("created_at", "updated_at")
     date_hierarchy = "deadline"
 
     fieldsets = (
         ("Meta", {
-            "fields": ("user", "title", "description"),
+            "fields": ("user", "title", "description", "goal_type"),
         }),
         ("Valores", {
             "fields": ("target_amount", "current_amount", "initial_amount"),
-            "description": "Valor alvo e progresso atual.",
+            "description": "Valor alvo e progresso atual (current_amount é atualizado automaticamente).",
         }),
         ("Prazo", {
             "fields": ("deadline",),
-        }),
-        ("Categorias Rastreadas", {
-            "fields": ("tracked_categories",),
-            "classes": ("collapse",),
-            "description": "Categorias que contribuem para esta meta.",
         }),
         ("Datas", {
             "fields": ("created_at", "updated_at"),
@@ -377,17 +375,17 @@ class MissionAdmin(admin.ModelAdmin):
         "is_active",
         "usuarios",
     )
-    list_filter = ("difficulty", "is_active", "mission_type", "is_system_generated")
+    list_filter = ("difficulty", "is_active", "mission_type", "validation_type", "is_system_generated")
     search_fields = ("title", "description")
-    readonly_fields = ("created_at", "updated_at", "is_system_generated", "generation_context")
+    readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ("target_category", "target_goal")
 
     fieldsets = (
         ("Informações Básicas", {
-            "fields": ("title", "description", "difficulty", "is_active"),
+            "fields": ("title", "description", "difficulty", "is_active", "priority"),
         }),
-        ("Tipo e Recompensa", {
-            "fields": ("mission_type", "reward_points", "duration_days"),
+        ("Tipo e Validação", {
+            "fields": ("mission_type", "validation_type", "reward_points", "duration_days"),
             "description": (
                 "Guia de XP: Fácil (25-75 XP), Média (75-150 XP), Difícil (150-300 XP). "
                 "Duração: Fácil (7-14 dias), Média (14-30 dias), Difícil (30-60 dias)."
@@ -404,7 +402,7 @@ class MissionAdmin(admin.ModelAdmin):
             ),
         }),
         ("Missões de Categoria", {
-            "fields": ("target_category", "target_reduction_percent"),
+            "fields": ("target_category", "target_reduction_percent", "category_spending_limit"),
             "classes": ("collapse",),
             "description": "Para missões do tipo CATEGORY_REDUCTION.",
         }),
@@ -413,10 +411,26 @@ class MissionAdmin(admin.ModelAdmin):
             "classes": ("collapse",),
             "description": "Para missões do tipo GOAL_ACHIEVEMENT.",
         }),
-        ("Dicas", {
-            "fields": ("tips",),
+        ("Critérios Temporais", {
+            "fields": ("requires_consecutive_days", "min_consecutive_days", "requires_daily_action", "min_daily_actions"),
+            "classes": ("collapse",),
+            "description": "Para missões que exigem consistência.",
+        }),
+        ("Dicas e Impactos", {
+            "fields": ("tips", "impacts"),
             "classes": ("collapse",),
             "description": 'JSON: [{"title": "Título", "description": "Texto"}]',
+        }),
+        ("Configurações Avançadas", {
+            "fields": (
+                "savings_increase_amount",
+                "min_transaction_frequency",
+                "transaction_type_filter",
+                "requires_payment_tracking",
+                "min_payments_count",
+            ),
+            "classes": ("collapse",),
+            "description": "Campos para configurações específicas de missões.",
         }),
         ("Sistema", {
             "fields": ("is_system_generated", "generation_context", "created_at", "updated_at"),
@@ -437,14 +451,14 @@ class MissionAdmin(admin.ModelAdmin):
     @admin.display(description="Usuários")
     def usuarios(self, obj):
         """Exibe quantidade de usuários que iniciaram/completaram a missão."""
-        total = obj.missionprogress_set.count()
-        concluidas = obj.missionprogress_set.filter(status='completed').count()
+        total = obj.progress.count()
+        concluidas = obj.progress.filter(status='COMPLETED').count()
         if total > 0:
             return f"{total} ({concluidas} concl.)"
         return "-"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related('missionprogress_set')
+        return super().get_queryset(request).prefetch_related('progress')
 
 
 @admin.register(MissionProgress)
@@ -452,11 +466,11 @@ class MissionProgressAdmin(admin.ModelAdmin):
     """
     Gerenciamento do progresso de usuários nas missões.
     
-    Status:
-        - not_started: Não iniciada
-        - in_progress: Em progresso
-        - completed: Concluída
-        - failed: Falhou
+    Status (conforme modelo):
+        - PENDING: Pendente
+        - ACTIVE: Em andamento
+        - COMPLETED: Concluída
+        - FAILED: Falhou
     """
     
     list_display = (
@@ -464,20 +478,58 @@ class MissionProgressAdmin(admin.ModelAdmin):
         "missao",
         "status",
         "progresso",
+        "current_streak",
         "updated_at",
     )
-    list_filter = ("status", "mission__difficulty")
+    list_filter = ("status", "mission__difficulty", "mission__mission_type")
     search_fields = ("user__username", "mission__title")
     autocomplete_fields = ("user", "mission")
-    readonly_fields = ("started_at", "completed_at", "updated_at")
+    readonly_fields = (
+        "started_at", 
+        "completed_at", 
+        "updated_at",
+        "initial_tps",
+        "initial_rdr",
+        "initial_ili",
+        "initial_transaction_count",
+        "baseline_category_spending",
+        "baseline_period_days",
+        "initial_goal_progress",
+        "initial_savings_amount",
+        "last_violation_date",
+        "validation_details",
+    )
     date_hierarchy = "updated_at"
 
     fieldsets = (
         ("Progresso", {
             "fields": ("user", "mission", "status", "progress"),
         }),
+        ("Streaks", {
+            "fields": ("current_streak", "max_streak", "days_met_criteria", "days_violated_criteria", "last_violation_date"),
+            "classes": ("collapse",),
+            "description": "Métricas de consistência do usuário.",
+        }),
+        ("Valores Iniciais", {
+            "fields": (
+                "initial_tps", 
+                "initial_rdr", 
+                "initial_ili",
+                "initial_transaction_count",
+                "baseline_category_spending",
+                "baseline_period_days",
+                "initial_goal_progress",
+                "initial_savings_amount",
+            ),
+            "classes": ("collapse",),
+            "description": "Snapshot dos indicadores quando a missão foi iniciada.",
+        }),
         ("Datas", {
             "fields": ("started_at", "completed_at", "updated_at"),
+        }),
+        ("Debug", {
+            "fields": ("validation_details",),
+            "classes": ("collapse",),
         }),
     )
 
@@ -489,7 +541,7 @@ class MissionProgressAdmin(admin.ModelAdmin):
     @admin.display(description="Progresso", ordering="progress")
     def progresso(self, obj):
         """Exibe o progresso percentual."""
-        return f"{min(obj.progress, 100):.0f}%"
+        return f"{min(float(obj.progress), 100):.0f}%"
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user', 'mission')
