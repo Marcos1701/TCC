@@ -242,16 +242,6 @@ class TransactionsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeTransactionOptimistic(String transactionId) {
-    _transactions.removeWhere((t) => t.id == transactionId);
-    notifyListeners();
-  }
-
-  void restoreTransactions(List<TransactionModel> originalList) {
-    _transactions = originalList;
-    notifyListeners();
-  }
-
   @override
   void dispose() {
     _pendingTransactions.clear();

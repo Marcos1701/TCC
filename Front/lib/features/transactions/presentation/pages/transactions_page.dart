@@ -101,30 +101,28 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
     if (!confirm) return;
 
-    final originalList = List<TransactionModel>.from(_viewModel.transactions);
-    
-    setState(() {
-      _viewModel.removeTransactionOptimistic(transaction.id);
-    });
-    
-    if (!mounted) return;
-    FeedbackService.showSuccess(
-      context,
-      'Transação removida com sucesso.',
-    );
-
     try {
-      await _viewModel.deleteTransaction(transaction);
+      final deleted = await _viewModel.deleteTransaction(transaction);
+      
+      if (!mounted) return;
+      
+      if (deleted) {
+        FeedbackService.showSuccess(
+          context,
+          'Transação removida com sucesso.',
+        );
+      } else {
+        FeedbackService.showError(
+          context,
+          'Transação não encontrada.',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       
-      setState(() {
-        _viewModel.restoreTransactions(originalList);
-      });
-      
       FeedbackService.showError(
         context,
-        'Não foi possível remover a transação. Operação desfeita.',
+        'Não foi possível remover a transação: ${e.toString()}',
       );
     }
   }
