@@ -36,12 +36,19 @@ class _AuthFlowState extends State<AuthFlow> {
     
     if (currentUserId == null) return;
     
+    // Administradores não passam pelo onboarding
+    final isAdmin = session.session?.user.isAdmin ?? false;
+    if (isAdmin) return;
+    
     if (_onboardingCheckedThisSession && _lastUserIdChecked == currentUserId) {
       return;
     }
     
     try {
       await session.refreshSession();
+      
+      // Verifica novamente após refresh se virou admin
+      if (session.session?.user.isAdmin ?? false) return;
       
       final isFirstAccess = session.profile?.isFirstAccess ?? false;
       
@@ -130,20 +137,22 @@ class _AuthFlowState extends State<AuthFlow> {
 
         // Se autenticado, vai para a home ou painel admin
         if (session.isAuthenticated) {
+          // PRIMEIRO: Verifica se é administrador - admins vão direto para o painel
+          // sem passar pelo onboarding
+          final isAdmin = session.session?.user.isAdmin ?? false;
+          
+          if (isAdmin) {
+            // Admin vai direto para o painel administrativo
+            return const AdminPanelPage();
+          }
+          
+          // SEGUNDO: Apenas para usuários normais - verifica onboarding
           // Se for novo cadastro, permite nova verificação de onboarding
           if (session.isNewRegistration) {
             if (currentUserId != null && currentUserId != _lastUserIdChecked) {
               _onboardingCheckedThisSession = false;
               _lastUserIdChecked = null;
             }
-          }
-          
-          // Verifica se é administrador
-          final isAdmin = session.session?.user.isAdmin ?? false;
-          
-          // Se for admin, redireciona para o painel administrativo
-          if (isAdmin) {
-            return const AdminPanelPage();
           }
           
           // Verifica onboarding apenas uma vez por sessão do app (usuários normais)
