@@ -46,7 +46,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
   }
 
   Future<void> _gerarMissoes(int quantidade, bool usarIA) async {
-    debugPrint('[AdminMissionsPage] Iniciando geração: quantidade=$quantidade, usarIA=$usarIA');
     setState(() => _isGenerating = true);
 
     try {
@@ -54,8 +53,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
         quantidade: quantidade,
         usarIA: usarIA,
       );
-
-      debugPrint('[AdminMissionsPage] Resultado da geração: $resultado');
 
       setState(() => _isGenerating = false);
 
@@ -65,8 +62,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
             ? resultado['mensagem'] ?? 'Missões geradas com sucesso!'
             : resultado['erro'] ?? 'Erro ao gerar missões';
 
-        debugPrint('[AdminMissionsPage] Exibindo SnackBar: sucesso=$sucesso, mensagem=$mensagem');
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(mensagem),
@@ -75,9 +70,7 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
           ),
         );
       }
-    } catch (e, stack) {
-      debugPrint('[AdminMissionsPage] Erro inesperado: $e');
-      debugPrint('[AdminMissionsPage] Stack: $stack');
+    } catch (e) {
       setState(() => _isGenerating = false);
       
       if (mounted) {
@@ -422,7 +415,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
   /// - Templates: Utiliza modelos pré-definidos (execução rápida);
   /// - Inteligência Artificial: Gera missões mais variadas (execução mais lenta).
   void _showGenerateDialog(int quantidade) {
-    debugPrint('[AdminMissionsPage] Abrindo diálogo de geração para $quantidade missões');
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -441,7 +433,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              debugPrint('[AdminMissionsPage] Botão Templates pressionado');
               Navigator.pop(dialogContext);
               _gerarMissoes(quantidade, false);
             },
@@ -449,7 +440,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
           ),
           ElevatedButton.icon(
             onPressed: () {
-              debugPrint('[AdminMissionsPage] Botão IA pressionado');
               Navigator.pop(dialogContext);
               _gerarMissoes(quantidade, true);
             },

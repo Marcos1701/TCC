@@ -268,7 +268,8 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
     mission_data = {
         'difficulty': template['difficulty'],
         'duration_days': template['duration_days'],
-        'xp_reward': template['xp_reward'],
+        'reward_points': template.get('xp_reward', template.get('reward_points', 50)),
+        'is_active': True,
     }
     
     # ONBOARDING

@@ -190,9 +190,7 @@ class AdminViewModel extends ChangeNotifier {
     required int quantidade,
     bool usarIA = false,
   }) async {
-    debugPrint('[AdminViewModel] Chamando generateMissions: quantidade=$quantidade, usarIA=$usarIA');
     try {
-      debugPrint('[AdminViewModel] Endpoint: ${ApiEndpoints.adminMissionsGenerate}');
       final response = await _api.client.post(
         ApiEndpoints.adminMissionsGenerate,
         data: {
@@ -201,26 +199,20 @@ class AdminViewModel extends ChangeNotifier {
         },
       );
 
-      debugPrint('[AdminViewModel] Response status: ${response.statusCode}');
       final data = response.data as Map<String, dynamic>;
-      debugPrint('[AdminViewModel] Response data: $data');
       
       // Recarrega a lista de missões
       if (data['sucesso'] == true) {
-        debugPrint('[AdminViewModel] Sucesso! Recarregando missões...');
         await loadMissions();
       }
 
       return data;
     } on DioException catch (e) {
-      debugPrint('[AdminViewModel] DioException: ${e.type} - ${e.message}');
-      debugPrint('[AdminViewModel] Response: ${e.response?.data}');
       return {
         'sucesso': false,
         'erro': _extractErrorMessage(e),
       };
     } catch (e) {
-      debugPrint('[AdminViewModel] Exception: $e');
       return {
         'sucesso': false,
         'erro': 'Erro ao gerar missões: $e',
