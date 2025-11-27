@@ -1,5 +1,10 @@
 """
 Serializers para os modelos Mission e MissionProgress.
+
+Este módulo contém os serializers responsáveis pela conversão
+entre os modelos de missão e suas representações JSON para a API.
+
+Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 """
 
 from .base import serializers, timezone, Mission, MissionProgress
@@ -7,7 +12,19 @@ from .category import CategorySerializer
 
 
 class MissionSerializer(serializers.ModelSerializer):
-    """Serializer para missões financeiras."""
+    """
+    Serializer para o modelo Mission.
+
+    Responsável pela serialização e validação das missões financeiras,
+    incluindo campos computados como displays formatados e informações
+    sobre a origem da missão (sistema, template ou IA).
+
+    Campos adicionais:
+        type_display: Nome legível do tipo de missão.
+        difficulty_display: Nome legível do nível de dificuldade.
+        validation_type_display: Nome legível do tipo de validação.
+        source: Origem da missão (system, template ou ai).
+    """
     
     type_display = serializers.CharField(source='get_mission_type_display', read_only=True)
     difficulty_display = serializers.CharField(source='get_difficulty_display', read_only=True)

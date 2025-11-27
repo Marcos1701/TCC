@@ -2,12 +2,26 @@ import 'package:flutter/material.dart';
 
 import '../data/admin_viewmodel.dart';
 
-/// Página de gerenciamento de usuários.
-/// 
-/// Permite visualizar, buscar e ativar/desativar usuários do sistema.
+/// Página de Gerenciamento de Usuários do Sistema.
+///
+/// Esta tela fornece ao administrador ferramentas para visualizar
+/// e gerenciar os usuários cadastrados no sistema, incluindo:
+///
+/// - Listagem paginada de todos os usuários;
+/// - Busca por nome ou endereço de e-mail;
+/// - Filtragem por status de ativação;
+/// - Ativação e desativação de contas de usuários;
+/// - Visualização do nível e pontos de experiência.
+///
+/// A interface exibe informações resumidas de cada usuário, permitindo
+/// identificação rápida do progresso de cada um no sistema de gamificação.
+///
+/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminUsersPage extends StatefulWidget {
+  /// Cria uma nova instância da página de gerenciamento de usuários.
   const AdminUsersPage({super.key, required this.viewModel});
 
+  /// ViewModel responsável pelo gerenciamento de estado dos usuários.
   final AdminViewModel viewModel;
 
   @override

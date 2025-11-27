@@ -1,13 +1,30 @@
 """
-Modelos Mission e MissionProgress - Sistema de gamificação com missões.
+Modelos Mission e MissionProgress - Sistema de Gamificação com Missões.
+
+Este módulo define os modelos de dados para o sistema de missões
+do aplicativo de educação financeira gamificada.
 
 Sistema Simplificado para TCC com 6 tipos de missão:
+
 1. ONBOARDING - Primeiros passos do usuário
-2. TPS_IMPROVEMENT - Aumentar Taxa de Poupança
+   Objetivo: Familiarizar o usuário com o registro de transações.
+
+2. TPS_IMPROVEMENT - Aumentar Taxa de Poupança Pessoal
+   Objetivo: Incentivar o aumento da proporção de renda poupada.
+
 3. RDR_REDUCTION - Reduzir gastos recorrentes
+   Objetivo: Diminuir a Razão Dívida/Renda do usuário.
+
 4. ILI_BUILDING - Construir reserva de emergência
+   Objetivo: Aumentar o Índice de Liquidez Imediata.
+
 5. CATEGORY_REDUCTION - Reduzir gastos em categoria específica
+   Objetivo: Controlar gastos em categorias problemáticas.
+
 6. GOAL_ACHIEVEMENT - Progredir em meta financeira
+   Objetivo: Incentivar o progresso em metas de economia.
+
+Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 """
 
 from decimal import Decimal
@@ -25,10 +42,30 @@ from .base import (
 
 class Mission(models.Model):
     """
-    Definição de uma missão/desafio financeiro.
-    
-    Sistema simplificado com 6 tipos principais de missão,
-    cada um com campos específicos obrigatórios.
+    Modelo que representa uma missão/desafio financeiro do sistema.
+
+    As missões são componentes fundamentais do sistema de gamificação,
+    oferecendo desafios aos usuários para melhorar sua saúde financeira
+    enquanto acumulam pontos de experiência.
+
+    O sistema utiliza 6 tipos principais de missão, cada um focado
+    em um aspecto diferente da educação financeira:
+
+    - ONBOARDING: Introdução ao sistema e hábito de registro.
+    - TPS_IMPROVEMENT: Melhoria da Taxa de Poupança Pessoal.
+    - RDR_REDUCTION: Redução da Razão Dívida/Renda.
+    - ILI_BUILDING: Construção do Índice de Liquidez Imediata.
+    - CATEGORY_REDUCTION: Controle de gastos por categoria.
+    - GOAL_ACHIEVEMENT: Progresso em metas financeiras.
+
+    Attributes:
+        title: Título descritivo da missão.
+        description: Descrição detalhada do objetivo.
+        reward_points: Pontos de experiência concedidos ao completar.
+        difficulty: Nível de dificuldade (EASY, MEDIUM, HARD).
+        mission_type: Tipo da missão que determina a validação.
+        duration_days: Prazo em dias para conclusão.
+        is_active: Indica se a missão está disponível aos usuários.
     """
     
     class Difficulty(models.TextChoices):
@@ -383,16 +420,37 @@ class Mission(models.Model):
 
 class MissionProgress(models.Model):
     """
-    Progresso de um usuário em uma missão específica.
-    
-    Rastreia status, progresso percentual e métricas de validação.
+    Modelo que registra o progresso de um usuário em uma missão específica.
+
+    Esta classe é responsável por rastrear toda a evolução do usuário
+    em relação a uma missão, incluindo:
+
+    - Status atual da missão (pendente, ativa, concluída, falha);
+    - Percentual de progresso em direção ao objetivo;
+    - Valores iniciais dos indicadores financeiros para comparação;
+    - Histórico de dias que atenderam aos critérios;
+    - Datas de início e conclusão.
+
+    O progresso é calculado automaticamente com base no tipo de validação
+    definido na missão, comparando o estado atual do usuário com os
+    valores iniciais e os objetivos estabelecidos.
+
+    Attributes:
+        user: Usuário participante da missão.
+        mission: Missão associada a este progresso.
+        status: Estado atual (PENDING, ACTIVE, COMPLETED, FAILED).
+        progress: Percentual de conclusão (0 a 100).
+        started_at: Data/hora de início da missão.
+        completed_at: Data/hora de conclusão (se aplicável).
     """
     
     class Status(models.TextChoices):
+        """Estados possíveis para o progresso de uma missão."""
+
         PENDING = "PENDING", "Pendente"
-        ACTIVE = "ACTIVE", "Em andamento"
+        ACTIVE = "ACTIVE", "Em Andamento"
         COMPLETED = "COMPLETED", "Concluída"
-        FAILED = "FAILED", "Falhou"
+        FAILED = "FAILED", "Não Concluída"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 

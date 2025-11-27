@@ -4,19 +4,38 @@ import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
 
-/// Estados do ViewModel de Administração.
+/// Estados possíveis do ViewModel de Administração.
+///
+/// Define os diferentes estados que o painel administrativo
+/// pode assumir durante as operações de carregamento e processamento.
 enum AdminViewState {
+  /// Estado inicial, antes de qualquer operação.
   initial,
+
+  /// Carregando dados do servidor.
   loading,
+
+  /// Operação concluída com sucesso.
   success,
+
+  /// Erro durante a operação.
   error,
 }
 
-/// ViewModel para o Painel Administrativo.
-/// 
-/// Gerencia missões, categorias e usuários de forma simplificada
-/// para administradores do sistema.
+/// ViewModel para o Painel Administrativo do Sistema.
+///
+/// Esta classe implementa o padrão MVVM (Model-View-ViewModel) e é
+/// responsável por gerenciar o estado e a lógica de negócios do
+/// painel administrativo, incluindo:
+///
+/// - Carregamento de estatísticas do dashboard;
+/// - Gerenciamento de missões (listagem, ativação, geração em lote);
+/// - Gerenciamento de categorias do sistema;
+/// - Gerenciamento de usuários da aplicação.
+///
+/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminViewModel extends ChangeNotifier {
+  /// Cria uma nova instância do ViewModel administrativo.
   AdminViewModel();
 
   final ApiClient _api = ApiClient();
@@ -75,7 +94,13 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Carrega lista de missões com filtros opcionais.
+  /// Carrega a lista de missões com filtros opcionais.
+  ///
+  /// Parâmetros de filtragem:
+  /// - [tipo]: Tipo da missão (ONBOARDING, TPS_IMPROVEMENT, etc.);
+  /// - [dificuldade]: Nível de dificuldade (EASY, MEDIUM, HARD);
+  /// - [ativo]: Status de ativação da missão;
+  /// - [pagina]: Número da página para paginação.
   Future<void> loadMissions({
     String? tipo,
     String? dificuldade,
@@ -117,7 +142,13 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Alterna o estado ativo/inativo de uma missão.
+  /// Alterna o estado de ativação de uma missão.
+  ///
+  /// Este método permite ativar ou desativar uma missão específica.
+  /// Missões desativadas não são exibidas para os usuários comuns,
+  /// mas permanecem no sistema para referência e possível reativação.
+  ///
+  /// Retorna `true` se a operação foi bem-sucedida.
   Future<bool> toggleMission(int missionId) async {
     try {
       final response = await _api.client.post(
@@ -140,7 +171,21 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Gera um lote de missões.
+  /// Gera um lote de missões automaticamente.
+  ///
+  /// Este método permite a geração em massa de missões através
+  /// de dois métodos distintos:
+  ///
+  /// - Templates: Utiliza modelos pré-definidos com variações
+  ///   nos parâmetros. Execução mais rápida.
+  /// - Inteligência Artificial: Gera missões mais diversificadas
+  ///   através de modelo de linguagem. Execução mais demorada.
+  ///
+  /// Parâmetros:
+  /// - [quantidade]: Número de missões a serem geradas;
+  /// - [usarIA]: Se verdadeiro, utiliza IA para geração.
+  ///
+  /// Retorna um mapa com o resultado da operação.
   Future<Map<String, dynamic>> generateMissions({
     required int quantidade,
     bool usarIA = false,

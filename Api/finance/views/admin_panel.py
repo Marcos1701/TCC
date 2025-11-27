@@ -33,12 +33,21 @@ User = get_user_model()
 
 class AdminDashboardView(APIView):
     """
-    Visão geral do painel administrativo.
-    
-    Fornece estatísticas resumidas do sistema para visualização
-    rápida do estado atual da aplicação.
+    View para a visão geral do painel administrativo.
+
+    Fornece estatísticas consolidadas do sistema, permitindo ao
+    administrador visualizar rapidamente o estado atual da aplicação,
+    incluindo:
+
+    - Total de usuários cadastrados e administradores;
+    - Quantidade de missões por tipo e dificuldade;
+    - Taxa de conclusão das missões;
+    - Estatísticas de categorias do sistema.
+
+    Permissões:
+        Apenas administradores (is_staff=True) podem acessar.
     """
-    
+
     permission_classes = [permissions.IsAdminUser]
     
     def get(self, request):
@@ -97,11 +106,24 @@ class AdminDashboardView(APIView):
 
 class AdminMissionsView(APIView):
     """
-    Gerenciamento simplificado de missões para o painel administrativo.
-    
-    Permite listar, criar, editar, ativar/desativar e gerar lotes de missões.
+    View para gerenciamento de missões do sistema.
+
+    Esta view fornece endpoints para operações administrativas
+    relacionadas às missões de gamificação, incluindo:
+
+    - Listagem de todas as missões com suporte a filtros;
+    - Criação de novas missões manualmente;
+    - Paginação dos resultados.
+
+    Os filtros disponíveis permitem refinar a busca por:
+    - Tipo de missão (ONBOARDING, TPS_IMPROVEMENT, etc.);
+    - Nível de dificuldade (EASY, MEDIUM, HARD);
+    - Status de ativação (ativas ou inativas).
+
+    Permissões:
+        Apenas administradores (is_staff=True) podem acessar.
     """
-    
+
     permission_classes = [permissions.IsAdminUser]
     
     def get(self, request):
@@ -262,23 +284,52 @@ class AdminMissionToggleView(APIView):
 
 class AdminGenerateMissionsView(APIView):
     """
-    Geração simplificada de lotes de missões.
-    
-    Gera missões de forma generalizada para todos os contextos de usuários,
-    sem personalização individual. Ideal para popular o sistema com missões
-    iniciais ou adicionar novas missões em lote.
+    View para geração automática de missões em lote.
+
+    Esta view permite ao administrador gerar múltiplas missões
+    de forma automatizada, utilizando dois métodos distintos:
+
+    1. Templates: Utiliza modelos pré-definidos com variações
+       nos parâmetros. Método mais rápido e previsível.
+
+    2. Inteligência Artificial: Gera missões mais diversificadas
+       através de modelo de linguagem (Gemini). Método mais lento,
+       porém com maior variedade.
+
+    As missões são distribuídas equilibradamente entre os níveis
+    BEGINNER, INTERMEDIATE e ADVANCED para atender usuários em
+    diferentes estágios de sua jornada financeira.
+
+    Permissões:
+        Apenas administradores (is_staff=True) podem acessar.
     """
-    
+
     permission_classes = [permissions.IsAdminUser]
     
     def post(self, request):
         """
-        Gera um lote de missões.
-        
-        Parâmetros:
-            quantidade: Número de missões a gerar (10 ou 20)
-            usar_ia: Se True, usa IA para gerar (mais variado, mais lento)
-                     Se False, usa templates (mais rápido, menos variado)
+        Gera um lote de missões automaticamente.
+
+        Este endpoint processa a solicitação de geração de missões,
+        distribuindo-as entre diferentes níveis de dificuldade e
+        tipos de missão de forma equilibrada.
+
+        Args:
+            request: Requisição HTTP contendo:
+                - quantidade (int): Número de missões a gerar (10 ou 20).
+                - usar_ia (bool): Se True, utiliza IA para geração.
+
+        Returns:
+            Response: Resultado da operação contendo:
+                - sucesso (bool): Indica se a operação foi bem-sucedida.
+                - metodo (str): Método utilizado ('templates' ou 'ia').
+                - total_criadas (int): Número de missões criadas.
+                - missoes (list): Lista das primeiras missões criadas.
+                - mensagem (str): Mensagem descritiva do resultado.
+
+        Raises:
+            400 Bad Request: Se a quantidade for diferente de 10 ou 20.
+            500 Internal Server Error: Se ocorrer erro na geração.
         """
         quantidade = request.data.get('quantidade', 10)
         usar_ia = request.data.get('usar_ia', False)
@@ -309,7 +360,20 @@ class AdminGenerateMissionsView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def _gerar_via_templates(self, quantidade, admin_user):
-        """Gera missões usando templates pré-definidos."""
+        """
+        Gera missões utilizando templates pré-definidos.
+
+        Este método utiliza modelos de missão previamente configurados,
+        aplicando variações nos parâmetros para criar missões únicas.
+        A distribuição é feita equilibradamente entre os níveis.
+
+        Args:
+            quantidade (int): Número total de missões a gerar.
+            admin_user: Usuário administrador que solicitou a geração.
+
+        Returns:
+            dict: Resultado contendo missões criadas e eventuais erros.
+        """
         from ..mission_templates import generate_mission_batch_from_templates
         
         # Distribuição equilibrada entre níveis
@@ -375,7 +439,20 @@ class AdminGenerateMissionsView(APIView):
         }
     
     def _gerar_via_ia(self, quantidade, admin_user):
-        """Gera missões usando IA de forma simplificada."""
+        """
+        Gera missões utilizando Inteligência Artificial.
+
+        Este método utiliza o modelo de linguagem Gemini para gerar
+        missões mais diversificadas e contextualizadas. Em caso de
+        falha na comunicação com a IA, utiliza templates como fallback.
+
+        Args:
+            quantidade (int): Número total de missões a gerar.
+            admin_user: Usuário administrador que solicitou a geração.
+
+        Returns:
+            dict: Resultado contendo missões criadas e eventuais erros.
+        """
         from ..ai_services import generate_general_missions
         
         try:

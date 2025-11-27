@@ -2,12 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../data/admin_viewmodel.dart';
 
-/// Página de gerenciamento de missões.
-/// 
-/// Permite visualizar, filtrar, ativar/desativar e gerar novas missões.
+/// Página de Gerenciamento de Missões do Painel Administrativo.
+///
+/// Esta tela permite ao administrador do sistema realizar operações
+/// de gerenciamento das missões de gamificação financeira, incluindo:
+/// - Visualização de todas as missões cadastradas no sistema;
+/// - Filtragem por tipo, dificuldade e status de ativação;
+/// - Ativação e desativação de missões individuais;
+/// - Geração em lote de novas missões via templates ou IA.
+///
+/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminMissionsPage extends StatefulWidget {
+  /// Cria uma nova instância da página de gerenciamento de missões.
+  ///
+  /// Requer um [viewModel] para gerenciar o estado e comunicação com a API.
   const AdminMissionsPage({super.key, required this.viewModel});
 
+  /// ViewModel responsável pelo gerenciamento de estado das missões.
   final AdminViewModel viewModel;
 
   @override
@@ -90,7 +101,7 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Visualize, edite e gere novas missões para o sistema',
+                              'Gerencie as missões de gamificação do sistema de educação financeira',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -119,15 +130,16 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                     runSpacing: 12,
                     children: [
                       _FilterDropdown(
-                        label: 'Tipo',
+                        label: 'Tipo de Missão',
                         value: _filtroTipo,
                         items: const {
-                          null: 'Todos',
+                          null: 'Todos os Tipos',
                           'ONBOARDING': 'Primeiros Passos',
-                          'TPS_IMPROVEMENT': 'Taxa de Poupança',
-                          'RDR_REDUCTION': 'Redução de Despesas',
-                          'ILI_BUILDING': 'Reserva de Emergência',
+                          'TPS_IMPROVEMENT': 'Taxa de Poupança (TPS)',
+                          'RDR_REDUCTION': 'Redução de Despesas (RDR)',
+                          'ILI_BUILDING': 'Reserva de Emergência (ILI)',
                           'CATEGORY_REDUCTION': 'Controle de Categoria',
+                          'GOAL_ACHIEVEMENT': 'Progresso em Meta',
                         },
                         onChanged: (v) {
                           setState(() => _filtroTipo = v);
@@ -135,10 +147,10 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                         },
                       ),
                       _FilterDropdown(
-                        label: 'Dificuldade',
+                        label: 'Nível de Dificuldade',
                         value: _filtroDificuldade,
                         items: const {
-                          null: 'Todas',
+                          null: 'Todas as Dificuldades',
                           'EASY': 'Fácil',
                           'MEDIUM': 'Média',
                           'HARD': 'Difícil',
@@ -149,10 +161,10 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                         },
                       ),
                       _FilterDropdown(
-                        label: 'Status',
+                        label: 'Status da Missão',
                         value: _filtroAtivo?.toString(),
                         items: const {
-                          null: 'Todos',
+                          null: 'Todos os Status',
                           'true': 'Ativas',
                           'false': 'Inativas',
                         },
@@ -258,15 +270,22 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
     }
   }
 
+  /// Exibe diálogo para seleção do método de geração de missões.
+  ///
+  /// O administrador pode escolher entre dois métodos:
+  /// - Templates: Utiliza modelos pré-definidos (execução rápida);
+  /// - Inteligência Artificial: Gera missões mais variadas (execução mais lenta).
   void _showGenerateDialog(int quantidade) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Gerar $quantidade Missões'),
         content: const Text(
-          'Escolha o método de geração:\n\n'
-          '• Templates: Mais rápido, usa modelos pré-definidos\n'
-          '• IA: Mais variado, usa inteligência artificial (mais lento)',
+          'Selecione o método de geração das missões:\n\n'
+          '• Templates: Geração rápida utilizando modelos pré-definidos '
+          'com variações nos parâmetros.\n\n'
+          '• Inteligência Artificial: Geração mais diversificada através '
+          'de modelo de linguagem (processamento mais demorado).',
         ),
         actions: [
           TextButton(
@@ -278,14 +297,15 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
               Navigator.pop(context);
               _gerarMissoes(quantidade, false);
             },
-            child: const Text('Usar Templates'),
+            child: const Text('Templates'),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
               _gerarMissoes(quantidade, true);
             },
-            child: const Text('Usar IA'),
+            icon: const Icon(Icons.auto_awesome, size: 18),
+            label: const Text('IA'),
           ),
         ],
       ),
@@ -293,8 +313,12 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
   }
 }
 
-/// Botão de geração de missões.
+/// Botão para iniciar o processo de geração de missões em lote.
+///
+/// Exibe um indicador de carregamento durante o processamento
+/// e desabilita interações enquanto a operação está em andamento.
 class _GenerateButton extends StatelessWidget {
+  /// Cria um botão de geração de missões.
   const _GenerateButton({
     required this.label,
     required this.isLoading,
@@ -321,8 +345,12 @@ class _GenerateButton extends StatelessWidget {
   }
 }
 
-/// Dropdown de filtro.
+/// Componente de seleção para filtragem de missões.
+///
+/// Permite ao administrador selecionar critérios de filtragem
+/// através de um menu suspenso com opções pré-definidas.
 class _FilterDropdown extends StatelessWidget {
+  /// Cria um dropdown de filtro.
   const _FilterDropdown({
     required this.label,
     required this.value,
@@ -355,8 +383,17 @@ class _FilterDropdown extends StatelessWidget {
   }
 }
 
-/// Card de missão individual.
+/// Cartão de apresentação de uma missão individual.
+///
+/// Exibe as informações principais da missão de forma organizada:
+/// - Indicador visual de status (ativa/inativa);
+/// - Título e tipo da missão;
+/// - Descrição resumida;
+/// - Recompensa em pontos de experiência (XP);
+/// - Duração em dias;
+/// - Controle de ativação/desativação.
 class _MissionCard extends StatelessWidget {
+  /// Cria um cartão de missão.
   const _MissionCard({
     required this.mission,
     required this.onToggle,
@@ -504,8 +541,12 @@ class _MissionCard extends StatelessWidget {
   }
 }
 
-/// Componente de paginação.
+/// Componente de navegação entre páginas da listagem.
+///
+/// Permite ao administrador navegar entre as páginas de resultados
+/// quando há mais missões do que o limite por página permite exibir.
 class _Pagination extends StatelessWidget {
+  /// Cria um componente de paginação.
   const _Pagination({
     required this.currentPage,
     required this.totalPages,

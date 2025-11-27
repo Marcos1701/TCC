@@ -2,13 +2,25 @@ import 'package:flutter/material.dart';
 
 import '../data/admin_viewmodel.dart';
 
-/// Página de gerenciamento de categorias do sistema.
-/// 
-/// Permite visualizar, criar e remover categorias padrão
-/// que são criadas automaticamente para novos usuários.
+/// Página de Gerenciamento de Categorias do Sistema.
+///
+/// Esta tela permite ao administrador gerenciar as categorias padrão
+/// que são automaticamente criadas para novos usuários do sistema.
+/// As operações disponíveis incluem:
+///
+/// - Visualização das categorias separadas por tipo (Receitas/Despesas);
+/// - Criação de novas categorias padrão;
+/// - Remoção de categorias existentes.
+///
+/// As categorias são fundamentais para a classificação das transações
+/// financeiras dos usuários, permitindo análises e relatórios precisos.
+///
+/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminCategoriesPage extends StatefulWidget {
+  /// Cria uma nova instância da página de gerenciamento de categorias.
   const AdminCategoriesPage({super.key, required this.viewModel});
 
+  /// ViewModel responsável pelo gerenciamento de estado das categorias.
   final AdminViewModel viewModel;
 
   @override
