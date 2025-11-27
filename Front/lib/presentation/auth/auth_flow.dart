@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/state/session_controller.dart';
+import '../../features/admin/presentation/admin_panel_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/onboarding/presentation/pages/simplified_onboarding_page.dart';
@@ -127,7 +128,7 @@ class _AuthFlowState extends State<AuthFlow> {
         }
         _lastAuthenticatedUserId = currentUserId;
 
-        // Se autenticado, vai para a home
+        // Se autenticado, vai para a home ou painel admin
         if (session.isAuthenticated) {
           // Se for novo cadastro, permite nova verificação de onboarding
           if (session.isNewRegistration) {
@@ -137,7 +138,15 @@ class _AuthFlowState extends State<AuthFlow> {
             }
           }
           
-          // Verifica onboarding apenas uma vez por sessão do app
+          // Verifica se é administrador
+          final isAdmin = session.session?.user.isAdmin ?? false;
+          
+          // Se for admin, redireciona para o painel administrativo
+          if (isAdmin) {
+            return const AdminPanelPage();
+          }
+          
+          // Verifica onboarding apenas uma vez por sessão do app (usuários normais)
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _checkAndShowOnboardingIfNeeded();
           });

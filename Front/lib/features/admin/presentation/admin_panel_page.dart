@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/state/session_controller.dart';
+import '../../../presentation/shell/root_shell.dart';
 import '../data/admin_viewmodel.dart';
 import 'admin_missions_page.dart';
 import 'admin_categories_page.dart';
@@ -26,6 +28,41 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     _viewModel.loadDashboard();
   }
 
+  /// Navega para o app principal (RootShell)
+  void _navigateToApp(BuildContext context) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const RootShell()),
+    );
+  }
+
+  /// Confirma e executa o logout
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sair'),
+        content: const Text('Deseja realmente sair do sistema?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await SessionScope.of(context).logout();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -36,6 +73,20 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         title: const Text('Painel Administrativo'),
         centerTitle: true,
         elevation: 0,
+        actions: [
+          // Botão para acessar o app como usuário
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
+            tooltip: 'Ir para o App',
+            onPressed: () => _navigateToApp(context),
+          ),
+          // Botão de logout
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+            onPressed: () => _confirmLogout(context),
+          ),
+        ],
       ),
       body: Row(
         children: [
