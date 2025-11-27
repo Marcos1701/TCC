@@ -21,4 +21,11 @@ class ApiEndpoints {
   static const String profile = '/api/profile/';
   static const String user = '/api/user/';
   static const String simplifiedOnboarding = '/api/onboarding/simplified/';
+  
+  // Painel Administrativo
+  static const String adminDashboard = '/api/admin-panel/';
+  static const String adminMissions = '/api/admin-panel/missoes/';
+  static const String adminMissionsGenerate = '/api/admin-panel/missoes/gerar/';
+  static const String adminCategories = '/api/admin-panel/categorias/';
+  static const String adminUsers = '/api/admin-panel/usuarios/';
 }

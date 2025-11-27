@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/errors/failures.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
@@ -113,9 +114,16 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       );
     } catch (e) {
       if (!mounted) return;
+      
+      // Extrai mensagem de erro amigável
+      String errorMessage = 'Erro ao remover transação. Tente novamente.';
+      if (e is Failure) {
+        errorMessage = e.message;
+      }
+      
       FeedbackService.showError(
         context,
-        'Erro ao remover transação. Tente novamente.',
+        errorMessage,
       );
     }
   }

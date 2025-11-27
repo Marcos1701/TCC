@@ -16,6 +16,18 @@ from .dashboard import DashboardViewSet
 from .goals import GoalViewSet
 from .missions import MissionProgressViewSet, MissionViewSet
 from .transactions import TransactionLinkViewSet, TransactionViewSet
+from .admin_panel import (
+    AdminDashboardView,
+    AdminMissionsView,
+    AdminMissionDetailView,
+    AdminMissionToggleView,
+    AdminGenerateMissionsView,
+    AdminCategoriesView,
+    AdminCategoryDetailView,
+    AdminUsersView,
+    AdminUserDetailView,
+    AdminUserToggleView,
+)
 
 __all__ = [
     # Categories
@@ -36,4 +48,15 @@ __all__ = [
     'SimplifiedOnboardingView',
     'RegisterView',
     'UserProfileViewSet',
+    # Admin Panel
+    'AdminDashboardView',
+    'AdminMissionsView',
+    'AdminMissionDetailView',
+    'AdminMissionToggleView',
+    'AdminGenerateMissionsView',
+    'AdminCategoriesView',
+    'AdminCategoryDetailView',
+    'AdminUsersView',
+    'AdminUserDetailView',
+    'AdminUserToggleView',
 ]

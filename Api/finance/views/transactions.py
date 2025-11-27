@@ -121,6 +121,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         
+        # Invalidar cache após criar transação
+        invalidate_user_dashboard_cache(request.user)
+        
         XP_PER_TRANSACTION = 50
         
         headers = self.get_success_headers(serializer.data)

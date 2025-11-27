@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/errors/failures.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
@@ -120,9 +121,15 @@ class _TransactionsPageState extends State<TransactionsPage> {
     } catch (e) {
       if (!mounted) return;
       
+      // Extrai mensagem de erro amigável
+      String errorMessage = 'Não foi possível remover a transação.';
+      if (e is Failure) {
+        errorMessage = e.message;
+      }
+      
       FeedbackService.showError(
         context,
-        'Não foi possível remover a transação: ${e.toString()}',
+        errorMessage,
       );
     }
   }

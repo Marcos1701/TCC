@@ -2370,6 +2370,173 @@ Gere {total_achievements} conquistas (achievements) para um aplicativo de gestã
 
 
 # ============================================================================
+# GERAÇÃO GENERALIZADA DE MISSÕES (PAINEL ADMIN)
+# ============================================================================
+
+def generate_general_missions(quantidade=10):
+    """
+    Gera missões de forma generalizada para todos os contextos de usuários.
+    
+    Esta função é usada pelo painel administrativo para gerar lotes de missões
+    que podem ser aplicadas a qualquer usuário, sem personalização individual.
+    
+    Args:
+        quantidade: Número de missões a gerar (10 ou 20)
+        
+    Returns:
+        dict: Resultado da geração com missões criadas e erros
+    """
+    from .models import Mission
+    
+    # Distribuição equilibrada
+    distribuicao = {
+        'ONBOARDING': max(1, quantidade // 5),
+        'TPS_IMPROVEMENT': max(1, quantidade // 4),
+        'RDR_REDUCTION': max(1, quantidade // 4),
+        'ILI_BUILDING': max(1, quantidade // 5),
+        'CATEGORY_REDUCTION': quantidade - (quantidade // 5 * 2) - (quantidade // 4 * 2),
+    }
+    
+    created = []
+    failed = []
+    
+    # Prompt simplificado para geração generalizada
+    prompt = f"""Você é um especialista em educação financeira gamificada. 
+Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pessoais.
+
+**TIPOS DE MISSÃO (distribua equilibradamente):**
+1. ONBOARDING - Primeiros passos (registrar transações) - {distribuicao['ONBOARDING']} missões
+2. TPS_IMPROVEMENT - Melhorar taxa de poupança - {distribuicao['TPS_IMPROVEMENT']} missões
+3. RDR_REDUCTION - Reduzir despesas recorrentes - {distribuicao['RDR_REDUCTION']} missões
+4. ILI_BUILDING - Construir reserva de emergência - {distribuicao['ILI_BUILDING']} missões
+5. CATEGORY_REDUCTION - Reduzir gastos em categorias - {distribuicao['CATEGORY_REDUCTION']} missões
+
+**REGRAS:**
+- Títulos curtos e motivadores (máx 100 caracteres)
+- Descrições educativas e encorajadoras (2-3 frases)
+- Dificuldade: EASY (30%), MEDIUM (50%), HARD (20%)
+- Duração: 7-30 dias
+- XP: EASY 25-75, MEDIUM 75-150, HARD 150-300
+
+**CAMPOS OBRIGATÓRIOS POR TIPO:**
+- ONBOARDING: min_transactions (5-30)
+- TPS_IMPROVEMENT: target_tps (10-40)
+- RDR_REDUCTION: target_rdr (20-60)
+- ILI_BUILDING: min_ili (1-6)
+- CATEGORY_REDUCTION: target_reduction_percent (10-30)
+
+**FORMATO JSON (retorne APENAS o array):**
+[
+  {{
+    "title": "Título da Missão",
+    "description": "Descrição educativa e motivadora",
+    "mission_type": "TIPO",
+    "difficulty": "EASY|MEDIUM|HARD",
+    "duration_days": 14,
+    "reward_points": 100,
+    "min_transactions": null,
+    "target_tps": null,
+    "target_rdr": null,
+    "min_ili": null,
+    "target_reduction_percent": null
+  }}
+]
+"""
+    
+    if not model:
+        logger.warning("Gemini não configurado, geração via IA indisponível")
+        return {'created': [], 'failed': [{'erro': 'IA não configurada'}]}
+    
+    try:
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        # Limpar markdown code blocks
+        if '```' in response_text:
+            parts = response_text.split('```')
+            for part in parts:
+                if part.strip().startswith('[') or part.strip().startswith('json'):
+                    response_text = part.replace('json', '').strip()
+                    break
+        
+        missions_data = json.loads(response_text)
+        
+        for data in missions_data:
+            try:
+                # Validar e criar missão
+                is_valid, errors = validate_generated_mission(data)
+                
+                if not is_valid:
+                    failed.append({
+                        'titulo': data.get('title', 'Sem título'),
+                        'erros': errors,
+                    })
+                    continue
+                
+                # Verificar duplicação
+                is_duplicate, msg = check_mission_similarity(
+                    data.get('title', ''),
+                    data.get('description', '')
+                )
+                
+                if is_duplicate:
+                    failed.append({
+                        'titulo': data.get('title', 'Sem título'),
+                        'erros': [msg],
+                    })
+                    continue
+                
+                # Criar missão
+                mission = Mission.objects.create(
+                    title=data['title'],
+                    description=data['description'],
+                    mission_type=data['mission_type'],
+                    difficulty=data['difficulty'],
+                    duration_days=data.get('duration_days', 14),
+                    reward_points=data.get('reward_points', data.get('xp_reward', 100)),
+                    min_transactions=data.get('min_transactions'),
+                    target_tps=data.get('target_tps'),
+                    target_rdr=data.get('target_rdr'),
+                    min_ili=data.get('min_ili'),
+                    target_reduction_percent=data.get('target_reduction_percent'),
+                    is_active=True,
+                    is_system_generated=True,
+                    generation_context={'source': 'admin_panel', 'method': 'ai_general'},
+                )
+                
+                created.append({
+                    'id': mission.id,
+                    'titulo': mission.title,
+                    'tipo': mission.mission_type,
+                    'dificuldade': mission.difficulty,
+                })
+                
+            except Exception as e:
+                failed.append({
+                    'titulo': data.get('title', 'Sem título'),
+                    'erros': [str(e)],
+                })
+        
+        logger.info(f"Geração generalizada: {len(created)} criadas, {len(failed)} falharam")
+        
+        return {
+            'created': created,
+            'failed': failed,
+            'summary': {
+                'total_created': len(created),
+                'total_failed': len(failed),
+            }
+        }
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"Erro ao parsear JSON da IA: {e}")
+        return {'created': [], 'failed': [{'erro': f'Erro ao processar resposta da IA: {e}'}]}
+    except Exception as e:
+        logger.error(f"Erro na geração generalizada: {e}", exc_info=True)
+        return {'created': [], 'failed': [{'erro': str(e)}]}
+
+
+# ============================================================================
 # ALIASES PARA COMPATIBILIDADE
 # ============================================================================
 

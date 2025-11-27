@@ -13,14 +13,14 @@ from .base import _decimal
 
 def update_goal_progress(goal) -> None:
     """
-    Atualiza o progresso de uma meta SAVINGS baseado nas transações relacionadas.
+    Atualiza o progresso de uma meta baseado nas transações relacionadas.
     
-    Para metas SAVINGS:
+    Para metas SAVINGS e EMERGENCY_FUND:
     - Soma transações em categorias SAVINGS/INVESTMENT
     - Adiciona ao valor inicial
     """
-    # Apenas metas SAVINGS são atualizadas automaticamente
-    if goal.goal_type != Goal.GoalType.SAVINGS:
+    # Apenas metas SAVINGS e EMERGENCY_FUND são atualizadas automaticamente
+    if goal.goal_type not in [Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]:
         return
     
     from ..models import Category, Transaction
@@ -46,12 +46,16 @@ def update_goal_progress(goal) -> None:
 
 def update_all_active_goals(user) -> None:
     """
-    Atualiza todas as metas SAVINGS do usuário.
+    Atualiza todas as metas SAVINGS e EMERGENCY_FUND do usuário.
     Chamado após criar/atualizar/deletar qualquer transação.
     
-    Nota: Metas CUSTOM não são atualizadas automaticamente (update manual).
+    Nota: Metas CUSTOM, EXPENSE_REDUCTION e INCOME_INCREASE 
+          não são atualizadas automaticamente (update manual).
     """
-    goals = Goal.objects.filter(user=user, goal_type=Goal.GoalType.SAVINGS)
+    goals = Goal.objects.filter(
+        user=user, 
+        goal_type__in=[Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]
+    )
     for goal in goals:
         update_goal_progress(goal)
 
@@ -99,8 +103,15 @@ def get_goal_insights(goal) -> Dict[str, str]:
         elif days_remaining <= 30:
             insights['message'] += f' (Faltam {days_remaining} dias)'
     
-    if goal.goal_type == Goal.GoalType.CATEGORY_EXPENSE and goal.is_reduction_goal:
-        if progress < 50 and goal.tracking_period == Goal.TrackingPeriod.MONTHLY:
-            insights['suggestion'] = f'Tente reduzir gastos em {goal.target_category.name}. ' + insights['suggestion']
+    # Dicas específicas por tipo de meta
+    if goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
+        if progress < 50:
+            insights['suggestion'] = 'Revise seus gastos e identifique onde pode economizar. ' + insights['suggestion']
+    elif goal.goal_type == Goal.GoalType.EMERGENCY_FUND:
+        if progress < 100:
+            insights['suggestion'] = 'Priorize essa reserva - ela te protege de imprevistos! ' + insights['suggestion']
+    elif goal.goal_type == Goal.GoalType.INCOME_INCREASE:
+        if progress < 50:
+            insights['suggestion'] = 'Considere formas de aumentar sua renda extra. ' + insights['suggestion']
     
     return insights

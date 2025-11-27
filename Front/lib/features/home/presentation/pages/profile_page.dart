@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
+import '../../../../core/state/session_controller.dart';
+import '../../../admin/presentation/admin_panel_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
 /// Unified Profile Page
@@ -297,9 +299,32 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
+    // Verifica se o usuário é administrador
+    final session = SessionScope.of(context);
+    final isAdmin = session.session?.user.isAdmin ?? false;
+    
     return Column(
       children: [
-
+        // Painel Administrativo (apenas para admins)
+        if (isAdmin)
+          Card(
+            color: Colors.deepPurple[900]?.withOpacity(0.7),
+            child: ListTile(
+              leading: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+              title: const Text(
+                'Painel Administrativo',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text(
+                'Gerenciar missões, categorias e usuários',
+                style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.amber, size: 16),
+              onTap: () => _navigateToAdminPanel(context),
+            ),
+          ),
+        
+        if (isAdmin) const SizedBox(height: 8),
 
         // Configurações
         Card(
@@ -376,6 +401,12 @@ class _ProfilePageState extends State<ProfilePage> {
   void _navigateToSettings(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SettingsPage()),
+    );
+  }
+
+  void _navigateToAdminPanel(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AdminPanelPage()),
     );
   }
 }

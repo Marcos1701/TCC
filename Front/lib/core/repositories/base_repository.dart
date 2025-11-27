@@ -17,6 +17,15 @@ abstract class BaseRepository {
   @protected
   Failure handleError(dynamic error) {
     if (error is DioException) {
+      // Primeiro, verifica se o interceptor já extraiu a mensagem de erro
+      if (error.error != null && error.error is String) {
+        final statusCode = error.response?.statusCode;
+        if (statusCode == 400) {
+          return ValidationFailure(error.error.toString());
+        }
+        return ServerFailure(error.error.toString(), statusCode: statusCode);
+      }
+      
       switch (error.type) {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
@@ -37,6 +46,15 @@ abstract class BaseRepository {
           }
           
           if (statusCode == 400 && data is Map<String, dynamic>) {
+            // Tenta extrair mensagem de non_field_errors primeiro
+            if (data.containsKey('non_field_errors')) {
+              final errors = data['non_field_errors'];
+              if (errors is List && errors.isNotEmpty) {
+                return ValidationFailure(errors.first.toString(), errors: data);
+              } else if (errors is String) {
+                return ValidationFailure(errors, errors: data);
+              }
+            }
             final message = data['detail'] ?? 
                            data['error'] ?? 
                            data['message'] ?? 

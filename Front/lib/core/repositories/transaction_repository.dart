@@ -77,9 +77,13 @@ class TransactionRepository extends BaseRepository {
   }
 
   Future<void> deleteTransaction(String id) async {
-    await client.client.delete('${ApiEndpoints.transactions}$id/');
-    await CacheService.invalidateDashboard();
-    await CacheService.invalidateMissions();
+    try {
+      await client.client.delete('${ApiEndpoints.transactions}$id/');
+      await CacheService.invalidateDashboard();
+      await CacheService.invalidateMissions();
+    } catch (e) {
+      throw handleError(e);
+    }
   }
 
   Future<Map<String, dynamic>> fetchTransactionDetails(String id) async {
@@ -121,6 +125,11 @@ class TransactionRepository extends BaseRepository {
       '${ApiEndpoints.transactions}$id/',
       data: payload,
     );
+    
+    // Invalidar cache após atualizar transação
+    await CacheService.invalidateDashboard();
+    await CacheService.invalidateMissions();
+    
     return TransactionModel.fromMap(response.data ?? <String, dynamic>{});
   }
 

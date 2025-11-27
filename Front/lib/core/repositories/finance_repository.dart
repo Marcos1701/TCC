@@ -263,9 +263,13 @@ class FinanceRepository {
   }
 
   Future<void> deleteTransaction(String id) async {
-    await _client.client.delete('${ApiEndpoints.transactions}$id/');
-    await CacheService.invalidateDashboard();
-    await CacheService.invalidateMissions();
+    try {
+      await _client.client.delete('${ApiEndpoints.transactions}$id/');
+      await CacheService.invalidateDashboard();
+      await CacheService.invalidateMissions();
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 
   Future<Map<String, dynamic>> fetchTransactionDetails(String id) async {
@@ -307,6 +311,11 @@ class FinanceRepository {
       '${ApiEndpoints.transactions}$id/',
       data: payload,
     );
+    
+    // Invalidar cache após atualizar transação
+    await CacheService.invalidateDashboard();
+    await CacheService.invalidateMissions();
+    
     return TransactionModel.fromMap(response.data ?? <String, dynamic>{});
   }
 

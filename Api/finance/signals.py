@@ -97,20 +97,23 @@ def update_goals_on_transaction_change(sender, instance, **kwargs):
     """
     Atualiza metas do tipo SAVINGS quando uma transação é criada ou atualizada.
     
-    O modelo Goal atual suporta apenas:
-    - SAVINGS: Juntar dinheiro (atualizado automaticamente com base em transações de poupança/investimento)
+    O modelo Goal atual suporta:
+    - SAVINGS: Juntar dinheiro (atualizado automaticamente)
+    - EMERGENCY_FUND: Fundo de emergência (atualizado automaticamente)
+    - EXPENSE_REDUCTION: Reduzir gastos (atualização manual)
+    - INCOME_INCREASE: Aumentar receita (atualização manual)
     - CUSTOM: Meta personalizada (atualização manual)
     """
     from .services import update_goal_progress
     from .models import Goal, Category
     
-    # Buscar apenas metas SAVINGS do usuário (CUSTOM não tem auto_update)
-    savings_goals = Goal.objects.filter(
+    # Buscar metas SAVINGS e EMERGENCY_FUND do usuário
+    auto_update_goals = Goal.objects.filter(
         user=instance.user, 
-        goal_type=Goal.GoalType.SAVINGS
+        goal_type__in=[Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]
     )
     
-    for goal in savings_goals:
+    for goal in auto_update_goals:
         # Atualiza se transação é em categoria SAVINGS ou INVESTMENT
         if instance.category and instance.category.group in [
             Category.CategoryGroup.SAVINGS,

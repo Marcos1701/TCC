@@ -44,7 +44,24 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
       '🏠 Entrada do apartamento',
       '🚗 Carro próprio',
       '🎓 Curso/Educação',
-      '💰 Fundo de emergência',
+    ],
+    GoalType.expenseReduction: [
+      '🍔 Reduzir delivery',
+      '☕ Menos café na rua',
+      '🎮 Gastos com jogos',
+      '📺 Assinaturas streaming',
+      '🛒 Compras por impulso',
+    ],
+    GoalType.incomeIncrease: [
+      '💼 Renda extra',
+      '📈 Aumento salarial',
+      '🎯 Meta de vendas',
+      '💻 Freelance',
+    ],
+    GoalType.emergencyFund: [
+      '🛡️ Reserva 3 meses',
+      '🛡️ Reserva 6 meses',
+      '🛡️ Reserva 12 meses',
     ],
     GoalType.custom: [
       '🎯 Meta personalizada',
@@ -212,54 +229,106 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   Widget _buildStep1Type() {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Qual é o seu objetivo?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Qual é o seu objetivo?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Escolha o tipo de meta que você deseja criar',
-            style: TextStyle(color: Colors.grey[400], fontSize: 16),
-          ),
-          const SizedBox(height: 32),
-          
-          // Opção: Juntar dinheiro
-          GoalTypeCard(
-            icon: Icons.savings_outlined,
-            iconColor: Colors.green,
-            title: 'Juntar dinheiro',
-            description: 'Economizar para um objetivo específico',
-            examples: '📱 Celular, ✈️ Viagem, 🏠 Casa própria',
-            isSelected: _selectedType == GoalType.savings,
-            onTap: () {
-              setState(() => _selectedType = GoalType.savings);
-              _nextStep();
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Opção: Meta personalizada
-          GoalTypeCard(
-            icon: Icons.edit_outlined,
-            iconColor: Colors.blue,
-            title: 'Meta personalizada',
-            description: 'Crie uma meta customizada',
-            examples: '🎯 Qualquer objetivo',
-            isSelected: _selectedType == GoalType.custom,
-            onTap: () {
-              setState(() => _selectedType = GoalType.custom);
-              _nextStep();
-            },
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Escolha o tipo de meta que você deseja criar',
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            
+            // Opção: Juntar dinheiro
+            GoalTypeCard(
+              icon: Icons.savings_outlined,
+              iconColor: Colors.green,
+              title: 'Juntar dinheiro',
+              description: 'Economizar para um objetivo específico',
+              examples: '📱 Celular, ✈️ Viagem, 🏠 Casa própria',
+              isSelected: _selectedType == GoalType.savings,
+              onTap: () {
+                setState(() => _selectedType = GoalType.savings);
+                _nextStep();
+              },
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Opção: Reduzir gastos
+            GoalTypeCard(
+              icon: Icons.trending_down_outlined,
+              iconColor: Colors.orange,
+              title: 'Reduzir gastos',
+              description: 'Diminuir despesas em uma categoria',
+              examples: '🍔 Delivery, ☕ Café, 📺 Assinaturas',
+              isSelected: _selectedType == GoalType.expenseReduction,
+              onTap: () {
+                setState(() => _selectedType = GoalType.expenseReduction);
+                _nextStep();
+              },
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Opção: Aumentar receita
+            GoalTypeCard(
+              icon: Icons.trending_up_outlined,
+              iconColor: Colors.blue,
+              title: 'Aumentar receita',
+              description: 'Alcançar uma meta de renda',
+              examples: '💼 Renda extra, 📈 Aumento, 💻 Freelance',
+              isSelected: _selectedType == GoalType.incomeIncrease,
+              onTap: () {
+                setState(() => _selectedType = GoalType.incomeIncrease);
+                _nextStep();
+              },
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Opção: Fundo de emergência
+            GoalTypeCard(
+              icon: Icons.shield_outlined,
+              iconColor: Colors.purple,
+              title: 'Fundo de emergência',
+              description: 'Criar uma reserva financeira',
+              examples: '🛡️ Reserva 3, 6 ou 12 meses',
+              isSelected: _selectedType == GoalType.emergencyFund,
+              onTap: () {
+                setState(() => _selectedType = GoalType.emergencyFund);
+                _nextStep();
+              },
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Opção: Meta personalizada
+            GoalTypeCard(
+              icon: Icons.edit_outlined,
+              iconColor: Colors.grey,
+              title: 'Meta personalizada',
+              description: 'Crie uma meta customizada',
+              examples: '🎯 Qualquer objetivo',
+              isSelected: _selectedType == GoalType.custom,
+              onTap: () {
+                setState(() => _selectedType = GoalType.custom);
+                _nextStep();
+              },
+            ),
+            
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
