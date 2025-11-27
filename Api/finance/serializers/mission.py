@@ -7,7 +7,7 @@ entre os modelos de missão e suas representações JSON para a API.
 Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 """
 
-from .base import serializers, timezone, Mission, MissionProgress
+from .base import serializers, timezone, Mission, MissionProgress, Category, Goal
 from .category import CategorySerializer
 
 
@@ -33,6 +33,36 @@ class MissionSerializer(serializers.ModelSerializer):
     target_categories = CategorySerializer(many=True, read_only=True)
     target_category = CategorySerializer(read_only=True)
     
+    # Campos de escrita para ForeignKeys
+    target_category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source='target_category',
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    target_goal_id = serializers.PrimaryKeyRelatedField(
+        queryset=Goal.objects.all(),
+        source='target_goal',
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    target_categories_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source='target_categories',
+        write_only=True,
+        many=True,
+        required=False,
+    )
+    target_goals_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Goal.objects.all(),
+        source='target_goals',
+        write_only=True,
+        many=True,
+        required=False,
+    )
+    
     class Meta:
         model = Mission
         fields = [
@@ -57,9 +87,11 @@ class MissionSerializer(serializers.ModelSerializer):
             "requires_consecutive_days",
             "min_consecutive_days",
             "target_category",
+            "target_category_id",
             "target_reduction_percent",
             "category_spending_limit",
             "target_goal",
+            "target_goal_id",
             "goal_progress_target",
             "savings_increase_amount",
             "requires_daily_action",
@@ -69,6 +101,8 @@ class MissionSerializer(serializers.ModelSerializer):
             "min_transaction_frequency",
             "transaction_type_filter",
             "target_categories",
+            "target_categories_ids",
+            "target_goals_ids",
             "requires_payment_tracking",
             "min_payments_count",
             "is_system_generated",

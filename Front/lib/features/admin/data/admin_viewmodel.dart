@@ -60,6 +60,14 @@ class AdminViewModel extends ChangeNotifier {
   int _usersTotalPages = 1;
   int _usersCurrentPage = 1;
 
+  // Schemas de tipos de missão
+  Map<String, dynamic>? _missionTypeSchemas;
+  bool _loadingSchemas = false;
+
+  // Opções de seleção para missões (categorias, metas, etc.)
+  Map<String, dynamic>? _missionSelectOptions;
+  bool _loadingSelectOptions = false;
+
   // Getters
   AdminViewState get state => _state;
   String? get errorMessage => _errorMessage;
@@ -72,6 +80,10 @@ class AdminViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> get users => _users;
   int get usersTotalPages => _usersTotalPages;
   int get usersCurrentPage => _usersCurrentPage;
+  Map<String, dynamic>? get missionTypeSchemas => _missionTypeSchemas;
+  bool get loadingSchemas => _loadingSchemas;
+  Map<String, dynamic>? get missionSelectOptions => _missionSelectOptions;
+  bool get loadingSelectOptions => _loadingSelectOptions;
 
   /// Carrega estatísticas do dashboard administrativo.
   Future<void> loadDashboard() async {
@@ -445,5 +457,166 @@ class AdminViewModel extends ChangeNotifier {
       if (data.containsKey('detail')) return data['detail'].toString();
     }
     return 'Erro de conexão. Verifique sua internet.';
+  }
+
+  /// Carrega os schemas de tipos de missão.
+  ///
+  /// Os schemas definem os campos obrigatórios e opcionais
+  /// para cada tipo de missão, permitindo formulários dinâmicos.
+  Future<void> loadMissionTypeSchemas() async {
+    if (_missionTypeSchemas != null) return; // Cache
+
+    _loadingSchemas = true;
+    notifyListeners();
+
+    try {
+      final response = await _api.client.get(ApiEndpoints.adminMissionTypes);
+      _missionTypeSchemas = response.data as Map<String, dynamic>;
+      _loadingSchemas = false;
+    } on DioException catch (e) {
+      _loadingSchemas = false;
+      debugPrint('Erro ao carregar schemas: ${_extractErrorMessage(e)}');
+    } catch (e) {
+      _loadingSchemas = false;
+      debugPrint('Erro ao carregar schemas: $e');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Retorna o schema de um tipo de missão específico.
+  Map<String, dynamic>? getSchemaForType(String missionType) {
+    if (_missionTypeSchemas == null) return null;
+    final types = _missionTypeSchemas!['types'] as Map<String, dynamic>?;
+    return types?[missionType] as Map<String, dynamic>?;
+  }
+
+  /// Retorna a lista de tipos de missão para dropdown.
+  List<Map<String, dynamic>> get missionTypesList {
+    if (_missionTypeSchemas == null) return [];
+    final list = _missionTypeSchemas!['types_list'] as List<dynamic>?;
+    return list?.cast<Map<String, dynamic>>() ?? [];
+  }
+
+  /// Retorna os campos comuns a todos os tipos de missão.
+  List<Map<String, dynamic>> get commonFields {
+    if (_missionTypeSchemas == null) return [];
+    final fields = _missionTypeSchemas!['common_fields'] as List<dynamic>?;
+    return fields?.cast<Map<String, dynamic>>() ?? [];
+  }
+
+  /// Carrega opções de seleção para campos de missão.
+  ///
+  /// Carrega categorias do sistema e informações sobre vinculação
+  /// de metas para facilitar a criação de missões.
+  Future<void> loadMissionSelectOptions() async {
+    if (_missionSelectOptions != null) return; // Cache
+
+    _loadingSelectOptions = true;
+    notifyListeners();
+
+    try {
+      final response = await _api.client.get(ApiEndpoints.adminMissionSelectOptions);
+      _missionSelectOptions = response.data as Map<String, dynamic>;
+      _loadingSelectOptions = false;
+    } on DioException catch (e) {
+      _loadingSelectOptions = false;
+      debugPrint('Erro ao carregar opções de seleção: ${_extractErrorMessage(e)}');
+    } catch (e) {
+      _loadingSelectOptions = false;
+      debugPrint('Erro ao carregar opções de seleção: $e');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  /// Retorna lista de categorias para seleção.
+  List<Map<String, dynamic>> getCategoriesForSelect({String? tipo}) {
+    if (_missionSelectOptions == null) return [];
+    
+    final categorias = _missionSelectOptions!['categorias'] as Map<String, dynamic>?;
+    if (categorias == null) return [];
+    
+    final porTipo = categorias['por_tipo'] as Map<String, dynamic>?;
+    if (porTipo == null) return [];
+    
+    if (tipo != null && porTipo.containsKey(tipo)) {
+      return List<Map<String, dynamic>>.from(porTipo[tipo] as List);
+    }
+    
+    // Retorna todas as categorias se tipo não especificado
+    final todas = <Map<String, dynamic>>[];
+    for (final lista in porTipo.values) {
+      todas.addAll(List<Map<String, dynamic>>.from(lista as List));
+    }
+    return todas;
+  }
+
+  /// Retorna dica de preenchimento para um tipo de missão.
+  Map<String, dynamic>? getDicaParaTipo(String missionType) {
+    if (_missionSelectOptions == null) return null;
+    
+    final dicas = _missionSelectOptions!['dicas_por_tipo'] as Map<String, dynamic>?;
+    return dicas?[missionType] as Map<String, dynamic>?;
+  }
+
+  /// Verifica se um tipo de missão permite seleção de categoria.
+  bool tipoPermiteCategoria(String missionType) {
+    final dica = getDicaParaTipo(missionType);
+    return dica?['permite_selecao_categoria'] == true;
+  }
+
+  /// Valida os dados de uma missão no servidor.
+  ///
+  /// Verifica se os campos obrigatórios estão preenchidos
+  /// e se os valores estão dentro dos limites permitidos.
+  Future<Map<String, dynamic>> validateMissionData(
+    Map<String, dynamic> dados,
+  ) async {
+    try {
+      final response = await _api.client.post(
+        ApiEndpoints.adminMissionValidate,
+        data: dados,
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      return {
+        'valido': false,
+        'erros': [_extractErrorMessage(e)],
+      };
+    } catch (e) {
+      return {
+        'valido': false,
+        'erros': ['Erro ao validar missão: $e'],
+      };
+    }
+  }
+
+  /// Cria uma nova missão.
+  Future<Map<String, dynamic>> createMission(Map<String, dynamic> dados) async {
+    try {
+      final response = await _api.client.post(
+        ApiEndpoints.adminMissions,
+        data: dados,
+      );
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['sucesso'] == true) {
+        await loadMissions();
+      }
+
+      return data;
+    } on DioException catch (e) {
+      return {
+        'sucesso': false,
+        'erro': _extractErrorMessage(e),
+      };
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'erro': 'Erro ao criar missão: $e',
+      };
+    }
   }
 }

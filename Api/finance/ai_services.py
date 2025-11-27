@@ -2386,51 +2386,82 @@ def generate_general_missions(quantidade=10):
     Returns:
         dict: Resultado da geração com missões criadas e erros
     """
-    from .models import Mission
+    from .models import Mission, Category
     
-    # Distribuição equilibrada
+    # Distribuição equilibrada entre todos os 6 tipos
+    base = quantidade // 6
+    resto = quantidade % 6
+    
     distribuicao = {
-        'ONBOARDING': max(1, quantidade // 5),
-        'TPS_IMPROVEMENT': max(1, quantidade // 4),
-        'RDR_REDUCTION': max(1, quantidade // 4),
-        'ILI_BUILDING': max(1, quantidade // 5),
-        'CATEGORY_REDUCTION': quantidade - (quantidade // 5 * 2) - (quantidade // 4 * 2),
+        'ONBOARDING': base + (1 if resto > 0 else 0),
+        'TPS_IMPROVEMENT': base + (1 if resto > 1 else 0),
+        'RDR_REDUCTION': base + (1 if resto > 2 else 0),
+        'ILI_BUILDING': base + (1 if resto > 3 else 0),
+        'CATEGORY_REDUCTION': base + (1 if resto > 4 else 0),
+        'GOAL_ACHIEVEMENT': base,
     }
+    
+    # Obter categorias do sistema para sugestão
+    categorias_sistema = list(
+        Category.objects.filter(is_system_default=True, type='EXPENSE')
+        .values_list('name', flat=True)[:10]
+    )
+    categorias_sugestao = ', '.join(categorias_sistema) if categorias_sistema else 'Alimentação, Transporte, Lazer, Compras'
     
     created = []
     failed = []
     
-    # Prompt simplificado para geração generalizada
+    # Prompt melhorado para geração generalizada
     prompt = f"""Você é um especialista em educação financeira gamificada. 
 Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pessoais.
 
-**TIPOS DE MISSÃO (distribua equilibradamente):**
-1. ONBOARDING - Primeiros passos (registrar transações) - {distribuicao['ONBOARDING']} missões
-2. TPS_IMPROVEMENT - Melhorar taxa de poupança - {distribuicao['TPS_IMPROVEMENT']} missões
-3. RDR_REDUCTION - Reduzir despesas recorrentes - {distribuicao['RDR_REDUCTION']} missões
-4. ILI_BUILDING - Construir reserva de emergência - {distribuicao['ILI_BUILDING']} missões
-5. CATEGORY_REDUCTION - Reduzir gastos em categorias - {distribuicao['CATEGORY_REDUCTION']} missões
+**TIPOS DE MISSÃO (distribua exatamente conforme indicado):**
+1. ONBOARDING ({distribuicao['ONBOARDING']} missões) - Primeiros passos
+   → Campo obrigatório: min_transactions (int, 5-30)
+   → Objetivo: Criar hábito de registrar transações
+   
+2. TPS_IMPROVEMENT ({distribuicao['TPS_IMPROVEMENT']} missões) - Melhorar Taxa de Poupança
+   → Campo obrigatório: target_tps (float, 10-40)
+   → Objetivo: Aumentar % poupado da renda
+   
+3. RDR_REDUCTION ({distribuicao['RDR_REDUCTION']} missões) - Reduzir Despesas Recorrentes
+   → Campo obrigatório: target_rdr (float, 20-60)
+   → Objetivo: Diminuir % de gastos fixos sobre renda
+   
+4. ILI_BUILDING ({distribuicao['ILI_BUILDING']} missões) - Construir Reserva de Emergência
+   → Campo obrigatório: min_ili (float, 1-6)
+   → Objetivo: Acumular X meses de despesas em reserva
+   
+5. CATEGORY_REDUCTION ({distribuicao['CATEGORY_REDUCTION']} missões) - Reduzir Gastos em Categoria
+   → Campo obrigatório: target_reduction_percent (float, 10-30)
+   → Campo opcional: target_category_name (string) - nome da categoria sugerida
+   → Categorias disponíveis: {categorias_sugestao}
+   → Objetivo: Reduzir X% em uma categoria específica
+   → NOTA: target_category_name é apenas uma SUGESTÃO. O sistema vinculará 
+           automaticamente à categoria com maior gasto se não especificada.
+   
+6. GOAL_ACHIEVEMENT ({distribuicao['GOAL_ACHIEVEMENT']} missões) - Progredir em Meta
+   → Campo obrigatório: goal_progress_target (float, 25-100)
+   → Objetivo: Atingir X% de progresso em uma meta financeira
+   → NOTA: Metas são vinculadas AUTOMATICAMENTE às metas ativas do usuário.
+           NÃO inclua target_goal_id ou nomes de metas específicas.
+   → Valores sugeridos: 25%, 50%, 75%, 100%
 
-**REGRAS:**
+**REGRAS IMPORTANTES:**
 - Títulos curtos e motivadores (máx 100 caracteres)
 - Descrições educativas e encorajadoras (2-3 frases)
 - Dificuldade: EASY (30%), MEDIUM (50%), HARD (20%)
-- Duração: 7-30 dias
+- Duração: 7-30 dias (EASY: 7-14, MEDIUM: 14-21, HARD: 21-30)
 - XP: EASY 25-75, MEDIUM 75-150, HARD 150-300
+- Cada missão deve ter APENAS os campos do seu tipo preenchidos
+- NÃO inclua campos de outros tipos (ex: target_tps em missão ONBOARDING)
 
-**CAMPOS OBRIGATÓRIOS POR TIPO:**
-- ONBOARDING: min_transactions (5-30)
-- TPS_IMPROVEMENT: target_tps (10-40)
-- RDR_REDUCTION: target_rdr (20-60)
-- ILI_BUILDING: min_ili (1-6)
-- CATEGORY_REDUCTION: target_reduction_percent (10-30)
-
-**FORMATO JSON (retorne APENAS o array):**
+**FORMATO JSON (retorne APENAS o array, sem markdown):**
 [
   {{
-    "title": "Título da Missão",
-    "description": "Descrição educativa e motivadora",
-    "mission_type": "TIPO",
+    "title": "Título Motivador da Missão",
+    "description": "Descrição educativa explicando o benefício e como completar.",
+    "mission_type": "TIPO_AQUI",
     "difficulty": "EASY|MEDIUM|HARD",
     "duration_days": 14,
     "reward_points": 100,
@@ -2438,9 +2469,13 @@ Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pe
     "target_tps": null,
     "target_rdr": null,
     "min_ili": null,
-    "target_reduction_percent": null
+    "target_reduction_percent": null,
+    "target_category_name": null,
+    "goal_progress_target": null
   }}
 ]
+
+IMPORTANTE: Preencha APENAS o campo específico do tipo de missão. Os demais devem ser null.
 """
     
     if not model:
@@ -2486,7 +2521,20 @@ Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pe
                     })
                     continue
                 
-                # Criar missão
+                # Resolver categoria por nome se especificada
+                target_category_id = None
+                target_category_name = data.get('target_category_name')
+                if target_category_name and data['mission_type'] == 'CATEGORY_REDUCTION':
+                    # Tentar encontrar categoria pelo nome
+                    categoria = Category.objects.filter(
+                        is_system_default=True,
+                        name__icontains=target_category_name
+                    ).first()
+                    if categoria:
+                        target_category_id = categoria.id
+                        logger.info(f"Categoria '{target_category_name}' resolvida para ID {categoria.id}")
+                
+                # Criar missão com todos os campos
                 mission = Mission.objects.create(
                     title=data['title'],
                     description=data['description'],
@@ -2499,9 +2547,15 @@ Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pe
                     target_rdr=data.get('target_rdr'),
                     min_ili=data.get('min_ili'),
                     target_reduction_percent=data.get('target_reduction_percent'),
+                    target_category_id=target_category_id,
+                    goal_progress_target=data.get('goal_progress_target'),
                     is_active=True,
                     is_system_generated=True,
-                    generation_context={'source': 'admin_panel', 'method': 'ai_general'},
+                    generation_context={
+                        'source': 'admin_panel', 
+                        'method': 'ai_general',
+                        'suggested_category': target_category_name,
+                    },
                 )
                 
                 created.append({

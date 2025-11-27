@@ -483,6 +483,121 @@ class AdminGenerateMissionsView(APIView):
             return resultado
 
 
+class AdminMissionTypeSchemasView(APIView):
+    """
+    View para obter os schemas dos tipos de missão.
+    
+    Esta view fornece informações sobre os campos necessários
+    para cada tipo de missão, permitindo que o frontend exiba
+    formulários dinâmicos de acordo com o tipo selecionado.
+    
+    Os schemas incluem:
+    - Campos obrigatórios e opcionais por tipo
+    - Tipos de validação disponíveis
+    - Valores padrão recomendados
+    - Dicas de preenchimento
+    
+    Permissões:
+        Apenas administradores (is_staff=True) podem acessar.
+    """
+    
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get(self, request, mission_type=None):
+        """
+        Retorna os schemas dos tipos de missão.
+        
+        Args:
+            mission_type: Tipo específico (opcional). Se não fornecido,
+                         retorna todos os schemas.
+        
+        Returns:
+            Response com os schemas solicitados.
+        """
+        from ..mission_type_schemas import (
+            get_mission_type_schema,
+            get_all_mission_type_schemas,
+            get_default_values_for_type,
+            MISSION_TYPE_SCHEMAS,
+        )
+        
+        if mission_type:
+            # Retorna schema de um tipo específico
+            schema = get_mission_type_schema(mission_type.upper())
+            
+            if not schema:
+                return Response({
+                    'erro': f'Tipo de missão desconhecido: {mission_type}',
+                    'tipos_disponiveis': list(MISSION_TYPE_SCHEMAS.keys()),
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Adicionar valores padrão para cada dificuldade
+            schema['default_values'] = {
+                'EASY': get_default_values_for_type(mission_type.upper(), 'EASY'),
+                'MEDIUM': get_default_values_for_type(mission_type.upper(), 'MEDIUM'),
+                'HARD': get_default_values_for_type(mission_type.upper(), 'HARD'),
+            }
+            
+            return Response({
+                'schema': schema,
+            })
+        
+        # Retorna todos os schemas
+        all_schemas = get_all_mission_type_schemas()
+        
+        # Adicionar lista simplificada de tipos para dropdown
+        all_schemas['types_list'] = [
+            {
+                'value': key,
+                'label': value['name'],
+                'description': value['description'],
+                'icon': value['icon'],
+                'color': value['color'],
+            }
+            for key, value in MISSION_TYPE_SCHEMAS.items()
+        ]
+        
+        return Response(all_schemas)
+
+
+class AdminMissionValidateView(APIView):
+    """
+    View para validar dados de missão antes de salvar.
+    
+    Permite verificar se os dados preenchidos atendem aos
+    requisitos do tipo de missão selecionado.
+    """
+    
+    permission_classes = [permissions.IsAdminUser]
+    
+    def post(self, request):
+        """
+        Valida dados de uma missão.
+        
+        Args:
+            request: Requisição com os dados da missão a validar.
+        
+        Returns:
+            Response com resultado da validação.
+        """
+        from ..mission_type_schemas import validate_mission_data_for_type
+        
+        mission_type = request.data.get('mission_type')
+        
+        if not mission_type:
+            return Response({
+                'valido': False,
+                'erros': ['Tipo de missão não informado'],
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        errors = validate_mission_data_for_type(mission_type, request.data)
+        
+        return Response({
+            'valido': len(errors) == 0,
+            'erros': errors,
+        })
+
+
 class AdminCategoriesView(APIView):
     """
     Gerenciamento de categorias padrão do sistema.
@@ -764,3 +879,160 @@ class AdminUserToggleView(APIView):
             return Response({
                 'erro': 'Usuário não encontrado',
             }, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminMissionSelectOptionsView(APIView):
+    """
+    View para obter opções de seleção para missões.
+    
+    Fornece listas de categorias e metas do sistema disponíveis
+    para serem vinculadas às missões, evitando que o administrador
+    precise inserir IDs manualmente.
+    
+    Desenvolvido para melhorar a usabilidade do painel administrativo.
+    """
+    
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get(self, request):
+        """
+        Retorna opções de seleção para campos de missão.
+        
+        Inclui:
+        - Categorias do sistema (padrão) para CATEGORY_REDUCTION
+        - Informação sobre metas (GOAL_ACHIEVEMENT só aceita metas do usuário)
+        - Grupos de categorias para facilitar seleção
+        
+        Returns:
+            Response com listas de opções organizadas.
+        """
+        from ..models import Goal
+        
+        # Buscar categorias do sistema (is_system_default=True)
+        categorias_sistema = Category.objects.filter(
+            is_system_default=True
+        ).order_by('type', 'name')
+        
+        categorias_por_tipo = {
+            'EXPENSE': [],
+            'INCOME': [],
+        }
+        
+        for cat in categorias_sistema:
+            cat_data = {
+                'id': cat.id,
+                'name': cat.name,
+                'type': cat.type,
+                'group': cat.group,
+                'color': cat.color or '#808080',
+            }
+            if cat.type in categorias_por_tipo:
+                categorias_por_tipo[cat.type].append(cat_data)
+        
+        # Grupos de categorias comuns para facilitar seleção
+        grupos_categorias = {
+            'gastos_nao_essenciais': {
+                'label': 'Gastos Não Essenciais',
+                'description': 'Categorias de gastos que podem ser reduzidos',
+                'suggestions': [
+                    'Lazer', 'Entretenimento', 'Restaurantes', 
+                    'Compras', 'Assinaturas', 'Delivery'
+                ],
+            },
+            'gastos_essenciais': {
+                'label': 'Gastos Essenciais',
+                'description': 'Categorias de despesas básicas',
+                'suggestions': [
+                    'Alimentação', 'Moradia', 'Transporte',
+                    'Saúde', 'Educação', 'Utilidades'
+                ],
+            },
+            'gastos_recorrentes': {
+                'label': 'Gastos Recorrentes',
+                'description': 'Despesas fixas mensais',
+                'suggestions': [
+                    'Aluguel', 'Financiamentos', 'Assinaturas',
+                    'Seguros', 'Planos de Saúde'
+                ],
+            },
+        }
+        
+        # Nota sobre metas
+        nota_metas = {
+            'info': 'Missões de GOAL_ACHIEVEMENT são vinculadas dinamicamente',
+            'detalhe': (
+                'As missões de "Progredir em Meta" (GOAL_ACHIEVEMENT) são '
+                'atribuídas automaticamente às metas ativas de cada usuário. '
+                'Não é necessário especificar uma meta específica ao criar '
+                'a missão - o sistema fará a vinculação automaticamente '
+                'quando a missão for atribuída ao usuário.'
+            ),
+            'opcoes_configuracao': [
+                {
+                    'valor': None,
+                    'label': 'Qualquer meta ativa',
+                    'descricao': 'A missão será aplicada a qualquer meta ativa do usuário',
+                },
+            ],
+        }
+        
+        # Dicas de preenchimento por tipo de missão
+        dicas_por_tipo = {
+            'ONBOARDING': {
+                'titulo': 'Primeiros Passos',
+                'dica': 'Não requer seleção de categoria ou meta.',
+                'campos_relevantes': ['min_transactions'],
+            },
+            'TPS_IMPROVEMENT': {
+                'titulo': 'Taxa de Poupança',
+                'dica': 'Não requer seleção de categoria ou meta. Define meta de TPS (%).',
+                'campos_relevantes': ['target_tps'],
+            },
+            'RDR_REDUCTION': {
+                'titulo': 'Redução de Despesas',
+                'dica': 'Não requer seleção de categoria ou meta. Define meta de RDR máximo (%).',
+                'campos_relevantes': ['target_rdr'],
+            },
+            'ILI_BUILDING': {
+                'titulo': 'Construir Reserva',
+                'dica': 'Não requer seleção de categoria ou meta. Define ILI mínimo em meses.',
+                'campos_relevantes': ['min_ili'],
+            },
+            'CATEGORY_REDUCTION': {
+                'titulo': 'Controle de Categoria',
+                'dica': (
+                    'OPCIONAL: Selecione uma categoria específica para redução. '
+                    'Se não selecionada, a missão será aplicada à categoria '
+                    'com maior gasto do usuário automaticamente.'
+                ),
+                'campos_relevantes': ['target_reduction_percent', 'target_category'],
+                'permite_selecao_categoria': True,
+            },
+            'GOAL_ACHIEVEMENT': {
+                'titulo': 'Progresso em Meta',
+                'dica': (
+                    'NÃO NECESSÁRIO selecionar meta. A missão será vinculada '
+                    'automaticamente às metas ativas do usuário quando atribuída.'
+                ),
+                'campos_relevantes': ['goal_progress_target'],
+                'nota_meta': nota_metas['detalhe'],
+            },
+        }
+        
+        return Response({
+            'categorias': {
+                'por_tipo': categorias_por_tipo,
+                'total': categorias_sistema.count(),
+                'grupos_sugeridos': grupos_categorias,
+            },
+            'metas': nota_metas,
+            'dicas_por_tipo': dicas_por_tipo,
+            'resumo': {
+                'tipos_com_categoria': ['CATEGORY_REDUCTION'],
+                'tipos_com_meta': [],  # Metas são vinculadas automaticamente
+                'tipos_sem_selecao': [
+                    'ONBOARDING', 'TPS_IMPROVEMENT', 
+                    'RDR_REDUCTION', 'ILI_BUILDING'
+                ],
+            },
+        })

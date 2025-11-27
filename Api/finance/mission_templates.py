@@ -401,17 +401,20 @@ def generate_mission_batch_from_templates(
         # Distribuição padrão baseada na tier
         if tier == 'BEGINNER':
             distribution = {
-                'ONBOARDING': 8,
-                'TPS_IMPROVEMENT': 6,
+                'ONBOARDING': 6,
+                'TPS_IMPROVEMENT': 5,
                 'RDR_REDUCTION': 4,
+                'ILI_BUILDING': 2,
                 'CATEGORY_REDUCTION': 2,
+                'GOAL_ACHIEVEMENT': 1,
             }
         elif tier == 'INTERMEDIATE':
             distribution = {
-                'TPS_IMPROVEMENT': 6,
-                'RDR_REDUCTION': 5,
-                'ILI_BUILDING': 5,
-                'CATEGORY_REDUCTION': 2,
+                'ONBOARDING': 2,
+                'TPS_IMPROVEMENT': 5,
+                'RDR_REDUCTION': 4,
+                'ILI_BUILDING': 4,
+                'CATEGORY_REDUCTION': 3,
                 'GOAL_ACHIEVEMENT': 2,
             }
         else:  # ADVANCED tier
