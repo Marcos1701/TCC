@@ -190,7 +190,9 @@ class AdminViewModel extends ChangeNotifier {
     required int quantidade,
     bool usarIA = false,
   }) async {
+    debugPrint('[AdminViewModel] Chamando generateMissions: quantidade=$quantidade, usarIA=$usarIA');
     try {
+      debugPrint('[AdminViewModel] Endpoint: ${ApiEndpoints.adminMissionsGenerate}');
       final response = await _api.client.post(
         ApiEndpoints.adminMissionsGenerate,
         data: {
@@ -199,23 +201,29 @@ class AdminViewModel extends ChangeNotifier {
         },
       );
 
+      debugPrint('[AdminViewModel] Response status: ${response.statusCode}');
       final data = response.data as Map<String, dynamic>;
+      debugPrint('[AdminViewModel] Response data: $data');
       
       // Recarrega a lista de missões
       if (data['sucesso'] == true) {
+        debugPrint('[AdminViewModel] Sucesso! Recarregando missões...');
         await loadMissions();
       }
 
       return data;
     } on DioException catch (e) {
+      debugPrint('[AdminViewModel] DioException: ${e.type} - ${e.message}');
+      debugPrint('[AdminViewModel] Response: ${e.response?.data}');
       return {
         'sucesso': false,
         'erro': _extractErrorMessage(e),
       };
     } catch (e) {
+      debugPrint('[AdminViewModel] Exception: $e');
       return {
         'sucesso': false,
-        'erro': 'Erro ao gerar missões',
+        'erro': 'Erro ao gerar missões: $e',
       };
     }
   }
@@ -363,6 +371,70 @@ class AdminViewModel extends ChangeNotifier {
       return data['sucesso'] == true;
     } catch (e) {
       debugPrint('Erro ao alternar usuário: $e');
+      return false;
+    }
+  }
+
+  /// Atualiza uma missão existente.
+  ///
+  /// Permite ao administrador modificar os dados de uma missão,
+  /// como título, descrição, recompensa, dificuldade e outros parâmetros.
+  ///
+  /// Retorna um mapa com o resultado da operação.
+  Future<Map<String, dynamic>> updateMission(
+    int missionId,
+    Map<String, dynamic> dados,
+  ) async {
+    try {
+      final response = await _api.client.put(
+        '${ApiEndpoints.adminMissions}$missionId/',
+        data: dados,
+      );
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['sucesso'] == true) {
+        // Atualiza a missão na lista local
+        final index = _missions.indexWhere((m) => m['id'] == missionId);
+        if (index != -1 && data['missao'] != null) {
+          _missions[index] = data['missao'] as Map<String, dynamic>;
+          notifyListeners();
+        }
+      }
+
+      return data;
+    } on DioException catch (e) {
+      return {
+        'sucesso': false,
+        'erro': _extractErrorMessage(e),
+      };
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'erro': 'Erro ao atualizar missão',
+      };
+    }
+  }
+
+  /// Exclui (desativa permanentemente) uma missão.
+  ///
+  /// Remove a missão do sistema. Na prática, realiza um soft delete,
+  /// mantendo os dados para histórico mas tornando-a inacessível.
+  ///
+  /// Retorna `true` se a operação foi bem-sucedida.
+  Future<bool> deleteMission(int missionId) async {
+    try {
+      await _api.client.delete(
+        '${ApiEndpoints.adminMissions}$missionId/',
+      );
+
+      // Remove a missão da lista local
+      _missions.removeWhere((m) => m['id'] == missionId);
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      debugPrint('Erro ao excluir missão: $e');
       return false;
     }
   }

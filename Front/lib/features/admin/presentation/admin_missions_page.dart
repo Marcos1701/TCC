@@ -46,27 +46,48 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
   }
 
   Future<void> _gerarMissoes(int quantidade, bool usarIA) async {
+    debugPrint('[AdminMissionsPage] Iniciando geração: quantidade=$quantidade, usarIA=$usarIA');
     setState(() => _isGenerating = true);
 
-    final resultado = await widget.viewModel.generateMissions(
-      quantidade: quantidade,
-      usarIA: usarIA,
-    );
-
-    setState(() => _isGenerating = false);
-
-    if (mounted) {
-      final sucesso = resultado['sucesso'] == true;
-      final mensagem = sucesso
-          ? resultado['mensagem'] ?? 'Missões geradas com sucesso!'
-          : resultado['erro'] ?? 'Erro ao gerar missões';
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(mensagem),
-          backgroundColor: sucesso ? Colors.green : Colors.red,
-        ),
+    try {
+      final resultado = await widget.viewModel.generateMissions(
+        quantidade: quantidade,
+        usarIA: usarIA,
       );
+
+      debugPrint('[AdminMissionsPage] Resultado da geração: $resultado');
+
+      setState(() => _isGenerating = false);
+
+      if (mounted) {
+        final sucesso = resultado['sucesso'] == true;
+        final mensagem = sucesso
+            ? resultado['mensagem'] ?? 'Missões geradas com sucesso!'
+            : resultado['erro'] ?? 'Erro ao gerar missões';
+
+        debugPrint('[AdminMissionsPage] Exibindo SnackBar: sucesso=$sucesso, mensagem=$mensagem');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(mensagem),
+            backgroundColor: sucesso ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('[AdminMissionsPage] Erro inesperado: $e');
+      debugPrint('[AdminMissionsPage] Stack: $stack');
+      setState(() => _isGenerating = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro inesperado: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -106,6 +127,30 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
+                            // Indicador de geração em progresso
+                            if (_isGenerating) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Gerando missões...',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -249,8 +294,109 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
         return _MissionCard(
           mission: mission,
           onToggle: () => _toggleMission(mission),
+          onTap: () => _showMissionDetails(mission),
+          onEdit: () => _showEditMissionDialog(mission),
+          onDelete: () => _confirmDeleteMission(mission),
         );
       },
+    );
+  }
+
+  /// Exibe detalhes completos de uma missão em um diálogo.
+  void _showMissionDetails(Map<String, dynamic> mission) {
+    showDialog(
+      context: context,
+      builder: (context) => _MissionDetailsDialog(
+        mission: mission,
+        onEdit: () {
+          Navigator.pop(context);
+          _showEditMissionDialog(mission);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _confirmDeleteMission(mission);
+        },
+        onToggle: () async {
+          await _toggleMission(mission);
+          if (mounted) Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  /// Exibe diálogo para edição de uma missão.
+  void _showEditMissionDialog(Map<String, dynamic> mission) {
+    showDialog(
+      context: context,
+      builder: (context) => _EditMissionDialog(
+        mission: mission,
+        onSave: (dados) async {
+          final id = mission['id'] as int;
+          final resultado = await widget.viewModel.updateMission(id, dados);
+
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  resultado['sucesso'] == true
+                      ? 'Missão atualizada com sucesso!'
+                      : resultado['erro'] ?? 'Erro ao atualizar missão',
+                ),
+                backgroundColor:
+                    resultado['sucesso'] == true ? Colors.green : Colors.red,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  /// Exibe confirmação antes de excluir uma missão.
+  void _confirmDeleteMission(Map<String, dynamic> mission) {
+    final titulo = mission['title'] as String? ?? 'esta missão';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir Missão'),
+        content: Text(
+          'Tem certeza que deseja excluir a missão "$titulo"?\n\n'
+          'Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final id = mission['id'] as int;
+              final sucesso = await widget.viewModel.deleteMission(id);
+
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      sucesso
+                          ? 'Missão excluída com sucesso!'
+                          : 'Erro ao excluir missão',
+                    ),
+                    backgroundColor: sucesso ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -276,9 +422,10 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
   /// - Templates: Utiliza modelos pré-definidos (execução rápida);
   /// - Inteligência Artificial: Gera missões mais variadas (execução mais lenta).
   void _showGenerateDialog(int quantidade) {
+    debugPrint('[AdminMissionsPage] Abrindo diálogo de geração para $quantidade missões');
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Gerar $quantidade Missões'),
         content: const Text(
           'Selecione o método de geração das missões:\n\n'
@@ -289,19 +436,21 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              debugPrint('[AdminMissionsPage] Botão Templates pressionado');
+              Navigator.pop(dialogContext);
               _gerarMissoes(quantidade, false);
             },
             child: const Text('Templates'),
           ),
           ElevatedButton.icon(
             onPressed: () {
-              Navigator.pop(context);
+              debugPrint('[AdminMissionsPage] Botão IA pressionado');
+              Navigator.pop(dialogContext);
               _gerarMissoes(quantidade, true);
             },
             icon: const Icon(Icons.auto_awesome, size: 18),
@@ -397,10 +546,16 @@ class _MissionCard extends StatelessWidget {
   const _MissionCard({
     required this.mission,
     required this.onToggle,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final Map<String, dynamic> mission;
   final VoidCallback onToggle;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -434,33 +589,36 @@ class _MissionCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Indicador de status
-            Container(
-              width: 4,
-              height: 60,
-              decoration: BoxDecoration(
-                color: isActive ? Colors.green : Colors.grey,
-                borderRadius: BorderRadius.circular(2),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Indicador de status
+              Container(
+                width: 4,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: isActive ? Colors.green : Colors.grey,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            // Conteúdo
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          mission['title'] as String? ?? 'Sem título',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+              const SizedBox(width: 16),
+              // Conteúdo
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            mission['title'] as String? ?? 'Sem título',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                         ),
                       ),
                       // Badge de dificuldade
@@ -536,6 +694,7 @@ class _MissionCard extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -578,6 +737,509 @@ class _Pagination extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Diálogo de detalhamento de uma missão.
+///
+/// Exibe todas as informações da missão de forma organizada,
+/// incluindo opções para editar, excluir ou alterar o status.
+class _MissionDetailsDialog extends StatelessWidget {
+  const _MissionDetailsDialog({
+    required this.mission,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggle,
+  });
+
+  final Map<String, dynamic> mission;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final isActive = mission['is_active'] as bool? ?? true;
+    final difficulty = mission['difficulty'] as String? ?? 'MEDIUM';
+    final missionType = mission['mission_type'] as String? ?? 'ONBOARDING';
+    final validationType = mission['validation_type'] as String? ?? '';
+
+    final difficultyLabels = {
+      'EASY': 'Fácil',
+      'MEDIUM': 'Média',
+      'HARD': 'Difícil',
+    };
+
+    final difficultyColors = {
+      'EASY': Colors.green,
+      'MEDIUM': Colors.orange,
+      'HARD': Colors.red,
+    };
+
+    final typeLabels = {
+      'ONBOARDING': 'Primeiros Passos',
+      'TPS_IMPROVEMENT': 'Taxa de Poupança (TPS)',
+      'RDR_REDUCTION': 'Redução de Despesas (RDR)',
+      'ILI_BUILDING': 'Reserva de Emergência (ILI)',
+      'CATEGORY_REDUCTION': 'Controle de Categoria',
+      'GOAL_ACHIEVEMENT': 'Progresso em Meta',
+    };
+
+    final validationLabels = {
+      'TRANSACTION_COUNT': 'Contagem de Transações',
+      'INDICATOR_THRESHOLD': 'Limite de Indicador',
+      'CATEGORY_REDUCTION': 'Redução em Categoria',
+      'GOAL_PROGRESS': 'Progresso em Meta',
+      'TEMPORAL': 'Período de Tempo',
+    };
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              mission['title'] as String? ?? 'Detalhes da Missão',
+              style: theme.textTheme.titleLarge,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.green.withValues(alpha: 0.15) : Colors.grey.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              isActive ? 'Ativa' : 'Inativa',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: isActive ? Colors.green : Colors.grey,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Descrição
+              Text(
+                mission['description'] as String? ?? 'Sem descrição',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 24),
+
+              // Informações principais
+              _DetailRow(
+                label: 'Tipo',
+                value: typeLabels[missionType] ?? missionType,
+                icon: Icons.category,
+              ),
+              _DetailRow(
+                label: 'Dificuldade',
+                value: difficultyLabels[difficulty] ?? difficulty,
+                icon: Icons.trending_up,
+                valueColor: difficultyColors[difficulty],
+              ),
+              _DetailRow(
+                label: 'Validação',
+                value: validationLabels[validationType] ?? validationType,
+                icon: Icons.verified,
+              ),
+              _DetailRow(
+                label: 'Recompensa',
+                value: '${mission['reward_points'] ?? 0} XP',
+                icon: Icons.stars,
+                valueColor: Colors.amber,
+              ),
+              _DetailRow(
+                label: 'Duração',
+                value: '${mission['duration_days'] ?? 0} dias',
+                icon: Icons.schedule,
+              ),
+              _DetailRow(
+                label: 'Prioridade',
+                value: '${mission['priority'] ?? 1}',
+                icon: Icons.low_priority,
+              ),
+
+              // Campos específicos por tipo
+              if (mission['target_tps'] != null)
+                _DetailRow(
+                  label: 'Meta TPS',
+                  value: '${mission['target_tps']}%',
+                  icon: Icons.savings,
+                ),
+              if (mission['target_rdr'] != null)
+                _DetailRow(
+                  label: 'Meta RDR',
+                  value: '${mission['target_rdr']}%',
+                  icon: Icons.money_off,
+                ),
+              if (mission['min_ili'] != null)
+                _DetailRow(
+                  label: 'ILI Mínimo',
+                  value: '${mission['min_ili']} meses',
+                  icon: Icons.shield,
+                ),
+              if (mission['min_transactions'] != null)
+                _DetailRow(
+                  label: 'Transações Mínimas',
+                  value: '${mission['min_transactions']}',
+                  icon: Icons.receipt_long,
+                ),
+              if (mission['target_reduction_percent'] != null)
+                _DetailRow(
+                  label: 'Redução Alvo',
+                  value: '${mission['target_reduction_percent']}%',
+                  icon: Icons.trending_down,
+                ),
+
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+
+              // Informações do sistema
+              Text(
+                'Informações do Sistema',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _DetailRow(
+                label: 'ID',
+                value: '${mission['id'] ?? '-'}',
+                icon: Icons.tag,
+              ),
+              if (mission['created_at'] != null)
+                _DetailRow(
+                  label: 'Criada em',
+                  value: _formatDate(mission['created_at'] as String),
+                  icon: Icons.calendar_today,
+                ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        // Botão Excluir
+        TextButton.icon(
+          onPressed: onDelete,
+          icon: const Icon(Icons.delete_outline, size: 18),
+          label: const Text('Excluir'),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+        ),
+        const Spacer(),
+        // Botão Toggle
+        TextButton.icon(
+          onPressed: onToggle,
+          icon: Icon(
+            isActive ? Icons.visibility_off : Icons.visibility,
+            size: 18,
+          ),
+          label: Text(isActive ? 'Desativar' : 'Ativar'),
+        ),
+        // Botão Editar
+        ElevatedButton.icon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit, size: 18),
+          label: const Text('Editar'),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    } catch (_) {
+      return isoDate;
+    }
+  }
+}
+
+/// Linha de detalhe para o diálogo de detalhes da missão.
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
+          const SizedBox(width: 12),
+          Text(
+            '$label:',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Diálogo de edição de missão.
+///
+/// Permite ao administrador modificar os campos principais da missão.
+class _EditMissionDialog extends StatefulWidget {
+  const _EditMissionDialog({
+    required this.mission,
+    required this.onSave,
+  });
+
+  final Map<String, dynamic> mission;
+  final Function(Map<String, dynamic>) onSave;
+
+  @override
+  State<_EditMissionDialog> createState() => _EditMissionDialogState();
+}
+
+class _EditMissionDialogState extends State<_EditMissionDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _rewardController;
+  late final TextEditingController _durationController;
+  late String _difficulty;
+  late String _missionType;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(
+      text: widget.mission['title'] as String? ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.mission['description'] as String? ?? '',
+    );
+    _rewardController = TextEditingController(
+      text: '${widget.mission['reward_points'] ?? 50}',
+    );
+    _durationController = TextEditingController(
+      text: '${widget.mission['duration_days'] ?? 30}',
+    );
+    _difficulty = widget.mission['difficulty'] as String? ?? 'MEDIUM';
+    _missionType = widget.mission['mission_type'] as String? ?? 'ONBOARDING';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _rewardController.dispose();
+    _durationController.dispose();
+    super.dispose();
+  }
+
+  void _salvar() {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('O título é obrigatório'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final dados = {
+      'title': _titleController.text.trim(),
+      'description': _descriptionController.text.trim(),
+      'reward_points': int.tryParse(_rewardController.text) ?? 50,
+      'duration_days': int.tryParse(_durationController.text) ?? 30,
+      'difficulty': _difficulty,
+      'mission_type': _missionType,
+    };
+
+    widget.onSave(dados);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Editar Missão'),
+      content: SizedBox(
+        width: 500,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Título
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Título',
+                  hintText: 'Digite o título da missão',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: 150,
+              ),
+              const SizedBox(height: 16),
+
+              // Descrição
+              TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Descrição',
+                  hintText: 'Digite a descrição da missão',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                maxLength: 500,
+              ),
+              const SizedBox(height: 16),
+
+              // Tipo e Dificuldade
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _missionType,
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'ONBOARDING',
+                          child: Text('Primeiros Passos'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'TPS_IMPROVEMENT',
+                          child: Text('Taxa de Poupança'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'RDR_REDUCTION',
+                          child: Text('Redução de Despesas'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'ILI_BUILDING',
+                          child: Text('Reserva de Emergência'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'CATEGORY_REDUCTION',
+                          child: Text('Controle de Categoria'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'GOAL_ACHIEVEMENT',
+                          child: Text('Progresso em Meta'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _missionType = value);
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: _difficulty,
+                      decoration: const InputDecoration(
+                        labelText: 'Dificuldade',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
+                        DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
+                        DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() => _difficulty = value);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Recompensa e Duração
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _rewardController,
+                      decoration: const InputDecoration(
+                        labelText: 'Recompensa (XP)',
+                        border: OutlineInputBorder(),
+                        suffixText: 'XP',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _durationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Duração',
+                        border: OutlineInputBorder(),
+                        suffixText: 'dias',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _salvar,
+          child: _isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Salvar'),
+        ),
+      ],
     );
   }
 }
