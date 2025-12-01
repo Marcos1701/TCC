@@ -1,43 +1,61 @@
+import 'package:dio/dio.dart';
+import 'package:drift/drift.dart';
+import 'package:uuid/uuid.dart';
+import '../database/app_database.dart';
 import '../models/goal.dart';
 import '../models/transaction.dart';
 import '../network/api_client.dart';
 import '../network/endpoints.dart';
+import '../services/cache_manager.dart';
 import '../utils/date_formatter.dart';
 import 'base_repository.dart';
+
+import 'interfaces/i_goal_repository.dart';
 
 /// Repository for goal-related operations.
 ///
 /// Handles CRUD operations for financial goals, transactions
 /// associated with goals, progress tracking and insights.
-class GoalRepository extends BaseRepository {
+class GoalRepository extends BaseRepository implements IGoalRepository {
   /// Creates a [GoalRepository] instance.
   ///
   /// Optionally accepts an [ApiClient] for dependency injection.
-  GoalRepository({super.client});
+  GoalRepository({super.client, AppDatabase? db}) 
+      : _db = db ?? AppDatabase();
+
+  final AppDatabase _db;
 
   // ===========================================================================
   // GOAL CRUD OPERATIONS
   // ===========================================================================
 
   /// Fetches all goals for the current user.
+  @override
   Future<List<GoalModel>> fetchGoals() async {
-    final response = await client.client.get<dynamic>(ApiEndpoints.goals);
-    final items = extractListFromResponse(response.data);
-    return items
-        .map((e) => GoalModel.fromMap(e as Map<String, dynamic>))
-        .toList();
+    try {
+      final response = await client.client.get<dynamic>(ApiEndpoints.goals);
+      final items = extractListFromResponse(response.data);
+      final goals = items
+          .map((e) => GoalModel.fromMap(e as Map<String, dynamic>))
+          .toList();
+      
+      // Save to DB
+      await _saveGoalsToDb(goals);
+      
+      return goals;
+    } catch (e) {
+      if (e is DioException && 
+          (e.type == DioExceptionType.connectionTimeout || 
+           e.type == DioExceptionType.connectionError)) {
+        final dbGoals = await _db.goalsDao.getAllGoals();
+        return dbGoals.map(_mapToModel).toList();
+      }
+      rethrow;
+    }
   }
 
   /// Creates a new goal.
-  ///
-  /// Parameters:
-  /// - [title]: Required goal title
-  /// - [targetAmount]: Required target amount to reach
-  /// - [description]: Optional description
-  /// - [currentAmount]: Initial current amount (default 0)
-  /// - [initialAmount]: Initial amount when goal was created (default 0)
-  /// - [deadline]: Optional deadline date
-  /// - [goalType]: Type of goal (default 'CUSTOM')
+  @override
   Future<GoalModel> createGoal({
     required String title,
     required double targetAmount,
@@ -57,17 +75,52 @@ class GoalRepository extends BaseRepository {
       'goal_type': goalType,
     };
 
-    final response = await client.client.post<Map<String, dynamic>>(
-      ApiEndpoints.goals,
-      data: payload,
-    );
-    return GoalModel.fromMap(response.data ?? <String, dynamic>{});
+    try {
+      final response = await client.client.post<Map<String, dynamic>>(
+        ApiEndpoints.goals,
+        data: payload,
+      );
+      
+      // Invalida cache após criar meta
+      CacheManager().invalidateAfterGoalUpdate();
+      
+      final data = response.data ?? <String, dynamic>{};
+      final goal = GoalModel.fromMap(data);
+      await _db.goalsDao.insertGoal(_mapToCompanion(goal));
+      
+      return goal;
+    } catch (e) {
+      if (e is DioException && 
+          (e.type == DioExceptionType.connectionTimeout || 
+           e.type == DioExceptionType.connectionError)) {
+        // Offline creation
+        final id = const Uuid().v4();
+        final goal = GoalModel(
+          id: id,
+          title: title,
+          description: description,
+          targetAmount: targetAmount,
+          currentAmount: currentAmount,
+          initialAmount: initialAmount,
+          deadline: deadline,
+          goalType: _parseGoalType(goalType),
+          progressPercentage: targetAmount > 0 ? (currentAmount / targetAmount) * 100 : 0,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        
+        await _db.goalsDao.insertGoal(
+          _mapToCompanion(goal).copyWith(isSynced: const Value(false))
+        );
+        
+        return goal;
+      }
+      rethrow;
+    }
   }
 
-  /// Updates an existing goal.
-  ///
-  /// [goalId] can be the numeric ID or UUID string.
-  /// Only non-null parameters will be updated.
+  /// Updates a goal.
+  @override
   Future<GoalModel> updateGoal({
     required String goalId,
     String? title,
@@ -89,16 +142,74 @@ class GoalRepository extends BaseRepository {
     }
     if (goalType != null) payload['goal_type'] = goalType;
 
-    final response = await client.client.patch<Map<String, dynamic>>(
-      '${ApiEndpoints.goals}$goalId/',
-      data: payload,
-    );
-    return GoalModel.fromMap(response.data ?? <String, dynamic>{});
+    try {
+      final response = await client.client.patch<Map<String, dynamic>>(
+        '${ApiEndpoints.goals}$goalId/',
+        data: payload,
+      );
+      final data = response.data ?? <String, dynamic>{};
+      final goal = GoalModel.fromMap(data);
+      await _db.goalsDao.updateGoal(_mapToCompanion(goal));
+      return goal;
+    } catch (e) {
+      if (e is DioException && 
+          (e.type == DioExceptionType.connectionTimeout || 
+           e.type == DioExceptionType.connectionError)) {
+        // Offline update
+        final current = await _db.goalsDao.getGoalById(goalId);
+        if (current != null) {
+          final updated = current.copyWith(
+            title: title ?? current.title,
+            description: description ?? current.description,
+            targetAmount: targetAmount ?? current.targetAmount,
+            currentAmount: currentAmount ?? current.currentAmount,
+            initialAmount: initialAmount ?? current.initialAmount,
+            deadline: deadline ?? current.deadline,
+            goalType: goalType ?? current.goalType,
+            isSynced: false,
+          );
+          
+          await _db.goalsDao.updateGoal(
+            GoalsCompanion(
+              id: Value(updated.id),
+              title: Value(updated.title),
+              description: Value(updated.description),
+              targetAmount: Value(updated.targetAmount),
+              currentAmount: Value(updated.currentAmount),
+              initialAmount: Value(updated.initialAmount),
+              deadline: Value<DateTime?>(updated.deadline),
+              goalType: Value(updated.goalType),
+              progressPercentage: Value(updated.targetAmount > 0 ? (updated.currentAmount / updated.targetAmount) * 100 : 0),
+              isSynced: const Value(false),
+            )
+          );
+          return _mapToModel(updated);
+        }
+      }
+      rethrow;
+    }
   }
 
-  /// Deletes a goal by ID or UUID.
+  /// Deletes a goal.
+  @override
   Future<void> deleteGoal(String id) async {
-    await client.client.delete('${ApiEndpoints.goals}$id/');
+    try {
+      await client.client.delete('${ApiEndpoints.goals}$id/');
+      await _db.goalsDao.deleteGoal(id);
+    } catch (e) {
+      if (e is DioException && 
+          (e.type == DioExceptionType.connectionTimeout || 
+           e.type == DioExceptionType.connectionError)) {
+        // Offline deletion (soft delete)
+        await (_db.update(_db.goals)..where((g) => g.id.equals(id)))
+            .write(const GoalsCompanion(
+              isDeleted: Value(true),
+              isSynced: Value(false),
+            ));
+        return;
+      }
+      rethrow;
+    }
   }
 
   // ===========================================================================
@@ -106,8 +217,7 @@ class GoalRepository extends BaseRepository {
   // ===========================================================================
 
   /// Fetches transactions related to a specific goal.
-  ///
-  /// [goalId] can be the numeric ID or UUID string.
+  @override
   Future<List<TransactionModel>> fetchGoalTransactions(String goalId) async {
     final response = await client.client
         .get<dynamic>('${ApiEndpoints.goals}$goalId/transactions/');
@@ -123,8 +233,7 @@ class GoalRepository extends BaseRepository {
   // ===========================================================================
 
   /// Manually refreshes goal progress calculation.
-  ///
-  /// [goalId] can be the numeric ID or UUID string.
+  @override
   Future<GoalModel> refreshGoalProgress(String goalId) async {
     final response = await client.client
         .post<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/refresh/');
@@ -132,13 +241,72 @@ class GoalRepository extends BaseRepository {
   }
 
   /// Fetches insights and analytics for a specific goal.
-  ///
-  /// [goalId] can be the numeric ID or UUID string.
-  /// Returns a map containing insights data like projected completion date,
-  /// average progress rate, etc.
+  @override
   Future<Map<String, dynamic>> fetchGoalInsights(String goalId) async {
     final response = await client.client
         .get<Map<String, dynamic>>('${ApiEndpoints.goals}$goalId/insights/');
     return response.data ?? <String, dynamic>{};
+  }
+
+  Future<void> _saveGoalsToDb(List<GoalModel> goals) async {
+    for (final g in goals) {
+      await _db.goalsDao.insertGoal(_mapToCompanion(g));
+    }
+  }
+
+  GoalModel _mapToModel(Goal g) {
+    return GoalModel(
+      id: g.id,
+      title: g.title,
+      description: g.description,
+      targetAmount: g.targetAmount,
+      currentAmount: g.currentAmount,
+      initialAmount: g.initialAmount,
+      deadline: g.deadline,
+      goalType: _parseGoalType(g.goalType),
+      progressPercentage: g.progressPercentage,
+      createdAt: g.createdAt,
+      updatedAt: g.updatedAt,
+      targetCategory: g.targetCategory,
+      targetCategoryName: g.targetCategoryName,
+      baselineAmount: g.baselineAmount,
+      trackingPeriodMonths: g.trackingPeriodMonths,
+    );
+  }
+
+  GoalsCompanion _mapToCompanion(GoalModel g) {
+    return GoalsCompanion.insert(
+      id: g.id,
+      title: g.title,
+      description: g.description,
+      targetAmount: g.targetAmount,
+      currentAmount: g.currentAmount,
+      initialAmount: Value(g.initialAmount),
+      deadline: Value<DateTime?>(g.deadline),
+      goalType: g.goalType.value,
+      progressPercentage: g.progressPercentage,
+      createdAt: g.createdAt,
+      updatedAt: g.updatedAt,
+      targetCategory: Value<String?>(g.targetCategory),
+      targetCategoryName: Value<String?>(g.targetCategoryName),
+      baselineAmount: Value<double?>(g.baselineAmount),
+      trackingPeriodMonths: Value(g.trackingPeriodMonths),
+      isSynced: const Value(true),
+    );
+  }
+
+  GoalType _parseGoalType(String? value) {
+    switch (value?.toUpperCase()) {
+      case 'SAVINGS':
+        return GoalType.savings;
+      case 'EXPENSE_REDUCTION':
+        return GoalType.expenseReduction;
+      case 'INCOME_INCREASE':
+        return GoalType.incomeIncrease;
+      case 'EMERGENCY_FUND':
+        return GoalType.emergencyFund;
+      default:
+        return GoalType.custom;
+    }
   }
 }

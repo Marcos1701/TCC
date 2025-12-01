@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/models/transaction.dart';
 import '../../../core/models/transaction_link.dart';
-import '../../../core/repositories/finance_repository.dart';
+import '../../../core/repositories/finance_repository.dart'; // Keep for backward compatibility if needed, or remove if unused
+import '../../../core/repositories/transaction_repository.dart';
+import '../../../core/repositories/interfaces/i_transaction_repository.dart';
 import '../../../core/services/cache_manager.dart';
 
 /// Estados do ViewModel
@@ -15,10 +17,10 @@ enum TransactionsViewState {
 
 /// ViewModel para gerenciar transações com atualização otimista
 class TransactionsViewModel extends ChangeNotifier {
-  TransactionsViewModel({FinanceRepository? repository})
-      : _repository = repository ?? FinanceRepository();
+  TransactionsViewModel({ITransactionRepository? repository})
+      : _repository = repository ?? TransactionRepository();
 
-  final FinanceRepository _repository;
+  final ITransactionRepository _repository;
   
   // Estado
   TransactionsViewState _state = TransactionsViewState.initial;
@@ -131,6 +133,50 @@ class TransactionsViewModel extends ChangeNotifier {
     String? recurrenceUnit,
     DateTime? recurrenceEndDate,
   }) async {
+    // === VALIDAÇÕES LOCAIS ===
+    // Validar descrição
+    if (description.trim().isEmpty) {
+      _errorMessage = 'Descrição não pode ser vazia';
+      _state = TransactionsViewState.error;
+      notifyListeners();
+      return null;
+    }
+
+    // Validar valor
+    if (amount <= 0) {
+      _errorMessage = 'Valor deve ser maior que zero';
+      _state = TransactionsViewState.error;
+      notifyListeners();
+      return null;
+    }
+
+    // Validar data
+    final now = DateTime.now();
+    final maxFutureDate = now.add(const Duration(days: 365 * 10)); // 10 anos
+    if (date.isAfter(maxFutureDate)) {
+      _errorMessage = 'Data não pode ser mais de 10 anos no futuro';
+      _state = TransactionsViewState.error;
+      notifyListeners();
+      return null;
+    }
+
+    // Validar recorrência
+    if (isRecurring) {
+      if (recurrenceValue == null || recurrenceValue <= 0) {
+        _errorMessage = 'Valor de recorrência deve ser maior que zero';
+        _state = TransactionsViewState.error;
+        notifyListeners();
+        return null;
+      }
+
+      if (recurrenceUnit == null || recurrenceUnit.isEmpty) {
+        _errorMessage = 'Unidade de recorrência não pode ser vazia';
+        _state = TransactionsViewState.error;
+        notifyListeners();
+        return null;
+      }
+    }
+
     // 1. Cria transação temporária (otimista) com ID único
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}_${++_tempIdCounter}';
     final tempTransaction = TransactionModel(
@@ -182,6 +228,7 @@ class TransactionsViewModel extends ChangeNotifier {
       rethrow;
     }
   }
+
 
   /// Deleta transação com atualização otimista
   Future<bool> deleteTransaction(TransactionModel transaction) async {

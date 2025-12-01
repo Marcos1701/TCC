@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/goal.dart';
-import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/repositories/goal_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -18,7 +18,7 @@ class ProgressPage extends StatefulWidget {
 }
 
 class _ProgressPageState extends State<ProgressPage> {
-  final _repository = FinanceRepository();
+  final _repository = GoalRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _cacheManager = CacheManager();
   late Future<List<GoalModel>> _future = _repository.fetchGoals();

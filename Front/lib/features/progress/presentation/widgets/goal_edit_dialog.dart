@@ -3,8 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/models/goal.dart';
+import '../../../../core/models/category.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
+import '../../utils/goal_validators.dart';
+import 'category_selector.dart';
+import 'baseline_amount_field.dart';
 
 /// Resultado do diálogo de edição de meta.
 class GoalDialogResult {
@@ -16,6 +20,9 @@ class GoalDialogResult {
     required this.initialAmount,
     required this.deadline,
     required this.goalType,
+    this.targetCategory,
+    this.baselineAmount,
+    this.trackingPeriodMonths = 3,
   });
 
   /// Título da meta.
@@ -35,6 +42,15 @@ class GoalDialogResult {
 
   /// Tipo da meta.
   final GoalType goalType;
+
+  /// Categoria alvo (para EXPENSE_REDUCTION)
+  final String? targetCategory;
+
+  /// Valor de referência inicial (para EXPENSE_REDUCTION e INCOME_INCREASE)
+  final double? baselineAmount;
+
+  /// Período de cálculo em meses
+  final int trackingPeriodMonths;
 }
 
 /// Diálogo para criar ou editar uma meta.
@@ -68,9 +84,12 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _targetController;
   late final TextEditingController _initialAmountController;
+  late final TextEditingController _baselineAmountController;
 
   late GoalType _selectedGoalType;
   DateTime? _deadline;
+  CategoryModel? _selectedCategory;
+  int _trackingPeriodMonths = 3;
 
   bool get _isEditing => widget.goal != null;
 
@@ -90,9 +109,16 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
           ? CurrencyInputFormatter.format(goal.initialAmount)
           : '',
     );
+    _baselineAmountController = TextEditingController(
+      text: goal != null && goal.baselineAmount != null
+          ? CurrencyInputFormatter.format(goal.baselineAmount!)
+          : '',
+    );
 
     _selectedGoalType = goal?.goalType ?? GoalType.savings;
     _deadline = goal?.deadline;
+    // TODO: Carregar categoria se goal.targetCategory existir
+    _trackingPeriodMonths = goal?.trackingPeriodMonths ?? 3;
   }
 
   @override
@@ -101,6 +127,7 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     _descriptionController.dispose();
     _targetController.dispose();
     _initialAmountController.dispose();
+    _baselineAmountController.dispose();
     super.dispose();
   }
 
@@ -128,6 +155,28 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
 
     final initialAmount =
         CurrencyInputFormatter.parse(_initialAmountController.text);
+    
+    // Parse baseline amount se preenchido
+    final baselineAmount = _baselineAmountController.text.isNotEmpty
+        ? CurrencyInputFormatter.parse(_baselineAmountController.text)
+        : null;
+
+    // Validação específica por tipo de meta
+    final validationError = GoalValidators.validateByType(
+      goalType: _selectedGoalType,
+      targetCategory: _selectedCategory,
+      baselineAmount: baselineAmount,
+    );
+
+    if (validationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(validationError),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     Navigator.pop(
       context,
@@ -138,6 +187,9 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
         initialAmount: initialAmount,
         deadline: _deadline,
         goalType: _selectedGoalType,
+        targetCategory: _selectedCategory?.id.toString(),
+        baselineAmount: baselineAmount,
+        trackingPeriodMonths: _trackingPeriodMonths,
       ),
     );
   }
@@ -157,6 +209,69 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
           children: [
             _buildGoalTypeSelector(),
             const SizedBox(height: 20),
+            
+            // CategorySelector - apenas para EXPENSE_REDUCTION
+            if (_selectedGoalType == GoalType.expenseReduction) ...[
+              Theme(
+                data: ThemeData.light(),
+                child: CategorySelector(
+                  selectedCategory: _selectedCategory,
+                  onCategorySelected: (category) {
+                    setState(() => _selectedCategory = category);
+                  },
+                  label: 'Categoria Alvo',
+                  hint: 'Selecione a categoria de gastos',
+                  categoryType: 'EXPENSE',
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            // BaselineAmountField - para EXPENSE_REDUCTION e INCOME_INCREASE
+            if (_selectedGoalType == GoalType.expenseReduction ||
+                _selectedGoalType == GoalType.incomeIncrease) ...[
+              Theme(
+                data: ThemeData.light(),
+                child: BaselineAmountField(
+                  controller: _baselineAmountController,
+                  goalType: _selectedGoalType,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
+            // Tracking Period Slider
+            if (_selectedGoalType == GoalType.expenseReduction ||
+                _selectedGoalType == GoalType.incomeIncrease) ...[
+              const Text(
+                'Período de Cálculo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: _trackingPeriodMonths.toDouble(),
+                min: 1,
+                max: 12,
+                divisions: 11,
+                label: '$_trackingPeriodMonths meses',
+                activeColor: AppColors.primary,
+                onChanged: (value) {
+                  setState(() => _trackingPeriodMonths = value.toInt());
+                },
+              ),
+              Text(
+                'Progresso calculado com base nos últimos $_trackingPeriodMonths meses',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
             _buildTitleField(),
             const SizedBox(height: 16),
             _buildDescriptionField(),
@@ -260,7 +375,19 @@ class _GoalEditDialogState extends State<GoalEditDialog> {
     final isSelected = _selectedGoalType == type;
 
     return GestureDetector(
-      onTap: () => setState(() => _selectedGoalType = type),
+      onTap: () {
+        setState(() {
+          _selectedGoalType = type;
+          // Limpar campos específicos ao mudar tipo
+          if (type != GoalType.expenseReduction) {
+            _selectedCategory = null;
+          }
+          if (type != GoalType.expenseReduction && 
+              type != GoalType.incomeIncrease) {
+            _baselineAmountController.clear();
+          }
+        });
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(

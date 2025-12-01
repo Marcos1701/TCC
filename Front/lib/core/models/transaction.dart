@@ -100,4 +100,20 @@ class TransactionModel {
         return 'Recorrência ativa';
     }
   }
+
+  /// Converte o modelo para Map para envio à API
+  Map<String, dynamic> toMap() {
+    return {
+      'type': type,
+      'description': description,
+      'amount': amount.toString(),
+      'date': date.toIso8601String().split('T')[0],
+      if (category != null) 'category_id': category!.id,
+      'is_recurring': isRecurring,
+      if (recurrenceValue != null) 'recurrence_value': recurrenceValue,
+      if (recurrenceUnit != null) 'recurrence_unit': recurrenceUnit,
+      if (recurrenceEndDate != null)
+        'recurrence_end_date': recurrenceEndDate!.toIso8601String().split('T')[0],
+    };
+  }
 }

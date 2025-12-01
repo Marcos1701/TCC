@@ -3,7 +3,8 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/models/transaction.dart';
-import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/repositories/finance_repository.dart'; // Keep for backward compatibility if needed
+import '../../../../core/repositories/interfaces/i_transaction_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -20,7 +21,7 @@ class TransactionDetailsSheet extends StatefulWidget {
   });
 
   final TransactionModel transaction;
-  final FinanceRepository repository;
+  final ITransactionRepository repository;
   final VoidCallback onUpdate;
 
   @override

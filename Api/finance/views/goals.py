@@ -6,6 +6,7 @@ import logging
 
 from django.db.models import Case, DecimalField, F, When
 from rest_framework import permissions, viewsets
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -29,6 +30,7 @@ class GoalViewSet(viewsets.ModelViewSet):
     """
     serializer_class = GoalSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
+    pagination_class = PageNumberPagination  # Adiciona paginação padrão
 
     def get_queryset(self):
         return Goal.objects.filter(

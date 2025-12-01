@@ -188,4 +188,5 @@ class UserProfile(models.Model):
         if self.indicators_updated_at is None:
             return True
         time_since_update = timezone.now() - self.indicators_updated_at
-        return time_since_update.total_seconds() > CACHE_EXPIRATION_SECONDS
+        ttl = getattr(settings, 'INDICATORS_CACHE_TTL', CACHE_EXPIRATION_SECONDS)
+        return time_since_update.total_seconds() > ttl

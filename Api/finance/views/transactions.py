@@ -65,55 +65,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
             cnt=Count('id')
         ).values('cnt')
         
-        qs = Transaction.objects.filter(
-            user=self.request.user
-        ).select_related(
-            "category"
-        ).annotate(
-            linked_amount_annotated=Coalesce(Subquery(outgoing_sum), Value(Decimal('0'))),
-            outgoing_links_count_annotated=Coalesce(Subquery(outgoing_count), Value(0)),
-            incoming_links_count_annotated=Coalesce(Subquery(incoming_count), Value(0)),
-        )
-        
-        tx_type = self.request.query_params.get("type")
-        if tx_type:
-            qs = qs.filter(type=tx_type)
-        
-        category_id = self.request.query_params.get("category")
-        if category_id:
-            qs = qs.filter(category_id=category_id)
-        
-        date_from = self.request.query_params.get("date_from")
-        if date_from:
-            qs = qs.filter(date__gte=date_from)
-        
-        date_to = self.request.query_params.get("date_to")
-        if date_to:
-            qs = qs.filter(date__lte=date_to)
-        
-        min_amount = self.request.query_params.get("min_amount")
-        if min_amount:
-            qs = qs.filter(amount__gte=min_amount)
-        
-        max_amount = self.request.query_params.get("max_amount")
-        if max_amount:
-            qs = qs.filter(amount__lte=max_amount)
-        
-        is_recurring = self.request.query_params.get("is_recurring")
-        if is_recurring is not None:
-            qs = qs.filter(is_recurring=is_recurring.lower() == 'true')
-        
-        limit = self.request.query_params.get("limit")
-        offset = self.request.query_params.get("offset")
-        
-        qs = qs.order_by("-date", "-created_at")
-        
-        if offset:
-            qs = qs[int(offset):]
-        if limit:
-            qs = qs[:int(limit)]
-        
-        return qs
     
     def create(self, request, *args, **kwargs):
         """Criar transação com XP reward."""
@@ -174,7 +125,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'non_field_errors': f'Esta transação recebeu {links_as_target} pagamento(s). Remova os vínculos antes de excluir.'
             })
         
-        instance.delete()
+        instance.soft_delete()
         invalidate_user_dashboard_cache(self.request.user)
     
     @action(detail=True, methods=['get'])
@@ -307,22 +258,7 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
     
     def get_queryset(self):
-        qs = TransactionLink.objects.filter(
-            user=self.request.user
-        )
-        
-        link_type = self.request.query_params.get('link_type')
-        if link_type:
-            qs = qs.filter(link_type=link_type)
-        
-        date_from = self.request.query_params.get('date_from')
-        if date_from:
-            qs = qs.filter(created_at__gte=date_from)
-        
-        date_to = self.request.query_params.get('date_to')
-        if date_to:
-            qs = qs.filter(created_at__lte=date_to)
-        
+        qs = TransactionLink.objects.filter(user=self.request.user)
         return qs.order_by('-created_at')
     
     def list(self, request, *args, **kwargs):

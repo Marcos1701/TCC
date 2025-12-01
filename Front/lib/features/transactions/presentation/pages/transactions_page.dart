@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/models/transaction_link.dart';
-import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/repositories/transaction_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -28,7 +28,7 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
-  final _repository = FinanceRepository();
+  final _repository = TransactionRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _cacheManager = CacheManager();
   late final TransactionsViewModel _viewModel;

@@ -26,6 +26,10 @@ class GoalModel {
     required this.progressPercentage,
     required this.createdAt,
     required this.updatedAt,
+    this.targetCategory,
+    this.targetCategoryName,
+    this.baselineAmount,
+    this.trackingPeriodMonths = 3,
   });
 
   final String id;
@@ -39,6 +43,12 @@ class GoalModel {
   final double progressPercentage;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // Novos campos para tipos específicos de meta
+  final String? targetCategory;       // UUID da categoria (para EXPENSE_REDUCTION)
+  final String? targetCategoryName;   // Nome da categoria (read-only da API)
+  final double? baselineAmount;       // Valor de referência inicial
+  final int trackingPeriodMonths;     // Período de cálculo em meses (padrão 3)
 
   factory GoalModel.fromMap(Map<String, dynamic> map) {
     return GoalModel(
@@ -58,6 +68,13 @@ class GoalModel {
           double.parse(map['progress_percentage']?.toString() ?? '0'),
       createdAt: DateTime.parse(map['created_at'] as String),
       updatedAt: DateTime.parse(map['updated_at'] as String),
+      // Novos campos
+      targetCategory: map['target_category'] as String?,
+      targetCategoryName: map['target_category_name'] as String?,
+      baselineAmount: map['baseline_amount'] != null
+          ? double.parse(map['baseline_amount'].toString())
+          : null,
+      trackingPeriodMonths: map['tracking_period_months'] as int? ?? 3,
     );
   }
 
@@ -74,6 +91,22 @@ class GoalModel {
       default:
         return GoalType.custom;
     }
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'description': description,
+      'goal_type': goalType.value,
+      'target_amount': targetAmount.toString(),
+      if (initialAmount > 0) 'initial_amount': initialAmount.toString(),
+      if (deadline != null) 
+        'deadline': deadline!.toIso8601String().split('T')[0],
+      // Novos campos (condicionais)
+      if (targetCategory != null) 'target_category': targetCategory,
+      if (baselineAmount != null) 'baseline_amount': baselineAmount.toString(),
+      'tracking_period_months': trackingPeriodMonths,
+    };
   }
 
   double get progress =>

@@ -789,6 +789,25 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
         
         return qs
 
+    def update(self, request, *args, **kwargs):
+        from django.db import transaction
+        
+        partial = kwargs.pop('partial', False)
+        
+        with transaction.atomic():
+            # Lock the row for update
+            instance = MissionProgress.objects.select_for_update().get(pk=kwargs['pk'])
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+
+            if getattr(instance, '_prefetched_objects_cache', None):
+                # If 'prefetch_related' has been applied to a queryset, we need to
+                # forcibly invalidate the prefetch cache on the instance.
+                instance._prefetched_objects_cache = {}
+
+            return Response(serializer.data)
+
     def perform_update(self, serializer):
         from django.utils import timezone
         

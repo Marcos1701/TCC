@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/models/goal.dart';
-import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/repositories/goal_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
@@ -43,7 +43,7 @@ class GoalDetailsPage extends StatefulWidget {
 }
 
 class _GoalDetailsPageState extends State<GoalDetailsPage> {
-  final _repository = FinanceRepository();
+  final _repository = GoalRepository();
   late final GoalsViewModel _viewModel;
   late GoalModel _currentGoal;
   bool _isLoading = true;
@@ -144,6 +144,13 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                       children: [
                         _buildProgressCard(theme, tokens),
                         const SizedBox(height: 20),
+                        // Informações específicas por tipo de meta
+                        if (_currentGoal.goalType == GoalType.expenseReduction ||
+                            _currentGoal.goalType == GoalType.incomeIncrease)
+                          ...[
+                            _buildGoalTypeInfoCard(theme, tokens),
+                            const SizedBox(height: 20),
+                          ],
                         _buildInfoCard(theme, tokens),
                         const SizedBox(height: 80), // Espaço para os botões flutuantes
                       ],
@@ -499,6 +506,177 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalTypeInfoCard(ThemeData theme, AppDecorations tokens) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: tokens.cardRadius,
+        boxShadow: tokens.mediumShadow,
+        border: Border.all(
+          color: _currentGoal.goalType == GoalType.expenseReduction
+              ? Colors.orange.withOpacity(0.3)
+              : Colors.blue.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                _currentGoal.goalType == GoalType.expenseReduction
+                    ? Icons.trending_down
+                    : Icons.trending_up,
+                color: _currentGoal.goalType == GoalType.expenseReduction
+                    ? Colors.orange
+                    : Colors.blue,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _currentGoal.goalType ==GoalType.expenseReduction
+                    ? 'Meta de Redução de Gastos'
+                    : 'Meta de Aumento de Receita',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade900.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.blue.shade700.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.blue.shade300),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Progresso atualizado automaticamente com base nas suas transações',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.blue.shade200,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Informações específicas
+          if (_currentGoal.goalType == GoalType.expenseReduction) ...[
+            if (_currentGoal.targetCategoryName != null)
+              _buildTypeInfoRow(
+                Icons.category,
+                'Categoria Alvo',
+                _currentGoal.targetCategoryName!,
+                theme,
+              ),
+            if (_currentGoal.baselineAmount != null)
+              _buildTypeInfoRow(
+                Icons.attach_money,
+                'Gasto Médio Inicial',
+                '${widget.currency.format(_currentGoal.baselineAmount)}/mês',
+                theme,
+              ),
+            _buildTypeInfoRow(
+              Icons.emoji_events,
+              'Meta de Redução',
+              widget.currency.format(_currentGoal.targetAmount),
+              theme,
+            ),
+            _buildTypeInfoRow(
+              Icons.check_circle,
+              'Redução Alcançada',
+              widget.currency.format(_currentGoal.currentAmount),
+              theme,
+              color: AppColors.support,
+            ),
+          ] else if (_currentGoal.goalType == GoalType.incomeIncrease) ...[
+            if (_currentGoal.baselineAmount != null)
+              _buildTypeInfoRow(
+                Icons.attach_money,
+                'Receita Média Inicial',
+                '${widget.currency.format(_currentGoal.baselineAmount)}/mês',
+                theme,
+              ),
+            _buildTypeInfoRow(
+              Icons.emoji_events,
+              'Meta de Aumento',
+              widget.currency.format(_currentGoal.targetAmount),
+              theme,
+            ),
+            _buildTypeInfoRow(
+              Icons.check_circle,
+              'Aumento Alcançado',
+              widget.currency.format(_currentGoal.currentAmount),
+              theme,
+              color: AppColors.support,
+            ),
+          ],
+          
+          // Período de tracking
+          _buildTypeInfoRow(
+            Icons.date_range,
+            'Período de Cálculo',
+            '${_currentGoal.trackingPeriodMonths} meses',
+            theme,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    ThemeData theme, {
+    Color? color,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color ?? Colors.grey[400]),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: color ?? Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

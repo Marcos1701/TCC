@@ -74,6 +74,7 @@ class Transaction(models.Model):
     recurrence_end_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("-date", "-created_at")
@@ -84,7 +85,12 @@ class Transaction(models.Model):
             models.Index(fields=['user', 'type']),
             models.Index(fields=['user', 'category']),
             models.Index(fields=['user', '-date', '-created_at']),
+            models.Index(fields=['user', 'deleted_at']),
         ]
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()
+        self.save(update_fields=['deleted_at'])
 
     def __str__(self) -> str:
         return f"{self.description} ({self.amount})"

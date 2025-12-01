@@ -108,4 +108,15 @@ abstract class BaseRepository {
     
     return [];
   }
+
+  /// Executa uma requisição e trata erros automaticamente.
+  @protected
+  Future<T> handleRequest<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw handleError(e);
+    }
+  }
 }

@@ -81,15 +81,18 @@ def sync_user_profile(sender, instance, **kwargs):
 def update_missions_on_transaction(sender, instance, created, **kwargs):
     """
     Atualiza progresso das missões e atribui novas quando necessário após cada transação.
+    Executa após commit para evitar race conditions.
     """
     if created:
-        from .services import update_mission_progress, assign_missions_automatically
+        from django.db import transaction as db_transaction
         
-        # Atualizar progresso das missões existentes
-        update_mission_progress(instance.user)
+        def update_after_commit():
+            from .services import update_mission_progress, assign_missions_automatically
+            
+            update_mission_progress(instance.user)
+            assign_missions_automatically(instance.user)
         
-        # Verificar se precisa atribuir novas missões
-        assign_missions_automatically(instance.user)
+        db_transaction.on_commit(update_after_commit)
 
 
 @receiver(post_save, sender=Transaction)

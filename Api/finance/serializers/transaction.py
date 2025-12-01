@@ -165,10 +165,15 @@ class TransactionSerializer(serializers.ModelSerializer):
 class TransactionLinkSerializer(serializers.ModelSerializer):
     """Serializer para links entre transações."""
     
-    income_transaction = TransactionSerializer(read_only=True)
-    expense_transaction = TransactionSerializer(read_only=True)
-    income_transaction_id = serializers.UUIDField(write_only=True)
-    expense_transaction_id = serializers.UUIDField(write_only=True)
+    source_transaction = TransactionSerializer(read_only=True)
+    target_transaction = TransactionSerializer(read_only=True)
+    source_transaction_id = serializers.UUIDField(write_only=True)
+    target_transaction_id = serializers.UUIDField(write_only=True)
+    
+    income_transaction = serializers.SerializerMethodField()
+    expense_transaction = serializers.SerializerMethodField()
+    income_transaction_id = serializers.UUIDField(write_only=True, required=False)
+    expense_transaction_id = serializers.UUIDField(write_only=True, required=False)
     
     payment_status = serializers.SerializerMethodField()
     urgency_score = serializers.SerializerMethodField()
@@ -178,6 +183,10 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
         model = TransactionLink
         fields = [
             'id',
+            'source_transaction',
+            'target_transaction',
+            'source_transaction_id',
+            'target_transaction_id',
             'income_transaction',
             'expense_transaction',
             'income_transaction_id',
@@ -190,12 +199,29 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = ['id', 'created_at', 'payment_status', 'urgency_score', 'category_info']
+    
+    def get_income_transaction(self, obj):
+        if hasattr(obj, '_source_transaction_cache'):
+            return TransactionSerializer(obj._source_transaction_cache).data
+        return TransactionSerializer(obj.source_transaction).data
+    
+    def get_expense_transaction(self, obj):
+        if hasattr(obj, '_target_transaction_cache'):
+            return TransactionSerializer(obj._target_transaction_cache).data
+        return TransactionSerializer(obj.target_transaction).data
 
     def get_payment_status(self, obj):
-        income = obj.income_transaction
-        expense = obj.expense_transaction
+        if hasattr(obj, '_source_transaction_cache'):
+            source = obj._source_transaction_cache
+        else:
+            source = obj.source_transaction
+            
+        if hasattr(obj, '_target_transaction_cache'):
+            target = obj._target_transaction_cache
+        else:
+            target = obj.target_transaction
         
-        if income.date <= expense.date:
+        if source.date <= target.date:
             return {
                 'status': 'paid',
                 'label': 'Reservado',
@@ -203,7 +229,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             }
         else:
             from django.utils import timezone
-            days_until = (income.date - timezone.now().date()).days
+            days_until = (source.date - timezone.now().date()).days
             if days_until < 0:
                 return {
                     'status': 'overdue',
@@ -225,13 +251,21 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
 
     def get_urgency_score(self, obj):
         from django.utils import timezone
-        income = obj.income_transaction
-        expense = obj.expense_transaction
         
-        if income.date <= expense.date:
+        if hasattr(obj, '_source_transaction_cache'):
+            source = obj._source_transaction_cache
+        else:
+            source = obj.source_transaction
+            
+        if hasattr(obj, '_target_transaction_cache'):
+            target = obj._target_transaction_cache
+        else:
+            target = obj.target_transaction
+        
+        if source.date <= target.date:
             return 0
         
-        days_until = (income.date - timezone.now().date()).days
+        days_until = (source.date - timezone.now().date()).days
         
         if days_until < 0:
             return 100
@@ -247,7 +281,12 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             return 10
     
     def get_category_info(self, obj):
-        expense_cat = obj.expense_transaction.category
+        if hasattr(obj, '_target_transaction_cache'):
+            target = obj._target_transaction_cache
+        else:
+            target = obj.target_transaction
+            
+        expense_cat = target.category
         if expense_cat:
             return {
                 'id': expense_cat.id,
@@ -258,42 +297,49 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
         return None
 
     def validate(self, attrs):
-        income_id = attrs.get('income_transaction_id')
-        expense_id = attrs.get('expense_transaction_id')
+        source_id = attrs.get('source_transaction_id') or attrs.get('income_transaction_id')
+        target_id = attrs.get('target_transaction_id') or attrs.get('expense_transaction_id')
         amount = attrs.get('amount')
+        
+        if not source_id or not target_id:
+            raise serializers.ValidationError({
+                'non_field_errors': 'Informe source_transaction_id e target_transaction_id.'
+            })
         
         user = self.context['request'].user
         
         try:
-            income = Transaction.objects.get(id=income_id, user=user, type='INCOME')
+            source = Transaction.objects.get(id=source_id, user=user)
         except Transaction.DoesNotExist:
             raise serializers.ValidationError({
-                'income_transaction_id': 'Receita não encontrada ou não pertence ao usuário.'
+                'source_transaction_id': 'Transação de origem não encontrada ou não pertence ao usuário.'
             })
         
         try:
-            expense = Transaction.objects.get(id=expense_id, user=user, type='EXPENSE')
+            target = Transaction.objects.get(id=target_id, user=user)
         except Transaction.DoesNotExist:
             raise serializers.ValidationError({
-                'expense_transaction_id': 'Despesa não encontrada ou não pertence ao usuário.'
+                'target_transaction_id': 'Transação de destino não encontrada ou não pertence ao usuário.'
             })
         
-        if amount > income.available_amount:
+        if amount > source.available_amount:
             raise serializers.ValidationError({
-                'amount': f'Valor excede o disponível na receita (R$ {income.available_amount:.2f}).'
+                'amount': f'Valor excede o disponível na origem (R$ {source.available_amount:.2f}).'
             })
         
-        if amount > expense.available_amount:
+        if amount > target.available_amount:
             raise serializers.ValidationError({
-                'amount': f'Valor excede o disponível na despesa (R$ {expense.available_amount:.2f}).'
+                'amount': f'Valor excede o disponível no destino (R$ {target.available_amount:.2f}).'
             })
         
-        attrs['income_transaction'] = income
-        attrs['expense_transaction'] = expense
+        attrs['source_transaction'] = source
+        attrs['target_transaction'] = target
         
         return attrs
 
     def create(self, validated_data):
+        validated_data.pop('source_transaction_id', None)
+        validated_data.pop('target_transaction_id', None)
         validated_data.pop('income_transaction_id', None)
         validated_data.pop('expense_transaction_id', None)
         return super().create(validated_data)

@@ -94,6 +94,11 @@ class GoalCard extends StatelessWidget {
             GoalCardHeader(goal: goal, onEdit: onEdit, onDelete: onDelete),
             const SizedBox(height: 16),
             GoalCardAmounts(goal: goal, currency: currency),
+            if (goal.goalType == GoalType.expenseReduction ||
+                goal.goalType == GoalType.incomeIncrease) ...[
+              const SizedBox(height: 12),
+              GoalTypeSpecificInfo(goal: goal, currency: currency),
+            ],
             const SizedBox(height: 12),
             GoalCardProgressBar(goal: goal, isCompleted: isCompleted),
             const SizedBox(height: 12),
@@ -297,6 +302,126 @@ class GoalCardAmounts extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Informações específicas por tipo de meta
+class GoalTypeSpecificInfo extends StatelessWidget {
+  const GoalTypeSpecificInfo({
+    super.key,
+    required this.goal,
+    required this.currency,
+  });
+
+  final GoalModel goal;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2A2A),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (goal.goalType == GoalType.expenseReduction)
+            ..._buildExpenseReductionInfo(theme)
+          else if (goal.goalType == GoalType.incomeIncrease)
+            ..._buildIncomeIncreaseInfo(theme),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildExpenseReductionInfo(ThemeData theme) {
+    return [
+      if (goal.targetCategoryName != null) ...[
+        Row(
+          children: [
+            Icon(Icons.category, size: 14, color: Colors.grey[500]),
+            const SizedBox(width: 6),
+            Text(
+              'Categoria: ${goal.targetCategoryName}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[400],
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+      ],
+      if (goal.baselineAmount != null) ...[
+        Row(
+          children: [
+            const Icon(Icons.trending_down, size: 14, color: Colors.orange),
+            const SizedBox(width: 6),
+            Text(
+              'Gastava: ${currency.format(goal.baselineAmount)}/mês',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[400],
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+      ],
+      Row(
+        children: [
+          const Icon(Icons.check_circle, size: 14, color: AppColors.support),
+          const SizedBox(width: 6),
+          Text(
+            'Redução: ${currency.format(goal.currentAmount)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.support,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  List<Widget> _buildIncomeIncreaseInfo(ThemeData theme) {
+    return [
+      if (goal.baselineAmount != null) ...[
+        Row(
+          children: [
+            const Icon(Icons.trending_up, size: 14, color: Colors.blue),
+            const SizedBox(width: 6),
+            Text(
+              'Ganhava: ${currency.format(goal.baselineAmount)}/mês',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[400],
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+      ],
+      Row(
+        children: [
+          const Icon(Icons.check_circle, size: 14, color: AppColors.support),
+          const SizedBox(width: 6),
+          Text(
+            'Aumento: ${currency.format(goal.currentAmount)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.support,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ];
   }
 }
 

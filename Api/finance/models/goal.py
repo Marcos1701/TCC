@@ -71,6 +71,28 @@ class Goal(models.Model):
         help_text="Tipo da meta"
     )
     
+    target_category = models.ForeignKey(
+        'Category',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='goals_targeting_this',
+        help_text="Categoria alvo para metas de redução de gastos"
+    )
+    
+    baseline_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Valor de referência inicial (gasto/receita mensal antes da meta)"
+    )
+    
+    tracking_period_months = models.PositiveIntegerField(
+        default=3,
+        help_text="Período em meses para cálculo de progresso (padrão: 3 meses)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,6 +110,7 @@ class Goal(models.Model):
         self._validate_amounts()
         self._validate_title()
         self._validate_deadline()
+        self._validate_goal_type_fields()
 
     def _validate_amounts(self):
         from django.core.exceptions import ValidationError
@@ -138,6 +161,42 @@ class Goal(models.Model):
                 raise ValidationError({
                     'deadline': f'A data limite não pode ser mais de {MAX_DEADLINE_YEARS} anos no futuro.'
                 })
+    
+    def _validate_goal_type_fields(self):
+        """Valida campos específicos por tipo de meta."""
+        from django.core.exceptions import ValidationError
+        
+        if self.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
+            if not self.target_category:
+                raise ValidationError({
+                    'target_category': 'Metas de redução de gastos requerem uma categoria alvo.'
+                })
+            
+            if self.target_category and self.target_category.type != 'EXPENSE':
+                raise ValidationError({
+                    'target_category': 'A categoria alvo deve ser de despesas (não de receitas).'
+                })
+            
+            if not self.baseline_amount or self.baseline_amount <= 0:
+                raise ValidationError({
+                    'baseline_amount': 'Informe o valor médio mensal atual de gastos nesta categoria.'
+                })
+            
+            # Validar que target_amount faz sentido em relação ao baseline
+            if self.baseline_amount and self.target_amount:
+                if self.target_amount >= self.baseline_amount:
+                    raise ValidationError({
+                        'target_amount': 'A meta de redução deve ser menor que o valor base atual.'
+                    })
+        
+        elif self.goal_type == Goal.GoalType.INCOME_INCREASE:
+            if not self.baseline_amount or self.baseline_amount <= 0:
+                raise ValidationError({
+                    'baseline_amount': 'Informe sua receita média mensal atual para comparação.'
+                })
+        
+        # SAVINGS, EMERGENCY_FUND e CUSTOM não precisam de validações extras
+
 
     @property
     def progress_percentage(self) -> float:

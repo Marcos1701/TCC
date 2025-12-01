@@ -32,19 +32,9 @@ from .models import (
     AdminActionLog,
 )
 
-
-# =============================================================================
-# CONFIGURAÇÃO DO SITE ADMIN
-# =============================================================================
-
 admin.site.site_header = "Sistema de Educação Financeira - TCC"
 admin.site.site_title = "Admin TCC"
 admin.site.index_title = "Painel de Gerenciamento"
-
-
-# =============================================================================
-# USUÁRIOS E GAMIFICAÇÃO
-# =============================================================================
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -74,6 +64,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         "cached_total_expense",
         "indicators_updated_at",
     )
+    actions = ['recalculate_indicators']
 
     fieldsets = (
         ("Usuário", {
@@ -114,14 +105,23 @@ class UserProfileAdmin(admin.ModelAdmin):
     def metas_usuario(self, obj):
         """Exibe as metas do usuário de forma resumida."""
         return f"TPS: {obj.target_tps}% | RDR: {obj.target_rdr}% | ILI: {obj.target_ili}m"
+    
+    @admin.action(description="Recalcular indicadores selecionados")
+    def recalculate_indicators(self, request, queryset):
+        """Força recálculo de indicadores para os perfis selecionados."""
+        from .services import calculate_summary, invalidate_indicators_cache
+        
+        count = 0
+        for profile in queryset:
+            invalidate_indicators_cache(profile.user)
+            calculate_summary(profile.user)
+            count += 1
+        
+        self.message_user(request, f"Indicadores recalculados para {count} perfil(s).")
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
 
-
-# =============================================================================
-# CATEGORIAS E TRANSAÇÕES
-# =============================================================================
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
@@ -141,8 +141,9 @@ class CategoryAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("type", "group", "is_system_default")
-    search_fields = ("name", "user__username")
+    search_fields = ("name", "user__username", "user__email")
     readonly_fields = ("created_at",)
+    actions = ['duplicate_categories']
 
     fieldsets = (
         ("Categoria", {
@@ -162,6 +163,18 @@ class CategoryAdmin(admin.ModelAdmin):
     def tipo(self, obj):
         """Exibe o tipo da categoria."""
         return "Receita" if obj.type == "INCOME" else "Despesa"
+    
+    @admin.action(description="Duplicar categorias selecionadas")
+    def duplicate_categories(self, request, queryset):
+        """Duplica categorias selecionadas para o mesmo usuário."""
+        count = 0
+        for category in queryset:
+            category.pk = None
+            category.name = f"{category.name} (Cópia)"
+            category.is_system_default = False
+            category.save()
+            count += 1
+        self.message_user(request, f"{count} categoria(s) duplicada(s) com sucesso.")
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
@@ -225,9 +238,6 @@ class TransactionAdmin(admin.ModelAdmin):
 class TransactionLinkAdmin(admin.ModelAdmin):
     """
     Gerenciamento de vínculos entre transações.
-    
-    Usado para representar transferências, pagamentos, 
-    investimentos ou empréstimos entre contas/categorias.
     """
     
     list_display = (
@@ -268,11 +278,6 @@ class TransactionLinkAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
 
-
-# =============================================================================
-# METAS FINANCEIRAS
-# =============================================================================
-
 @admin.register(Goal)
 class GoalAdmin(admin.ModelAdmin):
     """
@@ -295,24 +300,95 @@ class GoalAdmin(admin.ModelAdmin):
     list_filter = ("goal_type", "deadline")
     search_fields = ("title", "user__username", "description")
     readonly_fields = ("created_at", "updated_at")
+    autocomplete_fields = ["target_category"]
     date_hierarchy = "deadline"
-
-    fieldsets = (
-        ("Meta", {
-            "fields": ("user", "title", "description", "goal_type"),
-        }),
-        ("Valores", {
-            "fields": ("target_amount", "current_amount", "initial_amount"),
-            "description": "Valor alvo e progresso atual (current_amount é atualizado automaticamente).",
-        }),
-        ("Prazo", {
-            "fields": ("deadline",),
-        }),
-        ("Datas", {
-            "fields": ("created_at", "updated_at"),
-            "classes": ("collapse",),
-        }),
-    )
+    
+    def get_fieldsets(self, request, obj=None):
+        """Fieldsets dinâmicos baseados no tipo de meta."""
+        
+        base_fields = ("user", "title", "description", "goal_type")
+        
+        fieldsets = [
+            ("Meta", {
+                "fields": base_fields,
+            }),
+        ]
+        
+        # Campos específicos por tipo
+        if obj and obj.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
+            fieldsets.append(
+                ("Redução de Gastos", {
+                    "fields": (
+                        "target_category",
+                        "baseline_amount",
+                        "tracking_period_months",
+                        "target_amount",
+                        "current_amount"
+                    ),
+                    "description": (
+                        "<strong>Como funciona:</strong><br>"
+                        "• baseline_amount = gasto médio mensal ATUAL nesta categoria<br>"
+                        "• target_amount = quanto deseja reduzir no total<br>"
+                        "• current_amount = redução já alcançada (calculado automaticamente)"
+                    )
+                })
+            )
+        elif obj and obj.goal_type == Goal.GoalType.INCOME_INCREASE:
+            fieldsets.append(
+                ("Aumento de Receita", {
+                    "fields": (
+                        "baseline_amount",
+                        "tracking_period_months",
+                        "target_amount",
+                        "current_amount"
+                    ),
+                    "description": (
+                        "<strong>Como funciona:</strong><br>"
+                        "• baseline_amount = receita média mensal ATUAL<br>"
+                        "• target_amount = aumento total desejado<br>"
+                        "• current_amount = aumento já alcançado (calculado automaticamente)"
+                    )
+                })
+            )
+        elif obj and obj.goal_type in [Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]:
+            fieldsets.append(
+                ("Poupança/Reserva", {
+                    "fields": ("target_amount", "current_amount", "initial_amount"),
+                    "description": (
+                        "<strong>Como funciona:</strong><br>"
+                        "• target_amount = valor total que deseja juntar<br>"
+                        "• initial_amount = valor já poupado antes de criar a meta<br>"
+                        "• current_amount = progresso atual (calculado automaticamente)"
+                    )
+                })
+            )
+        else:
+            # CUSTOM ou criação inicial
+            fieldsets.append(
+                ("Valores", {
+                    "fields": (
+                        "target_amount",
+                        "current_amount",
+                        "initial_amount",
+                        "baseline_amount",
+                        "target_category",
+                        "tracking_period_months"
+                    ),
+                    "description": "Configure os campos conforme o tipo de meta selecionado."
+                })
+            )
+        
+        fieldsets.extend([
+            ("Prazo", {
+                "fields": ("deadline",),
+            }),
+            ("Datas", {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            }),
+        ])
+        
+        return fieldsets
 
     @admin.display(description="Valor Alvo", ordering="target_amount")
     def valor_alvo(self, obj):
@@ -345,25 +421,12 @@ class GoalAdmin(admin.ModelAdmin):
         return "Em andamento"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user')
-
-
-# =============================================================================
-# SISTEMA DE MISSÕES (GAMIFICAÇÃO)
-# =============================================================================
+        return super().get_queryset(request).select_related('user', 'target_category')
 
 @admin.register(Mission)
 class MissionAdmin(admin.ModelAdmin):
     """
     Gerenciamento de missões do sistema de gamificação.
-    
-    Tipos de Missão:
-        - ONBOARDING: Primeiros passos (registrar transações iniciais)
-        - TPS_IMPROVEMENT: Aumentar Taxa de Poupança
-        - RDR_REDUCTION: Reduzir gastos recorrentes  
-        - ILI_BUILDING: Construir reserva de emergência
-        - CATEGORY_REDUCTION: Reduzir gastos em categoria específica
-        - GOAL_ACHIEVEMENT: Progredir em meta financeira
     """
     
     list_display = (
@@ -638,12 +701,6 @@ class XPTransactionAdmin(admin.ModelAdmin):
 class AdminActionLogAdmin(admin.ModelAdmin):
     """
     Log de ações administrativas.
-    
-    Registra ações realizadas por administradores,
-    como desativação de usuários ou ajustes de XP.
-    
-    Este modelo é somente leitura - registros são criados
-    automaticamente pelo sistema.
     """
     
     list_display = (

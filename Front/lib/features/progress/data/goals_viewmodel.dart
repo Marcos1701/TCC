@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/models/goal.dart';
-import '../../../core/repositories/finance_repository.dart';
+import '../../../core/repositories/finance_repository.dart'; // Keep for backward compatibility
+import '../../../core/repositories/goal_repository.dart';
+import '../../../core/repositories/interfaces/i_goal_repository.dart';
 
 /// Estados do ViewModel
 enum GoalsViewState {
@@ -13,10 +15,10 @@ enum GoalsViewState {
 
 /// ViewModel para gerenciar metas com atualização otimista
 class GoalsViewModel extends ChangeNotifier {
-  GoalsViewModel({FinanceRepository? repository})
-      : _repository = repository ?? FinanceRepository();
+  GoalsViewModel({IGoalRepository? repository})
+      : _repository = repository ?? GoalRepository();
 
-  final FinanceRepository _repository;
+  final IGoalRepository _repository;
 
   // Estado
   GoalsViewState _state = GoalsViewState.initial;
@@ -95,6 +97,125 @@ class GoalsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Cria uma nova meta
+  Future<GoalModel?> createGoal({
+    required String title,
+    required double targetAmount,
+    String description = '',
+    double initialAmount = 0,
+    DateTime? deadline,
+    String goalType = 'CUSTOM',
+    String? targetCategory,
+    double? baselineAmount,
+    int trackingPeriodMonths = 3,
+  }) async {
+    try {
+      final goalData = {
+        'title': title,
+        'description': description,
+        'target_amount': targetAmount,
+        'initial_amount': initialAmount,
+        if (deadline != null) 'deadline': deadline.toIso8601String().split('T')[0],
+        'goal_type': goalType,
+        if (targetCategory != null) 'target_category': targetCategory,
+        if (baselineAmount != null) 'baseline_amount': baselineAmount,
+        'tracking_period_months': trackingPeriodMonths,
+      };
+
+      final response = await _repository.createGoal(
+        title: title,
+        targetAmount: targetAmount,
+        description: description,
+        initialAmount: initialAmount,
+        deadline: deadline,
+        goalType: goalType,
+      );
+
+      final newGoal = response;
+      _goals.insert(0, newGoal);
+      notifyListeners();
+      return newGoal;
+    } catch (e) {
+      _errorMessage = 'Erro ao criar meta: ${e.toString()}';
+      _state = GoalsViewState.error;
+      notifyListeners();
+      if (kDebugMode) {
+        debugPrint('Erro ao criar meta: $e');
+      }
+      return null;
+    }
+  }
+
+  /// Atualiza uma meta existente
+  Future<GoalModel?> updateGoal({
+    required String goalId,
+    String? title,
+    String? description,
+    double? targetAmount,
+    double? currentAmount,
+    double? initialAmount,
+    DateTime? deadline,
+    String? goalType,
+    String? targetCategory,
+    double? baselineAmount,
+  }) async {
+    final index = _goals.indexWhere((g) => g.id == goalId);
+    if (index == -1) return null;
+
+    final oldGoal = _goals[index];
+    
+    try {
+      final response = await _repository.updateGoal(
+        goalId: goalId,
+        title: title,
+        description: description,
+        targetAmount: targetAmount,
+        currentAmount: currentAmount,
+        initialAmount: initialAmount,
+        deadline: deadline,
+        goalType: goalType,
+      );
+
+      final updatedGoal = response;
+      _goals[index] = updatedGoal;
+      notifyListeners();
+      return updatedGoal;
+    } catch (e) {
+      _errorMessage = 'Erro ao atualizar meta: ${e.toString()}';
+      _state = GoalsViewState.error;
+      notifyListeners();
+      if (kDebugMode) {
+        debugPrint('Erro ao atualizar meta: $e');
+      }
+      return null;
+    }
+  }
+
+  /// Deleta uma meta com atualização otimista
+  Future<bool> deleteGoal(String goalId) async {
+    final index = _goals.indexWhere((g) => g.id == goalId);
+    if (index == -1) return false;
+
+    // Remove otimisticamente
+    final removed = _goals.removeAt(index);
+    notifyListeners();
+
+    try {
+      await _repository.deleteGoal(goalId);
+      return true;
+    } catch (e) {
+      // Rollback em caso de erro
+      _goals.insert(index, removed);
+      _errorMessage = 'Erro ao deletar meta: ${e.toString()}';
+      _state = GoalsViewState.error;
+      notifyListeners();
+      if (kDebugMode) {
+        debugPrint('Erro ao deletar meta: $e');
+      }
+      return false;
+    }
+  }
+
   /// Limpa erro
   void clearError() {
     _errorMessage = null;
@@ -110,3 +231,4 @@ class GoalsViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
+
