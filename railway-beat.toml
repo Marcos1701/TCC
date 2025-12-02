@@ -1,0 +1,11 @@
+# Railway Configuration - Beat Service
+# Celery Beat Scheduler
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Api/Dockerfile"
+
+[deploy]
+startCommand = "/docker-entrypoint.sh beat"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

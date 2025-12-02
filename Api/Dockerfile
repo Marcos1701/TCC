@@ -62,14 +62,12 @@ USER appuser
 # Expor porta
 EXPOSE 8000
 
-# Executar migrações, collectstatic e iniciar gunicorn
-# Usando shell form para expansão de variáveis
-CMD python manage.py migrate --noinput && \
-    python manage.py collectstatic --noinput --clear && \
-    gunicorn config.wsgi:application \
-        --bind "0.0.0.0:${PORT:-8000}" \
-        --workers 4 \
-        --timeout 120 \
-        --access-logfile - \
-        --error-logfile - \
-        --worker-class=sync
+# Copiar script de entrypoint
+COPY --chown=appuser:appuser scripts/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Script de entrypoint padrão (pode ser sobrescrito para worker/beat)
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+# Comando padrão: API com Gunicorn
+CMD ["gunicorn"]
