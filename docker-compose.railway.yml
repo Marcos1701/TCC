@@ -1,0 +1,101 @@
+# Docker Compose para desenvolvimento local e Railway
+version: '3.8'
+
+services:
+  # API - Django + Gunicorn
+  api:
+    build:
+      context: .
+      dockerfile: Api/Dockerfile
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - RAILWAY_ENVIRONMENT=production
+    command: ["/docker-entrypoint.sh", "gunicorn"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/login/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - db
+      - redis
+
+  # Worker - Celery Worker  
+  worker:
+    build:
+      context: .
+      dockerfile: Api/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - RAILWAY_ENVIRONMENT=production
+    command: ["/docker-entrypoint.sh", "worker"]
+    depends_on:
+      - api
+      - redis
+    restart: always
+
+  # Beat - Celery Beat Scheduler
+  beat:
+    build:
+      context: .
+      dockerfile: Api/Dockerfile
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - RAILWAY_ENVIRONMENT=production
+    command: ["/docker-entrypoint.sh", "beat"]
+    depends_on:
+      - api
+      - redis
+    restart: always
+
+  # Frontend - Flutter Web + Nginx
+  frontend:
+    build:
+      context: Front
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - API_BASE_URL=${API_BASE_URL:-http://api:8000}
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL (apenas para desenvolvimento local)
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=genapp
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    profiles: ["local"]  # Não usar no Railway
+
+  # Redis (apenas para desenvolvimento local)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    profiles: ["local"]  # Não usar no Railway
+
+volumes:
+  postgres_data:
