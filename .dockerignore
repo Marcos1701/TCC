@@ -51,6 +51,12 @@ DOC_LATEX/
 *.txt
 !requirements.txt
 
+# Flutter/Dart (workspace files - not for Railway deployment)
+pubspec.yaml
+pubspec.lock
+.dart_tool/
+Front/
+
 # Misc
 *.bak
 *.tmp
