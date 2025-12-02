@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copiar requirements e instalar dependências Python
-COPY requirements.txt .
+COPY Api/requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --user --no-cache-dir -r requirements.txt
 
@@ -49,22 +49,22 @@ ENV PATH=/home/appuser/.local/bin:$PATH
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar código da aplicação
-COPY --chown=appuser:appuser . .
+# Copiar código da aplicação (apenas o diretório Api)
+COPY --chown=appuser:appuser Api/ .
 
 # Criar diretório para arquivos estáticos e media
 RUN mkdir -p static media && \
     chown -R appuser:appuser static media
+
+# Copiar script de entrypoint e torná-lo executável (antes de mudar para non-root user)
+COPY --chown=appuser:appuser scripts/docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
 # Mudar para usuário não-root
 USER appuser
 
 # Expor porta
 EXPOSE 8000
-
-# Copiar script de entrypoint
-COPY --chown=appuser:appuser scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
 
 # Script de entrypoint padrão (pode ser sobrescrito para worker/beat)
 ENTRYPOINT ["/docker-entrypoint.sh"]
