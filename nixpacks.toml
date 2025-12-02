@@ -1,8 +1,7 @@
 # Nixpacks Configuration for Railway Deployment
 # Force Python provider for Django API deployment
 
-[providers]
-python = true
+providers = ["python"]
 
 [phases.setup]
 nixPkgs = ["python39", "postgresql"]
