@@ -1,4 +1,5 @@
 name: genapp_workspace
+version: 1.0.0+1
 description: "Raiz do monorepo do GenApp."
 publish_to: 'none'
 
