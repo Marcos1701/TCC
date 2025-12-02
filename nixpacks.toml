@@ -4,13 +4,13 @@
 providers = ["python"]
 
 [phases.setup]
-nixPkgs = ["python39", "postgresql"]
+nixPkgs = ["python39", "python39Packages.pip", "postgresql"]
 
 [phases.install]
-cmds = ["cd Api && pip install -r requirements.txt"]
+cmds = ["cd Api && python3 -m pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["cd Api && python manage.py collectstatic --noinput"]
+cmds = ["cd Api && python3 manage.py collectstatic --noinput"]
 
 [start]
 cmd = "cd Api && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --timeout 120"
