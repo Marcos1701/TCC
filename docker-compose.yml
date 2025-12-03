@@ -44,8 +44,8 @@ services:
   # Backend Django API
   api:
     build:
-      context: .
-      dockerfile: Api/Dockerfile
+      context: ./Api
+      dockerfile: Dockerfile
     container_name: genapp-api
     restart: unless-stopped
     env_file:
@@ -82,8 +82,8 @@ services:
   # Celery Worker
   celery-worker:
     build:
-      context: .
-      dockerfile: Api/Dockerfile
+      context: ./Api
+      dockerfile: Dockerfile
     container_name: genapp-celery-worker
     restart: unless-stopped
     env_file:
@@ -107,8 +107,8 @@ services:
   # Celery Beat (Agendador)
   celery-beat:
     build:
-      context: .
-      dockerfile: Api/Dockerfile
+      context: ./Api
+      dockerfile: Dockerfile
     container_name: genapp-celery-beat
     restart: unless-stopped
     env_file:
