@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copiar requirements e instalar dependências Python
-COPY Api/requirements.txt .
+COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --user --no-cache-dir -r requirements.txt
 
@@ -49,8 +49,8 @@ ENV PATH=/home/appuser/.local/bin:$PATH
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar código da aplicação (apenas o diretório Api)
-COPY --chown=appuser:appuser Api/ .
+# Copiar código da aplicação
+COPY --chown=appuser:appuser . .
 
 # Criar diretório para arquivos estáticos e media
 RUN mkdir -p static media && \
