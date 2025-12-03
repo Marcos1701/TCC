@@ -57,8 +57,8 @@ RUN mkdir -p static media && \
     chown -R appuser:appuser static media
 
 # Copiar script de entrypoint e torná-lo executável (antes de mudar para non-root user)
-COPY --chown=appuser:appuser Api/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+# O script já foi copiado para /app junto com Api/, então apenas movemos para /
+RUN cp /app/docker-entrypoint.sh /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Mudar para usuário não-root
 USER appuser
