@@ -57,7 +57,7 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         final dbTransactions = await _db.transactionsDao.getAllTransactions();
-        return dbTransactions.map(_mapToModel).toList();
+        return dbTransactions.map((t) => _mapToModel(t)).toList();
       }
       rethrow;
     }
@@ -486,46 +486,5 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       
       return categories;
     });
-  }
-  Future<void> _saveTransactionsToDb(List<TransactionModel> transactions) async {
-    for (final t in transactions) {
-      await _db.transactionsDao.insertTransaction(_mapToCompanion(t));
-    }
-  }
-
-  TransactionModel _mapToModel(Transaction t) {
-    return TransactionModel(
-      id: t.id,
-      description: t.description,
-      amount: t.amount,
-      date: t.date,
-      type: t.type,
-      categoryId: t.categoryId,
-      isRecurring: t.isRecurring,
-      recurrenceValue: t.recurrenceValue,
-      recurrenceUnit: t.recurrenceUnit,
-      recurrenceEndDate: t.recurrenceEndDate,
-      isSynced: t.isSynced,
-      lastUpdated: t.lastUpdated,
-      isDeleted: t.isDeleted,
-    );
-  }
-
-  TransactionsCompanion _mapToCompanion(TransactionModel t) {
-    return TransactionsCompanion.insert(
-      id: t.id,
-      description: t.description,
-      amount: t.amount,
-      date: t.date,
-      type: t.type,
-      categoryId: Value(t.categoryId),
-      isRecurring: Value(t.isRecurring),
-      recurrenceValue: Value(t.recurrenceValue),
-      recurrenceUnit: Value(t.recurrenceUnit),
-      recurrenceEndDate: Value(t.recurrenceEndDate),
-      isSynced: const Value(true),
-      lastUpdated: Value(t.lastUpdated),
-      isDeleted: Value(t.isDeleted),
-    );
   }
 }
