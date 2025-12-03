@@ -45,16 +45,13 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   drift: ^2.29.0
-  drift_web: ^2.29.0
-  sqlite3: ^2.9.4
   path_provider: ^2.1.5
   path: ^1.9.1
   uuid: ^4.5.2
   
-  # Platform-specific dependencies
-  sqlite3_flutter_libs:
-    # Native libraries (doesn't work on web)
-    ^0.5.41
+  # Platform-specific dependencies (only for native platforms, not web)
+  sqlite3: ^2.9.4  # Native SQLite library - excluded from web builds
+  sqlite3_flutter_libs: ^0.5.41  # Native libraries - excluded from web builds
 
 dev_dependencies:
   flutter_test:
