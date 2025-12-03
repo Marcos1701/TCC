@@ -164,7 +164,7 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
             targetAmount: targetAmount ?? current.targetAmount,
             currentAmount: currentAmount ?? current.currentAmount,
             initialAmount: initialAmount ?? current.initialAmount,
-            deadline: deadline ?? current.deadline,
+            deadline: Value(deadline ?? current.deadline),
             goalType: goalType ?? current.goalType,
             isSynced: false,
           );

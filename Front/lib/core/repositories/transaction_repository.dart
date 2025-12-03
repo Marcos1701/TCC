@@ -263,38 +263,15 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
         final current = await _db.transactionsDao.getTransactionById(id);
         if (current != null) {
           final updated = current.copyWith(
-            type: type,
-            description: description,
-            amount: amount,
-            date: date,
-            categoryId: categoryId != null ? categoryId.toString() : null, // Only update if not null? No, copyWith updates if provided. But here I want to update only if provided.
-            // copyWith in Drift data class uses "Value" or just nullable?
-            // Drift data class copyWith:
-            // Transaction copyWith({String? id, String? description, ...})
-            // It replaces if parameter is provided (non-null). If null, it keeps old value?
-            // No, usually copyWith(field: null) sets it to null?
-            // Drift generated copyWith:
-            // Transaction copyWith({String? id, String? description, ...})
-            // If I pass null, does it keep existing or set to null?
-            // Usually: id: id ?? this.id.
-            // So if I pass null, it keeps existing.
-            // But what if I want to set to null?
-            // Drift data classes usually don't support setting to null via copyWith if the parameter is nullable.
-            // I should check generated code or assume standard behavior.
-            // If I want to update only provided fields:
-            // type: type ?? current.type
-            // This works.
-            
-            // But wait, categoryId is nullable. If I want to set it to null?
-            // The method updateTransaction has categoryId as int?.
-            // If passed as null, it means "don't change" or "set to null"?
-            // Usually in patch, null means don't change.
-            // So:
-            categoryId: categoryId != null ? categoryId.toString() : current.categoryId,
+            type: type ?? current.type,
+            description: description ?? current.description,
+            amount: amount ?? current.amount,
+            date: date ?? current.date,
+            categoryId: Value(categoryId != null ? categoryId.toString() : current.categoryId),
             isRecurring: isRecurring ?? current.isRecurring,
-            recurrenceValue: recurrenceValue ?? current.recurrenceValue,
-            recurrenceUnit: recurrenceUnit ?? current.recurrenceUnit,
-            recurrenceEndDate: recurrenceEndDate ?? current.recurrenceEndDate,
+            recurrenceValue: Value(recurrenceValue ?? current.recurrenceValue),
+            recurrenceUnit: Value(recurrenceUnit ?? current.recurrenceUnit),
+            recurrenceEndDate: Value(recurrenceEndDate ?? current.recurrenceEndDate),
             isSynced: false,
           );
           
