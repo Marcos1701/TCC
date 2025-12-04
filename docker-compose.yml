@@ -10,7 +10,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-finance_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -21,6 +21,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - genapp-network
 
@@ -33,6 +34,7 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -53,12 +55,17 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-finance_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres123}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
+      - PORT=8000
+      - WORKERS=4
+      - TIMEOUT=120
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
-      - ./Api:/app
       - static_volume:/app/static
       - media_volume:/app/media
     depends_on:
@@ -67,17 +74,14 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     networks:
       - genapp-network
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
+    command: ["gunicorn"]
 
   # Celery Worker
   celery-worker:
@@ -91,18 +95,22 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-finance_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres123}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
-    volumes:
-      - ./Api:/app
+      - CELERY_CONCURRENCY=2
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      api:
+        condition: service_healthy
     networks:
       - genapp-network
-    command: celery -A config worker -l info
+    command: ["worker"]
 
   # Celery Beat (Agendador)
   celery-beat:
@@ -116,18 +124,21 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-finance_db}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres123}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
-    volumes:
-      - ./Api:/app
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      api:
+        condition: service_healthy
     networks:
       - genapp-network
-    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: ["beat"]
 
   # Frontend Flutter (Opcional - apenas para produção web)
   frontend:
@@ -136,17 +147,20 @@ services:
       dockerfile: Dockerfile
       args:
         API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+        FLUTTER_VERSION: "3.24.5"
     container_name: genapp-frontend
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 10s
     networks:
       - genapp-network
 

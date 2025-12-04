@@ -1,5 +1,9 @@
 # Stage 1: Build stage
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
+
+# Argumentos de build para configuração
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
 
 # Definir variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
@@ -7,12 +11,14 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Instalar dependências do sistema
+# Instalar dependências do sistema (incluindo netcat para healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Criar diretório de trabalho
 WORKDIR /app
@@ -27,13 +33,19 @@ FROM python:3.11-slim
 
 # Definir variáveis de ambiente
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    # Variáveis padrão para produção (podem ser sobrescritas)
+    PORT=8000 \
+    WORKERS=4 \
+    TIMEOUT=120
 
-# Instalar apenas dependências de runtime
+# Instalar apenas dependências de runtime (incluindo netcat para healthcheck)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Criar usuário não-root ANTES de copiar arquivos
 RUN useradd -m -u 1000 appuser && \
@@ -58,10 +70,17 @@ RUN mkdir -p static media && \
 
 # Copiar script de entrypoint e torná-lo executável (antes de mudar para non-root user)
 # O script já foi copiado para /app junto com Api/, então apenas movemos para /
-RUN cp /app/docker-entrypoint.sh /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
+RUN cp /app/docker-entrypoint.sh /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh && \
+    # Garantir que o script tenha line endings Unix (LF, não CRLF)
+    sed -i 's/\r$//' /docker-entrypoint.sh
 
 # Mudar para usuário não-root
 USER appuser
+
+# Healthcheck para garantir que a aplicação está saudável
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/api/health/ || exit 1
 
 # Expor porta
 EXPOSE 8000

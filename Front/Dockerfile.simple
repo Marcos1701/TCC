@@ -3,35 +3,58 @@
 # ==========================================
 
 # Use official Flutter image for building
-FROM ghcr.io/cirruslabs/flutter:3.24.3 AS build
+# NOTA: Verifique a versão mais recente em https://github.com/cirruslabs/docker-images-flutter
+FROM ghcr.io/cirruslabs/flutter:3.24.5 AS build
+
+# Metadados
+LABEL maintainer="GenApp Team"
+LABEL description="Flutter Web Application (Simplified Build)"
 
 # Set working directory
 WORKDIR /app
 
 # Copy pubspec files first for better caching
-COPY pubspec.yaml pubspec.lock ./
+COPY pubspec.yaml pubspec.lock* ./
 
-# Get dependencies
-RUN flutter pub get
+# Get dependencies (permite falha se pubspec.lock não existir)
+RUN flutter pub get || (rm -f pubspec.lock && flutter pub get)
 
 # Copy the rest of the application
 COPY . .
 
 # Build argument for API URL
 ARG API_BASE_URL=https://tcc-production-d286.up.railway.app
+ENV API_BASE_URL=${API_BASE_URL}
+
+# Clean and rebuild to avoid cache issues
+RUN flutter clean && flutter pub get
 
 # Build the Flutter web application
 RUN flutter build web \
     --release \
-    --dart-define=API_BASE_URL=${API_BASE_URL}
+    --dart-define=API_BASE_URL=${API_BASE_URL} || \
+    (echo "Build with dart-define failed, retrying..." && \
+     flutter build web --release)
+
+# Verify build output
+RUN test -f build/web/index.html || (echo "Build verification failed!" && exit 1)
 
 # ==========================================
 # Production Stage
 # ==========================================
 FROM nginx:1.25-alpine AS production
 
+# Metadados
+LABEL maintainer="GenApp Team"
+
+# Instalar wget para healthcheck
+RUN apk add --no-cache wget
+
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Remove default nginx config
+RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Copy custom nginx configuration
 COPY --chown=appuser:appgroup <<'EOF' /etc/nginx/conf.d/default.conf
