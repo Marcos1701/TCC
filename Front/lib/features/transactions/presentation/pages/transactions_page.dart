@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/models/transaction_link.dart';
-import '../../../../core/repositories/transaction_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -28,7 +27,6 @@ class TransactionsPage extends StatefulWidget {
 }
 
 class _TransactionsPageState extends State<TransactionsPage> {
-  final _repository = TransactionRepository();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _cacheManager = CacheManager();
   late final TransactionsViewModel _viewModel;
@@ -36,7 +34,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
   @override
   void initState() {
     super.initState();
-    _viewModel = TransactionsViewModel(repository: _repository);
+    _viewModel = TransactionsViewModel();
     _viewModel.loadTransactions();
     _cacheManager.addListener(_onCacheInvalidated);
   }
@@ -165,7 +163,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
         link: link,
         currency: _currency,
         onDelete: () async {
-          await _repository.deleteTransactionLink(link.identifier);
+          await _viewModel.repository.deleteTransactionLink(link.identifier);
           
           // Close bottom sheet
           if (sheetContext.mounted) {
@@ -378,7 +376,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
                                     isScrollControlled: true,
                                     builder: (context) => TransactionDetailsSheet(
                                       transaction: transaction,
-                                      repository: _repository,
+                                      repository: _viewModel.repository,
                                       onUpdate: () => _viewModel.refreshSilently(),
                                     ),
                                   );

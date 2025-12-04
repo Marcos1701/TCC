@@ -73,7 +73,26 @@ class Categories extends Table {
 
 @DriftDatabase(tables: [Transactions, Goals, Categories], daos: [TransactionsDao, GoalsDao])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(connect());
+  /// Singleton instance
+  static AppDatabase? _instance;
+  
+  /// Private constructor
+  AppDatabase._internal() : super(connect());
+  
+  /// Factory constructor that returns the singleton instance
+  factory AppDatabase() {
+    _instance ??= AppDatabase._internal();
+    return _instance!;
+  }
+  
+  /// Get the singleton instance (alternative accessor)
+  static AppDatabase get instance => AppDatabase();
+  
+  /// Reset the singleton (useful for testing)
+  static void resetInstance() {
+    _instance?.close();
+    _instance = null;
+  }
 
   @override
   int get schemaVersion => 1;

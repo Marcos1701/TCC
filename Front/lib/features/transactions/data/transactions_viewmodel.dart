@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/models/transaction.dart';
 import '../../../core/models/transaction_link.dart';
-import '../../../core/repositories/finance_repository.dart'; // Keep for backward compatibility if needed, or remove if unused
 import '../../../core/repositories/transaction_repository.dart';
 import '../../../core/repositories/interfaces/i_transaction_repository.dart';
 import '../../../core/services/cache_manager.dart';
@@ -21,6 +20,12 @@ class TransactionsViewModel extends ChangeNotifier {
       : _repository = repository ?? TransactionRepository();
 
   final ITransactionRepository _repository;
+  
+  /// Exposes the repository for external use (e.g., in sheets)
+  ITransactionRepository get repository => _repository;
+  
+  /// Flag to track if the ViewModel has been disposed
+  bool _isDisposed = false;
   
   // Estado
   TransactionsViewState _state = TransactionsViewState.initial;
@@ -54,13 +59,20 @@ class TransactionsViewModel extends ChangeNotifier {
   bool get hasMore => _hasMore;
   bool get isLoadingMore => _isLoadingMore;
   
+  /// Safe notifyListeners that checks if disposed
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+  
   /// Carrega transações do repositório
   Future<void> loadTransactions({String? type}) async {
     _filter = type;
     _state = TransactionsViewState.loading;
     _errorMessage = null;
     _hasMore = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       _transactions = await _repository.fetchTransactions(
@@ -76,7 +88,7 @@ class TransactionsViewModel extends ChangeNotifier {
       _state = TransactionsViewState.error;
       _errorMessage = 'Erro ao carregar transações: ${e.toString()}';
     } finally {
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -85,7 +97,7 @@ class TransactionsViewModel extends ChangeNotifier {
     if (!_hasMore || _isLoadingMore) return;
 
     _isLoadingMore = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final currentOffset = _transactions.length;
@@ -104,7 +116,7 @@ class TransactionsViewModel extends ChangeNotifier {
       // Mantém estado atual em caso de erro de paginação
     } finally {
       _isLoadingMore = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -113,7 +125,7 @@ class TransactionsViewModel extends ChangeNotifier {
     try {
       _transactions = await _repository.fetchTransactions(type: _filter);
       _links = await _repository.fetchTransactionLinks();
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Erro ao atualizar transações silenciosamente: $e');
@@ -138,7 +150,7 @@ class TransactionsViewModel extends ChangeNotifier {
     if (description.trim().isEmpty) {
       _errorMessage = 'Descrição não pode ser vazia';
       _state = TransactionsViewState.error;
-      notifyListeners();
+      _safeNotifyListeners();
       return null;
     }
 
@@ -146,7 +158,7 @@ class TransactionsViewModel extends ChangeNotifier {
     if (amount <= 0) {
       _errorMessage = 'Valor deve ser maior que zero';
       _state = TransactionsViewState.error;
-      notifyListeners();
+      _safeNotifyListeners();
       return null;
     }
 
@@ -156,7 +168,7 @@ class TransactionsViewModel extends ChangeNotifier {
     if (date.isAfter(maxFutureDate)) {
       _errorMessage = 'Data não pode ser mais de 10 anos no futuro';
       _state = TransactionsViewState.error;
-      notifyListeners();
+      _safeNotifyListeners();
       return null;
     }
 
@@ -165,14 +177,14 @@ class TransactionsViewModel extends ChangeNotifier {
       if (recurrenceValue == null || recurrenceValue <= 0) {
         _errorMessage = 'Valor de recorrência deve ser maior que zero';
         _state = TransactionsViewState.error;
-        notifyListeners();
+        _safeNotifyListeners();
         return null;
       }
 
       if (recurrenceUnit == null || recurrenceUnit.isEmpty) {
         _errorMessage = 'Unidade de recorrência não pode ser vazia';
         _state = TransactionsViewState.error;
-        notifyListeners();
+        _safeNotifyListeners();
         return null;
       }
     }
@@ -194,7 +206,7 @@ class TransactionsViewModel extends ChangeNotifier {
 
     // 2. Adiciona à lista local imediatamente
     _pendingTransactions[tempId] = tempTransaction;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final response = await _repository.createTransaction(
@@ -216,12 +228,12 @@ class TransactionsViewModel extends ChangeNotifier {
       
       CacheManager().invalidateAfterTransaction(action: 'transaction created');
       
-      notifyListeners();
+      _safeNotifyListeners();
       return created;
     } catch (e) {
       // 7. Rollback em caso de erro
       _pendingTransactions.remove(tempId);
-      notifyListeners();
+      _safeNotifyListeners();
       if (kDebugMode) {
         debugPrint('Erro ao criar transação: $e');
       }
@@ -237,7 +249,7 @@ class TransactionsViewModel extends ChangeNotifier {
     if (index == -1) return false;
 
     final removed = _transactions.removeAt(index);
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       // 2. Deleta no servidor usando UUID se disponível
@@ -250,7 +262,7 @@ class TransactionsViewModel extends ChangeNotifier {
     } catch (e) {
       // 4. Rollback em caso de erro
       _transactions.insert(index, removed);
-      notifyListeners();
+      _safeNotifyListeners();
       if (kDebugMode) {
         debugPrint('Erro ao deletar transação: $e');
       }
@@ -263,7 +275,7 @@ class TransactionsViewModel extends ChangeNotifier {
     if (_filter == newFilter) return;
     _filter = newFilter;
     _state = TransactionsViewState.loading;
-    notifyListeners();
+    _safeNotifyListeners();
     
     try {
       _transactions = await _repository.fetchTransactions(type: newFilter);
@@ -276,7 +288,7 @@ class TransactionsViewModel extends ChangeNotifier {
         debugPrint('Erro ao aplicar filtro: $e');
       }
     } finally {
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -286,11 +298,12 @@ class TransactionsViewModel extends ChangeNotifier {
     if (_state == TransactionsViewState.error) {
       _state = TransactionsViewState.initial;
     }
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _pendingTransactions.clear();
     super.dispose();
   }
