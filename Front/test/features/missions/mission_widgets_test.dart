@@ -71,7 +71,7 @@ void main() {
       final repository = _FakeFinanceRepository(
         recommended: missions,
         categoryMissions: {1: missions},
-        goalMissions: {10: missions},
+        goalMissions: {'a1b2c3d4-e5f6-7890-abcd-ef1234567890': missions},  // UUID key
         context: _sampleContext,
       );
       final viewModel = MissionsViewModel(repository: repository);
@@ -126,7 +126,7 @@ class _FakeFinanceRepository extends FinanceRepository {
 
   final List<MissionModel> recommended;
   final Map<int, List<MissionModel>> categoryMissions;
-  final Map<int, List<MissionModel>> goalMissions;
+  final Map<String, List<MissionModel>> goalMissions;  // key is UUID
   final Map<String, dynamic> context;
 
   @override
@@ -149,7 +149,7 @@ class _FakeFinanceRepository extends FinanceRepository {
 
   @override
   Future<List<MissionModel>> fetchMissionsByGoal(
-    int goalId, {
+    String goalId, {  // UUID
     String? missionType,
     bool includeCompleted = false,
   }) async {
@@ -195,7 +195,7 @@ MissionModel _buildMission() {
     targetCategories: const [],
     targetReductionPercent: 15,
     categorySpendingLimit: null,
-    targetGoal: 10,
+    targetGoal: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',  // UUID
     goalProgressTarget: 0.6,
     savingsIncreaseAmount: null,
     requiresDailyAction: true,

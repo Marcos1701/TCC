@@ -443,66 +443,40 @@ def validate_mission_progress_manual(progress):
     """
     Valida progresso de uma missão MANUALMENTE (fora do ciclo diário).
     Útil para validação imediata após transação ou verificação on-demand.
+    
+    Nota: Esta função foi simplificada após remoção do modelo UserDailySnapshot.
+    Agora utiliza os validadores de missão diretamente.
     """
-    from ..models import UserDailySnapshot
+    from ..mission_types import MissionValidatorFactory
     
-    today = timezone.now().date()
-    snapshot = UserDailySnapshot.objects.filter(
-        user=progress.user,
-        snapshot_date=today
-    ).first()
-    
-    if not snapshot:
-        summary = calculate_summary(progress.user)
-        
-        from ..tasks import (
-            _calculate_category_spending,
-            _calculate_goals_progress,
-            _calculate_total_savings
+    try:
+        validator = MissionValidatorFactory.create_validator(
+            progress.mission,
+            progress.user,
+            progress
         )
         
-        month_start = today.replace(day=1)
+        result = validator.calculate_progress()
         
-        snapshot = UserDailySnapshot(
-            user=progress.user,
-            snapshot_date=today,
-            tps=summary.get('tps', Decimal('0')),
-            rdr=summary.get('rdr', Decimal('0')),
-            ili=summary.get('ili', Decimal('0')),
-            total_income=summary.get('total_income', Decimal('0')),
-            total_expense=summary.get('total_expense', Decimal('0')),
-            total_debt=summary.get('total_debt', Decimal('0')),
-            available_balance=summary.get('available_balance', Decimal('0')),
-            category_spending=_calculate_category_spending(progress.user, month_start, today),
-            savings_total=_calculate_total_savings(progress.user),
-            goals_progress=_calculate_goals_progress(progress.user),
-            transactions_registered_today=Transaction.objects.filter(
-                user=progress.user,
-                date=today
-            ).exists(),
-        )
-    
-    from ..tasks import (
-        _evaluate_mission_criteria,
-        _calculate_consecutive_days,
-        _calculate_mission_progress_percentage
-    )
-    
-    met_criteria, details = _evaluate_mission_criteria(progress, snapshot)
-    
-    consecutive = _calculate_consecutive_days(progress, met_criteria)
-    progress_pct = _calculate_mission_progress_percentage(progress, snapshot, consecutive)
-    
-    progress.progress = Decimal(str(progress_pct))
-    
-    if progress_pct >= 100:
-        progress.status = MissionProgress.Status.COMPLETED
-        progress.completed_at = timezone.now()
-        apply_mission_reward(progress)
-    elif progress.status == MissionProgress.Status.PENDING and progress_pct > 0:
-        progress.status = MissionProgress.Status.ACTIVE
-        progress.started_at = timezone.now()
-    
-    progress.save()
+        progress.progress = Decimal(str(result['progress_percentage']))
+        
+        if result['is_completed'] and not progress.completed_at:
+            is_valid, message = validator.validate_completion()
+            
+            if is_valid:
+                progress.status = MissionProgress.Status.COMPLETED
+                progress.completed_at = timezone.now()
+                apply_mission_reward(progress)
+        elif progress.status == MissionProgress.Status.PENDING and result['progress_percentage'] > 0:
+            progress.status = MissionProgress.Status.ACTIVE
+            if not progress.started_at:
+                progress.started_at = timezone.now()
+        
+        progress.save()
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"Erro ao validar progresso manual da missão {progress.mission.title}: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
     
     return progress

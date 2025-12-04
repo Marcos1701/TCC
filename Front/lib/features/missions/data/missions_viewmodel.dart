@@ -27,7 +27,7 @@ class MissionsViewModel extends ChangeNotifier {
   String? _errorMessage;
   List<MissionModel> _recommendedMissions = [];
   final Map<int, List<MissionModel>> _missionsByCategory = {};
-  final Map<int, List<MissionModel>> _missionsByGoal = {};
+  final Map<String, List<MissionModel>> _missionsByGoal = {};  // key is UUID
   Map<String, dynamic>? _contextAnalysis;
   bool _catalogLoading = false;
   String? _catalogError;
@@ -53,7 +53,7 @@ class MissionsViewModel extends ChangeNotifier {
   List<MissionModel> get recommendedMissions => _recommendedMissions;
   List<MissionModel> missionsForCategory(int categoryId) =>
       _missionsByCategory[categoryId] ?? const [];
-  List<MissionModel> missionsForGoal(int goalId) =>
+  List<MissionModel> missionsForGoal(String goalId) =>  // UUID
       _missionsByGoal[goalId] ?? const [];
   Map<String, dynamic>? get missionContextAnalysis => _contextAnalysis;
   bool get isCatalogLoading => _catalogLoading;
@@ -305,7 +305,7 @@ class MissionsViewModel extends ChangeNotifier {
       for (final item in targets) {
         if (item is Map && item['metric'] == 'GOAL') {
           descriptors.add(_GoalDescriptor(
-            id: item['goal_id'] as int?,
+            id: item['goal_id']?.toString(),  // UUID
             label: (item['label'] as String?) ?? 'Meta financeira',
           ));
         }
@@ -324,7 +324,7 @@ class MissionsViewModel extends ChangeNotifier {
 
   /// Carrega missões relacionadas a uma meta
   Future<List<MissionModel>> loadMissionsForGoal(
-    int goalId, {
+    String goalId, {  // UUID
     bool forceReload = false,
     String? missionType,
     bool includeCompleted = false,
@@ -593,7 +593,7 @@ class GoalMissionSummary {
     this.averageTarget,
   });
 
-  final int? goalId;
+  final String? goalId;  // UUID
   final String label;
   final int count;
   final Set<String> missionTypes;
@@ -618,7 +618,7 @@ class _GoalAccumulator {
   _GoalAccumulator(this.label, this.id);
 
   final String label;
-  final int? id;
+  final String? id;  // UUID
   int count = 0;
   double _totalTarget = 0;
   int _targetSamples = 0;
@@ -660,6 +660,6 @@ class _GoalDescriptor {
     required this.label,
   });
 
-  final int? id;
+  final String? id;  // UUID
   final String label;
 }

@@ -1069,9 +1069,9 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
   
   // Seleções de FK (categorias e metas)
   int? _selectedCategoryId;
-  int? _selectedGoalId;
+  String? _selectedGoalId;  // UUID
   List<int> _selectedCategoriesIds = [];
-  List<int> _selectedGoalsIds = [];
+  List<String> _selectedGoalsIds = [];  // UUIDs
 
   @override
   void initState() {
@@ -1144,7 +1144,7 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
     _selectedCategoryId = targetCategory?['id'] as int?;
     
     final targetGoal = mission?['target_goal'] as Map<String, dynamic>?;
-    _selectedGoalId = targetGoal?['id'] as int?;
+    _selectedGoalId = targetGoal?['id']?.toString();  // UUID
     
     // Multi-seleções (se disponíveis)
     final targetCategories = mission?['target_categories'] as List<dynamic>?;

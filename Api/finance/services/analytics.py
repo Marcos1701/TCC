@@ -17,114 +17,98 @@ def analyze_user_evolution(user, days=90):
     """
     Analisa evolução do usuário nos últimos X dias.
     Usado pela IA para gerar missões personalizadas baseadas em histórico real.
+    
+    Nota: Após remoção do UserDailySnapshot, esta função utiliza dados
+    calculados em tempo real a partir das transações.
     """
-    from ..models import UserDailySnapshot
     from datetime import timedelta
+    from django.db.models.functions import TruncDate
     
     start_date = timezone.now().date() - timedelta(days=days)
     
-    snapshots = UserDailySnapshot.objects.filter(
+    # Buscar transações do período
+    transactions = Transaction.objects.filter(
         user=user,
-        snapshot_date__gte=start_date
-    ).order_by('snapshot_date')
+        date__gte=start_date
+    )
     
-    if not snapshots.exists():
+    if not transactions.exists():
         return {
             'has_data': False,
-            'message': 'Dados insuficientes para análise (menos de 1 dia de histórico)'
+            'message': 'Dados insuficientes para análise (nenhuma transação no período)'
         }
     
-    tps_data = snapshots.aggregate(
-        avg=Avg('tps'),
-        min=Min('tps'),
-        max=Max('tps')
-    )
-    first_tps = float(snapshots.first().tps)
-    last_tps = float(snapshots.last().tps)
-    tps_trend = 'crescente' if last_tps > first_tps else 'decrescente' if last_tps < first_tps else 'estável'
+    # Calcular indicadores atuais
+    current_summary = calculate_summary(user)
     
-    rdr_data = snapshots.aggregate(
-        avg=Avg('rdr'),
-        min=Min('rdr'),
-        max=Max('rdr')
-    )
-    first_rdr = float(snapshots.first().rdr)
-    last_rdr = float(snapshots.last().rdr)
-    rdr_trend = 'crescente' if last_rdr > first_rdr else 'decrescente' if last_rdr < first_rdr else 'estável'
+    # Analisar transações por dia
+    daily_data = transactions.annotate(
+        day=TruncDate('date')
+    ).values('day').annotate(
+        income=Sum('amount', filter=Q(type=Transaction.TransactionType.INCOME)),
+        expense=Sum('amount', filter=Q(type=Transaction.TransactionType.EXPENSE)),
+        tx_count=Count('id')
+    ).order_by('day')
     
-    ili_data = snapshots.aggregate(
-        avg=Avg('ili'),
-        min=Min('ili'),
-        max=Max('ili')
-    )
-    first_ili = float(snapshots.first().ili)
-    last_ili = float(snapshots.last().ili)
-    ili_trend = 'crescente' if last_ili > first_ili else 'decrescente' if last_ili < first_ili else 'estável'
+    days_with_transactions = daily_data.count()
+    total_days = (timezone.now().date() - start_date).days or 1
+    consistency_rate = (days_with_transactions / total_days) * 100
     
-    all_category_spending = {}
-    for snapshot in snapshots:
-        for cat, data in snapshot.category_spending.items():
-            if cat not in all_category_spending:
-                all_category_spending[cat] = 0
-            all_category_spending[cat] += data['total']
+    # Calcular gastos por categoria
+    category_spending = transactions.filter(
+        type=Transaction.TransactionType.EXPENSE
+    ).values('category__name').annotate(
+        total=Sum('amount')
+    ).order_by('-total')
     
-    problem_category = max(
-        all_category_spending.items(),
-        key=lambda x: x[1]
-    )[0] if all_category_spending else None
+    all_category_spending = {
+        item['category__name']: float(item['total'])
+        for item in category_spending
+        if item['category__name']
+    }
     
-    days_with_registro = snapshots.filter(
-        transactions_registered_today=True
-    ).count()
-    consistency_rate = (days_with_registro / snapshots.count()) * 100
+    problem_category = list(all_category_spending.keys())[0] if all_category_spending else None
+    
+    # Identificar problemas e forças
+    tps = float(current_summary.get('tps', 0))
+    rdr = float(current_summary.get('rdr', 0))
+    ili = float(current_summary.get('ili', 0))
     
     problems = []
-    if tps_data['avg'] < 15:
+    if tps < 15:
         problems.append('TPS_BAIXO')
-    if rdr_data['avg'] > 40:
+    if rdr > 40:
         problems.append('RDR_ALTO')
-    if ili_data['avg'] < 3:
+    if ili < 3:
         problems.append('ILI_BAIXO')
     if consistency_rate < 50:
         problems.append('BAIXA_CONSISTENCIA')
     
     strengths = []
-    if tps_trend == 'crescente':
-        strengths.append('TPS_MELHORANDO')
-    if rdr_trend == 'decrescente':
-        strengths.append('RDR_MELHORANDO')
-    if ili_trend == 'crescente':
-        strengths.append('ILI_MELHORANDO')
+    if tps >= 20:
+        strengths.append('TPS_BOM')
+    if rdr <= 30:
+        strengths.append('RDR_BOM')
+    if ili >= 6:
+        strengths.append('ILI_BOM')
     if consistency_rate > 80:
         strengths.append('ALTA_CONSISTENCIA')
     
     return {
         'has_data': True,
         'period_days': days,
-        'snapshots_count': snapshots.count(),
+        'transactions_count': transactions.count(),
         'tps': {
-            'average': float(tps_data['avg']),
-            'min': float(tps_data['min']),
-            'max': float(tps_data['max']),
-            'first': first_tps,
-            'last': last_tps,
-            'trend': tps_trend,
+            'current': tps,
+            'status': 'bom' if tps >= 20 else 'atenção' if tps >= 10 else 'crítico',
         },
         'rdr': {
-            'average': float(rdr_data['avg']),
-            'min': float(rdr_data['min']),
-            'max': float(rdr_data['max']),
-            'first': first_rdr,
-            'last': last_rdr,
-            'trend': rdr_trend,
+            'current': rdr,
+            'status': 'bom' if rdr <= 30 else 'atenção' if rdr <= 40 else 'crítico',
         },
         'ili': {
-            'average': float(ili_data['avg']),
-            'min': float(ili_data['min']),
-            'max': float(ili_data['max']),
-            'first': first_ili,
-            'last': last_ili,
-            'trend': ili_trend,
+            'current': ili,
+            'status': 'bom' if ili >= 6 else 'atenção' if ili >= 3 else 'crítico',
         },
         'categories': {
             'most_spending': problem_category,
@@ -132,8 +116,8 @@ def analyze_user_evolution(user, days=90):
         },
         'consistency': {
             'rate': consistency_rate,
-            'days_registered': days_with_registro,
-            'total_days': snapshots.count(),
+            'days_with_transactions': days_with_transactions,
+            'total_days': total_days,
         },
         'problems': problems,
         'strengths': strengths,
@@ -143,10 +127,13 @@ def analyze_user_evolution(user, days=90):
 def analyze_category_patterns(user, days=90):
     """
     Analisa padrões de gastos por categoria para sugerir missões específicas.
+    
+    Nota: Após remoção do UserDailySnapshot, esta função utiliza dados
+    calculados em tempo real a partir das transações.
     """
-    from ..models import UserDailySnapshot
     from datetime import timedelta
     from django.core.cache import cache
+    from django.db.models.functions import TruncDate
     
     if not user or days <= 0:
         return {'has_data': False, 'error': 'Parâmetros inválidos'}
@@ -159,46 +146,61 @@ def analyze_category_patterns(user, days=90):
     try:
         start_date = timezone.now().date() - timedelta(days=days)
         
-        snapshots = UserDailySnapshot.objects.filter(
+        # Buscar transações de despesa do período
+        expense_transactions = Transaction.objects.filter(
             user=user,
-            snapshot_date__gte=start_date
-        ).order_by('snapshot_date')
+            type=Transaction.TransactionType.EXPENSE,
+            date__gte=start_date
+        )
         
-        if not snapshots.exists():
+        if not expense_transactions.exists():
             result = {'has_data': False}
             cache.set(cache_key, result, 900)
             return result
         
+        # Agrupar por categoria e data
+        daily_category_data = expense_transactions.annotate(
+            day=TruncDate('date')
+        ).values('day', 'category__name').annotate(
+            total=Sum('amount'),
+            count=Count('id')
+        ).order_by('day', 'category__name')
+        
+        # Calcular número de dias no período
+        total_days = (timezone.now().date() - start_date).days or 1
+        
+        # Construir análise por categoria
         category_analysis = {}
         
-        for snapshot in snapshots:
-            if not hasattr(snapshot, 'category_spending') or not snapshot.category_spending:
+        for item in daily_category_data:
+            cat = item['category__name']
+            if not cat:
                 continue
                 
-            for cat, data in snapshot.category_spending.items():
-                if cat not in category_analysis:
-                    category_analysis[cat] = {
-                        'total': 0,
-                        'count': 0,
-                        'daily_values': [],
-                        'days_with_spending': 0,
-                    }
-                
-                category_analysis[cat]['total'] += data.get('total', 0)
-                category_analysis[cat]['count'] += data.get('count', 0)
-                category_analysis[cat]['daily_values'].append(data.get('total', 0))
-                if data.get('total', 0) > 0:
-                    category_analysis[cat]['days_with_spending'] += 1
+            if cat not in category_analysis:
+                category_analysis[cat] = {
+                    'total': 0,
+                    'count': 0,
+                    'daily_values': [],
+                    'days_with_spending': 0,
+                }
+            
+            amount = float(item['total']) if item['total'] else 0
+            category_analysis[cat]['total'] += amount
+            category_analysis[cat]['count'] += item['count']
+            category_analysis[cat]['daily_values'].append(amount)
+            if amount > 0:
+                category_analysis[cat]['days_with_spending'] += 1
         
         recommendations = []
         
         for cat, stats in category_analysis.items():
-            avg_daily = stats['total'] / len(snapshots) if len(snapshots) > 0 else 0
+            avg_daily = stats['total'] / total_days if total_days > 0 else 0
             max_daily = max(stats['daily_values']) if stats['daily_values'] else 0
             
             stats['average_daily'] = avg_daily
             stats['max_daily'] = max_daily
-            stats['frequency'] = (stats['days_with_spending'] / len(snapshots)) * 100
+            stats['frequency'] = (stats['days_with_spending'] / total_days) * 100
             
             if avg_daily > 50 and stats['frequency'] > 70:
                 recommendations.append({

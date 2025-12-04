@@ -426,7 +426,7 @@ class FinanceRepository {
   }
 
   Future<List<MissionModel>> fetchMissionsByGoal(
-    int goalId, {
+    String goalId, {  // UUID
     String? missionType,
     bool includeCompleted = false,
   }) async {

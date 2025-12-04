@@ -184,12 +184,12 @@ class AnalyticsService {
   /// Tracks opening of collections (category/goal)
   static void trackMissionCollectionViewed({
     required String collectionType,
-    required int targetId,
+    required Object targetId,  // int for category, String (UUID) for goal
     required int missionCount,
   }) {
     _instance._logEvent('mission_collection_viewed', {
       'collection_type': collectionType,
-      'target_id': targetId,
+      'target_id': targetId.toString(),
       'mission_count': missionCount,
       'timestamp': DateTime.now().toIso8601String(),
     });

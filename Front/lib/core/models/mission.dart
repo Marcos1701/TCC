@@ -72,7 +72,7 @@ class MissionModel {
   final List<CategoryModel> targetCategories;
   final double? targetReductionPercent;
   final double? categorySpendingLimit;
-  final int? targetGoal;
+  final String? targetGoal;  // UUID da meta (Goal usa UUID)
   final double? goalProgressTarget;
   final double? savingsIncreaseAmount;
   final bool? requiresDailyAction;
@@ -138,7 +138,7 @@ class MissionModel {
       categorySpendingLimit: map['category_spending_limit'] != null
           ? double.parse(map['category_spending_limit'].toString())
           : null,
-      targetGoal: map['target_goal'] as int?,
+      targetGoal: map['target_goal']?.toString(),
       goalProgressTarget: map['goal_progress_target'] != null
           ? double.parse(map['goal_progress_target'].toString())
           : null,
