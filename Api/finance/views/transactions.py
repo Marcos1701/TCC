@@ -65,6 +65,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
             cnt=Count('id')
         ).values('cnt')
         
+        return Transaction.objects.filter(
+            user=self.request.user
+        ).select_related('category').annotate(
+            outgoing_links_amount=Coalesce(Subquery(outgoing_sum), Value(Decimal('0'))),
+            incoming_links_amount=Coalesce(Subquery(incoming_sum), Value(Decimal('0'))),
+            outgoing_links_count=Coalesce(Subquery(outgoing_count), Value(0)),
+            incoming_links_count=Coalesce(Subquery(incoming_count), Value(0)),
+        ).order_by('-date', '-created_at')
     
     def create(self, request, *args, **kwargs):
         """Criar transação com XP reward."""
