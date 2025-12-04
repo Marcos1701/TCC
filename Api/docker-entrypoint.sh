@@ -11,9 +11,15 @@ validate_env() {
     
     local missing_vars=()
     
-    # SECRET_KEY é obrigatório em produção
-    if [ -z "$SECRET_KEY" ] && [ "$DJANGO_DEBUG" != "True" ]; then
-        missing_vars+=("SECRET_KEY")
+    # SECRET_KEY é obrigatório em produção (aceita SECRET_KEY ou DJANGO_SECRET_KEY)
+    if [ -z "$SECRET_KEY" ] && [ -z "$DJANGO_SECRET_KEY" ] && [ "$DJANGO_DEBUG" != "True" ] && [ "$DJANGO_DEBUG" != "true" ]; then
+        missing_vars+=("SECRET_KEY or DJANGO_SECRET_KEY")
+    fi
+    
+    # Exportar DJANGO_SECRET_KEY como SECRET_KEY se necessário
+    if [ -z "$SECRET_KEY" ] && [ -n "$DJANGO_SECRET_KEY" ]; then
+        export SECRET_KEY="$DJANGO_SECRET_KEY"
+        echo "✅ Using DJANGO_SECRET_KEY as SECRET_KEY"
     fi
     
     # DATABASE_URL ou variáveis individuais de DB
