@@ -568,6 +568,17 @@ class UserProfileViewSet(
             'success': True,
             'completed_count': count
         })
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def dev_clear_cache(self, request):
+        """Limpa cache do usuário (apenas para desenvolvimento)."""
+        user = request.user
+        invalidate_user_dashboard_cache(user)
+        
+        return Response({
+            'success': True,
+            'message': 'Cache invalidado com sucesso'
+        })
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def dev_add_test_data(self, request):

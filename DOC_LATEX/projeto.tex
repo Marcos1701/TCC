@@ -140,29 +140,21 @@ Criar uma plataforma intuitiva para o registro e organização de finanças pess
 \end{itemize}
 
 
-\section{Público-Alvo e Escopo de Aplicação}
+\section{Público-Alvo e Escopo}
 
-O GenApp foi idealizado para atender especialmente indivíduos que enfrentam dificuldades no controle de suas finanças pessoais e que buscam uma solução prática e motivadora para melhorar sua saúde financeira. O público-alvo inclui:
-
+O GenApp destina-se a indivíduos que buscam aprimorar sua saúde financeira, com foco especial em jovens adultos em início de carreira e pessoas com baixa literacia financeira. O público-alvo abrange:
 \begin{itemize}
-    \item \textbf{Jovens adultos e universitários:} em fase inicial de independência financeira, muitas vezes com pouca experiência em gestão de recursos.
-    \item \textbf{Famílias em início de estruturação:} que necessitam organizar receitas e despesas para atingir metas como compra de imóvel, reserva de emergência ou planejamento de viagens.
-    \item \textbf{Pessoas com baixa literacia financeira:} que não possuem o hábito de poupar ou que enfrentam dificuldades em compreender conceitos financeiros básicos.
-    \item \textbf{Usuários motivados por elementos lúdicos:} indivíduos que se engajam mais facilmente em atividades interativas e gamificadas, preferindo soluções que unem praticidade com incentivo motivacional.
+    \item \textbf{Jovens Adultos e Universitários:} Em fase de transição para a independência financeira.
+    \item \textbf{Famílias em Estruturação:} Que necessitam organizar o orçamento para alcançar metas de médio e longo prazo.
+    \item \textbf{Usuários Motivados por Gamificação:} Que preferem abordagens lúdicas e interativas para o engajamento em tarefas rotineiras.
 \end{itemize}
 
-\subsection{Escopo de Aplicação}
-
-O escopo do GenApp concentra-se no apoio à educação e organização financeira pessoal. Assim, algumas delimitações importantes são destacadas:
-
+\subsection*{Delimitação do Escopo}
+O projeto concentra-se na educação e organização financeira pessoal, atuando como uma ferramenta complementar e não substitutiva aos aplicativos bancários.
 \begin{itemize}
-    \item O sistema não tem a finalidade de substituir aplicativos bancários ou de investimento, mas sim de atuar como ferramenta complementar de conscientização e planejamento.
-    \item O foco é no registro manual de transações e na análise de indicadores financeiros simples e objetivos, como a Taxa de Poupança Pessoal (TPS) e a Razão Dívida-Renda (RDR).
-    \item Recursos avançados, como integração automática com contas bancárias e carteiras digitais, estão fora do escopo da versão inicial, podendo ser considerados em trabalhos futuros.
-    \item O projeto prioriza a experiência do usuário e o incentivo comportamental, mais do que a complexidade de cálculos financeiros.
+    \item \textbf{Foco:} Registro manual de transações para conscientização, cálculo de índices (TPS, RDR) e sistema de missões.
+    \item \textbf{Limitações:} A versão atual não contempla integração automática com instituições financeiras (Open Finance), priorizando a segurança e a simplicidade da arquitetura inicial.
 \end{itemize}
-
-Dessa forma, o GenApp se posiciona como uma solução acessível e educativa, voltada ao fortalecimento da autonomia dos usuários no gerenciamento de suas finanças, com foco em praticidade, engajamento e promoção de hábitos financeiros mais saudáveis.
 
 
 \section{Análise dos Concorrentes e Diferenciais do GenApp}
@@ -190,131 +182,7 @@ Dessa forma, seus principais diferenciais incluem:
     \item \textbf{Ajuste Inteligente de Missões:} O aplicativo considera o comportamento financeiro do usuário e ajusta as missões a serem cumpridas em função do seu gasto e da sua economia.
 \end{itemize}
 
-\chapter{Tecnologias Planejadas}
-Para garantir um desenvolvimento eficiente, o GenApp será construído com um conjunto de tecnologias modernas que abrangem desde a prototipação até a segurança dos dados.
 
-\section{Gerenciamento do Projeto}
-O \textbf{Trello} foi escolhido para organizar o desenvolvimento do projeto, oferecendo quadros ágeis que permitem acompanhar tarefas, responsáveis e etapas, alinhados ao modelo \textit{SCRUM}.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{./imagens/trello.png}
-    \caption{Trello}
-    \label{fig:trello}
-\end{figure}
-
-\section{Design e Prototipação}
-Para o design das interfaces, utilizou-se o \textbf{Figma}, ferramenta de prototipação colaborativa baseada na web. Ele permitiu criar as telas do aplicativo e simular a navegação, facilitando o planejamento da experiência do usuário antes da implementação.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{./imagens/figma.png}
-    \caption{Figma}
-    \label{fig:figma}
-\end{figure}
-
-\section{Desenvolvimento Frontend}
-O desenvolvimento do frontend será realizado em \textbf{Flutter}, o framework multiplataforma do Google. Suas principais vantagens incluem:
-\begin{itemize}\itemsep=5pt
-    \item Renderização nativa, garantindo uma experiência de usuário fluida;
-    \item Suporte a bibliotecas gráficas, como \texttt{fl\_chart}, para visualização dos dados financeiros;
-    \item Facilidade na criação de interfaces responsivas, adaptáveis a diferentes dispositivos;
-    \item Integração com a biblioteca \texttt{dio}, que possibilita requisições HTTP seguras com suporte nativo ao protocolo TLS.
-\end{itemize}
-
-\section{Desenvolvimento Backend}
-O backend será desenvolvido em \textbf{Python}, utilizando o framework \textbf{Django}, pela robustez, produtividade e ecossistema consolidado. As principais características dessa escolha são:
-\begin{itemize}\itemsep=5pt
-    \item Arquitetura do Django baseada no padrão \textbf{MTV (Model-Template-View)}; no contexto de API utiliza-se as \textbf{Views do DRF} e \textbf{Serializers} para organizar a lógica e os contratos de dados;
-    \item Implementação simplificada de APIs RESTful por meio do \textbf{Django REST Framework (DRF)};
-    \item Integração eficiente com bancos de dados relacionais utilizando o \textbf{ORM nativo do Django};
-    \item Suporte integrado a autenticação, autorização, sessões e middleware de segurança;
-    \item Ecossistema maduro; neste projeto utiliza-se \texttt{djangorestframework-simplejwt} (tokens JWT).
-\end{itemize}
-
-
-\section{Banco de Dados}
-O sistema de banco de dados escolhido é o \textbf{PostgreSQL}, reconhecido por sua robustez e eficiência em aplicações financeiras. Ele será responsável por armazenar:
-\begin{itemize}\itemsep=5pt
-    \item Registros categorizados de receitas e despesas;
-    \item Informações sobre pontuação, níveis e missões;
-    \item Dados de usuários e credenciais protegidas.
-\end{itemize}
-
-\section{Controle de Versão e Colaboração}
-O \textbf{GitHub} é utilizado para hospedagem e controle do código-fonte. A plataforma possibilita versionamento eficiente, colaboração em equipe e integração contínua.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{./imagens/github.png}
-    \caption{GitHub}
-    \label{fig:github}
-\end{figure}
-
-\section{Autenticação e Segurança}
-O sistema de autenticação do GenApp combina \textbf{hashing seguro}, \textbf{tokens baseados em JWT} e o uso do \textbf{protocolo TLS}, visando proteger a privacidade e integridade dos dados do usuário.
-
-\subsection{Proteção de Senhas}
-As senhas não são armazenadas em texto plano. O \textbf{Django} utiliza por padrão \textbf{PBKDF2 com SHA-256}, com \textit{salt} e \textbf{múltiplas iterações}, o que mitiga ataques de dicionário e \textit{rainbow tables}. O framework também oferece suporte a algoritmos como \textbf{Argon2}, \textbf{bcrypt} e \textbf{scrypt}.
-
-\subsection{Autenticação por Token}
-Após um login bem-sucedido, o servidor gera um \textbf{JSON Web Token (JWT)}:
-\begin{itemize}\itemsep=5pt
-    \item Assinado com algoritmo HMAC-SHA256;
-    \item Armazenado de forma segura no dispositivo, utilizando \texttt{flutter\_secure\_storage};
-    \item Incluído em cada requisição via cabeçalho \texttt{Authorization}.
-\end{itemize}
-
-\subsection{Transmissão Segura de Dados}
-Todas as comunicações entre cliente e servidor utilizam \textbf{TLS}. Além disso:
-\begin{itemize}\itemsep=5pt
-    \item Todo tráfego HTTP é redirecionado para HTTPS;
-    \item O backend implementa cabeçalhos de segurança, como \texttt{Strict-Transport-Security};
-    \item Certificados digitais são emitidos por autoridades confiáveis, como Let's Encrypt.
-\end{itemize}
-
-\subsection{Passo a Passo do Processo de Autenticação}
-O processo ocorre em três etapas:
-
-\subsubsection*{Etapa 1: Registro do Usuário}
-\begin{enumerate}\itemsep=3pt
-    \item O usuário fornece e-mail e senha no app.
-    \item O backend armazena a senha utilizando o mecanismo padrão do Django (\textbf{PBKDF2 com SHA-256}, com \textit{salt} e múltiplas iterações).
-\end{enumerate}
-
-\subsubsection*{Etapa 2: Login do Usuário}
-\begin{enumerate}\itemsep=3pt
-    \item O usuário insere credenciais via conexão TLS.
-    \item O backend valida o hash da senha e gera um JWT.
-    \item O token é retornado ao cliente e armazenado de forma segura.
-\end{enumerate}
-
-\subsubsection*{Etapa 3: Validação Contínua}
-\begin{enumerate}\itemsep=3pt
-    \item Cada requisição ao backend inclui o JWT para validação.
-    \item Tokens de curta duração são combinados com \textit{refresh tokens}, garantindo renovação segura de sessões.
-    \item O logout invalida o refresh token e remove o JWT do dispositivo.
-\end{enumerate}
-
-\subsection{Medidas Complementares}
-Para reforçar a segurança, poderão ser implementadas:
-\begin{itemize}\itemsep=5pt
-    \item \textbf{Autenticação Multifator (MFA)} baseada em TOTP (Google Authenticator) ou envio de códigos via e-mail/SMS;
-    \item \textbf{Limitação de Taxa} para prevenir ataques de força bruta;
-    \item \textbf{Logs de Auditoria} registrando tentativas de login, alterações de senha e acessos a dados sensíveis.
-\end{itemize}
-
-\subsection{Conformidade com a LGPD}
-O \textbf{GenApp} foi projetado em conformidade com a Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018, com alterações pela Lei nº 13.853/2019). 
-Entre as medidas adotadas destacam-se:
-\begin{itemize}\itemsep=4pt
-    \item \textbf{Coleta mínima de dados}: apenas informações essenciais (e-mail e senha) são solicitadas para cadastro e autenticação.
-    \item \textbf{Consentimento e transparência}: o usuário é informado sobre a finalidade da coleta e pode revogar seu consentimento a qualquer momento.
-    \item \textbf{Direitos do usuário}: são assegurados os direitos de exclusão de conta e portabilidade dos dados, conforme previsto na legislação.
-    \item \textbf{Segurança e integridade}: dados são armazenados em banco de dados com criptografia e transmitidos exclusivamente por conexões seguras (TLS).
-    \item \textbf{Resposta a incidentes}: em caso de violação de dados, será garantida a notificação dos usuários e autoridades competentes, conforme exigido pela LGPD.
-\end{itemize}
-Dessa forma, a aplicação reforça a proteção da privacidade dos usuários e atende às exigências legais para tratamento de dados pessoais.
 
 
 
@@ -552,7 +420,40 @@ A gamificação no GenApp será intrinsecamente ligada aos índices financeiros 
 O objetivo central é utilizar os mecanismos de jogos para reforçar comportamentos financeiros positivos, tornando o aprendizado e a aplicação de boas práticas financeiras uma atividade mais engajadora e menos intimidante, conforme discutido por autores como Deterding et al. (2011) \cite{Deterding2011} sobre os elementos de gamificação.
 
 \chapter{Modelagem do Projeto}
-Neste capítulo, detalhamos o processo de modelagem do GenApp, desde o levantamento inicial de requisitos até a concepção da arquitetura do sistema e o design da interface do usuário. A modelagem é uma etapa crucial para garantir que o aplicativo atenda às necessidades dos usuários e seja desenvolvido de forma estruturada e eficiente.
+Neste capítulo, detalhamos o processo de modelagem do GenApp, desde a metodologia e ferramentas utilizadas até a concepção da arquitetura e design.
+
+\section{Metodologia e Ferramentas}
+O desenvolvimento seguiu uma abordagem ágil adaptada, utilizando ferramentas colaborativas para gestão e prototipação.
+
+\subsection{Gestão de Projeto}
+O \textbf{Trello} foi utilizado para o acompanhamento de tarefas (Kanban), permitindo a visualização clara do progresso e a organização das etapas de desenvolvimento.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{./imagens/trello.png}
+    \caption{Quadro de gestão de tarefas no Trello}
+    \label{fig:trello}
+\end{figure}
+
+\subsection{Prototipação (UI/UX)}
+O \textbf{Figma} serviu como plataforma para o design das interfaces e fluxo de navegação. A prototipação de alta fidelidade antecipou decisões de usabilidade, reduzindo o retrabalho durante a implementação.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{./imagens/figma.png}
+    \caption{Prototipação de interfaces no Figma}
+    \label{fig:figma}
+\end{figure}
+
+\subsection{Versionamento de Código}
+O \textbf{GitHub} foi utilizado para hospedagem e controle de versão, facilitando a integração contínua e o histórico de alterações do código-fonte.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{./imagens/github.png}
+    \caption{Repositório no GitHub}
+    \label{fig:github}
+\end{figure}
 
 \section{Levantamento de Requisitos}
 O levantamento de requisitos foi realizado por meio de análise de aplicativos concorrentes, pesquisa sobre as necessidades de usuários em relação ao gerenciamento financeiro pessoal e discussões sobre as funcionalidades essenciais para um aplicativo com foco em gamificação e educação financeira. Os requisitos foram divididos em funcionais e não funcionais.
@@ -787,13 +688,50 @@ As telas de cadastro e login serão limpas e diretas, solicitando apenas as info
 
 O design geral buscará um equilíbrio entre fornecer informações financeiras de forma clara e objetiva e manter uma atmosfera lúdica e encorajadora por meio dos elementos de gamificação.
 
-\chapter{Implementação Técnica Consolidada}
+\chapter{Desenvolvimento e Implementação}
 \label{chap:impl-consolidada}
 
-Este capítulo sintetiza, em linguagem objetiva, os principais aspectos técnicos efetivamente implementados no GenApp, preservando a coerência com as seções anteriores e oferecendo uma visão consolidada para referência rápida.
+Este capítulo detalha o processo de construção do GenApp, descrevendo as tecnologias selecionadas, a arquitetura implementada e os mecanismos de segurança adotados.
+
+\section{Tecnologias Utilizadas}
+A seleção tecnológica priorizou ferramentas modernas, robustas e com amplo suporte da comunidade, garantindo produtividade e escalabilidade.
+
+\subsection{Frontend: Flutter}
+O desenvolvimento da interface utilizou o \textbf{Flutter}, framework multiplataforma do Google. A escolha se justificou pela capacidade de renderização nativa e pelo ecossistema rico de pacotes.
+\begin{itemize}
+    \item \textbf{Interface:} Construída com widgets do Material Design, garantindo responsividade e estética moderna.
+    \item \textbf{Gráficos:} A biblioteca \texttt{fl\_chart} foi empregada para a visualização dinâmica dos dados financeiros.
+    \item \textbf{Comunicação:} O pacote \texttt{dio} gerenciou as requisições HTTP seguras (TLS).
+    \item \textbf{Persistência Local:} Uma abordagem híbrida com \textbf{Hive} (chave-valor) e \textbf{Drift} (SQLite) assegurou a funcionalidade \textit{offline-first}.
+    \item \textbf{Multiplataforma:} O Flutter foi empregado para garantir a compatibilidade com Android e Web.
+\end{itemize}
+
+\subsection{Backend: Python e Django}
+O servidor foi implementado em \textbf{Python} com o framework \textbf{Django}, escolhido pela sua arquitetura segura e eficiente ("baterias inclusas").
+\begin{itemize}
+    \item \textbf{API RESTful:} O \textbf{Django REST Framework (DRF)} estruturou os endpoints, serializadores e validações.
+    \item \textbf{Autenticação:} Utilizou-se \texttt{simplejwt} para gestão de tokens JWT.
+    \item \textbf{Assincronismo:} O \textbf{Celery}, com \textbf{Redis} como \textit{broker}, gerenciou tarefas em segundo plano (IA e manutenção).
+\end{itemize}
+
+\subsection{Banco de Dados: PostgreSQL}
+O \textbf{PostgreSQL} foi adotado como Sistema Gerenciador de Banco de Dados (SGBD) devido à sua conformidade ACID, robustez para transações financeiras e suporte a consultas complexas.
+
+\section{Segurança e Privacidade}
+A segurança foi um requisito transversal em todo o desenvolvimento, com foco na proteção dos dados sensíveis e conformidade com a LGPD.
+
+\subsection{Autenticação e Criptografia}
+\begin{itemize}
+    \item \textbf{Senhas:} Armazenadas exclusivamente como hashes (PBKDF2/SHA-256 com salt), impossibilitando a leitura em texto plano.
+    \item \textbf{Tokens:} A autenticação via JWT (JSON Web Tokens) elimina a necessidade de sessões no servidor, com tokens armazenados de forma segura no cliente (\texttt{flutter\_secure\_storage}).
+    \item \textbf{Transporte:} Toda a comunicação é criptografada via TLS (HTTPS).
+\end{itemize}
+
+\subsection{Conformidade com a LGPD}
+O sistema adota o princípio da \textit{data minimization}, coletando apenas e-mail e nome para o cadastro. O usuário mantém controle total sobre seus dados, com funcionalidades explícitas para exclusão de conta.
 
 \section{Arquitetura e Processamento}
-O backend segue o padrão \textit{Model-Template-View} (MTV) do Django, adaptado ao contexto de API REST, em que os templates são substituídos por serializadores e validações. Uma camada de serviços concentra regras de negócio e cálculos financeiros, favorecendo separação de responsabilidades e testes unitários. Para tarefas de maior custo e processamento periódico, utiliza-se Celery com Redis como corretor, permitindo a execução assíncrona de rotinas de snapshots diários e mensais, além de políticas de expiração/renovação de cache de indicadores, reduzindo recomputações em leituras frequentes.
+O backend segue o padrão \textit{Model-Template-View} (MTV) do Django, adaptado ao contexto de API REST, em que os templates são substituídos por serializadores e validações. Uma camada de serviços concentra regras de negócio e cálculos financeiros, favorecendo separação de responsabilidades e testes unitários. Para tarefas assíncronas e de processamento intensivo, utiliza-se \textbf{Celery} com \textbf{Redis} como \textit{message broker}. O sistema adota uma estratégia de cálculo sob demanda com \textit{caching} baseado em tempo de vida (TTL) para os indicadores financeiros (TPS, RDR, ILI). Essa abordagem substitui o modelo tradicional de \textit{snapshots} diários estáticos, garantindo que os dados apresentados ao usuário reflitam o estado mais atual das transações com latência mínima. O Celery é empregado primordialmente para a geração assíncrona de missões personalizadas via IA e para rotinas de manutenção periódica do banco de dados.
 
 \subsection*{Tarefas Assíncronas (resumo)}
 \renewcommand{\arraystretch}{1.2}
@@ -802,15 +740,22 @@ O backend segue o padrão \textit{Model-Template-View} (MTV) do Django, adaptado
     \caption{Principais tarefas assíncronas do sistema}
     \label{tab:tasks-assincronas-condensado}
     \begin{tabularx}{\textwidth}{@{}p{4.4cm}p{2.8cm}X@{}}
-        	oprule
-        	extbf{Tarefa} & \textbf{Agenda} & \textbf{Objetivo} \\
+        \toprule
+        \textbf{Tarefa} & \textbf{Agenda} & \textbf{Objetivo} \\
         \midrule
-        Snapshot diário de usuários & Diária (23:59) & Congelar métricas e agregados para evolução temporal \newline (TPS, RDR, ILI, totais, uso por categoria). \\
-        Snapshot diário de missões & Diária (23:59) & Registrar progresso e critérios atingidos das missões ativas. \\
-        Snapshot mensal consolidado & Últimos dias do mês & Consolidar indicadores para análises macro mensais. \\
+        Geração de Missões (IA) & Sob demanda & Criar missões personalizadas utilizando o Gemini em background para não bloquear a API. \\
+        Limpeza de Missões & Periódica & Remover missões antigas ou expiradas para manter o banco otimizado. \\
+        Expiração de Cache & Automática (TTL) & Invalidar caches de indicadores e análises após período definido (ex: 5-15 min). \\
         \bottomrule
     \end{tabularx}
 \end{table}
+
+\section{Gerenciamento de Estado e Integração Frontend}
+O frontend adota uma arquitetura reativa baseada no padrão de gerenciamento de estado nativo do Flutter, otimizada para performance e manutenibilidade.
+\begin{itemize}
+    \item \textbf{Gerenciamento de Estado:} Utiliza-se a classe \texttt{ChangeNotifier} para encapsular a lógica de estado e regras de negócio da interface. A propagação de mudanças na árvore de widgets é realizada de forma eficiente através de \texttt{InheritedNotifier} (implementado como \texttt{SessionScope}), evitando reconstruções desnecessárias e acoplamento excessivo.
+    \item \textbf{Camada de Repositório:} A comunicação com o backend é abstraída pelo padrão \textit{Repository}. O \texttt{AuthRepository} e demais repositórios centralizam as chamadas HTTP via biblioteca \texttt{dio}, tratando serialização JSON, interceptação de erros, renovação automática de tokens JWT e persistência local segura, oferecendo uma API limpa para a camada de apresentação.
+\end{itemize}
 
 \section{Inteligência Artificial e Gamificação}
 Missões são geradas por modelo generativo (Gemini) a partir de um \textit{prompt} estruturado que considera perfil e métricas do usuário. Cenários temáticos e \textit{tiers} graduam a dificuldade e o impacto esperado, permitindo progressão gradual e feedback motivador. Para controle de custos e robustez, aplicam-se salvaguardas como limitação de frequência de geração, reaproveitamento de sugestões recentes quando adequado e validações de conteúdo antes da publicação ao usuário.
@@ -910,16 +855,16 @@ O desenvolvimento do projeto GenApp será organizado em fases, contemplando desd
         Maio de 2025 \\
         \hline
         Fase 2: Design da Interface (UI/UX) & 
-        Criação de wireframes e fluxos de navegação; Protótipo visual de alta fidelidade (Figma); Testes iniciais de usabilidade. &
+        Criação de wireframes e fluxos de navegação; Protótipo visual (Figma); &
         Junho de 2025 \\
         \hline
         Fase 3: Desenvolvimento Backend & 
         Configuração do ambiente; Modelagem do banco de dados (PostgreSQL); Desenvolvimento da API RESTful (Django/DRF); Autenticação e segurança; Implementação da lógica de negócios (índices e gamificação). &
-        Julho–Agosto de 2025 \\
+        Julho–Setembro de 2025 \\
         \hline
         Fase 4: Desenvolvimento Frontend & 
         Configuração do ambiente Flutter; Telas de cadastro, login e dashboard; Registro de transações; Integração com a API backend; Telas de metas e missões; Elementos de gamificação (pontos, níveis, badges). &
-        Setembro–Outubro de 2025 \\
+        Agosto–Novembro de 2025 \\
         \hline
         Fase 5: Testes, Refinamentos e Conclusão & 
         Novembro de 2025 \\
@@ -966,13 +911,13 @@ Saída: JSON com {titulo, descricao, prazo, criterio, tier, categoria foco}.
 \end{verbatim}
 
 \section{Tarefas Assíncronas Programadas (Celery/Beat)}\label{apendice:celery-beat}
-O sistema agenda três rotinas principais:
+O sistema agenda rotinas essenciais para a manutenção e inteligência do sistema, substituindo a necessidade de processamentos em lote monolíticos:
 \begin{itemize}
-    \item \textbf{Snapshot diário de usuários (23:59):} congela métricas e agregados do dia.
-    \item \textbf{Snapshot diário de missões (23:59):} registra progresso e cumprimento de critérios.
-    \item \textbf{Snapshot mensal consolidado (últimos dias do mês):} compila visão macro.
+    \item \textbf{Geração de Missões (Sob Demanda/Agendada):} Orquestra a criação de novas missões via IA (Gemini) para usuários elegíveis. O processamento ocorre em \textit{background workers}, evitando o bloqueio da API principal e permitindo retentativas automáticas em caso de falha na comunicação com o LLM.
+    \item \textbf{Limpeza de Missões (Periódica):} Remove ou arquiva missões expiradas e não concluídas, mantendo a integridade referencial e a performance das consultas ao banco de dados.
+    \item \textbf{Gerenciamento de Cache (Automática):} Embora o Redis gerencie a expiração de chaves (TTL) nativamente, rotinas auxiliares garantem a invalidação proativa de indicadores financeiros quando ocorrem transações retroativas, assegurando consistência eventual.
 \end{itemize}
-As tarefas são executadas por workers Celery, com Redis como corretor, e utilizam o fuso \textit{America/Sao\_Paulo}. Resultados não necessários são suprimidos para eficiência.
+As tarefas são executadas por \textit{workers} Celery distribuídos, utilizando Redis como \textit{message broker}, o que garante escalabilidade horizontal e desacoplamento do ciclo de requisição-resposta HTTP.
 
 \section{Salvaguardas de Custo e Uso de IA}\label{apendice:ia-salvaguardas}
 Para evitar custos excessivos e garantir estabilidade:

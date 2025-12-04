@@ -37,6 +37,7 @@ router.register(r"goals", GoalViewSet, basename="goal")
 router.register(r"missions", MissionViewSet, basename="mission")
 router.register(r"mission-progress", MissionProgressViewSet, basename="mission-progress")
 router.register(r"user-profiles", UserProfileViewSet, basename="user-profile")
+router.register(r"user", UserProfileViewSet, basename="user")  # Alias para compatibilidade com o front
 router.register(r"transaction-links", TransactionLinkViewSet, basename="transaction-link")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 
@@ -45,7 +46,6 @@ urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/profile/", ProfileView.as_view(), name="profile"),
     path("profile/", ProfileView.as_view(), name="profile-alias"),  # Alias para compatibilidade
-    path("user/me/", ProfileView.as_view(), name="user-me"),  # Alias para compatibilidade
     path("onboarding/simplified/", SimplifiedOnboardingView.as_view(), name="simplified-onboarding"),
     path("xp-history/", XPHistoryView.as_view(), name="xp-history"),
     

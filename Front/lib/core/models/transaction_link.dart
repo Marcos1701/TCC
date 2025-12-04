@@ -94,8 +94,8 @@ class CreateTransactionLinkRequest {
 
   Map<String, dynamic> toMap() {
     return {
-      'source_uuid': sourceId,
-      'target_uuid': targetId,
+      'source_transaction_id': sourceId,
+      'target_transaction_id': targetId,
       'linked_amount': amount,
       if (linkType != null) 'link_type': linkType,
       if (description != null) 'description': description,

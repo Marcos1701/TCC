@@ -10,12 +10,9 @@
 // - TransactionRepository - Transaction and links operations
 // - MissionRepository - Mission progress and templates
 // - GoalRepository - Goal management and insights
-// - UserRepository - User profile and account
-// - DevRepository - Development-only utilities
+// - FinanceRepository - Legacy repository with user profile/account methods
 //
-// Legacy Support:
-// FinanceRepository is maintained for backward compatibility.
-// New code should use the specific repositories above.
+// Note: User profile and dev methods are available via FinanceRepository.
 
 // Base repository with common functionality
 export 'base_repository.dart';
@@ -29,10 +26,7 @@ export 'dashboard_repository.dart';
 export 'goal_repository.dart';
 export 'mission_repository.dart';
 export 'transaction_repository.dart';
-export 'user_repository.dart';
-
-// Development-only repository
-export 'dev_repository.dart';
 
 // Legacy repository (maintained for backward compatibility)
+// Also contains user profile, password, and dev methods
 export 'finance_repository.dart';

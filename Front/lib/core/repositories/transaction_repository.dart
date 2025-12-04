@@ -405,9 +405,9 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
     final response = await client.client.post<Map<String, dynamic>>(
       '${ApiEndpoints.transactionLinks}quick_link/',
       data: {
-        'source_id': sourceId,
-        'target_id': targetId,
-        'amount': amount,
+        'source_transaction_id': sourceId,
+        'target_transaction_id': targetId,
+        'linked_amount': amount,
         if (description != null) 'description': description,
       },
     );

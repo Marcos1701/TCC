@@ -192,13 +192,16 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'income_transaction_id',
             'expense_transaction_id',
             'linked_amount',
+            'link_type',
             'description',
+            'is_recurring',
             'payment_status',
             'urgency_score',
             'category_info',
             'created_at',
+            'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'payment_status', 'urgency_score', 'category_info']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'payment_status', 'urgency_score', 'category_info']
     
     def get_income_transaction(self, obj):
         if hasattr(obj, '_source_transaction_cache'):

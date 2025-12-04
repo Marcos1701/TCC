@@ -302,8 +302,8 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     def create(self, request, *args, **kwargs):
-        source_uuid = request.data.get('source_uuid')
-        target_uuid = request.data.get('target_uuid')
+        source_uuid = request.data.get('source_transaction_id')
+        target_uuid = request.data.get('target_transaction_id')
         
         try:
             source = Transaction.objects.get(id=source_uuid, user=request.user)

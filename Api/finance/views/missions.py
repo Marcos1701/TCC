@@ -268,10 +268,11 @@ class MissionViewSet(viewsets.ModelViewSet):
             'recommended_missions': recommended
         })
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def by_category(self, request):
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='by-category/(?P<category_id>[^/.]+)')
+    def by_category(self, request, category_id=None):
         """Retorna missões por categoria."""
-        category_id = request.query_params.get('category_id')
+        if not category_id:
+            category_id = request.query_params.get('category_id')
         
         if not category_id:
             return Response(
@@ -299,10 +300,11 @@ class MissionViewSet(viewsets.ModelViewSet):
             'count': missions.count()
         })
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def by_goal(self, request):
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='by-goal/(?P<goal_id>[^/.]+)')
+    def by_goal(self, request, goal_id=None):
         """Retorna missões por meta."""
-        goal_id = request.query_params.get('goal_id')
+        if not goal_id:
+            goal_id = request.query_params.get('goal_id')
         
         if not goal_id:
             return Response(
@@ -340,7 +342,7 @@ class MissionViewSet(viewsets.ModelViewSet):
             'count': missions.count()
         })
     
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='context-analysis')
     def context_analysis(self, request):
         """Análise contextual completa do usuário."""
         from ..services import analyze_user_context, identify_improvement_opportunities
@@ -423,6 +425,163 @@ class MissionViewSet(viewsets.ModelViewSet):
             }
         
         return None
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def templates(self, request):
+        """Lista templates disponíveis para geração de missões."""
+        from ..mission_templates import (
+            ONBOARDING_TEMPLATES,
+            TPS_TEMPLATES,
+            RDR_TEMPLATES,
+            ILI_TEMPLATES,
+            CATEGORY_TEMPLATES,
+            GOAL_TEMPLATES,
+        )
+        
+        include_inactive = request.query_params.get('include_inactive', '').lower() == 'true'
+        
+        templates_list = [
+            {'key': 'ONBOARDING', 'name': 'Onboarding', 'templates': ONBOARDING_TEMPLATES},
+            {'key': 'TPS_IMPROVEMENT', 'name': 'Melhoria de TPS', 'templates': TPS_TEMPLATES},
+            {'key': 'RDR_REDUCTION', 'name': 'Redução de RDR', 'templates': RDR_TEMPLATES},
+            {'key': 'ILI_BUILDING', 'name': 'Construção de ILI', 'templates': ILI_TEMPLATES},
+            {'key': 'CATEGORY_REDUCTION', 'name': 'Redução por Categoria', 'templates': CATEGORY_TEMPLATES},
+            {'key': 'GOAL_ACHIEVEMENT', 'name': 'Conquista de Meta', 'templates': GOAL_TEMPLATES},
+        ]
+        
+        result = []
+        for group in templates_list:
+            templates_data = []
+            for i, template in enumerate(group['templates']):
+                templates_data.append({
+                    'id': f"{group['key']}_{i}",
+                    'key': group['key'],
+                    'title': template.get('title', ''),
+                    'description': template.get('description', ''),
+                    'difficulty': template.get('difficulty', 'MEDIUM'),
+                    'duration_days': template.get('duration_days', 30),
+                    'xp_reward': template.get('xp_reward', 100),
+                })
+            
+            result.append({
+                'key': group['key'],
+                'name': group['name'],
+                'count': len(templates_data),
+                'templates': templates_data,
+            })
+        
+        return Response({
+            'groups': result,
+            'total': sum(len(g['templates']) for g in result),
+        })
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='generate-from-template')
+    def generate_from_template(self, request):
+        """Gera uma missão a partir de um template."""
+        from ..mission_templates import generate_from_template as gen_template
+        from ..services import calculate_summary
+        
+        template_key = request.data.get('template_key', '')
+        overrides = request.data.get('overrides', {})
+        
+        if not template_key:
+            return Response(
+                {'error': 'template_key é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Parse template_key (format: MISSION_TYPE_INDEX)
+        parts = template_key.rsplit('_', 1)
+        if len(parts) != 2:
+            return Response(
+                {'error': 'template_key inválido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        mission_type = parts[0]
+        try:
+            index = int(parts[1])
+        except ValueError:
+            return Response(
+                {'error': 'Índice do template inválido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get template list
+        from ..mission_templates import (
+            ONBOARDING_TEMPLATES,
+            TPS_TEMPLATES,
+            RDR_TEMPLATES,
+            ILI_TEMPLATES,
+            CATEGORY_TEMPLATES,
+            GOAL_TEMPLATES,
+        )
+        
+        template_map = {
+            'ONBOARDING': ONBOARDING_TEMPLATES,
+            'TPS_IMPROVEMENT': TPS_TEMPLATES,
+            'RDR_REDUCTION': RDR_TEMPLATES,
+            'ILI_BUILDING': ILI_TEMPLATES,
+            'CATEGORY_REDUCTION': CATEGORY_TEMPLATES,
+            'GOAL_ACHIEVEMENT': GOAL_TEMPLATES,
+        }
+        
+        if mission_type not in template_map:
+            return Response(
+                {'error': f'Tipo de missão desconhecido: {mission_type}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        templates = template_map[mission_type]
+        if index < 0 or index >= len(templates):
+            return Response(
+                {'error': f'Índice fora do range (0-{len(templates)-1})'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        template = templates[index]
+        
+        # Get user metrics
+        summary = calculate_summary(request.user)
+        current_metrics = {
+            'tps': summary.get('tps', 0),
+            'rdr': summary.get('rdr', 0),
+            'ili': summary.get('ili', 0),
+        }
+        
+        try:
+            mission_data = gen_template(template, 'INTERMEDIATE', current_metrics)
+            
+            # Apply overrides
+            for key, value in overrides.items():
+                if key in mission_data:
+                    mission_data[key] = value
+            
+            # Create mission for user
+            mission = Mission.objects.create(
+                title=mission_data.get('title', 'Nova Missão'),
+                description=mission_data.get('description', ''),
+                reward_points=mission_data.get('xp_reward', 100),
+                difficulty=mission_data.get('difficulty', 'MEDIUM'),
+                mission_type=mission_type,
+                target_tps=mission_data.get('target_tps'),
+                target_rdr=mission_data.get('target_rdr'),
+                min_ili=mission_data.get('min_ili'),
+                duration_days=mission_data.get('duration_days', 30),
+                min_transactions=mission_data.get('min_transactions'),
+                is_active=True,
+                is_system_generated=True,
+            )
+            
+            serializer = MissionSerializer(mission)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar missão de template: {e}")
+            return Response(
+                {'error': 'Erro ao gerar missão', 'detail': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_template_missions(self, request):
