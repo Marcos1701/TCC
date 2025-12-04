@@ -168,15 +168,27 @@ class UserProfile(models.Model):
             })
 
     def _validate_xp_for_level(self):
+        """
+        Valida que o XP atual está dentro dos limites válidos para o nível atual.
+        
+        O experience_points representa o XP acumulado DENTRO do nível atual,
+        não o XP total desde o nível 1. Ao subir de nível, o XP é subtraído
+        do threshold, então o XP atual deve ser menor que o threshold
+        (se for >= threshold, deveria ter subido de nível).
+        
+        Nota: A validação de XP < 0 já é feita no método clean().
+        """
         from django.core.exceptions import ValidationError
         
-        expected_min_xp = 0
-        for lvl in range(1, self.level):
-            expected_min_xp += 150 + (lvl - 1) * 50
-        
-        if self.experience_points < expected_min_xp:
+        # XP dentro do nível não deve exceder o threshold do próximo nível
+        # (se excedesse, o usuário deveria ter subido de nível)
+        current_threshold = 150 + (self.level - 1) * 50
+        if self.experience_points >= current_threshold:
             raise ValidationError({
-                'experience_points': f'XP insuficiente para o nível {self.level}. Mínimo necessário: {expected_min_xp}.'
+                'experience_points': (
+                    f'XP atual ({self.experience_points}) excede o threshold do nível '
+                    f'{self.level} ({current_threshold}). O usuário deveria ter subido de nível.'
+                )
             })
 
     @property

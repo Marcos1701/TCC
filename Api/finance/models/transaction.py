@@ -301,7 +301,12 @@ class TransactionLink(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f"{self.source_transaction.description} → {self.target_transaction.description} (R$ {self.linked_amount})"
+        try:
+            source_desc = self.source_transaction.description
+            target_desc = self.target_transaction.description
+            return f"{source_desc} → {target_desc} (R$ {self.linked_amount})"
+        except Transaction.DoesNotExist:
+            return f"Link {self.id} (R$ {self.linked_amount})"
 
     @property
     def source_transaction(self):

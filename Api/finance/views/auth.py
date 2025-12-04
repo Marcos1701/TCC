@@ -523,15 +523,14 @@ class UserProfileViewSet(
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def dev_add_xp(self, request):
         """Adiciona XP ao usuário (apenas para desenvolvimento)."""
+        from ..services import _xp_threshold
+        
         xp_amount = request.data.get('xp', 1000)
         user = request.user
         
         profile = UserProfile.objects.get(user=user)
         old_level = profile.level
         profile.experience_points += xp_amount
-        
-        def _xp_threshold(level):
-            return 100 * (level ** 1.5)
         
         while profile.experience_points >= _xp_threshold(profile.level):
             profile.experience_points -= _xp_threshold(profile.level)

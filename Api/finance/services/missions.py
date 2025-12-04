@@ -357,7 +357,7 @@ def update_mission_progress(user) -> List[MissionProgress]:
                 
                 if is_valid:
                     progress.completed_at = timezone.now()
-                    progress.is_completed = True
+                    progress.status = MissionProgress.Status.COMPLETED
                     progress.status = MissionProgress.Status.COMPLETED
                     progress.save()
                     

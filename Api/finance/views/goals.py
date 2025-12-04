@@ -116,21 +116,50 @@ class GoalViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def transactions(self, request, pk=None):
-        """Retorna transações relacionadas à meta."""
-        goal = self.get_object()
-        transactions = goal.get_related_transactions().select_related('category')
+        """
+        Retorna transações relacionadas à meta.
         
-        serializer = TransactionSerializer(transactions, many=True)
+        Para metas do tipo SAVINGS/EMERGENCY_FUND: transações em categorias SAVINGS/INVESTMENT
+        Para metas do tipo EXPENSE_REDUCTION: transações na categoria alvo
+        Para outros tipos: retorna lista vazia
+        """
+        from ..models import Category, Transaction
+        
+        goal = self.get_object()
+        
+        if goal.goal_type in [Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]:
+            transactions = Transaction.objects.filter(
+                user=goal.user,
+                category__group__in=[
+                    Category.CategoryGroup.SAVINGS,
+                    Category.CategoryGroup.INVESTMENT
+                ]
+            ).select_related('category').order_by('-date', '-created_at')
+        elif goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION and goal.target_category:
+            transactions = Transaction.objects.filter(
+                user=goal.user,
+                type=Transaction.TransactionType.EXPENSE,
+                category=goal.target_category
+            ).select_related('category').order_by('-date', '-created_at')
+        else:
+            transactions = Transaction.objects.none()
+        
+        serializer = TransactionSerializer(transactions[:50], many=True)
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
     def refresh(self, request, pk=None):
-        """Força atualização do progresso da meta."""
+        """
+        Força atualização do progresso da meta.
+        
+        Metas do tipo CUSTOM não são atualizadas automaticamente.
+        """
         from ..services import update_goal_progress
         
         goal = self.get_object()
         
-        if goal.auto_update:
+        # Metas CUSTOM são atualizadas manualmente, outros tipos são automáticos
+        if goal.goal_type != Goal.GoalType.CUSTOM:
             update_goal_progress(goal)
             goal.refresh_from_db()
         

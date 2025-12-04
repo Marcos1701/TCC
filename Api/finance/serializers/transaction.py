@@ -191,7 +191,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'expense_transaction',
             'income_transaction_id',
             'expense_transaction_id',
-            'amount',
+            'linked_amount',
             'description',
             'payment_status',
             'urgency_score',
@@ -299,7 +299,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         source_id = attrs.get('source_transaction_id') or attrs.get('income_transaction_id')
         target_id = attrs.get('target_transaction_id') or attrs.get('expense_transaction_id')
-        amount = attrs.get('amount')
+        linked_amount = attrs.get('linked_amount')
         
         if not source_id or not target_id:
             raise serializers.ValidationError({
@@ -322,14 +322,14 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
                 'target_transaction_id': 'Transação de destino não encontrada ou não pertence ao usuário.'
             })
         
-        if amount > source.available_amount:
+        if linked_amount and linked_amount > source.available_amount:
             raise serializers.ValidationError({
-                'amount': f'Valor excede o disponível na origem (R$ {source.available_amount:.2f}).'
+                'linked_amount': f'Valor excede o disponível na origem (R$ {source.available_amount:.2f}).'
             })
         
-        if amount > target.available_amount:
+        if linked_amount and linked_amount > target.available_amount:
             raise serializers.ValidationError({
-                'amount': f'Valor excede o disponível no destino (R$ {target.available_amount:.2f}).'
+                'linked_amount': f'Valor excede o disponível no destino (R$ {target.available_amount:.2f}).'
             })
         
         attrs['source_transaction'] = source

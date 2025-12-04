@@ -165,6 +165,7 @@ class Goal(models.Model):
     def _validate_goal_type_fields(self):
         """Valida campos específicos por tipo de meta."""
         from django.core.exceptions import ValidationError
+        from .category import Category
         
         if self.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
             if not self.target_category:
@@ -172,7 +173,7 @@ class Goal(models.Model):
                     'target_category': 'Metas de redução de gastos requerem uma categoria alvo.'
                 })
             
-            if self.target_category and self.target_category.type != 'EXPENSE':
+            if self.target_category and self.target_category.type != Category.CategoryType.EXPENSE:
                 raise ValidationError({
                     'target_category': 'A categoria alvo deve ser de despesas (não de receitas).'
                 })

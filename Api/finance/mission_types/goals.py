@@ -59,11 +59,15 @@ class GoalContributionValidator(BaseMissionValidator):
     """
     Validador para missões de contribuição para metas.
     
-    Foco: Contribuir R$ X para uma meta durante o período.
+    Foco: Acompanhar contribuições em categorias SAVINGS/INVESTMENT
+    que contam como progresso para a meta.
+    
+    Nota: Como Transaction não possui campo 'goal', usamos categorias
+    de poupança/investimento como proxy para contribuições.
     """
     
     def calculate_progress(self) -> Dict[str, Any]:
-        from ..models import Transaction
+        from ..models import Category, Transaction
         
         if not self.mission.target_goal_id:
             return {
@@ -81,9 +85,14 @@ class GoalContributionValidator(BaseMissionValidator):
                 'message': 'Missão ainda não foi iniciada'
             }
         
+        # Buscar transações em categorias de poupança/investimento após início da missão
+        # como proxy para contribuições às metas
         contributions = Transaction.objects.filter(
             user=self.user,
-            goal=self.mission.target_goal,
+            category__group__in=[
+                Category.CategoryGroup.SAVINGS,
+                Category.CategoryGroup.INVESTMENT
+            ],
             date__gte=self.mission_progress.started_at.date()
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
@@ -97,7 +106,7 @@ class GoalContributionValidator(BaseMissionValidator):
                 'goal_name': self.mission.target_goal.title,
                 'contributions': float(contributions),
                 'target_contribution': float(target_contribution),
-                'remaining': float(target_contribution - contributions)
+                'remaining': float(max(Decimal('0'), target_contribution - contributions))
             },
             'message': f"R$ {contributions:.2f} / R$ {target_contribution:.2f} contribuídos"
         }

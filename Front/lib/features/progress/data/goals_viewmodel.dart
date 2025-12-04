@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/models/goal.dart';
-import '../../../core/repositories/finance_repository.dart'; // Keep for backward compatibility
 import '../../../core/repositories/goal_repository.dart';
 import '../../../core/repositories/interfaces/i_goal_repository.dart';
 
@@ -110,18 +109,7 @@ class GoalsViewModel extends ChangeNotifier {
     int trackingPeriodMonths = 3,
   }) async {
     try {
-      final goalData = {
-        'title': title,
-        'description': description,
-        'target_amount': targetAmount,
-        'initial_amount': initialAmount,
-        if (deadline != null) 'deadline': deadline.toIso8601String().split('T')[0],
-        'goal_type': goalType,
-        if (targetCategory != null) 'target_category': targetCategory,
-        if (baselineAmount != null) 'baseline_amount': baselineAmount,
-        'tracking_period_months': trackingPeriodMonths,
-      };
-
+      // Os parâmetros são passados diretamente para o repository
       final response = await _repository.createGoal(
         title: title,
         targetAmount: targetAmount,
@@ -161,8 +149,6 @@ class GoalsViewModel extends ChangeNotifier {
   }) async {
     final index = _goals.indexWhere((g) => g.id == goalId);
     if (index == -1) return null;
-
-    final oldGoal = _goals[index];
     
     try {
       final response = await _repository.updateGoal(

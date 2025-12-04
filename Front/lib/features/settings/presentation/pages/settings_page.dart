@@ -19,6 +19,22 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _repository = FinanceRepository();
 
+  @override
+  void initState() {
+    super.initState();
+    // Atualiza a sessão quando a página é carregada para garantir dados atualizados
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshProfileData();
+    });
+  }
+
+  /// Atualiza os dados do perfil para garantir que estão sincronizados com a API.
+  Future<void> _refreshProfileData() async {
+    if (!mounted) return;
+    final session = SessionScope.of(context);
+    await session.refreshSession();
+  }
+
   void _showEditProfileSheet(BuildContext context, dynamic user) {
     showModalBottomSheet(
       context: context,

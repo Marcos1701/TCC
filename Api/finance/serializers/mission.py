@@ -272,6 +272,16 @@ class MissionSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
+        """
+        Valida campos obrigatórios baseados no validation_type.
+        
+        Tipos de validação disponíveis no enum:
+        - TRANSACTION_COUNT: Contar transações registradas
+        - INDICATOR_THRESHOLD: Verificar se indicador atingiu valor
+        - CATEGORY_REDUCTION: Verificar % de redução em categoria
+        - GOAL_PROGRESS: Verificar % de progresso em meta
+        - TEMPORAL: Manter critério por X dias
+        """
         validation_type = data.get('validation_type')
         
         if validation_type == Mission.ValidationType.TEMPORAL:
@@ -290,16 +300,6 @@ class MissionSerializer(serializers.ModelSerializer):
                     'target_reduction_percent': 'Obrigatório para missões de redução de categoria.'
                 })
         
-        elif validation_type == Mission.ValidationType.CATEGORY_LIMIT:
-            if not data.get('target_category'):
-                raise serializers.ValidationError({
-                    'target_category': 'Obrigatório para missões de limite de categoria.'
-                })
-            if not data.get('category_spending_limit'):
-                raise serializers.ValidationError({
-                    'category_spending_limit': 'Obrigatório para missões de limite de categoria.'
-                })
-        
         elif validation_type == Mission.ValidationType.GOAL_PROGRESS:
             if not data.get('target_goal'):
                 raise serializers.ValidationError({
@@ -310,14 +310,27 @@ class MissionSerializer(serializers.ModelSerializer):
                     'goal_progress_target': 'Obrigatório para missões de progresso em meta.'
                 })
         
-        elif validation_type == Mission.ValidationType.SAVINGS_INCREASE:
-            if not data.get('savings_increase_amount'):
+        elif validation_type == Mission.ValidationType.INDICATOR_THRESHOLD:
+            # Para INDICATOR_THRESHOLD, validar que pelo menos um indicador alvo foi definido
+            has_indicator_target = any([
+                data.get('target_tps') is not None,
+                data.get('target_rdr') is not None,
+                data.get('min_ili') is not None,
+                data.get('max_ili') is not None,
+            ])
+            if not has_indicator_target:
                 raise serializers.ValidationError({
-                    'savings_increase_amount': 'Obrigatório para missões de aumento de poupança.'
+                    'non_field_errors': 'Missões de indicador requerem pelo menos um target (TPS, RDR ou ILI).'
                 })
         
-        elif validation_type == Mission.ValidationType.CONSISTENCY:
-            if data.get('requires_daily_action') and not data.get('min_daily_actions'):
+        elif validation_type == Mission.ValidationType.TRANSACTION_COUNT:
+            if not data.get('min_transactions'):
+                raise serializers.ValidationError({
+                    'min_transactions': 'Obrigatório para missões de contagem de transações.'
+                })
+        
+        # Validações adicionais para campos de ações diárias (aplicável a qualquer tipo)
+        if data.get('requires_daily_action') and not data.get('min_daily_actions'):
                 raise serializers.ValidationError({
                     'min_daily_actions': 'Obrigatório quando requires_daily_action é True.'
                 })
