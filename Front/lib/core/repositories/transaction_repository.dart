@@ -10,6 +10,7 @@ import 'interfaces/i_transaction_repository.dart';
 
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 
@@ -19,6 +20,10 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       : _db = db ?? AppDatabase();
 
   final AppDatabase _db;
+  
+  /// Flag to track if DB operations should be attempted
+  /// Disabled on web (kIsWeb) since sql.js is not configured
+  static bool get _dbAvailable => !kIsWeb;
 
   @override
   Future<List<TransactionModel>> fetchTransactions({
@@ -32,10 +37,18 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       if (limit != null) queryParams['limit'] = limit;
       if (offset != null) queryParams['offset'] = offset;
       
+      if (kDebugMode) {
+        debugPrint('📡 TransactionRepository: Fetching transactions from API...');
+      }
+      
       final response = await client.client.get<dynamic>(
         ApiEndpoints.transactions,
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
+      
+      if (kDebugMode) {
+        debugPrint('📡 TransactionRepository: Response received, parsing...');
+      }
       
       final items = extractListFromResponse(response.data);
       final transactions = items
@@ -47,23 +60,50 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
           })
           .toList();
 
-      // Save to DB
-      await _saveTransactionsToDb(transactions);
+      if (kDebugMode) {
+        debugPrint('✅ TransactionRepository: ${transactions.length} transactions parsed');
+      }
+
+      // Save to DB (non-blocking, ignore errors)
+      // Skip on web since sql.js is not configured
+      if (_dbAvailable) {
+        _saveTransactionsToDb(transactions).catchError((e) {
+          if (kDebugMode) {
+            debugPrint('⚠️ TransactionRepository: Error saving to DB: $e');
+          }
+        });
+      }
       
       return transactions;
-    } catch (e) {
-      // Fallback to DB
-      if (e is DioException && 
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ TransactionRepository: Error fetching transactions: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
+      
+      // Fallback to DB only for connection issues
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
-        final dbTransactions = await _db.transactionsDao.getAllTransactions();
-        return dbTransactions.map((t) => _mapToModel(t)).toList();
+        if (kDebugMode) {
+          debugPrint('📦 TransactionRepository: Falling back to local DB...');
+        }
+        try {
+          final dbTransactions = await _db.transactionsDao.getAllTransactions();
+          return dbTransactions.map((t) => _mapToModel(t)).toList();
+        } catch (dbError) {
+          if (kDebugMode) {
+            debugPrint('❌ TransactionRepository: DB fallback also failed: $dbError');
+          }
+          rethrow;
+        }
       }
       rethrow;
     }
   }
 
   Future<void> _saveTransactionsToDb(List<TransactionModel> transactions) async {
+    if (!_dbAvailable) return;
     for (final t in transactions) {
       await _db.transactionsDao.insertTransaction(_mapToCompanion(t));
     }
@@ -135,13 +175,20 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       
       final data = response.data ?? <String, dynamic>{};
       final transaction = TransactionModel.fromMap(data);
-      await _db.transactionsDao.insertTransaction(_mapToCompanion(transaction));
+      
+      // Save to local DB if available (non-blocking)
+      if (_dbAvailable) {
+        _db.transactionsDao.insertTransaction(_mapToCompanion(transaction)).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ DB insert error (ignored): $e');
+          return 0;
+        });
+      }
       
       await CacheService.invalidateDashboard();
       await CacheService.invalidateMissions();
       return data;
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         // Offline creation
@@ -173,11 +220,19 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
   Future<void> deleteTransaction(String id) async {
     try {
       await client.client.delete('${ApiEndpoints.transactions}$id/');
-      await _db.transactionsDao.deleteTransaction(id);
+      
+      // Delete from local DB if available (non-blocking)
+      if (_dbAvailable) {
+        _db.transactionsDao.deleteTransaction(id).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ DB delete error (ignored): $e');
+          return 0;
+        });
+      }
+      
       await CacheService.invalidateDashboard();
       await CacheService.invalidateMissions();
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         // Offline deletion (soft delete)
@@ -199,7 +254,7 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
           .get<Map<String, dynamic>>('${ApiEndpoints.transactions}$id/details/');
       return response.data ?? <String, dynamic>{};
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         final transaction = await _db.transactionsDao.getTransactionById(id);
@@ -249,14 +304,21 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       
       final data = response.data ?? <String, dynamic>{};
       final transaction = TransactionModel.fromMap(data);
-      await _db.transactionsDao.updateTransaction(_mapToCompanion(transaction));
+      
+      // Update local DB if available (non-blocking)
+      if (_dbAvailable) {
+        _db.transactionsDao.updateTransaction(_mapToCompanion(transaction)).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ DB update error (ignored): $e');
+          return false;
+        });
+      }
       
       await CacheService.invalidateDashboard();
       await CacheService.invalidateMissions();
       
       return transaction;
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         // Offline update
@@ -394,26 +456,48 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
     String? dateFrom,
     String? dateTo,
   }) async {
-    final queryParams = <String, dynamic>{};
-    if (linkType != null) queryParams['link_type'] = linkType;
-    if (dateFrom != null) queryParams['date_from'] = dateFrom;
-    if (dateTo != null) queryParams['date_to'] = dateTo;
-    
-    final response = await client.client.get<dynamic>(
-      ApiEndpoints.transactionLinks,
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-    
-    final items = extractListFromResponse(response.data);
-    
-    return items
-        .map((e) {
-          if (e is! Map<String, dynamic>) {
-            throw const ParseFailure('Formato de link inválido');
-          }
-          return TransactionLinkModel.fromMap(e);
-        })
-        .toList();
+    try {
+      final queryParams = <String, dynamic>{};
+      if (linkType != null) queryParams['link_type'] = linkType;
+      if (dateFrom != null) queryParams['date_from'] = dateFrom;
+      if (dateTo != null) queryParams['date_to'] = dateTo;
+      
+      if (kDebugMode) {
+        debugPrint('📡 TransactionRepository: Fetching transaction links...');
+      }
+      
+      final response = await client.client.get<dynamic>(
+        ApiEndpoints.transactionLinks,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+      
+      if (kDebugMode) {
+        debugPrint('📡 TransactionRepository: Links response received, parsing...');
+      }
+      
+      final items = extractListFromResponse(response.data);
+      
+      final links = items
+          .map((e) {
+            if (e is! Map<String, dynamic>) {
+              throw const ParseFailure('Formato de link inválido');
+            }
+            return TransactionLinkModel.fromMap(e);
+          })
+          .toList();
+      
+      if (kDebugMode) {
+        debugPrint('✅ TransactionRepository: ${links.length} links parsed');
+      }
+      
+      return links;
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ TransactionRepository: Error fetching links: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
+      rethrow;
+    }
   }
 
   @override

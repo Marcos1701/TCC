@@ -7,7 +7,9 @@ import '../../../../core/models/mission_progress.dart';
 import '../../../../core/models/transaction.dart';
 import '../../../../core/models/transaction_link.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/repositories/transaction_repository.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 
 // ========== DIA 4-5: NOVOS WIDGETS SIMPLIFICADOS ==========
 
@@ -378,6 +380,23 @@ class _RecentTransactionsSectionState extends State<RecentTransactionsSection> {
     }
   }
 
+  void _showTransactionDetails(BuildContext context, TransactionModel transaction) {
+    final transactionRepository = TransactionRepository();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => TransactionDetailsSheet(
+        transaction: transaction,
+        repository: transactionRepository,
+        onUpdate: () {
+          // Recarregar transações após atualização
+          _loadTransactions();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -428,6 +447,7 @@ class _RecentTransactionsSectionState extends State<RecentTransactionsSection> {
               ..._transactions!.map((transaction) => SimpleTransactionTile(
                     transaction: transaction,
                     currency: widget.currency,
+                    onTap: () => _showTransactionDetails(context, transaction),
                   )),
           ],
         ),
@@ -441,41 +461,89 @@ class SimpleTransactionTile extends StatelessWidget {
     super.key,
     required this.transaction,
     required this.currency,
+    this.onTap,
   });
 
   final TransactionModel transaction;
   final NumberFormat currency;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == 'INCOME';
-    final color = isIncome ? Colors.green : Colors.red;
-    final icon = isIncome ? Icons.arrow_downward : Icons.arrow_upward;
+    final color = isIncome ? AppColors.support : AppColors.alert;
+    // Receita = seta pra cima (dinheiro entrando), Despesa = seta pra baixo (dinheiro saindo)
+    final icon = isIncome ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-      title: Text(
-        transaction.description,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        DateFormat('dd/MM/yyyy').format(transaction.date),
-        style: TextStyle(color: Colors.grey[500], fontSize: 12),
-      ),
-      trailing: Text(
-        currency.format(transaction.amount),
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transaction.description,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          DateFormat('dd/MM/yyyy').format(transaction.date),
+                          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        ),
+                        if (transaction.category != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[800],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              transaction.category!.name,
+                              style: TextStyle(color: Colors.grey[400], fontSize: 10),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                currency.format(transaction.amount),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

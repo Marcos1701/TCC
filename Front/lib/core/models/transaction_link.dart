@@ -32,12 +32,16 @@ class TransactionLinkModel {
       targetTransaction: map['target_transaction'] != null
           ? TransactionModel.fromMap(map['target_transaction'] as Map<String, dynamic>)
           : null,
-      linkedAmount: double.parse(map['linked_amount'].toString()),
-      linkType: map['link_type'] as String,
+      linkedAmount: double.tryParse(map['linked_amount']?.toString() ?? '0') ?? 0.0,
+      linkType: (map['link_type'] as String?) ?? 'UNKNOWN',
       description: map['description'] as String?,
-      isRecurring: map['is_recurring'] as bool,
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+      isRecurring: (map['is_recurring'] as bool?) ?? false,
+      createdAt: map['created_at'] != null 
+          ? DateTime.tryParse(map['created_at'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.tryParse(map['updated_at'] as String) ?? DateTime.now()
+          : DateTime.now(),
     );
   }
 

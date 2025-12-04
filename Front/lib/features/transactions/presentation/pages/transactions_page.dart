@@ -26,10 +26,14 @@ class TransactionsPage extends StatefulWidget {
   State<TransactionsPage> createState() => _TransactionsPageState();
 }
 
-class _TransactionsPageState extends State<TransactionsPage> {
+class _TransactionsPageState extends State<TransactionsPage>
+    with AutomaticKeepAliveClientMixin {
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   final _cacheManager = CacheManager();
   late final TransactionsViewModel _viewModel;
+  
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -187,6 +191,7 @@ class _TransactionsPageState extends State<TransactionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
@@ -290,6 +295,14 @@ class _TransactionsPageState extends State<TransactionsPage> {
                             style: textTheme.titleMedium
                                 ?.copyWith(color: Colors.white),
                           ),
+                          if (_viewModel.errorMessage != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _viewModel.errorMessage!,
+                              style: textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey),
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           OutlinedButton(
                             onPressed: () => _viewModel.loadTransactions(type: _viewModel.filter),

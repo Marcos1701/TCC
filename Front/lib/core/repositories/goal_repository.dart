@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 import '../models/goal.dart';
@@ -24,6 +25,10 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
       : _db = db ?? AppDatabase();
 
   final AppDatabase _db;
+  
+  /// Flag to track if DB operations should be attempted
+  /// Disabled on web (kIsWeb) since sql.js is not configured
+  static bool get _dbAvailable => !kIsWeb;
 
   // ===========================================================================
   // GOAL CRUD OPERATIONS
@@ -33,18 +38,35 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
   @override
   Future<List<GoalModel>> fetchGoals() async {
     try {
+      if (kDebugMode) {
+        debugPrint('📡 GoalRepository: Fetching goals from API...');
+      }
+      
       final response = await client.client.get<dynamic>(ApiEndpoints.goals);
       final items = extractListFromResponse(response.data);
       final goals = items
           .map((e) => GoalModel.fromMap(e as Map<String, dynamic>))
           .toList();
       
-      // Save to DB
-      await _saveGoalsToDb(goals);
+      if (kDebugMode) {
+        debugPrint('✅ GoalRepository: ${goals.length} goals loaded');
+      }
+      
+      // Save to DB (non-blocking, only if available)
+      if (_dbAvailable) {
+        _saveGoalsToDb(goals).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ GoalRepository: DB save error (ignored): $e');
+        });
+      }
       
       return goals;
-    } catch (e) {
-      if (e is DioException && 
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ GoalRepository: Error fetching goals: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
+      
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         final dbGoals = await _db.goalsDao.getAllGoals();
@@ -86,11 +108,18 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
       
       final data = response.data ?? <String, dynamic>{};
       final goal = GoalModel.fromMap(data);
-      await _db.goalsDao.insertGoal(_mapToCompanion(goal));
+      
+      // Save to local DB if available (non-blocking)
+      if (_dbAvailable) {
+        _db.goalsDao.insertGoal(_mapToCompanion(goal)).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ GoalRepository: DB insert error (ignored): $e');
+          return 0;
+        });
+      }
       
       return goal;
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         // Offline creation
@@ -149,10 +178,18 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
       );
       final data = response.data ?? <String, dynamic>{};
       final goal = GoalModel.fromMap(data);
-      await _db.goalsDao.updateGoal(_mapToCompanion(goal));
+      
+      // Update local DB if available (non-blocking)
+      if (_dbAvailable) {
+        _db.goalsDao.updateGoal(_mapToCompanion(goal)).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ GoalRepository: DB update error (ignored): $e');
+          return false;
+        });
+      }
+      
       return goal;
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         // Offline update
@@ -195,9 +232,16 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
   Future<void> deleteGoal(String id) async {
     try {
       await client.client.delete('${ApiEndpoints.goals}$id/');
-      await _db.goalsDao.deleteGoal(id);
+      
+      // Delete from local DB if available (non-blocking)
+      if (_dbAvailable) {
+        _db.goalsDao.deleteGoal(id).catchError((e) {
+          if (kDebugMode) debugPrint('⚠️ GoalRepository: DB delete error (ignored): $e');
+          return 0;
+        });
+      }
     } catch (e) {
-      if (e is DioException && 
+      if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
         // Offline deletion (soft delete)
@@ -249,6 +293,7 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
   }
 
   Future<void> _saveGoalsToDb(List<GoalModel> goals) async {
+    if (!_dbAvailable) return;
     for (final g in goals) {
       await _db.goalsDao.insertGoal(_mapToCompanion(g));
     }

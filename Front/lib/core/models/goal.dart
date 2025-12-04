@@ -53,26 +53,30 @@ class GoalModel {
   factory GoalModel.fromMap(Map<String, dynamic> map) {
     return GoalModel(
       id: map['id'].toString(),
-      title: map['title'] as String,
+      title: (map['title'] as String?) ?? '',
       description: (map['description'] as String?) ?? '',
-      targetAmount: double.parse(map['target_amount'].toString()),
-      currentAmount: double.parse(map['current_amount'].toString()),
+      targetAmount: double.tryParse(map['target_amount']?.toString() ?? '0') ?? 0.0,
+      currentAmount: double.tryParse(map['current_amount']?.toString() ?? '0') ?? 0.0,
       initialAmount: map['initial_amount'] != null
-          ? double.parse(map['initial_amount'].toString())
+          ? double.tryParse(map['initial_amount'].toString()) ?? 0.0
           : 0.0,
       deadline: map['deadline'] != null
-          ? DateTime.parse(map['deadline'] as String)
+          ? DateTime.tryParse(map['deadline'] as String)
           : null,
       goalType: _parseGoalType(map['goal_type'] as String?),
       progressPercentage:
-          double.parse(map['progress_percentage']?.toString() ?? '0'),
-      createdAt: DateTime.parse(map['created_at'] as String),
-      updatedAt: DateTime.parse(map['updated_at'] as String),
+          double.tryParse(map['progress_percentage']?.toString() ?? '0') ?? 0.0,
+      createdAt: map['created_at'] != null 
+          ? DateTime.tryParse(map['created_at'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: map['updated_at'] != null
+          ? DateTime.tryParse(map['updated_at'] as String) ?? DateTime.now()
+          : DateTime.now(),
       // Novos campos
       targetCategory: map['target_category'] as String?,
       targetCategoryName: map['target_category_name'] as String?,
       baselineAmount: map['baseline_amount'] != null
-          ? double.parse(map['baseline_amount'].toString())
+          ? double.tryParse(map['baseline_amount'].toString())
           : null,
       trackingPeriodMonths: map['tracking_period_months'] as int? ?? 3,
     );

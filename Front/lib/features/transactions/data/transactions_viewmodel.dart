@@ -68,6 +68,8 @@ class TransactionsViewModel extends ChangeNotifier {
   
   /// Carrega transações do repositório
   Future<void> loadTransactions({String? type}) async {
+    if (_isDisposed) return;
+    
     _filter = type;
     _state = TransactionsViewState.loading;
     _errorMessage = null;
@@ -75,16 +77,43 @@ class TransactionsViewModel extends ChangeNotifier {
     _safeNotifyListeners();
 
     try {
+      if (kDebugMode) {
+        debugPrint('📥 TransactionsViewModel: Iniciando carregamento de transações...');
+      }
+      
       _transactions = await _repository.fetchTransactions(
         type: type,
         limit: _pageSize,
         offset: 0,
       );
-      _links = await _repository.fetchTransactionLinks();
+      
+      if (kDebugMode) {
+        debugPrint('✅ TransactionsViewModel: ${_transactions.length} transações carregadas');
+      }
+      
+      // Carrega links separadamente para não bloquear transações em caso de erro
+      try {
+        _links = await _repository.fetchTransactionLinks();
+        
+        if (kDebugMode) {
+          debugPrint('✅ TransactionsViewModel: ${_links.length} links carregados');
+        }
+      } catch (linkError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ TransactionsViewModel: Erro ao carregar links (ignorado): $linkError');
+        }
+        // Mantém lista de links vazia, não bloqueia transações
+        _links = [];
+      }
+      
       _hasMore = _transactions.length >= _pageSize;
       _state = TransactionsViewState.success;
       _errorMessage = null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('❌ TransactionsViewModel: Erro ao carregar transações: $e');
+        debugPrint('Stack trace: $stackTrace');
+      }
       _state = TransactionsViewState.error;
       _errorMessage = 'Erro ao carregar transações: ${e.toString()}';
     } finally {
@@ -122,9 +151,20 @@ class TransactionsViewModel extends ChangeNotifier {
 
   /// Atualiza transações sem mudar o estado de loading
   Future<void> refreshSilently() async {
+    if (_isDisposed) return;
+    
     try {
       _transactions = await _repository.fetchTransactions(type: _filter);
-      _links = await _repository.fetchTransactionLinks();
+      
+      // Carrega links separadamente para não bloquear atualização
+      try {
+        _links = await _repository.fetchTransactionLinks();
+      } catch (linkError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Erro ao atualizar links silenciosamente (ignorado): $linkError');
+        }
+      }
+      
       _safeNotifyListeners();
     } catch (e) {
       if (kDebugMode) {
@@ -279,7 +319,17 @@ class TransactionsViewModel extends ChangeNotifier {
     
     try {
       _transactions = await _repository.fetchTransactions(type: newFilter);
-      _links = await _repository.fetchTransactionLinks();
+      
+      // Carrega links separadamente para não bloquear em caso de erro
+      try {
+        _links = await _repository.fetchTransactionLinks();
+      } catch (linkError) {
+        if (kDebugMode) {
+          debugPrint('⚠️ Erro ao carregar links no filtro (ignorado): $linkError');
+        }
+        _links = [];
+      }
+      
       _state = TransactionsViewState.success;
     } catch (e) {
       _state = TransactionsViewState.error;
