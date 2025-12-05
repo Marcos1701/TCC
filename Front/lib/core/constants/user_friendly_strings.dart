@@ -47,11 +47,6 @@ class UxStrings {
   static const protected = 'Protegido';
   static const vulnerable = 'Vulnerável';
   
-  static const goals = 'Metas';
-  static const newGoal = 'Nova meta';
-  static const activeGoals = 'Metas ativas';
-  static const completedGoals = 'Metas concluídas';
-  static const goalProgress = 'Progresso da meta';
   
   static const ranking = 'Ranking';
   static const friendsRanking = 'Ranking de Amigos';
@@ -85,10 +80,6 @@ class UxStrings {
       'Você está guardando ${percentage.toStringAsFixed(0)}% da sua renda';
   
   /// Mensagens de progresso de meta
-  static String goalProgressMessage(double current, double target) {
-    final percentage = ((current / target) * 100).toStringAsFixed(0);
-    return 'R\$ ${current.toStringAsFixed(2)} de R\$ ${target.toStringAsFixed(2)} ($percentage%)';
-  }
   
   /// Mensagens de pontos ganhos
   static String pointsEarnedMessage(int points) =>

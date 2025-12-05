@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
-import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../tracking/presentation/pages/tracking_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
 
@@ -27,9 +26,8 @@ class _FinancesPageState extends State<FinancesPage>
     super.initState();
     AnalyticsService.trackScreenView('finances');
     _tabController = TabController(
-      length: 3,
-      vsync: this,
       initialIndex: widget.initialTab,
+      length: 2,
     );
   }
 
@@ -60,10 +58,6 @@ class _FinancesPageState extends State<FinancesPage>
               icon: Icon(Icons.analytics_rounded),
               text: UxStrings.analysis,
             ),
-            Tab(
-              icon: Icon(Icons.flag_rounded),
-              text: UxStrings.goals,
-            ),
           ],
         ),
       ),
@@ -76,8 +70,6 @@ class _FinancesPageState extends State<FinancesPage>
           // Tab 2: Analysis
           TrackingPage(),
 
-          // Tab 3: Goals
-          ProgressPage(),
         ],
       ),
     );
