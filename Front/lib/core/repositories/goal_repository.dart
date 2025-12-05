@@ -326,8 +326,8 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
       progressPercentage: g.progressPercentage,
       createdAt: g.createdAt,
       updatedAt: g.updatedAt,
-      targetCategory: g.targetCategory,
-      targetCategoryName: g.targetCategoryName,
+      targetCategories: g.targetCategory != null ? [g.targetCategory!] : [],
+      targetCategoryNames: g.targetCategoryName != null ? [g.targetCategoryName!] : [],
       baselineAmount: g.baselineAmount,
       trackingPeriodMonths: g.trackingPeriodMonths,
     );
