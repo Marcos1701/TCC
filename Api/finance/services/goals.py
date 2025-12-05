@@ -146,10 +146,14 @@ def _update_expense_reduction_goal(goal) -> None:
     Atualiza meta de redução de gastos.
     
     Lógica:
-    - Calcula gastos médios mensais nas categorias alvo nos últimos X meses
-    - Compara com baseline_amount
-    - Redução = baseline - gastos_atuais
-    - current_amount = redução alcançada
+    - Considera apenas transações APÓS a criação da meta
+    - Calcula média mensal de gastos nas categorias alvo desde a criação
+    - Compara com baseline_amount para determinar redução
+    - current_amount = redução alcançada (limitado a target_amount como máximo)
+    
+    Importante:
+    - Se a meta foi criada recentemente e não há transações, current_amount = 0
+    - Evita mostrar 100% de progresso incorretamente quando não há dados
     """
     # Verifica se há categorias alvo
     if not goal.target_categories.exists() or not goal.baseline_amount:
@@ -159,13 +163,20 @@ def _update_expense_reduction_goal(goal) -> None:
     from django.utils import timezone
     
     today = timezone.now().date()
-    period_start = today - relativedelta(months=goal.tracking_period_months)
     
-    # Gastos atuais em TODAS as categorias alvo
+    # Usar a data de criação da meta como ponto de partida
+    # (ou X meses atrás, o que for mais recente)
+    goal_created_date = goal.created_at.date() if hasattr(goal.created_at, 'date') else goal.created_at
+    period_start = max(
+        goal_created_date,
+        today - relativedelta(months=goal.tracking_period_months)
+    )
+    
+    # Gastos atuais em TODAS as categorias alvo desde a criação da meta
     current_expenses = Transaction.objects.filter(
         user=goal.user,
         type=Transaction.TransactionType.EXPENSE,
-        category__in=goal.target_categories.all(),  # Múltiplas categorias
+        category__in=goal.target_categories.all(),
         date__gte=period_start,
         date__lte=today
     ).aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
@@ -174,14 +185,24 @@ def _update_expense_reduction_goal(goal) -> None:
     
     # Calcular dias reais no período para normalização mais precisa
     days_in_period = (today - period_start).days
-    if days_in_period == 0:
-        current_monthly = Decimal('0')
-    else:
-        # Normalizar para 30 dias (média mensal)
-        current_monthly = (current_expenses / Decimal(str(days_in_period))) * Decimal('30')
     
-    # Redução alcançada
+    # Se a meta é muito recente (menos de 7 dias), não atualizar ainda
+    if days_in_period < 7:
+        goal.current_amount = Decimal('0')
+        goal.save(update_fields=['current_amount', 'updated_at'])
+        return
+    
+    # Normalizar para 30 dias (média mensal)
+    current_monthly = (current_expenses / Decimal(str(days_in_period))) * Decimal('30')
+    
+    # Redução alcançada = baseline - média atual
+    # Se gastou MENOS que o baseline, há redução positiva
     reduction = goal.baseline_amount - current_monthly
+    
+    # Limitar a redução ao target_amount (não pode "reduzir mais" que a meta)
+    if reduction > goal.target_amount:
+        reduction = goal.target_amount
+    
     goal.current_amount = reduction if reduction > 0 else Decimal('0')
     
     goal.save(update_fields=['current_amount', 'updated_at'])
@@ -195,10 +216,14 @@ def _update_income_increase_goal(goal) -> None:
     Lógica:
     - Se target_categories definido: soma receitas nessas categorias
     - Senão: soma todas as receitas
-    - Calcula receitas médias mensais nos últimos X meses
+    - Considera apenas transações APÓS a criação da meta
+    - Calcula receitas médias mensais desde a criação
     - Compara com baseline_amount
     - Aumento = receitas_atuais - baseline
-    - current_amount = aumento alcançado
+    - current_amount = aumento alcançado (limitado a target_amount)
+    
+    Importante:
+    - Se a meta foi criada recentemente e não há dados suficientes, current_amount = 0
     """
     if not goal.baseline_amount:
         return  # Sem baseline definido
@@ -207,7 +232,13 @@ def _update_income_increase_goal(goal) -> None:
     from django.utils import timezone
     
     today = timezone.now().date()
-    period_start = today - relativedelta(months=goal.tracking_period_months)
+    
+    # Usar a data de criação da meta como ponto de partida
+    goal_created_date = goal.created_at.date() if hasattr(goal.created_at, 'date') else goal.created_at
+    period_start = max(
+        goal_created_date,
+        today - relativedelta(months=goal.tracking_period_months)
+    )
     
     # Base query: receitas do usuário no período
     query = Transaction.objects.filter(
@@ -229,14 +260,23 @@ def _update_income_increase_goal(goal) -> None:
     
     # Calcular dias reais no período para normalização mais precisa
     days_in_period = (today - period_start).days
-    if days_in_period == 0:
-        current_monthly = Decimal('0')
-    else:
-        # Normalizar para 30 dias (média mensal)
-        current_monthly = (current_income / Decimal(str(days_in_period))) * Decimal('30')
     
-    # Aumento alcançado
+    # Se a meta é muito recente (menos de 7 dias), não atualizar ainda
+    if days_in_period < 7:
+        goal.current_amount = Decimal('0')
+        goal.save(update_fields=['current_amount', 'updated_at'])
+        return
+    
+    # Normalizar para 30 dias (média mensal)
+    current_monthly = (current_income / Decimal(str(days_in_period))) * Decimal('30')
+    
+    # Aumento alcançado = receita atual - baseline
     increase = current_monthly - goal.baseline_amount
+    
+    # Limitar ao target_amount (não pode "aumentar mais" que a meta)
+    if increase > goal.target_amount:
+        increase = goal.target_amount
+    
     goal.current_amount = increase if increase > 0 else Decimal('0')
     
     goal.save(update_fields=['current_amount', 'updated_at'])

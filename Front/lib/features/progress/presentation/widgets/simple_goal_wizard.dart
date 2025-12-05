@@ -1169,134 +1169,136 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   Widget _buildStep4Deadline() {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Quando você quer alcançar?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Quando você quer alcançar?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Definir um prazo é opcional, mas ajuda a manter o foco',
-            style: TextStyle(color: Colors.grey[400], fontSize: 16),
-          ),
-          const SizedBox(height: 32),
-          
-          // Opções de prazo
-          ...[ 
-            {'label': '📅 1 mês', 'months': 1},
-            {'label': '📅 3 meses', 'months': 3},
-            {'label': '📅 6 meses', 'months': 6},
-            {'label': '📅 1 ano', 'months': 12},
-          ].map((option) {
-            final months = option['months'] as int;
-            final deadline = DateTime.now().add(Duration(days: months * 30));
-            final isSelected = _deadline != null && 
-                _deadline!.year == deadline.year && 
-                _deadline!.month == deadline.month;
+            const SizedBox(height: 8),
+            Text(
+              'Definir um prazo é opcional, mas ajuda a manter o foco',
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
+            ),
+            const SizedBox(height: 32),
             
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: Material(
-                color: isSelected ? AppColors.primary.withOpacity(0.2) : const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(12),
-                child: InkWell(
+            // Opções de prazo
+            ...[ 
+              {'label': '📅 1 mês', 'months': 1},
+              {'label': '📅 3 meses', 'months': 3},
+              {'label': '📅 6 meses', 'months': 6},
+              {'label': '📅 1 ano', 'months': 12},
+            ].map((option) {
+              final months = option['months'] as int;
+              final deadline = DateTime.now().add(Duration(days: months * 30));
+              final isSelected = _deadline != null && 
+                  _deadline!.year == deadline.year && 
+                  _deadline!.month == deadline.month;
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Material(
+                  color: isSelected ? AppColors.primary.withOpacity(0.2) : const Color(0xFF1E1E1E),
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => setState(() => _deadline = deadline),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : Colors.grey[800]!,
-                        width: isSelected ? 2 : 1,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => setState(() => _deadline = deadline),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? AppColors.primary : Colors.grey[800]!,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(option['label'] as String, style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          const Spacer(),
+                          if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary),
+                        ],
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Text(option['label'] as String, style: const TextStyle(color: Colors.white, fontSize: 16)),
-                        const Spacer(),
-                        if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary),
-                      ],
-                    ),
                   ),
                 ),
-              ),
-            );
-          }),
-          
-          const SizedBox(height: 16),
-          
-          // Data personalizada
-          Material(
-            color: const Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
+              );
+            }),
+            
+            const SizedBox(height: 16),
+            
+            // Data personalizada
+            Material(
+              color: const Color(0xFF1E1E1E),
               borderRadius: BorderRadius.circular(12),
-              onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _deadline ?? DateTime.now().add(const Duration(days: 30)),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                  builder: (context, child) => Theme(data: ThemeData.dark(), child: child!),
-                );
-                if (picked != null) setState(() => _deadline = picked);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[800]!),
-                ),
-                child: Row(
-                  children: [
-                    const Text('📆 Escolher data personalizada', style: TextStyle(color: Colors.white, fontSize: 16)),
-                    const Spacer(),
-                    if (_deadline != null)
-                      Text(DateFormat('dd/MM/yyyy').format(_deadline!), style: TextStyle(color: Colors.grey[400])),
-                  ],
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _deadline ?? DateTime.now().add(const Duration(days: 30)),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                    builder: (context, child) => Theme(data: ThemeData.dark(), child: child!),
+                  );
+                  if (picked != null) setState(() => _deadline = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[800]!),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('📆 Escolher data personalizada', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      const Spacer(),
+                      if (_deadline != null)
+                        Text(DateFormat('dd/MM/yyyy').format(_deadline!), style: TextStyle(color: Colors.grey[400])),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          
-          const Spacer(),
-          
-          // Botões finais
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isCreating ? null : _createGoal,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            
+            const SizedBox(height: 32),
+            
+            // Botões finais
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isCreating ? null : _createGoal,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: _isCreating
+                        ? const SizedBox(
+                            height: 20, width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
+                          )
+                        : const Text('Criar meta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
-                  child: _isCreating
-                      ? const SizedBox(
-                          height: 20, width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(Colors.white)),
-                        )
-                      : const Text('Criar meta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-              ),
-              const SizedBox(height: 12),
-              if (_deadline == null)
-                TextButton(
-                  onPressed: _isCreating ? null : _createGoal,
-                  child: const Text('Continuar sem prazo', style: TextStyle(color: Colors.grey)),
-                ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 12),
+                if (_deadline == null)
+                  TextButton(
+                    onPressed: _isCreating ? null : _createGoal,
+                    child: const Text('Continuar sem prazo', style: TextStyle(color: Colors.grey)),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

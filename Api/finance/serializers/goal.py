@@ -96,11 +96,17 @@ class GoalSerializer(serializers.ModelSerializer):
                     category_ids=category_ids
                 )
                 validated_data['initial_amount'] = initial_value
-                validated_data['current_amount'] = initial_value
                 
-                # Para EXPENSE_REDUCTION, initial_amount define baseline_amount se não informado
-                if goal_type == 'EXPENSE_REDUCTION' and not validated_data.get('baseline_amount'):
-                    validated_data['baseline_amount'] = initial_value
+                # EXPENSE_REDUCTION e INCOME_INCREASE: current_amount começa em 0
+                # (ainda não há redução/aumento alcançado)
+                if goal_type in ('EXPENSE_REDUCTION', 'INCOME_INCREASE'):
+                    validated_data['current_amount'] = Decimal('0')
+                    # Para EXPENSE_REDUCTION, baseline_amount = gasto médio atual
+                    if goal_type == 'EXPENSE_REDUCTION' and not validated_data.get('baseline_amount'):
+                        validated_data['baseline_amount'] = initial_value
+                else:
+                    # SAVINGS: current_amount = initial_amount
+                    validated_data['current_amount'] = initial_value
         
         goal = super().create(validated_data)
         
