@@ -521,12 +521,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         typeTitle = 'Meta de Poupança';
         trackingDescription = 'Monitora transações em categorias de Poupança e Investimentos';
         break;
-      case GoalType.emergencyFund:
-        typeColor = Colors.purple;
-        typeIcon = Icons.shield;
-        typeTitle = 'Fundo de Emergência';
-        trackingDescription = 'Monitora transações em categorias de Poupança e Investimentos';
-        break;
+
       case GoalType.expenseReduction:
         typeColor = Colors.orange;
         typeIcon = Icons.trending_down;
@@ -677,8 +672,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               '${_currentGoal.trackingPeriodMonths} meses',
               theme,
             ),
-          ] else if (_currentGoal.goalType == GoalType.savings || 
-                     _currentGoal.goalType == GoalType.emergencyFund) ...[
+          ] else if (_currentGoal.goalType == GoalType.savings) ...[
             const SizedBox(height: 16),
             _buildTypeInfoRow(
               Icons.category,

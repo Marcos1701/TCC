@@ -609,6 +609,36 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
+  /// Busca resumo mensal de transações para pré-preencher wizard de metas.
+  ///
+  /// [type]: EXPENSE, INCOME, SAVINGS ou ALL (default)
+  /// [categoryIds]: Lista de IDs de categorias (opcional)
+  Future<MonthlySummary> fetchMonthlySummary({
+    String type = 'ALL',
+    List<String>? categoryIds,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'type': type,
+      };
+      
+      if (categoryIds != null && categoryIds.isNotEmpty) {
+        queryParams['categories'] = categoryIds.join(',');
+      }
+      
+      final response = await _client.client.get<Map<String, dynamic>>(
+        '${ApiEndpoints.goals}monthly-summary/',
+        queryParameters: queryParams,
+      );
+      
+      final data = response.data ?? {};
+      return MonthlySummary.fromMap(data);
+    } catch (e) {
+      debugPrint('❌ FinanceRepository: Error fetching monthly summary: $e');
+      return MonthlySummary.empty();
+    }
+  }
+
   Future<Map<String, dynamic>> fetchMissionProgressDetails(int id) async {
     final response = await _client.client.get<Map<String, dynamic>>(
         '${ApiEndpoints.missionProgress}$id/details/');
@@ -857,5 +887,59 @@ class FinanceRepository {
       data: {'count': count},
     );
     return response.data ?? {};
+  }
+}
+
+/// Modelo para resumo mensal de transações
+class MonthlySummary {
+  /// Mês no formato YYYY-MM
+  final String month;
+  
+  /// Total geral das transações
+  final double total;
+  
+  /// Breakdown por categoria
+  final List<CategoryTotal> byCategory;
+  
+  const MonthlySummary({
+    required this.month,
+    required this.total,
+    required this.byCategory,
+  });
+  
+  factory MonthlySummary.fromMap(Map<String, dynamic> map) {
+    return MonthlySummary(
+      month: map['month'] as String? ?? '',
+      total: (map['total'] as num?)?.toDouble() ?? 0.0,
+      byCategory: (map['by_category'] as List?)
+          ?.map((e) => CategoryTotal.fromMap(e as Map<String, dynamic>))
+          .toList() ?? [],
+    );
+  }
+  
+  /// Retorna um MonthlySummary vazio
+  static MonthlySummary empty() {
+    return const MonthlySummary(month: '', total: 0, byCategory: []);
+  }
+}
+
+/// Total de transações em uma categoria
+class CategoryTotal {
+  final String id;
+  final String name;
+  final double total;
+  
+  const CategoryTotal({
+    required this.id,
+    required this.name,
+    required this.total,
+  });
+  
+  factory CategoryTotal.fromMap(Map<String, dynamic> map) {
+    return CategoryTotal(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      total: (map['total'] as num?)?.toDouble() ?? 0.0,
+    );
   }
 }
