@@ -62,3 +62,5 @@ Front/build/
 .venv/
 
 *.ps1
+
+Doc/*

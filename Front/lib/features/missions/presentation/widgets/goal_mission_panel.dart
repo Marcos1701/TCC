@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/mission_constants.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../data/missions_viewmodel.dart';
 import 'mission_list_sheet.dart';
@@ -143,7 +144,7 @@ class GoalMissionCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        MissionTypeLabels.labelFor(type),
+                        MissionTypeLabels.getShort(type),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: Colors.white,
                         ),
@@ -165,28 +166,5 @@ class GoalMissionCard extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Labels de tipos de missões para exibição.
-class MissionTypeLabels {
-  MissionTypeLabels._();
-
-  /// Retorna o label legível para um tipo de missão.
-  static String labelFor(String type) {
-    switch (type) {
-      case 'GOAL_CONSISTENCY':
-        return 'Consistência nas metas';
-      case 'GOAL_ACHIEVEMENT':
-        return 'Acelerar meta';
-      case 'GOAL_ACCELERATION':
-        return 'Impulsionar meta';
-      case 'CATEGORY_REDUCTION':
-        return 'Reduzir categoria';
-      case 'CATEGORY_SPENDING_LIMIT':
-        return 'Manter limite';
-      default:
-        return 'Missão financeira';
-    }
   }
 }

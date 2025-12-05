@@ -3,19 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/mission.dart';
 import 'mission_progress_detail_widget.dart';
 
-/// Estilo para badges de fonte.
-class BadgeStyle {
-  const BadgeStyle({
-    required this.label,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final IconData icon;
-  final Color color;
-}
-
 /// Chip de alvo/target da missão.
 class TargetChip extends StatelessWidget {
   const TargetChip(this.target, {super.key});

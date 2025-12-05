@@ -10,7 +10,7 @@ from django.db.models import Sum
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 
-from ..models import Category, Transaction, UserProfile
+from ..models import Category, Transaction, TransactionLink, UserProfile
 from .base import _decimal, logger
 
 
@@ -19,10 +19,10 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     Calcula indicadores financeiros de um usuário.
     Utiliza cache quando disponível e não expirado.
     
-    Indicadores calculados:
+    Indicadores calculados (Base: Últimos 30 Dias):
     - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas) / Receitas) × 100
-    - ILI (Índice de Liquidez Imediata): Reservas / Média Despesas Essenciais (3 meses)
-    - RDR (Razão Despesas/Renda): Média mensal de despesas / Renda × 100
+    - ILI (Índice de Liquidez Imediata): Reservas / Despesas Essenciais (30 dias)
+    - RDR (Razão Despesas/Renda): Pagamentos de Dívidas / Renda × 100
     """
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if not profile.should_recalculate_indicators():
@@ -34,42 +34,47 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             "total_expense": profile.cached_total_expense or Decimal("0.00"),
         }
     
+    today = timezone.now().date()
+    start_date = today - timedelta(days=30)
+    
+    # 1. Receitas (Últimos 30 dias)
     total_income = _decimal(
         Transaction.objects.filter(
             user=user,
-            type=Transaction.TransactionType.INCOME
+            type=Transaction.TransactionType.INCOME,
+            date__gte=start_date,
+            date__lte=today
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
-    
+
+    # 2. Despesas Totais (Últimos 30 dias)
     total_expense = _decimal(
         Transaction.objects.filter(
             user=user,
-            type=Transaction.TransactionType.EXPENSE
+            type=Transaction.TransactionType.EXPENSE,
+            date__gte=start_date,
+            date__lte=today
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
-    
-    today = timezone.now().date()
-    current_month_start = today.replace(day=1)
-    three_months_ago = current_month_start - relativedelta(months=3)
-    
-    monthly_expenses = Transaction.objects.filter(
-        user=user,
-        type=Transaction.TransactionType.EXPENSE,
-        date__gte=three_months_ago,
-        date__lte=today
-    ).annotate(
-        month=TruncMonth('date')
-    ).values('month').annotate(
-        total=Sum('amount')
-    ).values('month', 'total')
-    
-    if monthly_expenses.exists():
-        total_expenses_period = sum(Decimal(str(m['total'])) for m in monthly_expenses)
-        months_count = monthly_expenses.count()
-        recurring_expenses = total_expenses_period / Decimal(str(months_count)) if months_count > 0 else Decimal("0")
-    else:
-        recurring_expenses = Decimal("0")
 
+    # 3. Pagamentos de Dívidas (Últimos 30 dias) - Para RDR
+    # Soma dos valores vinculados (linked_amount) em TransactionLink
+    # onde a transação de origem (pagamento) ocorreu nos últimos 30 dias.
+    source_transaction_ids = Transaction.objects.filter(
+        user=user,
+        date__gte=start_date,
+        date__lte=today
+    ).values_list('id', flat=True)
+    
+    debt_payments = _decimal(
+        TransactionLink.objects.filter(
+            user=user,
+            source_transaction_uuid__in=source_transaction_ids
+        ).aggregate(total=Coalesce(Sum('linked_amount'), Decimal("0")))['total']
+    )
+    
+    # 4. Reserva de Emergência (Acumulado Vitalício) - Para ILI
+    # A reserva é um estoque (saldo), não um fluxo, então considera tudo.
     reserve_transactions = Transaction.objects.filter(
         user=user, 
         category__group=Category.CategoryGroup.SAVINGS
@@ -86,17 +91,20 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         elif tx_type == Transaction.TransactionType.EXPENSE:
             reserve_withdrawals += total
 
-    essential_expense_total = _decimal(
+    reserve_balance = reserve_deposits - reserve_withdrawals
+
+    # 5. Despesas Essenciais (Últimos 30 dias) - Para ILI
+    essential_expense = _decimal(
         Transaction.objects.filter(
             user=user,
             category__group=Category.CategoryGroup.ESSENTIAL_EXPENSE,
             type=Transaction.TransactionType.EXPENSE,
-            date__gte=three_months_ago,
+            date__gte=start_date,
             date__lte=today,
-        ).aggregate(total=Sum("amount"))["total"]
+        ).aggregate(total=Coalesce(Sum("amount"), Decimal("0")))["total"]
     )
-    essential_expense = essential_expense_total / Decimal("3") if essential_expense_total > 0 else Decimal("0")
 
+    # Cálculos Finais
     tps = Decimal("0")
     rdr = Decimal("0")
     ili = Decimal("0")
@@ -104,9 +112,8 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     if total_income > 0:
         savings = total_income - total_expense
         tps = (savings / total_income) * Decimal("100")
-        rdr = (recurring_expenses / total_income) * Decimal("100")
+        rdr = (debt_payments / total_income) * Decimal("100")
     
-    reserve_balance = reserve_deposits - reserve_withdrawals
     if essential_expense > 0:
         ili = reserve_balance / essential_expense
 
@@ -340,17 +347,29 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         rdr = Decimal("0")
         if income > 0:
             if is_future:
-                recurring_expenses = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+                # Para projeção futura, ainda usamos despesas recorrentes como proxy para RDR
+                # pois não temos links futuros criados ainda.
+                # Idealmente, deveríamos projetar links recorrentes, mas isso é complexo.
+                # Vamos manter a lógica de despesas recorrentes APENAS para projeção,
+                # ou assumir 0 se quisermos ser estritos.
+                # Por consistência com a mudança, vamos assumir que despesas recorrentes
+                # marcadas como tal são "dívidas" ou compromissos fixos.
+                recurring_debt = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
             else:
-                recurring_expenses = Transaction.objects.filter(
+                # Para histórico, usamos os links reais
+                # Buscar IDs de transações do mês/ano específico
+                month_transaction_ids = Transaction.objects.filter(
                     user=user,
-                    type=Transaction.TransactionType.EXPENSE,
-                    is_recurring=True,
                     date__year=current.year,
                     date__month=current.month
-                ).aggregate(total=Sum('amount'))['total'] or Decimal("0")
+                ).values_list('id', flat=True)
+                
+                recurring_debt = TransactionLink.objects.filter(
+                    user=user,
+                    source_transaction_uuid__in=month_transaction_ids
+                ).aggregate(total=Coalesce(Sum('linked_amount'), Decimal("0")))['total'] or Decimal("0")
             
-            rdr = (recurring_expenses / income) * Decimal("100")
+            rdr = (recurring_debt / income) * Decimal("100")
         
         if income > 0 or expense > 0:
             series.append(

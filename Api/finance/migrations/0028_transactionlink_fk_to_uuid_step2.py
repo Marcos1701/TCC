@@ -29,7 +29,7 @@ def populate_uuid_fk_fields(apps, schema_editor):
             links_updated += 1
         else:
             links_without_uuid += 1
-            print(f"⚠️  TransactionLink {link.id}: source ou target sem UUID")
+            print(f"TransactionLink {link.id}: source ou target sem UUID")
         
         # Salvar em lotes
         if len(batch) >= batch_size:
@@ -48,10 +48,10 @@ def populate_uuid_fk_fields(apps, schema_editor):
             batch_size=batch_size
         )
     
-    print(f"\n✅ Migração de FK para UUID - Step 2:")
+    print(f"\nMigração de FK para UUID - Step 2:")
     print(f"   - Links atualizados: {links_updated}")
     if links_without_uuid > 0:
-        print(f"   ⚠️  Links sem UUID nas transações: {links_without_uuid}")
+        print(f"   Links sem UUID nas transações: {links_without_uuid}")
         print(f"   Execute python manage.py shell e rode:")
         print(f"   from finance.models import Transaction")
         print(f"   Transaction.objects.filter(uuid__isnull=True).update(uuid=uuid.uuid4())")

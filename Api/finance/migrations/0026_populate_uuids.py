@@ -48,7 +48,7 @@ def generate_uuids(apps, schema_editor):
         counts['friendships'] += 1
     
     # Log dos resultados
-    print(f"\n✅ UUIDs gerados com sucesso:")
+    print(f"\nUUIDs gerados com sucesso:")
     print(f"   - Transactions: {counts['transactions']}")
     print(f"   - Goals: {counts['goals']}")
     print(f"   - TransactionLinks: {counts['transaction_links']}")
@@ -71,7 +71,7 @@ def reverse_uuids(apps, schema_editor):
     TransactionLink.objects.all().update(uuid=None)
     Friendship.objects.all().update(uuid=None)
     
-    print("\n⚠️ UUIDs removidos (rollback)\n")
+    print("\nUUIDs removidos (rollback)\n")
 
 
 class Migration(migrations.Migration):

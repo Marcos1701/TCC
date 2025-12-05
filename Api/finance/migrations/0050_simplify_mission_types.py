@@ -27,7 +27,7 @@ def clear_missions(apps, schema_editor):
     mission_count = Mission.objects.count()
     Mission.objects.all().delete()
     
-    print(f"\n✅ Removidas {mission_count} missões e {progress_count} progressos.")
+    print(f"\nRemovidas {mission_count} missões e {progress_count} progressos.")
 
 
 def reverse_clear(apps, schema_editor):

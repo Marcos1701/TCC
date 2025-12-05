@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/constants/mission_constants.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -59,39 +60,10 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     }
   }
 
-  Color _getMissionTypeColor(String type) {
-    switch (type) {
-      case 'ONBOARDING':
-        return const Color(0xFF9C27B0);
-      case 'TPS_IMPROVEMENT':
-        return const Color(0xFF4CAF50);
-      case 'RDR_REDUCTION':
-        return const Color(0xFFF44336);
-      case 'ILI_BUILDING':
-        return const Color(0xFF2196F3);
-      case 'ADVANCED':
-        return const Color(0xFFFF9800);
-      default:
-        return const Color(0xFF607D8B);
-    }
-  }
+  Color _getMissionTypeColor(String type) => MissionTypeColors.get(type);
 
-  String _getMissionTypeDescription(String type) {
-    switch (type) {
-      case 'ONBOARDING':
-        return 'Introdução';
-      case 'TPS_IMPROVEMENT':
-        return 'Melhoria de TPS';
-      case 'RDR_REDUCTION':
-        return 'Redução de RDR';
-      case 'ILI_BUILDING':
-        return 'Construção de ILI';
-      case 'ADVANCED':
-        return 'Avançado';
-      default:
-        return 'Geral';
-    }
-  }
+  String _getMissionTypeDescription(String type) =>
+      MissionTypeLabels.getShort(type);
 
   @override
   Widget build(BuildContext context) {

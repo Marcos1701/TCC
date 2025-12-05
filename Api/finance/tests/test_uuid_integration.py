@@ -168,8 +168,8 @@ class UUIDLookupTestCase(TestCase):
         # Criar vínculo
         link = TransactionLink.objects.create(
             user=self.user1,
-            source_transaction=income,
-            target_transaction=expense,
+            source_transaction_uuid=income.id,
+            target_transaction_uuid=expense.id,
             linked_amount=Decimal('1500.00'),
             link_type='DEBT_PAYMENT'
         )

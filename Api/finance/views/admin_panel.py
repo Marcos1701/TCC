@@ -287,18 +287,12 @@ class AdminGenerateMissionsView(APIView):
     View para geração automática de missões em lote.
 
     Esta view permite ao administrador gerar múltiplas missões
-    de forma automatizada, utilizando dois métodos distintos:
-
-    1. Templates: Utiliza modelos pré-definidos com variações
-       nos parâmetros. Método mais rápido e previsível.
-
-    2. Inteligência Artificial: Gera missões mais diversificadas
-       através de modelo de linguagem (Gemini). Método mais lento,
-       porém com maior variedade.
-
-    As missões são distribuídas equilibradamente entre os níveis
-    BEGINNER, INTERMEDIATE e ADVANCED para atender usuários em
-    diferentes estágios de sua jornada financeira.
+    de forma automatizada utilizando o gerador unificado que:
+    
+    1. Usa templates como base para garantir consistência
+    2. Aplica validações contextuais para evitar missões impossíveis
+    3. Distribui missões entre níveis BEGINNER, INTERMEDIATE e ADVANCED
+    4. Garante variedade através de seleção inteligente
 
     Permissões:
         Apenas administradores (is_staff=True) podem acessar.
@@ -312,17 +306,17 @@ class AdminGenerateMissionsView(APIView):
 
         Este endpoint processa a solicitação de geração de missões,
         distribuindo-as entre diferentes níveis de dificuldade e
-        tipos de missão de forma equilibrada.
+        tipos de missão de forma equilibrada e inteligente.
 
         Args:
             request: Requisição HTTP contendo:
                 - quantidade (int): Número de missões a gerar (10 ou 20).
-                - usar_ia (bool): Se True, utiliza IA para geração.
+                - tier (str, opcional): Tier específica para geração.
+                  Se omitido, gera para todas as tiers equilibradamente.
 
         Returns:
             Response: Resultado da operação contendo:
                 - sucesso (bool): Indica se a operação foi bem-sucedida.
-                - metodo (str): Método utilizado ('templates' ou 'ia').
                 - total_criadas (int): Número de missões criadas.
                 - missoes (list): Lista das primeiras missões criadas.
                 - mensagem (str): Mensagem descritiva do resultado.
@@ -331,25 +325,59 @@ class AdminGenerateMissionsView(APIView):
             400 Bad Request: Se a quantidade for diferente de 10 ou 20.
             500 Internal Server Error: Se ocorrer erro na geração.
         """
-        quantidade = request.data.get('quantidade', 10)
-        usar_ia = request.data.get('usar_ia', False)
+        from ..mission_generator import generate_missions
         
-        # Validar quantidade (apenas 10 ou 20 para simplicidade)
-        if quantidade not in [10, 20]:
+        quantidade = request.data.get('quantidade', 10)
+        tier = request.data.get('tier')  # Opcional: BEGINNER, INTERMEDIATE, ADVANCED
+        
+        # Validar quantidade (5, 10 ou 20 para simplicidade)
+        if quantidade not in [5, 10, 20]:
             return Response({
                 'sucesso': False,
-                'erro': 'Quantidade deve ser 10 ou 20',
+                'erro': 'Quantidade deve ser 5, 10 ou 20',
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar tier se fornecida
+        if tier and tier not in ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']:
+            return Response({
+                'sucesso': False,
+                'erro': 'Tier deve ser BEGINNER, INTERMEDIATE ou ADVANCED',
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            if usar_ia:
-                # Geração via IA (simplificada)
-                resultado = self._gerar_via_ia(quantidade, request.user)
-            else:
-                # Geração via templates (mais rápida)
-                resultado = self._gerar_via_templates(quantidade, request.user)
+            # Usar gerador unificado com suporte a IA
+            resultado = generate_missions(
+                quantidade=quantidade,
+                tier=tier,
+                use_ai=True,  # Tenta usar IA Gemini primeiro
+            )
             
-            return Response(resultado)
+            missoes_criadas = resultado.get('created', [])
+            erros = resultado.get('failed', [])
+            fonte = resultado.get('source', 'template')
+            
+            # Mapear fonte para mensagem amigável
+            fonte_msg = {
+                'gemini_ai': 'via IA Gemini',
+                'template': 'via templates',
+                'hybrid': 'via IA + templates',
+            }.get(fonte, fonte)
+            
+            logger.info(
+                f"Admin {request.user.username} gerou {len(missoes_criadas)} missões {fonte_msg}"
+            )
+            
+            return Response({
+                'sucesso': True,
+                'total_criadas': len(missoes_criadas),
+                'total_erros': len(erros),
+                'missoes': missoes_criadas[:10],  # Primeiras 10 para não sobrecarregar
+                'erros': erros[:5] if erros else [],
+                'mensagem': f'{len(missoes_criadas)} missões geradas {fonte_msg} e aguardando validação',
+                'pendentes': True,  # Indica que as missões estão inativas
+                'fonte': fonte,  # Indica a fonte da geração (gemini_ai, template, hybrid)
+                'distribuicao': resultado.get('summary', {}).get('distribution', {}),
+            })
             
         except Exception as e:
             logger.error(f"Erro ao gerar missões: {e}", exc_info=True)
@@ -358,129 +386,6 @@ class AdminGenerateMissionsView(APIView):
                 'erro': 'Erro ao gerar missões',
                 'detalhes': str(e),
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def _gerar_via_templates(self, quantidade, admin_user):
-        """
-        Gera missões utilizando templates pré-definidos.
-
-        Este método utiliza modelos de missão previamente configurados,
-        aplicando variações nos parâmetros para criar missões únicas.
-        A distribuição é feita equilibradamente entre os níveis.
-
-        Args:
-            quantidade (int): Número total de missões a gerar.
-            admin_user: Usuário administrador que solicitou a geração.
-
-        Returns:
-            dict: Resultado contendo missões criadas e eventuais erros.
-        """
-        from ..mission_templates import generate_mission_batch_from_templates
-        
-        # Distribuição equilibrada entre níveis
-        distribuicao = {
-            'BEGINNER': quantidade // 3,
-            'INTERMEDIATE': quantidade // 3,
-            'ADVANCED': quantidade - (quantidade // 3 * 2),
-        }
-        
-        missoes_criadas = []
-        erros = []
-        
-        for tier, count in distribuicao.items():
-            if count <= 0:
-                continue
-                
-            try:
-                # Métricas padrão para geração generalizada
-                metricas_padrao = {
-                    'BEGINNER': {'tps': 10, 'rdr': 50, 'ili': 1},
-                    'INTERMEDIATE': {'tps': 20, 'rdr': 35, 'ili': 3},
-                    'ADVANCED': {'tps': 30, 'rdr': 25, 'ili': 6},
-                }
-                
-                missions_data = generate_mission_batch_from_templates(
-                    tier=tier,
-                    current_metrics=metricas_padrao[tier],
-                    count=count,
-                )
-                
-                for data in missions_data:
-                    try:
-                        mission = Mission.objects.create(**data)
-                        missoes_criadas.append({
-                            'id': mission.id,
-                            'titulo': mission.title,
-                            'tipo': mission.mission_type,
-                            'dificuldade': mission.difficulty,
-                        })
-                    except Exception as e:
-                        erros.append({
-                            'titulo': data.get('title', 'Desconhecido'),
-                            'erro': str(e),
-                        })
-            except Exception as e:
-                erros.append({
-                    'tier': tier,
-                    'erro': str(e),
-                })
-        
-        logger.info(
-            f"Admin {admin_user.username} gerou {len(missoes_criadas)} missões via templates"
-        )
-        
-        return {
-            'sucesso': True,
-            'metodo': 'templates',
-            'total_criadas': len(missoes_criadas),
-            'total_erros': len(erros),
-            'missoes': missoes_criadas[:10],  # Primeiras 10 para não sobrecarregar resposta
-            'erros': erros[:5] if erros else [],
-            'mensagem': f'{len(missoes_criadas)} missões criadas com sucesso via templates',
-        }
-    
-    def _gerar_via_ia(self, quantidade, admin_user):
-        """
-        Gera missões utilizando Inteligência Artificial.
-
-        Este método utiliza o modelo de linguagem Gemini para gerar
-        missões mais diversificadas e contextualizadas. Em caso de
-        falha na comunicação com a IA, utiliza templates como fallback.
-
-        Args:
-            quantidade (int): Número total de missões a gerar.
-            admin_user: Usuário administrador que solicitou a geração.
-
-        Returns:
-            dict: Resultado contendo missões criadas e eventuais erros.
-        """
-        from ..ai_services import generate_general_missions
-        
-        try:
-            resultado = generate_general_missions(quantidade)
-            
-            missoes_criadas = resultado.get('created', [])
-            erros = resultado.get('failed', [])
-            
-            logger.info(
-                f"Admin {admin_user.username} gerou {len(missoes_criadas)} missões via IA"
-            )
-            
-            return {
-                'sucesso': True,
-                'metodo': 'ia',
-                'total_criadas': len(missoes_criadas),
-                'total_erros': len(erros),
-                'missoes': missoes_criadas[:10],
-                'erros': erros[:5] if erros else [],
-                'mensagem': f'{len(missoes_criadas)} missões criadas com sucesso via IA',
-            }
-        except Exception as e:
-            # Fallback para templates se IA falhar
-            logger.warning(f"IA falhou, usando templates: {e}")
-            resultado = self._gerar_via_templates(quantidade, admin_user)
-            resultado['metodo'] = 'templates (fallback)'
-            resultado['aviso'] = 'IA indisponível, missões geradas via templates'
-            return resultado
 
 
 class AdminMissionTypeSchemasView(APIView):

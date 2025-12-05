@@ -195,7 +195,7 @@ def populate_missions_impacts_and_tips(apps, schema_editor):
         mission.save()
         updated_count += 1
     
-    print(f"✅ {updated_count} missions atualizadas com impacts e tips")
+    print(f"{updated_count} missions atualizadas com impacts e tips")
 
 
 def reverse_populate(apps, schema_editor):

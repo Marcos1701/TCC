@@ -438,17 +438,14 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         links = TransactionLink.objects.filter(
             user=request.user,
             link_type=TransactionLink.LinkType.EXPENSE_PAYMENT
-        ).select_related('target_transaction', 'target_transaction__category')
+        )
         
         if start_date:
             links = links.filter(created_at__gte=start_date)
         if end_date:
             links = links.filter(created_at__lte=end_date)
         
-        category_id = request.query_params.get('category')
-        if category_id:
-            links = links.filter(target_transaction__category_id=category_id)
-        
+        # Obter a lista de links e fazer prefetch manual das transações
         links_list = list(links)
         source_uuids = {link.source_transaction_uuid for link in links_list}
         target_uuids = {link.target_transaction_uuid for link in links_list}
@@ -456,8 +453,20 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         
         transactions_map = {
             tx.id: tx 
-            for tx in Transaction.objects.filter(id__in=all_uuids)
+            for tx in Transaction.objects.filter(
+                id__in=all_uuids
+            ).select_related('category')
         }
+        
+        # Filtrar por categoria usando o map
+        category_id = request.query_params.get('category')
+        if category_id:
+            filtered_links = []
+            for link in links_list:
+                target = transactions_map.get(link.target_transaction_uuid)
+                if target and target.category_id == int(category_id):
+                    filtered_links.append(link)
+            links_list = filtered_links
         
         by_debt = defaultdict(lambda: {
             'debt_id': None,

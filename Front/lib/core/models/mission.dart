@@ -1,3 +1,4 @@
+import '../constants/mission_constants.dart';
 import 'category.dart';
 
 class MissionModel {
@@ -176,52 +177,8 @@ class MissionModel {
   }
 
   /// Retorna uma descrição amigável do tipo de missão
-  String get missionTypeLabel {
-    switch (missionType) {
-      case 'ONBOARDING_TRANSACTIONS':
-        return 'Primeiros passos: transações';
-      case 'ONBOARDING_CATEGORIES':
-        return 'Primeiros passos: categorias';
-      case 'ONBOARDING_GOALS':
-        return 'Primeiros passos: metas';
-      case 'ONBOARDING':
-        return 'Iniciante';
-      case 'TPS_IMPROVEMENT':
-        return 'Poupança';
-      case 'RDR_REDUCTION':
-        return 'Dívidas';
-      case 'ILI_BUILDING':
-        return 'Reserva';
-      case 'CATEGORY_REDUCTION':
-        return 'Reduzir gastos em categoria';
-      case 'CATEGORY_SPENDING_LIMIT':
-        return 'Manter limite da categoria';
-      case 'CATEGORY_ELIMINATION':
-        return 'Eliminar gastos supérfluos';
-      case 'GOAL_ACHIEVEMENT':
-        return 'Completar meta';
-      case 'GOAL_CONSISTENCY':
-        return 'Contribuir com metas';
-      case 'GOAL_ACCELERATION':
-        return 'Acelerar meta';
-      case 'SAVINGS_STREAK':
-        return 'Sequência de poupança';
-      case 'EXPENSE_CONTROL':
-        return 'Controle de gastos';
-      case 'INCOME_TRACKING':
-        return 'Registrar receitas';
-      case 'PAYMENT_DISCIPLINE':
-        return 'Disciplina de pagamentos';
-      case 'FINANCIAL_HEALTH':
-        return 'Saúde financeira';
-      case 'WEALTH_BUILDING':
-        return 'Construção de patrimônio';
-      case 'ADVANCED':
-        return 'Avançado';
-      default:
-        return 'Missão financeira';
-    }
-  }
+  /// Usa as constantes centralizadas de [MissionTypeLabels]
+  String get missionTypeLabel => MissionTypeLabels.getShort(missionType);
   
   /// Retorna uma descrição amigável do tipo de validação
   String get validationTypeLabel {

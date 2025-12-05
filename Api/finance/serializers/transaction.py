@@ -165,8 +165,8 @@ class TransactionSerializer(serializers.ModelSerializer):
 class TransactionLinkSerializer(serializers.ModelSerializer):
     """Serializer para links entre transações."""
     
-    source_transaction = TransactionSerializer(read_only=True)
-    target_transaction = TransactionSerializer(read_only=True)
+    source_transaction = serializers.SerializerMethodField()
+    target_transaction = serializers.SerializerMethodField()
     source_transaction_id = serializers.UUIDField(write_only=True)
     target_transaction_id = serializers.UUIDField(write_only=True)
     
@@ -202,6 +202,18 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'payment_status', 'urgency_score', 'category_info']
+    
+    def get_source_transaction(self, obj):
+        """Retorna os dados da transação de origem."""
+        if hasattr(obj, '_source_transaction_cache'):
+            return TransactionSerializer(obj._source_transaction_cache).data
+        return TransactionSerializer(obj.source_transaction).data
+    
+    def get_target_transaction(self, obj):
+        """Retorna os dados da transação de destino."""
+        if hasattr(obj, '_target_transaction_cache'):
+            return TransactionSerializer(obj._target_transaction_cache).data
+        return TransactionSerializer(obj.target_transaction).data
     
     def get_income_transaction(self, obj):
         if hasattr(obj, '_source_transaction_cache'):
@@ -335,8 +347,8 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
                 'linked_amount': f'Valor excede o disponível no destino (R$ {target.available_amount:.2f}).'
             })
         
-        attrs['source_transaction'] = source
-        attrs['target_transaction'] = target
+        attrs['source_transaction_uuid'] = source.id
+        attrs['target_transaction_uuid'] = target.id
         
         return attrs
 

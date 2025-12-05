@@ -170,67 +170,7 @@ def ensure_transaction_link_uuid(sender, instance, **kwargs):
 
 
 
-# ======= Signals para validação automática de conquistas =======
 
-@receiver(post_save, sender=Transaction)
-def check_achievements_on_transaction(sender, instance, created, **kwargs):
-    """
-    Valida conquistas quando uma transação é criada.
-    
-    Conquistas verificadas:
-    - Contagem de transações (10, 50, 100, etc.)
-    - Totais de receita/despesa
-    - Indicadores financeiros (TPS, ILI, RDR)
-    """
-    if created:
-        from .services import check_achievements_for_user
-        check_achievements_for_user(instance.user, event_type='transaction')
-
-
-@receiver(post_save, sender='finance.MissionProgress')
-def check_achievements_on_mission_complete(sender, instance, **kwargs):
-    """
-    Valida conquistas quando uma missão é completada.
-    
-    Conquistas verificadas:
-    - Contagem de missões completadas (5, 20, 50, etc.)
-    - Conclusão de missões específicas
-    """
-    if instance.status == 'COMPLETED' and instance.completed_at and not instance._state.adding:
-        from .services import check_achievements_for_user
-        check_achievements_for_user(instance.user, event_type='mission')
-
-
-@receiver(post_save, sender=Goal)
-def update_missions_on_goal_change(sender, instance, created, **kwargs):
-    """
-    Atualiza progresso das missões quando uma meta é criada ou atualizada.
-    """
-    from .services import update_mission_progress
-    
-    # Atualizar progresso das missões do usuário
-    # Importante para missões como "Criar primeira meta"
-    update_mission_progress(instance.user)
-
-
-@receiver(post_save, sender=Goal)
-def check_achievements_on_goal_complete(sender, instance, **kwargs):
-    """
-    Valida conquistas quando uma meta é concluída.
-    
-    Conquistas verificadas:
-    - Contagem de metas concluídas (3, 10, 25, etc.)
-    - Conclusão de metas específicas
-    
-    Nota: Goal não possui campo 'status'. Uma meta é considerada completa
-    quando current_amount >= target_amount.
-    """
-    # Verificar se a meta foi recém-concluída (não estava sendo criada)
-    if not instance._state.adding:
-        # Verificar se a meta está completa (atingiu o alvo)
-        if instance.current_amount >= instance.target_amount:
-            from .services import check_achievements_for_user
-            check_achievements_for_user(instance.user, event_type='goal')
 
 
 

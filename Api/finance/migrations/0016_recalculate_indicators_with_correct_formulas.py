@@ -24,8 +24,8 @@ def recalculate_all_indicators(apps, schema_editor):
         cached_ili=None,
     )
     
-    print(f"✅ Cache de indicadores invalidado para {UserProfile.objects.count()} usuários.")
-    print("📊 Os indicadores serão recalculados com as novas fórmulas no próximo acesso.")
+    print(f"Cache de indicadores invalidado para {UserProfile.objects.count()} usuários.")
+    print("Os indicadores serão recalculados com as novas fórmulas no próximo acesso.")
 
 
 def reverse_recalculation(apps, schema_editor):

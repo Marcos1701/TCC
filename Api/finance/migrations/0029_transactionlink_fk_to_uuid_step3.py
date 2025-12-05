@@ -12,6 +12,15 @@ class Migration(migrations.Migration):
 
     operations = [
         # Step 3a: Remover as ForeignKeys antigas (que usam ID numérico)
+        # Fix for SQLite: Remove indexes explicitly before removing fields
+        migrations.RemoveIndex(
+            model_name='transactionlink',
+            name='finance_tra_source__31780a_idx',
+        ),
+        migrations.RemoveIndex(
+            model_name='transactionlink',
+            name='finance_tra_target__b63973_idx',
+        ),
         migrations.RemoveField(
             model_name='transactionlink',
             name='source_transaction',

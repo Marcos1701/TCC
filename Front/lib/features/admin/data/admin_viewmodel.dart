@@ -195,30 +195,36 @@ class AdminViewModel extends ChangeNotifier {
   ///
   /// Parâmetros:
   /// - [quantidade]: Número de missões a serem geradas;
-  /// - [usarIA]: Se verdadeiro, utiliza IA para geração.
+  /// - [tier]: Nível dos usuários alvo (BEGINNER, INTERMEDIATE, ADVANCED).
+  ///          Se null, gera para todos os níveis.
   ///
   /// Retorna um mapa com o resultado da operação.
   Future<Map<String, dynamic>> generateMissions({
     required int quantidade,
-    bool usarIA = false,
+    String? tier,
   }) async {
     try {
+      final data = <String, dynamic>{
+        'quantidade': quantidade,
+      };
+      
+      if (tier != null) {
+        data['tier'] = tier;
+      }
+      
       final response = await _api.client.post(
         ApiEndpoints.adminMissionsGenerate,
-        data: {
-          'quantidade': quantidade,
-          'usar_ia': usarIA,
-        },
+        data: data,
       );
 
-      final data = response.data as Map<String, dynamic>;
+      final responseData = response.data as Map<String, dynamic>;
       
       // Recarrega a lista de missões
-      if (data['sucesso'] == true) {
+      if (responseData['sucesso'] == true) {
         await loadMissions();
       }
 
-      return data;
+      return responseData;
     } on DioException catch (e) {
       return {
         'sucesso': false,

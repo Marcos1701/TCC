@@ -80,8 +80,8 @@ def auto_link_recurring_transactions(user) -> int:
                         try:
                             TransactionLink.objects.create(
                                 user=user,
-                                source_transaction=next_source,
-                                target_transaction=next_target,
+                                source_transaction_uuid=next_source.id,
+                                target_transaction_uuid=next_target.id,
                                 linked_amount=link.linked_amount,
                                 link_type=link.link_type,
                                 description=f"Auto: {link.description}" if link.description else "Vinculação automática recorrente",

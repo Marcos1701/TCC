@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/constants/mission_constants.dart';
 import '../data/admin_viewmodel.dart';
 
 /// Página de Gerenciamento de Missões do Painel Administrativo.
 ///
 /// Esta tela permite ao administrador do sistema realizar operações
 /// de gerenciamento das missões de gamificação financeira, incluindo:
-/// - Visualização de todas as missões cadastradas no sistema;
-/// - Filtragem por tipo, dificuldade e status de ativação;
+/// - Visualização de missões separadas por status (Ativas/Pendentes);
+/// - Filtragem por tipo e dificuldade;
 /// - Ativação e desativação de missões individuais;
-/// - Geração em lote de novas missões via templates ou IA.
+/// - Geração em lote de novas missões via IA (ficam pendentes).
 ///
 /// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminMissionsPage extends StatefulWidget {
@@ -25,54 +26,106 @@ class AdminMissionsPage extends StatefulWidget {
   State<AdminMissionsPage> createState() => _AdminMissionsPageState();
 }
 
-class _AdminMissionsPageState extends State<AdminMissionsPage> {
+class _AdminMissionsPageState extends State<AdminMissionsPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   String? _filtroTipo;
   String? _filtroDificuldade;
-  bool? _filtroAtivo;
   bool _isGenerating = false;
 
   @override
   void initState() {
     super.initState();
-    widget.viewModel.loadMissions();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    _loadMissionsForCurrentTab();
   }
 
-  void _aplicarFiltros() {
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (!_tabController.indexIsChanging) {
+      _loadMissionsForCurrentTab();
+    }
+  }
+
+  void _loadMissionsForCurrentTab() {
+    final isActiveTab = _tabController.index == 0;
     widget.viewModel.loadMissions(
       tipo: _filtroTipo,
       dificuldade: _filtroDificuldade,
-      ativo: _filtroAtivo,
+      ativo: isActiveTab,
     );
   }
 
-  Future<void> _gerarMissoes(int quantidade, bool usarIA) async {
+  void _aplicarFiltros() {
+    _loadMissionsForCurrentTab();
+  }
+
+  Future<void> _gerarMissoes(int quantidade, String? tier) async {
     setState(() => _isGenerating = true);
 
     try {
       final resultado = await widget.viewModel.generateMissions(
         quantidade: quantidade,
-        usarIA: usarIA,
+        tier: tier,
       );
 
       setState(() => _isGenerating = false);
 
       if (mounted) {
         final sucesso = resultado['sucesso'] == true;
-        final mensagem = sucesso
-            ? resultado['mensagem'] ?? 'Missões geradas com sucesso!'
-            : resultado['erro'] ?? 'Erro ao gerar missões';
+        final pendentes = resultado['pendentes'] == true;
+        final totalCriadas = resultado['total_criadas'] ?? 0;
+        final fonte = resultado['fonte'] as String?;
+        
+        // Mapear fonte para texto amigável
+        final fonteTexto = switch (fonte) {
+          'gemini_ai' => ' (via IA)',
+          'hybrid' => ' (IA + templates)',
+          'template' => ' (templates)',
+          _ => '',
+        };
+        
+        String mensagem;
+        if (sucesso && pendentes) {
+          mensagem = '$totalCriadas missões geradas$fonteTexto! Acesse a aba "Pendentes" para revisar e ativar.';
+        } else if (sucesso) {
+          mensagem = resultado['mensagem'] ?? 'Missões geradas com sucesso!';
+        } else {
+          mensagem = resultado['erro'] ?? 'Erro ao gerar missões';
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(mensagem),
             backgroundColor: sucesso ? Colors.green : Colors.red,
             duration: const Duration(seconds: 4),
+            action: sucesso && pendentes
+                ? SnackBarAction(
+                    label: 'Ver Pendentes',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      _tabController.animateTo(1); // Ir para aba de pendentes
+                    },
+                  )
+                : null,
           ),
         );
+
+        // Se gerou com sucesso e está na aba de ativas, ir para pendentes
+        if (sucesso && pendentes && _tabController.index == 0) {
+          _tabController.animateTo(1);
+        }
       }
     } catch (e) {
       setState(() => _isGenerating = false);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -95,7 +148,7 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabeçalho compacto - fixo no topo
+            // Cabeçalho com título e botões
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
@@ -118,7 +171,7 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                     ),
                   ],
                   const Spacer(),
-                  // Botões compactos
+                  // Botão Nova Missão
                   IconButton.filled(
                     onPressed: () => _showCreateMissionDialog(),
                     icon: const Icon(Icons.add, size: 20),
@@ -128,21 +181,73 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                       foregroundColor: colorScheme.onPrimary,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  _GenerateButton(
-                    label: '+10',
-                    isLoading: _isGenerating,
-                    onPressed: () => _showGenerateDialog(10),
-                  ),
-                  const SizedBox(width: 4),
-                  _GenerateButton(
-                    label: '+20',
-                    isLoading: _isGenerating,
-                    onPressed: () => _showGenerateDialog(20),
+                  const SizedBox(width: 8),
+                  // Botão Gerar com IA
+                  ElevatedButton.icon(
+                    onPressed: _isGenerating ? null : () => _showGenerateDialog(),
+                    icon: _isGenerating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.auto_awesome, size: 18),
+                    label: const Text('Gerar com IA'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.secondary,
+                      foregroundColor: colorScheme.onSecondary,
+                    ),
                   ),
                 ],
               ),
             ),
+
+            // Abas: Ativas / Pendentes
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                labelColor: colorScheme.onPrimary,
+                unselectedLabelColor: colorScheme.onSurfaceVariant,
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check_circle_outline, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('Ativas'),
+                        _buildBadgeCount(true),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.pending_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        const Text('Pendentes'),
+                        _buildBadgeCount(false),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
             // Filtros compactos
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -182,31 +287,21 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                         _aplicarFiltros();
                       },
                     ),
-                    const SizedBox(width: 8),
-                    _FilterDropdown(
-                      label: 'Status',
-                      value: _filtroAtivo?.toString(),
-                      items: const {
-                        null: 'Todos',
-                        'true': 'Ativas',
-                        'false': 'Inativas',
-                      },
-                      onChanged: (v) {
-                        setState(() {
-                          _filtroAtivo = v == null ? null : v == 'true';
-                        });
-                        _aplicarFiltros();
-                      },
-                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 8),
 
-            // Lista de missões
+            // Lista de missões (TabBarView)
             Expanded(
-              child: _buildMissionsList(),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildMissionsList(isActiveTab: true),
+                  _buildMissionsList(isActiveTab: false),
+                ],
+              ),
             ),
 
             // Paginação
@@ -215,10 +310,11 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
                 currentPage: widget.viewModel.missionsCurrentPage,
                 totalPages: widget.viewModel.missionsTotalPages,
                 onPageChanged: (page) {
+                  final isActiveTab = _tabController.index == 0;
                   widget.viewModel.loadMissions(
                     tipo: _filtroTipo,
                     dificuldade: _filtroDificuldade,
-                    ativo: _filtroAtivo,
+                    ativo: isActiveTab,
                     pagina: page,
                   );
                 },
@@ -229,7 +325,33 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
     );
   }
 
-  Widget _buildMissionsList() {
+  Widget _buildBadgeCount(bool isActive) {
+    // Conta baseada no status da aba
+    final count = widget.viewModel.missions
+        .where((m) => (m['is_active'] as bool? ?? true) == isActive)
+        .length;
+    
+    if (count == 0) return const SizedBox.shrink();
+    
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: isActive ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: isActive ? Colors.green : Colors.orange,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMissionsList({required bool isActiveTab}) {
     final viewModel = widget.viewModel;
 
     if (viewModel.isLoading && viewModel.missions.isEmpty) {
@@ -259,25 +381,76 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
     }
 
     if (viewModel.missions.isEmpty) {
-      return const Center(
-        child: Text('Nenhuma missão encontrada'),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isActiveTab ? Icons.check_circle_outline : Icons.pending_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isActiveTab
+                  ? 'Nenhuma missão ativa encontrada'
+                  : 'Nenhuma missão pendente de validação',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            if (!isActiveTab) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Use o botão "Gerar com IA" para criar novas missões',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+              ),
+            ],
+          ],
+        ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: viewModel.missions.length,
       itemBuilder: (context, index) {
         final mission = viewModel.missions[index];
         return _MissionCard(
           mission: mission,
+          isPending: !isActiveTab,
           onToggle: () => _toggleMission(mission),
           onTap: () => _showMissionDetails(mission),
           onEdit: () => _showEditMissionDialog(mission),
           onDelete: () => _confirmDeleteMission(mission),
+          onApprove: !isActiveTab ? () => _approveMission(mission) : null,
         );
       },
     );
+  }
+
+  /// Aprova uma missão pendente (ativa)
+  Future<void> _approveMission(Map<String, dynamic> mission) async {
+    final id = mission['id'] as int;
+    final resultado = await widget.viewModel.updateMission(id, {'is_active': true});
+
+    if (mounted) {
+      final sucesso = resultado['sucesso'] == true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            sucesso ? 'Missão ativada com sucesso!' : 'Erro ao ativar missão',
+          ),
+          backgroundColor: sucesso ? Colors.green : Colors.red,
+        ),
+      );
+      
+      if (sucesso) {
+        _loadMissionsForCurrentTab();
+      }
+    }
   }
 
   /// Exibe detalhes completos de uma missão em um diálogo.
@@ -425,42 +598,166 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
     }
   }
 
-  /// Exibe diálogo para seleção do método de geração de missões.
+  /// Exibe diálogo para geração de missões por IA.
   ///
-  /// O administrador pode escolher entre dois métodos:
-  /// - Templates: Utiliza modelos pré-definidos (execução rápida);
-  /// - Inteligência Artificial: Gera missões mais variadas (execução mais lenta).
-  void _showGenerateDialog(int quantidade) {
+  /// Permite selecionar a quantidade de missões e o nível dos usuários alvo.
+  /// As missões geradas ficam pendentes de validação.
+  void _showGenerateDialog() {
+    String? selectedTier;
+    int selectedQuantidade = 10;
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Gerar $quantidade Missões'),
-        content: const Text(
-          'Selecione o método de geração das missões:\n\n'
-          '• Templates: Geração rápida utilizando modelos pré-definidos '
-          'com variações nos parâmetros.\n\n'
-          '• Inteligência Artificial: Geração mais diversificada através '
-          'de modelo de linguagem (processamento mais demorado).',
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.auto_awesome, color: Theme.of(context).colorScheme.secondary),
+              const SizedBox(width: 8),
+              const Text('Gerar Missões com IA'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'As missões geradas ficarão pendentes de validação antes de serem ativadas.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Seleção de quantidade
+              Text(
+                'Quantidade de missões',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _QuantityOption(
+                    value: 5,
+                    isSelected: selectedQuantidade == 5,
+                    onTap: () => setDialogState(() => selectedQuantidade = 5),
+                  ),
+                  const SizedBox(width: 8),
+                  _QuantityOption(
+                    value: 10,
+                    isSelected: selectedQuantidade == 10,
+                    onTap: () => setDialogState(() => selectedQuantidade = 10),
+                  ),
+                  const SizedBox(width: 8),
+                  _QuantityOption(
+                    value: 20,
+                    isSelected: selectedQuantidade == 20,
+                    onTap: () => setDialogState(() => selectedQuantidade = 20),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Seleção de tier
+              DropdownButtonFormField<String>(
+                value: selectedTier,
+                decoration: const InputDecoration(
+                  labelText: 'Nível dos Usuários',
+                  helperText: 'Define o público-alvo das missões',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text('Todos os níveis (distribuição equilibrada)')),
+                  DropdownMenuItem(value: 'BEGINNER', child: Text('Iniciante (níveis 1-5)')),
+                  DropdownMenuItem(value: 'INTERMEDIATE', child: Text('Intermediário (níveis 6-15)')),
+                  DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado (níveis 16+)')),
+                ],
+                onChanged: (value) => setDialogState(() => selectedTier = value),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Informações sobre o que será gerado
+              Text(
+                'O sistema irá:',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              const _GenerationFeature(icon: Icons.check, text: 'Validar viabilidade das missões'),
+              const _GenerationFeature(icon: Icons.check, text: 'Distribuir entre os 6 tipos de missão'),
+              const _GenerationFeature(icon: Icons.check, text: 'Ajustar dificuldade ao nível selecionado'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                _gerarMissoes(selectedQuantidade, selectedTier);
+              },
+              icon: const Icon(Icons.auto_awesome, size: 18),
+              label: Text('Gerar $selectedQuantidade Missões'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _gerarMissoes(quantidade, false);
-            },
-            child: const Text('Templates'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _gerarMissoes(quantidade, true);
-            },
-            icon: const Icon(Icons.auto_awesome, size: 18),
-            label: const Text('IA'),
+      ),
+    );
+  }
+}
+
+/// Widget para exibir uma feature da geração
+class _GenerationFeature extends StatelessWidget {
+  const _GenerationFeature({required this.icon, required this.text});
+  
+  final IconData icon;
+  final String text;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.green),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),
@@ -468,34 +765,58 @@ class _AdminMissionsPageState extends State<AdminMissionsPage> {
   }
 }
 
-/// Botão para iniciar o processo de geração de missões em lote.
-///
-/// Exibe um indicador de carregamento durante o processamento
-/// e desabilita interações enquanto a operação está em andamento.
-class _GenerateButton extends StatelessWidget {
-  /// Cria um botão de geração de missões.
-  const _GenerateButton({
-    required this.label,
-    required this.isLoading,
-    required this.onPressed,
+/// Opção de quantidade para seleção
+class _QuantityOption extends StatelessWidget {
+  const _QuantityOption({
+    required this.value,
+    required this.isSelected,
+    required this.onTap,
   });
-
-  final String label;
-  final bool isLoading;
-  final VoidCallback onPressed;
-
+  
+  final int value;
+  final bool isSelected;
+  final VoidCallback onTap;
+  
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: isLoading ? null : onPressed,
-      icon: isLoading
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.add),
-      label: Text(label),
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? colorScheme.primary 
+                : colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected ? colorScheme.primary : Colors.transparent,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                '$value',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                    ),
+              ),
+              Text(
+                'missões',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: isSelected 
+                          ? colorScheme.onPrimary.withValues(alpha: 0.8) 
+                          : colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -521,7 +842,7 @@ class _FilterDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 200,
+      width: 180,
       child: DropdownButtonFormField<String?>(
         value: value,
         isExpanded: true,
@@ -548,12 +869,12 @@ class _FilterDropdown extends StatelessWidget {
 /// Cartão de apresentação de uma missão individual.
 ///
 /// Exibe as informações principais da missão de forma organizada:
-/// - Indicador visual de status (ativa/inativa);
+/// - Indicador visual de status (ativa/pendente);
 /// - Título e tipo da missão;
 /// - Descrição resumida;
 /// - Recompensa em pontos de experiência (XP);
 /// - Duração em dias;
-/// - Controle de ativação/desativação.
+/// - Controle de ativação/aprovação.
 class _MissionCard extends StatelessWidget {
   /// Cria um cartão de missão.
   const _MissionCard({
@@ -562,6 +883,8 @@ class _MissionCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    this.isPending = false,
+    this.onApprove,
   });
 
   final Map<String, dynamic> mission;
@@ -569,6 +892,8 @@ class _MissionCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isPending;
+  final VoidCallback? onApprove;
 
   @override
   Widget build(BuildContext context) {
@@ -578,27 +903,9 @@ class _MissionCard extends StatelessWidget {
     final isActive = mission['is_active'] as bool? ?? true;
     final difficulty = mission['difficulty'] as String? ?? 'MEDIUM';
     final missionType = mission['mission_type'] as String? ?? 'ONBOARDING';
+    final isSystemGenerated = mission['is_system_generated'] as bool? ?? false;
 
-    final difficultyColors = {
-      'EASY': Colors.green,
-      'MEDIUM': Colors.orange,
-      'HARD': Colors.red,
-    };
-
-    final difficultyLabels = {
-      'EASY': 'Fácil',
-      'MEDIUM': 'Média',
-      'HARD': 'Difícil',
-    };
-
-    final typeLabels = {
-      'ONBOARDING': 'Primeiros Passos',
-      'TPS_IMPROVEMENT': 'Taxa de Poupança',
-      'RDR_REDUCTION': 'Redução de Despesas',
-      'ILI_BUILDING': 'Reserva de Emergência',
-      'CATEGORY_REDUCTION': 'Controle de Categoria',
-      'GOAL_ACHIEVEMENT': 'Progresso em Meta',
-    };
+    // Usa constantes centralizadas para cores e labels
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -612,9 +919,9 @@ class _MissionCard extends StatelessWidget {
               // Indicador de status
               Container(
                 width: 4,
-                height: 60,
+                height: 70,
                 decoration: BoxDecoration(
-                  color: isActive ? Colors.green : Colors.grey,
+                  color: isPending ? Colors.orange : (isActive ? Colors.green : Colors.grey),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -634,6 +941,31 @@ class _MissionCard extends StatelessWidget {
                             ),
                         ),
                       ),
+                      // Badge de status para pendentes
+                      if (isPending) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.pending, size: 12, color: Colors.orange),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Pendente',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: Colors.orange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       // Badge de dificuldade
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -641,13 +973,13 @@ class _MissionCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: difficultyColors[difficulty]?.withValues(alpha: 0.15),
+                          color: DifficultyColors.get(difficulty).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          difficultyLabels[difficulty] ?? difficulty,
+                          DifficultyLabels.get(difficulty),
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: difficultyColors[difficulty],
+                            color: DifficultyColors.get(difficulty),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -655,11 +987,23 @@ class _MissionCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    typeLabels[missionType] ?? missionType,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.primary,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        MissionTypeLabels.getShort(missionType),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      if (isSystemGenerated) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 14,
+                          color: colorScheme.secondary,
+                        ),
+                      ],
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -673,7 +1017,7 @@ class _MissionCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.stars,
                         size: 16,
                         color: Colors.amber,
@@ -699,12 +1043,38 @@ class _MissionCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Botão de toggle
-            const SizedBox(width: 16),
-            Switch(
-              value: isActive,
-              onChanged: (_) => onToggle(),
-            ),
+            // Ações
+            const SizedBox(width: 12),
+            if (isPending && onApprove != null)
+              // Botão de aprovar para pendentes
+              Column(
+                children: [
+                  IconButton.filled(
+                    onPressed: onApprove,
+                    icon: const Icon(Icons.check, size: 20),
+                    tooltip: 'Aprovar e Ativar',
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  IconButton.outlined(
+                    onPressed: onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    tooltip: 'Excluir',
+                    style: IconButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
+                  ),
+                ],
+              )
+            else
+              // Switch para ativas
+              Switch(
+                value: isActive,
+                onChanged: (_) => onToggle(),
+              ),
           ],
         ),
         ),
@@ -781,27 +1151,7 @@ class _MissionDetailsDialog extends StatelessWidget {
     final missionType = mission['mission_type'] as String? ?? 'ONBOARDING';
     final validationType = mission['validation_type'] as String? ?? '';
 
-    final difficultyLabels = {
-      'EASY': 'Fácil',
-      'MEDIUM': 'Média',
-      'HARD': 'Difícil',
-    };
-
-    final difficultyColors = {
-      'EASY': Colors.green,
-      'MEDIUM': Colors.orange,
-      'HARD': Colors.red,
-    };
-
-    final typeLabels = {
-      'ONBOARDING': 'Primeiros Passos',
-      'TPS_IMPROVEMENT': 'Taxa de Poupança (TPS)',
-      'RDR_REDUCTION': 'Redução de Despesas (RDR)',
-      'ILI_BUILDING': 'Reserva de Emergência (ILI)',
-      'CATEGORY_REDUCTION': 'Controle de Categoria',
-      'GOAL_ACHIEVEMENT': 'Progresso em Meta',
-    };
-
+    // Usa constantes centralizadas + labels de validação específicos do admin
     final validationLabels = {
       'TRANSACTION_COUNT': 'Contagem de Transações',
       'INDICATOR_THRESHOLD': 'Limite de Indicador',
@@ -852,14 +1202,14 @@ class _MissionDetailsDialog extends StatelessWidget {
               // Informações principais
               _DetailRow(
                 label: 'Tipo',
-                value: typeLabels[missionType] ?? missionType,
+                value: MissionTypeLabels.getDescriptive(missionType),
                 icon: Icons.category,
               ),
               _DetailRow(
                 label: 'Dificuldade',
-                value: difficultyLabels[difficulty] ?? difficulty,
+                value: DifficultyLabels.get(difficulty),
                 icon: Icons.trending_up,
-                valueColor: difficultyColors[difficulty],
+                valueColor: DifficultyColors.get(difficulty),
               ),
               _DetailRow(
                 label: 'Validação',
@@ -1070,8 +1420,8 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
   // Seleções de FK (categorias e metas)
   int? _selectedCategoryId;
   String? _selectedGoalId;  // UUID
-  List<int> _selectedCategoriesIds = [];
-  List<String> _selectedGoalsIds = [];  // UUIDs
+  final List<int> _selectedCategoriesIds = [];
+  final List<String> _selectedGoalsIds = [];  // UUIDs
 
   @override
   void initState() {
@@ -1149,9 +1499,12 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
     // Multi-seleções (se disponíveis)
     final targetCategories = mission?['target_categories'] as List<dynamic>?;
     if (targetCategories != null) {
-      _selectedCategoriesIds = targetCategories
-          .map((c) => (c as Map<String, dynamic>)['id'] as int)
-          .toList();
+      _selectedCategoriesIds
+        ..clear()
+        ..addAll(
+          targetCategories
+              .map((c) => (c as Map<String, dynamic>)['id'] as int),
+        );
     }
   }
 

@@ -500,9 +500,7 @@ class UserProfileViewSet(
         user = request.user
         
         Transaction.objects.filter(user=user).delete()
-        TransactionLink.objects.filter(
-            Q(source_transaction__user=user) | Q(target_transaction__user=user)
-        ).delete()
+        TransactionLink.objects.filter(user=user).delete()
         MissionProgress.objects.filter(user=user).delete()
         Goal.objects.filter(user=user).delete()
         

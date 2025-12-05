@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/mission_constants.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
@@ -254,40 +255,12 @@ class _ActiveMissionCard extends StatelessWidget {
 
   final MissionProgressModel mission;
 
-  /// Returns color based on mission type
-  Color _getMissionTypeColor(String type) {
-    switch (type) {
-      case 'ONBOARDING':
-        return const Color(0xFF9C27B0); // Purple
-      case 'TPS_IMPROVEMENT':
-        return const Color(0xFF4CAF50); // Green
-      case 'RDR_REDUCTION':
-        return const Color(0xFFF44336); // Red
-      case 'ILI_BUILDING':
-        return const Color(0xFF2196F3); // Blue
-      case 'ADVANCED':
-        return const Color(0xFFFF9800); // Orange
-      default:
-        return const Color(0xFF607D8B); // Grey
-    }
-  }
+  /// Returns color based on mission type.
+  Color _getMissionTypeColor(String type) => MissionTypeColors.get(type);
 
-  String _getMissionTypeDescription(String type) {
-    switch (type) {
-      case 'ONBOARDING':
-        return 'Introdução';
-      case 'TPS_IMPROVEMENT':
-        return 'Melhoria de TPS';
-      case 'RDR_REDUCTION':
-        return 'Redução de RDR';
-      case 'ILI_BUILDING':
-        return 'Construção de ILI';
-      case 'ADVANCED':
-        return 'Avançado';
-      default:
-        return 'Geral';
-    }
-  }
+  /// Returns user-friendly description for mission type.
+  String _getMissionTypeDescription(String type) =>
+      MissionTypeLabels.getShort(type);
 
   @override
   Widget build(BuildContext context) {
@@ -355,53 +328,6 @@ class _ActiveMissionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Badge de origem (template/AI)
-              if (mission.mission.source != null) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: mission.mission.source == 'template'
-                        ? const Color(0xFF4CAF50).withOpacity(0.15)
-                        : const Color(0xFF2196F3).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: mission.mission.source == 'template'
-                          ? const Color(0xFF4CAF50).withOpacity(0.5)
-                          : const Color(0xFF2196F3).withOpacity(0.5),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        mission.mission.source == 'template'
-                            ? Icons.bolt
-                            : Icons.auto_awesome,
-                        size: 10,
-                        color: mission.mission.source == 'template'
-                            ? const Color(0xFF4CAF50)
-                            : const Color(0xFF2196F3),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        mission.mission.source == 'template'
-                            ? 'Template'
-                            : 'IA',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: mission.mission.source == 'template'
-                              ? const Color(0xFF4CAF50)
-                              : const Color(0xFF2196F3),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
               const Spacer(),
               // Indicador de prazo
               Row(

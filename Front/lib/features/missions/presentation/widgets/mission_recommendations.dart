@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/mission_constants.dart';
 import '../../../../core/models/mission.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../data/missions_viewmodel.dart';
@@ -214,43 +215,14 @@ class MissionRecommendationCard extends StatelessWidget {
   final MissionModel mission;
   final VoidCallback onDetails;
 
-  Color _difficultyColor(String difficulty) {
-    switch (difficulty.toUpperCase()) {
-      case 'EASY':
-        return const Color(0xFF4CAF50);
-      case 'HARD':
-        return const Color(0xFFF44336);
-      default:
-        return const Color(0xFFFFC107);
-    }
-  }
+  Color _difficultyColor(String difficulty) => DifficultyColors.get(difficulty);
 
-  BadgeStyle? _badgeForSource(String? source) {
-    switch ((source ?? '').toLowerCase()) {
-      case 'template':
-        return const BadgeStyle(
-          label: 'Biblioteca',
-          icon: Icons.layers_outlined,
-          color: Color(0xFF4CAF50),
-        );
-      case 'ai':
-      case 'system':
-      case 'context':
-        return const BadgeStyle(
-          label: 'Personalizada',
-          icon: Icons.tune,
-          color: Color(0xFF2196F3),
-        );
-      default:
-        return null;
-    }
-  }
+  // Badge de origem removido - usuário não precisa saber se a missão é do sistema
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final targets = mission.targetInfo?['targets'];
-    final BadgeStyle? sourceBadge = _badgeForSource(mission.source);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -278,7 +250,7 @@ class MissionRecommendationCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(theme, sourceBadge),
+                  _buildHeader(theme),
                   const SizedBox(height: 12),
                   Text(
                     mission.title,
@@ -336,7 +308,7 @@ class MissionRecommendationCard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme, BadgeStyle? sourceBadge) {
+  Widget _buildHeader(ThemeData theme) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -387,38 +359,6 @@ class MissionRecommendationCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (sourceBadge != null)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: sourceBadge.color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: sourceBadge.color.withOpacity(0.5),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        sourceBadge.icon,
-                        size: 10,
-                        color: sourceBadge.color,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        sourceBadge.label,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: sourceBadge.color,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),
