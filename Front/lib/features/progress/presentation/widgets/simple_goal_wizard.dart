@@ -45,6 +45,10 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   double _baselineAmount = 0;
   bool _loadingCategories = false;
   
+  // Resumo mensal para contexto
+  double _monthlySummaryTotal = 0;
+  bool _loadingMonthlySummary = false;
+  
   static const int _maxCategories = 5;  // Limite de categorias
 
   // Templates sugeridos por tipo
@@ -68,11 +72,6 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
       '📈 Aumento salarial',
       '🎯 Meta de vendas',
       '💻 Freelance',
-    ],
-    GoalType.emergencyFund: [
-      '🛡️ Reserva 3 meses',
-      '🛡️ Reserva 6 meses',
-      '🛡️ Reserva 12 meses',
     ],
     GoalType.custom: [
       '🎯 Meta personalizada',
@@ -125,7 +124,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
       } else if (_selectedType == GoalType.incomeIncrease) {
         typeFilter = 'INCOME';
       }
-      // Para SAVINGS e EMERGENCY_FUND, buscamos EXPENSE (pois são transações de saída para poupança)
+      // Para SAVINGS, buscamos EXPENSE (pois são transações de saída para poupança)
       typeFilter ??= 'EXPENSE';
       
       final categories = await _repository.fetchCategories(type: typeFilter);
@@ -145,6 +144,56 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
       if (mounted) {
         setState(() => _loadingCategories = false);
         FeedbackService.showError(context, 'Erro ao carregar categorias');
+      }
+    }
+  }
+  
+  /// Busca o resumo mensal das categorias selecionadas
+  Future<void> _fetchMonthlySummary() async {
+    if (_selectedCategories.isEmpty && _selectedType != GoalType.incomeIncrease) {
+      return;
+    }
+    
+    setState(() => _loadingMonthlySummary = true);
+    
+    try {
+      String type;
+      switch (_selectedType) {
+        case GoalType.expenseReduction:
+          type = 'EXPENSE';
+          break;
+        case GoalType.incomeIncrease:
+          type = 'INCOME';
+          break;
+        case GoalType.savings:
+          type = 'SAVINGS';
+          break;
+        default:
+          type = 'ALL';
+      }
+      
+      final categoryIds = _selectedCategories.isNotEmpty
+          ? _selectedCategories.map((c) => c.id.toString()).toList()
+          : null;
+      
+      final summary = await _repository.fetchMonthlySummary(
+        type: type,
+        categoryIds: categoryIds,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _monthlySummaryTotal = summary.total;
+          // Auto-preencher baselineAmount com o total do mês
+          if (_baselineAmount == 0) {
+            _baselineAmount = summary.total;
+          }
+          _loadingMonthlySummary = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingMonthlySummary = false);
       }
     }
   }
@@ -444,24 +493,6 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
             
             const SizedBox(height: 12),
             
-            // Opção: Fundo de emergência
-            GoalTypeCard(
-              icon: Icons.shield_outlined,
-              iconColor: Colors.purple,
-              title: 'Fundo de emergência',
-              description: 'Criar uma reserva financeira',
-              examples: '🛡️ Reserva 3, 6 ou 12 meses',
-              trackedInfo: 'Padrão: Poupança e Investimentos',
-              isSelected: _selectedType == GoalType.emergencyFund,
-              onTap: () {
-                setState(() => _selectedType = GoalType.emergencyFund);
-                _loadCategories();
-                _nextStep();
-              },
-            ),
-            
-            const SizedBox(height: 12),
-            
             // Opção: Meta personalizada
             GoalTypeCard(
               icon: Icons.edit_outlined,
@@ -591,6 +622,61 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
                   ),
                 ),
               
+              // Exibir resumo mensal se disponível
+              if (_monthlySummaryTotal > 0 && !_loadingMonthlySummary) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.insights, color: AppColors.primary, size: 32),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedType == GoalType.expenseReduction
+                                  ? 'Você gastou este mês:'
+                                  : _selectedType == GoalType.incomeIncrease
+                                      ? 'Sua receita este mês:'
+                                      : 'Total este mês:',
+                              style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _currency.format(_monthlySummaryTotal),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              if (_loadingMonthlySummary)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              
               // Baseline amount para EXPENSE_REDUCTION e INCOME_INCREASE
               if ((isExpenseReduction && _selectedCategories.isNotEmpty) || 
                   (isIncomeIncrease && !_useDefaultCategories) ||
@@ -612,13 +698,18 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isExpenseReduction
-                      ? 'Sua meta de redução deve ser menor que este valor'
-                      : 'Este valor será usado para comparar seu progresso',
+                  _monthlySummaryTotal > 0
+                      ? 'Baseado nas suas transações deste mês'
+                      : isExpenseReduction
+                          ? 'Sua meta de redução deve ser menor que este valor'
+                          : 'Este valor será usado para comparar seu progresso',
                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                TextFormField(
+                  initialValue: _baselineAmount > 0 
+                      ? _baselineAmount.toStringAsFixed(2).replaceAll('.', ',')
+                      : null,
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
@@ -776,6 +867,8 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               FeedbackService.showWarning(context, 'Máximo de $_maxCategories categorias');
             }
           });
+          // Buscar resumo mensal após selecionar categoria
+          _fetchMonthlySummary();
         },
         child: Container(
           padding: const EdgeInsets.all(16),

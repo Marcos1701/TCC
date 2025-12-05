@@ -1,9 +1,8 @@
 /// Tipos de metas financeiras
 enum GoalType {
-  savings('SAVINGS', 'Juntar Dinheiro', '💰'),
+  savings('SAVINGS', 'Economizar', '💰'),
   expenseReduction('EXPENSE_REDUCTION', 'Reduzir Gastos', '📉'),
   incomeIncrease('INCOME_INCREASE', 'Aumentar Receita', '📈'),
-  emergencyFund('EMERGENCY_FUND', 'Fundo de Emergência', '🛡️'),
   custom('CUSTOM', 'Personalizada', '✏️');
 
   const GoalType(this.value, this.label, this.icon);
@@ -113,13 +112,12 @@ class GoalModel {
   static GoalType _parseGoalType(String? value) {
     switch (value?.toUpperCase()) {
       case 'SAVINGS':
+      case 'EMERGENCY_FUND':  // Compatibilidade: tratar como SAVINGS
         return GoalType.savings;
       case 'EXPENSE_REDUCTION':
         return GoalType.expenseReduction;
       case 'INCOME_INCREASE':
         return GoalType.incomeIncrease;
-      case 'EMERGENCY_FUND':
-        return GoalType.emergencyFund;
       default:
         return GoalType.custom;
     }

@@ -3,9 +3,11 @@ Serializers para o modelo Goal.
 """
 
 import logging
+from decimal import Decimal
 
 from django.db import models
 from .base import serializers, Goal
+from ..services.goals import calculate_initial_amount
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +80,28 @@ class GoalSerializer(serializers.ModelSerializer):
         target_category = validated_data.pop('target_category', None)
         
         validated_data["user"] = self.context["request"].user
+        goal_type = validated_data.get('goal_type', 'CUSTOM')
+        
+        # Calcular initial_amount automaticamente (exceto CUSTOM)
+        if goal_type != 'CUSTOM':
+            category_ids = [c.id for c in target_categories] if target_categories else None
+            if not category_ids and target_category:
+                category_ids = [target_category.id]
+            
+            # Só calcula se não foi informado ou é zero
+            if validated_data.get('initial_amount', Decimal('0')) == Decimal('0'):
+                initial_value = calculate_initial_amount(
+                    user=validated_data["user"],
+                    goal_type=goal_type,
+                    category_ids=category_ids
+                )
+                validated_data['initial_amount'] = initial_value
+                validated_data['current_amount'] = initial_value
+                
+                # Para EXPENSE_REDUCTION, initial_amount define baseline_amount se não informado
+                if goal_type == 'EXPENSE_REDUCTION' and not validated_data.get('baseline_amount'):
+                    validated_data['baseline_amount'] = initial_value
+        
         goal = super().create(validated_data)
         
         # Adiciona categorias ao M2M
@@ -118,13 +142,13 @@ class GoalSerializer(serializers.ModelSerializer):
         
         # Validações específicas por tipo
         if goal_type == Goal.GoalType.EXPENSE_REDUCTION:
-            # Validar que pelo menos uma categoria foi fornecida
+            # Obrigatório pelo menos uma categoria
             if not target_categories:
                 raise serializers.ValidationError({
-                    'target_categories': 'Metas de redução de gastos requerem pelo menos uma categoria alvo.'
+                    'target_categories': 'Selecione pelo menos uma categoria para reduzir gastos.'
                 })
             
-            # Validar limite de 5 categorias
+            # Limite de 5 categorias
             if len(target_categories) > 5:
                 raise serializers.ValidationError({
                     'target_categories': 'Máximo de 5 categorias por meta.'
@@ -133,40 +157,52 @@ class GoalSerializer(serializers.ModelSerializer):
             # Validar ownership e tipo de cada categoria
             from ..models import Category
             for category in target_categories:
-                # Verificar se a categoria pertence ao usuário ou é global
                 if not Category.objects.filter(
                     models.Q(id=category.id, user=request.user) | 
                     models.Q(id=category.id, user__isnull=True)
                 ).exists():
                     raise serializers.ValidationError({
-                        'target_categories': f'Você não pode usar a categoria "{category.name}" que não é sua.'
+                        'target_categories': f'Categoria "{category.name}" não pertence a você.'
                     })
                 
-                # Validar que é categoria de despesa
                 if category.type != 'EXPENSE':
                     raise serializers.ValidationError({
-                        'target_categories': f'A categoria "{category.name}" deve ser de despesas (não de receitas).'
+                        'target_categories': f'"{category.name}" não é uma categoria de despesa.'
                     })
             
-            # Validar baseline amount
-            if not attrs.get('baseline_amount') or attrs.get('baseline_amount') <= 0:
+            # baseline_amount: se não informado, será calculado automaticamente no create
+            # Mas se informado, deve ser positivo
+            baseline = attrs.get('baseline_amount')
+            if baseline is not None and baseline <= 0:
                 raise serializers.ValidationError({
-                    'baseline_amount': 'Informe o gasto médio mensal atual nestas categorias.'
-                })
-            
-            # Validar que target_amount seja menor que baseline (redução real)
-            target_amount = attrs.get('target_amount')
-            baseline_amount = attrs.get('baseline_amount')
-            if target_amount and baseline_amount and target_amount >= baseline_amount:
-                raise serializers.ValidationError({
-                    'target_amount': f'A meta de redução (R$ {target_amount:.2f}) deve ser menor que o gasto atual (R$ {baseline_amount:.2f}).'
+                    'baseline_amount': 'O valor base deve ser positivo.'
                 })
         
         elif goal_type == Goal.GoalType.INCOME_INCREASE:
-            if not attrs.get('baseline_amount') or attrs.get('baseline_amount') <= 0:
+            # Categorias opcionais, mas se informadas devem ser INCOME
+            if target_categories:
+                from ..models import Category
+                for category in target_categories:
+                    if category.type != 'INCOME':
+                        raise serializers.ValidationError({
+                            'target_categories': f'"{category.name}" não é uma categoria de receita.'
+                        })
+            
+            # baseline_amount: se não informado, será calculado no create
+            baseline = attrs.get('baseline_amount')
+            if baseline is not None and baseline <= 0:
                 raise serializers.ValidationError({
-                    'baseline_amount': 'Informe sua receita média mensal atual para comparação.'
+                    'baseline_amount': 'O valor base deve ser positivo.'
                 })
+        
+        elif goal_type == Goal.GoalType.SAVINGS:
+            # Categorias opcionais (usa SAVINGS/INVESTMENT como padrão)
+            pass
+        
+        elif goal_type == Goal.GoalType.CUSTOM:
+            # CUSTOM não usa categorias para atualização automática
+            if target_categories:
+                logger.warning("Meta CUSTOM recebeu categorias - serão ignoradas para atualização automática")
         
         logger.info(f"[GOAL SERIALIZER] Validating attrs: {attrs}")
         return attrs

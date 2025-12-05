@@ -98,30 +98,62 @@ def update_missions_on_transaction(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Transaction)
 def update_goals_on_transaction_change(sender, instance, **kwargs):
     """
-    Atualiza metas do tipo SAVINGS quando uma transação é criada ou atualizada.
+    Atualiza metas relevantes quando uma transação é criada ou atualizada.
     
-    O modelo Goal atual suporta:
-    - SAVINGS: Juntar dinheiro (atualizado automaticamente)
-    - EMERGENCY_FUND: Fundo de emergência (atualizado automaticamente)
-    - EXPENSE_REDUCTION: Reduzir gastos (atualização manual)
-    - INCOME_INCREASE: Aumentar receita (atualização manual)
-    - CUSTOM: Meta personalizada (atualização manual)
+    Para cada tipo de meta:
+    - SAVINGS: atualiza se transação em categoria SAVINGS/INVESTMENT ou target_categories
+    - EXPENSE_REDUCTION: atualiza se transação EXPENSE está nas target_categories
+    - INCOME_INCREASE: atualiza se transação é INCOME (e em target_categories se definido)
+    - CUSTOM: não atualiza automaticamente
     """
     from .services import update_goal_progress
     from .models import Goal, Category
     
-    # Buscar metas SAVINGS e EMERGENCY_FUND do usuário
-    auto_update_goals = Goal.objects.filter(
-        user=instance.user, 
-        goal_type__in=[Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]
-    )
+    if not instance.category:
+        return
     
-    for goal in auto_update_goals:
-        # Atualiza se transação é em categoria SAVINGS ou INVESTMENT
-        if instance.category and instance.category.group in [
-            Category.CategoryGroup.SAVINGS,
-            Category.CategoryGroup.INVESTMENT
-        ]:
+    # Buscar todas metas ativas do usuário (exceto CUSTOM)
+    goals = Goal.objects.filter(user=instance.user).exclude(
+        goal_type=Goal.GoalType.CUSTOM
+    ).prefetch_related('target_categories')
+    
+    for goal in goals:
+        should_update = False
+        
+        if goal.goal_type == Goal.GoalType.SAVINGS:
+            # Verifica se categoria está em target_categories ou é SAVINGS/INVESTMENT
+            if goal.target_categories.exists():
+                should_update = goal.target_categories.filter(id=instance.category_id).exists()
+            else:
+                should_update = instance.category.group in [
+                    Category.CategoryGroup.SAVINGS,
+                    Category.CategoryGroup.INVESTMENT
+                ]
+        
+        elif goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
+            # Só atualiza se transação é EXPENSE e está nas categorias monitoradas
+            if instance.type == Transaction.TransactionType.EXPENSE:
+                should_update = goal.target_categories.filter(id=instance.category_id).exists()
+        
+        elif goal.goal_type == Goal.GoalType.INCOME_INCREASE:
+            # Atualiza se transação é INCOME
+            if instance.type == Transaction.TransactionType.INCOME:
+                if goal.target_categories.exists():
+                    should_update = goal.target_categories.filter(id=instance.category_id).exists()
+                else:
+                    should_update = True  # Todas receitas
+        
+        # EMERGENCY_FUND tratado como SAVINGS (compatibilidade durante migração)
+        elif goal.goal_type == Goal.GoalType.EMERGENCY_FUND:
+            if goal.target_categories.exists():
+                should_update = goal.target_categories.filter(id=instance.category_id).exists()
+            else:
+                should_update = instance.category.group in [
+                    Category.CategoryGroup.SAVINGS,
+                    Category.CategoryGroup.INVESTMENT
+                ]
+        
+        if should_update:
             update_goal_progress(goal)
 
 

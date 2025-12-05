@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import Dict
+from typing import Dict, List, Optional
 
 from django.db.models import F, Sum
 from django.db.models.functions import Coalesce
@@ -11,39 +11,125 @@ from ..models import Goal, Transaction
 from .base import _decimal
 
 
+def calculate_initial_amount(
+    user,
+    goal_type: str,
+    category_ids: Optional[List] = None
+) -> Decimal:
+    """
+    Calcula o valor inicial da meta baseado nas transações do mês atual.
+    
+    Args:
+        user: Usuário dono da meta
+        goal_type: Tipo da meta (SAVINGS, EXPENSE_REDUCTION, INCOME_INCREASE, CUSTOM)
+        category_ids: Lista de IDs das categorias selecionadas (opcional)
+    
+    Returns:
+        Decimal: Valor total das transações do mês atual nas categorias relevantes
+    """
+    from datetime import date as date_module
+    from ..models import Category
+    
+    today = date_module.today()
+    month_start = today.replace(day=1)
+    
+    if goal_type == 'CUSTOM':
+        return Decimal('0')
+    
+    base_query = Transaction.objects.filter(
+        user=user,
+        date__gte=month_start,
+        date__lte=today
+    )
+    
+    if goal_type == 'SAVINGS' or goal_type == 'EMERGENCY_FUND':
+        if category_ids:
+            query = base_query.filter(category_id__in=category_ids)
+        else:
+            query = base_query.filter(
+                category__group__in=[
+                    Category.CategoryGroup.SAVINGS,
+                    Category.CategoryGroup.INVESTMENT
+                ]
+            )
+    
+    elif goal_type == 'EXPENSE_REDUCTION':
+        if not category_ids:
+            return Decimal('0')
+        query = base_query.filter(
+            type=Transaction.TransactionType.EXPENSE,
+            category_id__in=category_ids
+        )
+    
+    elif goal_type == 'INCOME_INCREASE':
+        if category_ids:
+            query = base_query.filter(
+                type=Transaction.TransactionType.INCOME,
+                category_id__in=category_ids
+            )
+        else:
+            query = base_query.filter(type=Transaction.TransactionType.INCOME)
+    
+    else:
+        return Decimal('0')
+    
+    total = query.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'))
+    )['total']
+    
+    return _decimal(total)
+
+
 def update_goal_progress(goal) -> None:
     """
     Atualiza o progresso de uma meta baseado no tipo.
     
     Tipos suportados:
-    - SAVINGS e EMERGENCY_FUND: Soma transações em categorias SAVINGS/INVESTMENT
-    - EXPENSE_REDUCTION: Compara gastos atuais vs baseline
+    - SAVINGS: Soma transações em categorias SAVINGS/INVESTMENT ou target_categories
+    - EMERGENCY_FUND: Tratado como SAVINGS (compatibilidade durante migração)
+    - EXPENSE_REDUCTION: Compara gastos atuais vs baseline nas target_categories
     - INCOME_INCREASE: Compara receitas atuais vs baseline
     - CUSTOM: Não atualizado automaticamente
-   """
+    """
+    if goal.goal_type == Goal.GoalType.CUSTOM:
+        return  # Metas CUSTOM são atualizadas manualmente
+    
     if goal.goal_type == Goal.GoalType.SAVINGS:
         _update_savings_goal(goal)
     elif goal.goal_type == Goal.GoalType.EMERGENCY_FUND:
-        _update_savings_goal(goal)  # Usa mesma lógica
+        _update_savings_goal(goal)  # Tratado como SAVINGS
     elif goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
         _update_expense_reduction_goal(goal)
     elif goal.goal_type == Goal.GoalType.INCOME_INCREASE:
         _update_income_increase_goal(goal)
-    # CUSTOM não atualiza automaticamente
 
 
 def _update_savings_goal(goal) -> None:
-    """Atualiza metas de poupança (SAVINGS e EMERGENCY_FUND)."""
-    from ..models import Category, Transaction
+    """
+    Atualiza metas de poupança (SAVINGS).
     
-    # Buscar transações em categorias de poupança/investimento
-    transactions = Transaction.objects.filter(
-        user=goal.user,
-        category__group__in=[
-            Category.CategoryGroup.SAVINGS,
-            Category.CategoryGroup.INVESTMENT
-        ]
-    )
+    Lógica:
+    - Se target_categories definido: soma transações nessas categorias
+    - Senão: soma transações em categorias SAVINGS/INVESTMENT
+    - Adiciona initial_amount ao total
+    """
+    from ..models import Category
+    
+    if goal.target_categories.exists():
+        # Usar categorias específicas definidas pelo usuário
+        transactions = Transaction.objects.filter(
+            user=goal.user,
+            category__in=goal.target_categories.all()
+        )
+    else:
+        # Usar categorias padrão: SAVINGS e INVESTMENT
+        transactions = Transaction.objects.filter(
+            user=goal.user,
+            category__group__in=[
+                Category.CategoryGroup.SAVINGS,
+                Category.CategoryGroup.INVESTMENT
+            ]
+        )
     
     total = _decimal(
         transactions.aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
@@ -107,6 +193,8 @@ def _update_income_increase_goal(goal) -> None:
     Atualiza meta de aumento de receita.
     
     Lógica:
+    - Se target_categories definido: soma receitas nessas categorias
+    - Senão: soma todas as receitas
     - Calcula receitas médias mensais nos últimos X meses
     - Compara com baseline_amount
     - Aumento = receitas_atuais - baseline
@@ -121,13 +209,21 @@ def _update_income_increase_goal(goal) -> None:
     today = timezone.now().date()
     period_start = today - relativedelta(months=goal.tracking_period_months)
     
-    # Receitas atuais
-    current_income = Transaction.objects.filter(
+    # Base query: receitas do usuário no período
+    query = Transaction.objects.filter(
         user=goal.user,
         type=Transaction.TransactionType.INCOME,
         date__gte=period_start,
         date__lte=today
-    ).aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']
+    )
+    
+    # Filtrar por categorias se definidas
+    if goal.target_categories.exists():
+        query = query.filter(category__in=goal.target_categories.all())
+    
+    current_income = query.aggregate(
+        total=Coalesce(Sum('amount'), Decimal('0'))
+    )['total']
     
     current_income = _decimal(current_income)
     
