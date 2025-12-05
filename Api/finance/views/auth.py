@@ -19,7 +19,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from .base import (
     Category,
-    Goal,
     MissionProgress,
     Transaction,
     TransactionLink,
@@ -502,7 +501,6 @@ class UserProfileViewSet(
         Transaction.objects.filter(user=user).delete()
         TransactionLink.objects.filter(user=user).delete()
         MissionProgress.objects.filter(user=user).delete()
-        Goal.objects.filter(user=user).delete()
         
         profile = UserProfile.objects.get(user=user)
         profile.level = 1

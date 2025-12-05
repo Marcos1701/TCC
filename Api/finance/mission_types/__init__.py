@@ -20,10 +20,6 @@ from .categories import (
     CategoryReductionValidator,
     CategoryLimitValidator,
 )
-from .goals import (
-    GoalProgressValidator,
-    GoalContributionValidator,
-)
 from .transactions import (
     TransactionConsistencyValidator,
     PaymentDisciplineValidator,
@@ -44,8 +40,6 @@ __all__ = [
     'IndicatorMaintenanceValidator',
     'CategoryReductionValidator',
     'CategoryLimitValidator',
-    'GoalProgressValidator',
-    'GoalContributionValidator',
     'TransactionConsistencyValidator',
     'PaymentDisciplineValidator',
     'AdvancedMissionValidator',

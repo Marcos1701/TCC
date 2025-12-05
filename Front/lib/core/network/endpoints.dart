@@ -12,12 +12,10 @@ class ApiEndpoints {
   static const String missions = '/api/missions/';
   static const String missionsRecommend = '/api/missions/recommend/';
   static const String missionsByCategory = '/api/missions/by-category/';
-  static const String missionsByGoal = '/api/missions/by-goal/';
   static const String missionsContextAnalysis = '/api/missions/context-analysis/';
   static const String missionsTemplates = '/api/missions/templates/';
   static const String missionsGenerateFromTemplate = '/api/missions/generate-from-template/';
   static const String missionProgress = '/api/mission-progress/';
-  static const String goals = '/api/goals/';
   static const String profile = '/api/profile/';
   static const String user = '/api/user/';
   static const String simplifiedOnboarding = '/api/onboarding/simplified/';

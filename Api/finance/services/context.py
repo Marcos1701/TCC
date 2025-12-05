@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from django.db.models import Avg, Count, F, Sum
 from django.utils import timezone
 
-from ..models import Goal, Transaction, UserProfile
+from ..models import Transaction, UserProfile
 from .base import logger
 from .indicators import calculate_summary
 
@@ -38,26 +38,6 @@ def analyze_user_context(user) -> Dict[str, Any]:
             'total_spent': float(item['total'])
         }
         for item in top_spending
-    ]
-    
-    thirty_days_future = today + timedelta(days=30)
-    expiring_goals = Goal.objects.filter(
-        user=user,
-        deadline__lte=thirty_days_future,
-        deadline__gte=today
-    ).exclude(
-        current_amount__gte=F('target_amount')
-    ).order_by('deadline')
-    
-    goals_data = [
-        {
-            'id': goal.id,
-            'name': goal.title,
-            'target_date': goal.deadline.isoformat(),
-            'progress_percentage': float((goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0),
-            'days_remaining': (goal.deadline - today).days
-        }
-        for goal in expiring_goals
     ]
     
     summary = calculate_summary(user)
@@ -127,7 +107,6 @@ def analyze_user_context(user) -> Dict[str, Any]:
     
     return {
         'top_spending_categories': top_categories,
-        'expiring_goals': goals_data,
         'at_risk_indicators': at_risk_indicators,
         'spending_patterns': patterns_data,
         'recent_transactions': recent_trans_data,
@@ -190,39 +169,6 @@ def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
                         'previous_total': previous_total
                     }
                 })
-    
-    fifteen_days_ago = today - timedelta(days=15)
-    
-    active_goals = Goal.objects.filter(
-        user=user,
-        deadline__gte=today
-    ).exclude(
-        current_amount__gte=F('target_amount')
-    )
-    
-    for goal in active_goals:
-        if goal.target_category:
-            last_contribution = Transaction.objects.filter(
-                user=user,
-                category=goal.target_category,
-                type=Transaction.TransactionType.INCOME
-            ).order_by('-date').first()
-        else:
-            continue
-        
-        if not last_contribution or last_contribution.date < fifteen_days_ago:
-            days_stagnant = (today - last_contribution.date).days if last_contribution else 999
-            opportunities.append({
-                'type': 'GOAL_STAGNANT',
-                'priority': 'HIGH' if days_stagnant > 30 else 'MEDIUM',
-                'description': f'Meta "{goal.title}" estagnada há {days_stagnant} dias',
-                'data': {
-                    'goal_id': goal.id,
-                    'goal_name': goal.title,
-                    'days_stagnant': days_stagnant,
-                    'progress_percent': float((goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0)
-                }
-            })
     
     summary_current = calculate_summary(user)
     profile, _ = UserProfile.objects.get_or_create(user=user)

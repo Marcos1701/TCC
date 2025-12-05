@@ -13,7 +13,6 @@ from .auth import (
 )
 from .categories import CategoryViewSet
 from .dashboard import DashboardViewSet
-from .goals import GoalViewSet
 from .missions import MissionProgressViewSet, MissionViewSet
 from .transactions import TransactionLinkViewSet, TransactionViewSet
 from .admin_panel import (
@@ -38,8 +37,6 @@ __all__ = [
     # Transactions
     'TransactionViewSet',
     'TransactionLinkViewSet',
-    # Goals
-    'GoalViewSet',
     # Missions
     'MissionViewSet',
     'MissionProgressViewSet',

@@ -2,7 +2,6 @@ import 'package:drift/drift.dart';
 
 import 'connection/connection.dart';
 import 'daos/transactions_dao.dart';
-import 'daos/goals_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -27,33 +26,6 @@ class Transactions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-class Goals extends Table {
-  TextColumn get id => text()();
-  TextColumn get title => text()();
-  TextColumn get description => text()();
-  RealColumn get targetAmount => real()();
-  RealColumn get currentAmount => real()();
-  RealColumn get initialAmount => real().withDefault(const Constant(0.0))();
-  DateTimeColumn get deadline => dateTime().nullable()();
-  TextColumn get goalType => text()();
-  RealColumn get progressPercentage => real()();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-  
-  // New fields
-  TextColumn get targetCategory => text().nullable()();
-  TextColumn get targetCategoryName => text().nullable()();
-  RealColumn get baselineAmount => real().nullable()();
-  IntColumn get trackingPeriodMonths => integer().withDefault(const Constant(3))();
-
-  // Sync fields
-  BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
-  BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
 class Categories extends Table {
   IntColumn get id => integer()();
   TextColumn get name => text()();
@@ -71,7 +43,7 @@ class Categories extends Table {
 
 
 
-@DriftDatabase(tables: [Transactions, Goals, Categories], daos: [TransactionsDao, GoalsDao])
+@DriftDatabase(tables: [Transactions, Categories], daos: [TransactionsDao])
 class AppDatabase extends _$AppDatabase {
   /// Singleton instance
   static AppDatabase? _instance;
@@ -95,5 +67,5 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;  // Incremented for Goals removal
 }

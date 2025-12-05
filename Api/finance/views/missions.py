@@ -14,8 +14,6 @@ from rest_framework.response import Response
 from .base import (
     Category,
     CategorySerializer,
-    Goal,
-    GoalSerializer,
     Mission,
     MissionProgress,
     MissionProgressSerializer,
@@ -69,11 +67,9 @@ class MissionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Retorna missões com filtros customizados."""
         queryset = Mission.objects.all().select_related(
-            'target_category',
-            'target_goal'
+            'target_category'
         ).prefetch_related(
-            'target_categories',
-            'target_goals'
+            'target_categories'
         )
         
         if not self.request.user.is_staff:
@@ -99,18 +95,7 @@ class MissionViewSet(viewsets.ModelViewSet):
                     target_categories__isnull=True
                 )
         
-        has_goal = self.request.query_params.get('has_goal', None)
-        if has_goal is not None:
-            if has_goal.lower() == 'true':
-                queryset = queryset.filter(
-                    Q(target_goal__isnull=False) | Q(target_goals__isnull=False)
-                ).distinct()
-            else:
-                queryset = queryset.filter(
-                    target_goal__isnull=True,
-                    target_goals__isnull=True
-                )
-        
+
         return queryset
     
     def perform_create(self, serializer):
@@ -157,8 +142,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             target_category=original_mission.target_category,
             target_reduction_percent=original_mission.target_reduction_percent,
             category_spending_limit=original_mission.category_spending_limit,
-            target_goal=original_mission.target_goal,
-            goal_progress_target=original_mission.goal_progress_target,
             savings_increase_amount=original_mission.savings_increase_amount,
         )
         
@@ -218,9 +201,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             'system_generated': queryset.filter(is_system_generated=True).count(),
             'with_category': queryset.filter(
                 Q(target_category__isnull=False) | Q(target_categories__isnull=False)
-            ).distinct().count(),
-            'with_goal': queryset.filter(
-                Q(target_goal__isnull=False) | Q(target_goals__isnull=False)
             ).distinct().count(),
             'with_payment_tracking': queryset.filter(requires_payment_tracking=True).count(),
         }
@@ -296,48 +276,6 @@ class MissionViewSet(viewsets.ModelViewSet):
         serializer = MissionSerializer(missions, many=True)
         return Response({
             'category': CategorySerializer(category).data,
-            'missions': serializer.data,
-            'count': missions.count()
-        })
-    
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='by-goal/(?P<goal_id>[^/.]+)')
-    def by_goal(self, request, goal_id=None):
-        """Retorna missões por meta."""
-        if not goal_id:
-            goal_id = request.query_params.get('goal_id')
-        
-        if not goal_id:
-            return Response(
-                {'error': 'goal_id é obrigatório'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            goal = Goal.objects.get(id=goal_id, user=request.user)
-        except Goal.DoesNotExist:
-            return Response(
-                {'error': 'Meta não encontrada'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        missions = Mission.objects.filter(
-            Q(target_goal=goal) | Q(target_goals=goal),
-            is_active=True
-        ).distinct()
-        
-        if not missions.exists():
-            missions = Mission.objects.filter(
-                mission_type__in=[
-                    'GOAL_ACHIEVEMENT',
-                    'GOAL_CONSISTENCY',
-                    'GOAL_ACCELERATION'
-                ],
-                is_active=True
-            )
-        
-        serializer = MissionSerializer(missions, many=True)
-        return Response({
-            'goal': GoalSerializer(goal).data,
             'missions': serializer.data,
             'count': missions.count()
         })
@@ -435,7 +373,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             RDR_TEMPLATES,
             ILI_TEMPLATES,
             CATEGORY_TEMPLATES,
-            GOAL_TEMPLATES,
         )
         
         include_inactive = request.query_params.get('include_inactive', '').lower() == 'true'
@@ -446,7 +383,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             {'key': 'RDR_REDUCTION', 'name': 'Redução de RDR', 'templates': RDR_TEMPLATES},
             {'key': 'ILI_BUILDING', 'name': 'Construção de ILI', 'templates': ILI_TEMPLATES},
             {'key': 'CATEGORY_REDUCTION', 'name': 'Redução por Categoria', 'templates': CATEGORY_TEMPLATES},
-            {'key': 'GOAL_ACHIEVEMENT', 'name': 'Conquista de Meta', 'templates': GOAL_TEMPLATES},
         ]
         
         result = []
@@ -507,14 +443,12 @@ class MissionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Get template list
         from ..mission_templates import (
             ONBOARDING_TEMPLATES,
             TPS_TEMPLATES,
             RDR_TEMPLATES,
             ILI_TEMPLATES,
             CATEGORY_TEMPLATES,
-            GOAL_TEMPLATES,
         )
         
         template_map = {
@@ -523,7 +457,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             'RDR_REDUCTION': RDR_TEMPLATES,
             'ILI_BUILDING': ILI_TEMPLATES,
             'CATEGORY_REDUCTION': CATEGORY_TEMPLATES,
-            'GOAL_ACHIEVEMENT': GOAL_TEMPLATES,
         }
         
         if mission_type not in template_map:

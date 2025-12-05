@@ -4,7 +4,7 @@ Modelos Mission e MissionProgress - Sistema de Gamificação com Missões.
 Este módulo define os modelos de dados para o sistema de missões
 do aplicativo de educação financeira gamificada.
 
-Sistema Simplificado para TCC com 6 tipos de missão:
+Sistema Simplificado para TCC com 5 tipos de missão:
 
 1. ONBOARDING - Primeiros passos do usuário
    Objetivo: Familiarizar o usuário com o registro de transações.
@@ -20,9 +20,6 @@ Sistema Simplificado para TCC com 6 tipos de missão:
 
 5. CATEGORY_REDUCTION - Reduzir gastos em categoria específica
    Objetivo: Controlar gastos em categorias problemáticas.
-
-6. GOAL_ACHIEVEMENT - Progredir em meta financeira
-   Objetivo: Incentivar o progresso em metas de economia.
 
 Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 """
@@ -75,36 +72,32 @@ class Mission(models.Model):
 
     class MissionType(models.TextChoices):
         """
-        6 Tipos de Missão do Sistema:
+        5 Tipos de Missão do Sistema:
         
         - ONBOARDING: Requer min_transactions
         - TPS_IMPROVEMENT: Requer target_tps
         - RDR_REDUCTION: Requer target_rdr
         - ILI_BUILDING: Requer min_ili
         - CATEGORY_REDUCTION: Requer target_reduction_percent
-        - GOAL_ACHIEVEMENT: Requer goal_progress_target
         """
         ONBOARDING = "ONBOARDING", "Primeiros Passos"
         TPS_IMPROVEMENT = "TPS_IMPROVEMENT", "Aumentar Poupança (TPS)"
         RDR_REDUCTION = "RDR_REDUCTION", "Reduzir Gastos Recorrentes (RDR)"
         ILI_BUILDING = "ILI_BUILDING", "Construir Reserva (ILI)"
         CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir Gastos em Categoria"
-        GOAL_ACHIEVEMENT = "GOAL_ACHIEVEMENT", "Progredir em Meta"
     
     class ValidationType(models.TextChoices):
         """
-        5 Tipos de Validação:
+        4 Tipos de Validação:
         
         - TRANSACTION_COUNT: Contar transações registradas
         - INDICATOR_THRESHOLD: Verificar se indicador atingiu valor
         - CATEGORY_REDUCTION: Verificar % de redução em categoria
-        - GOAL_PROGRESS: Verificar % de progresso em meta
         - TEMPORAL: Manter critério por X dias
         """
         TRANSACTION_COUNT = "TRANSACTION_COUNT", "Registrar X Transações"
         INDICATOR_THRESHOLD = "INDICATOR_THRESHOLD", "Atingir Valor de Indicador"
         CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir % em Categoria"
-        GOAL_PROGRESS = "GOAL_PROGRESS", "Atingir % de Progresso em Meta"
         TEMPORAL = "TEMPORAL", "Manter Critério por Período"
 
     title = models.CharField(max_length=MAX_TITLE_LENGTH)
@@ -193,21 +186,7 @@ class Mission(models.Model):
         help_text="Limite de gasto em reais para a categoria",
     )
     
-    target_goal = models.ForeignKey(
-        'Goal',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='missions',
-        help_text="Meta alvo (se missão for sobre meta específica)",
-    )
-    goal_progress_target = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="% de progresso alvo na meta (ex: 80 = completar 80%)",
-    )
+
     
     savings_increase_amount = models.DecimalField(
         max_digits=12,
@@ -264,12 +243,7 @@ class Mission(models.Model):
         help_text="Categorias alvo para missões que envolvem múltiplas categorias",
     )
     
-    target_goals = models.ManyToManyField(
-        'Goal',
-        blank=True,
-        related_name='target_missions',
-        help_text="Metas alvo para missões que envolvem múltiplas metas",
-    )
+
     
     requires_payment_tracking = models.BooleanField(
         default=False,
@@ -501,13 +475,7 @@ class MissionProgress(models.Model):
         help_text="Número de dias usados para calcular baseline",
     )
     
-    initial_goal_progress = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        help_text="% de progresso da meta quando missão começou",
-    )
+
     
     initial_savings_amount = models.DecimalField(
         max_digits=12,
@@ -562,7 +530,7 @@ class MissionProgress(models.Model):
         self._validate_dates()
         self._validate_initial_indicators()
         self._validate_streaks()
-        self._validate_goal_and_savings()
+        self._validate_savings()
         self._validate_baseline()
 
     def _validate_progress(self):
@@ -665,14 +633,8 @@ class MissionProgress(models.Model):
                 'days_violated_criteria': 'Dias que violou critério não pode ser negativo.'
             })
 
-    def _validate_goal_and_savings(self):
+    def _validate_savings(self):
         from django.core.exceptions import ValidationError
-        
-        if self.initial_goal_progress is not None:
-            if self.initial_goal_progress < Decimal('0') or self.initial_goal_progress > Decimal('100'):
-                raise ValidationError({
-                    'initial_goal_progress': 'Progresso inicial da meta deve estar entre 0 e 100%.'
-                })
         
         if self.initial_savings_amount is not None and self.initial_savings_amount < Decimal('0'):
             raise ValidationError({

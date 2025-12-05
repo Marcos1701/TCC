@@ -21,7 +21,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from ..models import (
     Category,
-    Goal,
     Mission,
     MissionProgress,
     Transaction,
@@ -34,14 +33,12 @@ from ..throttling import (
     BurstRateThrottle,
     CategoryCreateThrottle,
     DashboardRefreshThrottle,
-    GoalCreateThrottle,
     LinkCreateThrottle,
     TransactionCreateThrottle,
 )
 from ..serializers import (
     CategorySerializer,
     DashboardSerializer,
-    GoalSerializer,
     MissionProgressSerializer,
     MissionSerializer,
     TransactionSerializer,

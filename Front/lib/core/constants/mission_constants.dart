@@ -1,6 +1,6 @@
 /// Constantes centralizadas para tipos de missão.
 ///
-/// Este arquivo define os 6 tipos oficiais de missão do sistema,
+/// Este arquivo define os 5 tipos oficiais de missão do sistema,
 /// suas cores, ícones e labels para exibição.
 ///
 /// Os tipos são alinhados com o backend (Api/finance/models/mission.py).
@@ -27,9 +27,6 @@ abstract final class MissionTypes {
   /// Reduzir gastos em categoria específica.
   static const String categoryReduction = 'CATEGORY_REDUCTION';
 
-  /// Progredir em meta financeira.
-  static const String goalAchievement = 'GOAL_ACHIEVEMENT';
-
   /// Lista de todos os tipos válidos.
   static const List<String> all = [
     onboarding,
@@ -37,7 +34,6 @@ abstract final class MissionTypes {
     rdrReduction,
     iliBuilding,
     categoryReduction,
-    goalAchievement,
   ];
 }
 
@@ -75,7 +71,6 @@ abstract final class MissionTypeLabels {
     MissionTypes.rdrReduction: 'Controle de Dívidas',
     MissionTypes.iliBuilding: 'Reserva de Emergência',
     MissionTypes.categoryReduction: 'Redução de Gastos',
-    MissionTypes.goalAchievement: 'Progresso em Meta',
   };
 
   /// Mapa de tipo -> label descritivo.
@@ -85,7 +80,6 @@ abstract final class MissionTypeLabels {
     MissionTypes.rdrReduction: 'Reduzir Gastos Recorrentes (RDR)',
     MissionTypes.iliBuilding: 'Construir Reserva (ILI)',
     MissionTypes.categoryReduction: 'Reduzir Gastos em Categoria',
-    MissionTypes.goalAchievement: 'Progredir em Meta',
   };
 
   /// Retorna o label curto para um tipo de missão.
@@ -132,7 +126,6 @@ abstract final class MissionTypeColors {
     MissionTypes.rdrReduction: Color(0xFFF44336), // Vermelho
     MissionTypes.iliBuilding: Color(0xFF2196F3), // Azul
     MissionTypes.categoryReduction: Color(0xFFFF9800), // Laranja
-    MissionTypes.goalAchievement: Color(0xFF00BCD4), // Ciano
   };
 
   /// Cor padrão para tipos desconhecidos.
@@ -163,7 +156,6 @@ abstract final class MissionTypeIcons {
     MissionTypes.rdrReduction: Icons.trending_down_outlined,
     MissionTypes.iliBuilding: Icons.shield_outlined,
     MissionTypes.categoryReduction: Icons.pie_chart_outline,
-    MissionTypes.goalAchievement: Icons.flag_outlined,
   };
 
   static const IconData defaultIcon = Icons.assignment_outlined;

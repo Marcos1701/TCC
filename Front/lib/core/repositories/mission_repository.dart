@@ -113,35 +113,7 @@ class MissionRepository extends BaseRepository {
               Map<String, dynamic>.from(e as Map),
             ))
         .toList();
-  }
-
-  Future<List<MissionModel>> fetchMissionsByGoal(
-    String goalId, {  // UUID
-    String? missionType,
-    bool includeCompleted = false,
-  }) async {
-    final query = <String, dynamic>{};
-    if (missionType != null && missionType.isNotEmpty) {
-      query['type'] = missionType;
-    }
-    if (includeCompleted) {
-      query['include_completed'] = true;
-    }
-
-    final response = await client.client.get<dynamic>(
-      '${ApiEndpoints.missionsByGoal}$goalId/',
-      queryParameters: query.isEmpty ? null : query,
-    );
-
-    final items = extractListFromResponse(response.data);
-    return items
-        .map((e) => MissionModel.fromMap(
-              Map<String, dynamic>.from(e as Map),
-            ))
-        .toList();
-  }
-
-  Future<Map<String, dynamic>?> fetchMissionContextAnalysis({
+  }\r\n\r\n  Future<Map<String, dynamic>?> fetchMissionContextAnalysis({
     bool forceRefresh = false,
   }) async {
     try {

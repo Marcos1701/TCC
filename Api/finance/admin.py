@@ -10,7 +10,6 @@ Modelos registrados:
     - Category: Categorias de transações financeiras
     - Transaction: Transações financeiras (receitas/despesas)
     - TransactionLink: Vínculos entre transações
-    - Goal: Metas financeiras dos usuários
     - Mission: Missões do sistema de gamificação
     - MissionProgress: Progresso dos usuários nas missões
     - XPTransaction: Histórico de XP ganho (somente leitura)
@@ -22,7 +21,6 @@ from django.utils import timezone
 
 from .models import (
     Category,
-    Goal,
     Mission,
     MissionProgress,
     Transaction,
@@ -49,7 +47,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         "user",
         "nivel",
         "experience_points",
-        "metas_usuario",
         "is_first_access",
     )
     list_filter = ("level", "is_first_access")
@@ -100,11 +97,6 @@ class UserProfileAdmin(admin.ModelAdmin):
     def nivel(self, obj):
         """Exibe o nível do usuário."""
         return f"Nv. {obj.level}"
-
-    @admin.display(description="Metas")
-    def metas_usuario(self, obj):
-        """Exibe as metas do usuário de forma resumida."""
-        return f"TPS: {obj.target_tps}% | RDR: {obj.target_rdr}% | ILI: {obj.target_ili}m"
     
     @admin.action(description="Recalcular indicadores selecionados")
     def recalculate_indicators(self, request, queryset):
@@ -278,151 +270,6 @@ class TransactionLinkAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user')
 
-@admin.register(Goal)
-class GoalAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento de metas financeiras.
-    
-    Tipos de Meta:
-        - SAVINGS: Juntar dinheiro
-        - CUSTOM: Meta personalizada
-    """
-    
-    list_display = (
-        "title",
-        "user",
-        "goal_type",
-        "progresso",
-        "valor_alvo",
-        "deadline",
-        "status",
-    )
-    list_filter = ("goal_type", "deadline")
-    search_fields = ("title", "user__username", "description")
-    readonly_fields = ("created_at", "updated_at")
-    filter_horizontal = ["target_categories"]  # Widget para ManyToMany
-    date_hierarchy = "deadline"
-    
-    def get_fieldsets(self, request, obj=None):
-        """Fieldsets dinâmicos baseados no tipo de meta."""
-        
-        base_fields = ("user", "title", "description", "goal_type")
-        
-        fieldsets = [
-            ("Meta", {
-                "fields": base_fields,
-            }),
-        ]
-        
-        # Campos específicos por tipo
-        if obj and obj.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
-            fieldsets.append(
-                ("Redução de Gastos", {
-                    "fields": (
-                        "target_categories",
-                        "baseline_amount",
-                        "tracking_period_months",
-                        "target_amount",
-                        "current_amount"
-                    ),
-                    "description": (
-                        "<strong>Como funciona:</strong><br>"
-                        "• baseline_amount = gasto médio mensal ATUAL nesta categoria<br>"
-                        "• target_amount = quanto deseja reduzir no total<br>"
-                        "• current_amount = redução já alcançada (calculado automaticamente)"
-                    )
-                })
-            )
-        elif obj and obj.goal_type == Goal.GoalType.INCOME_INCREASE:
-            fieldsets.append(
-                ("Aumento de Receita", {
-                    "fields": (
-                        "baseline_amount",
-                        "tracking_period_months",
-                        "target_amount",
-                        "current_amount"
-                    ),
-                    "description": (
-                        "<strong>Como funciona:</strong><br>"
-                        "• baseline_amount = receita média mensal ATUAL<br>"
-                        "• target_amount = aumento total desejado<br>"
-                        "• current_amount = aumento já alcançado (calculado automaticamente)"
-                    )
-                })
-            )
-        elif obj and obj.goal_type == Goal.GoalType.SAVINGS:
-            fieldsets.append(
-                ("Poupança/Reserva", {
-                    "fields": ("target_amount", "current_amount", "initial_amount"),
-                    "description": (
-                        "<strong>Como funciona:</strong><br>"
-                        "• target_amount = valor total que deseja juntar<br>"
-                        "• initial_amount = valor já poupado antes de criar a meta<br>"
-                        "• current_amount = progresso atual (calculado automaticamente)"
-                    )
-                })
-            )
-        else:
-            # CUSTOM ou criação inicial
-            fieldsets.append(
-                ("Valores", {
-                    "fields": (
-                        "target_amount",
-                        "current_amount",
-                        "initial_amount",
-                        "baseline_amount",
-                        "target_categories",
-                        "tracking_period_months"
-                    ),
-                    "description": "Configure os campos conforme o tipo de meta selecionado."
-                })
-            )
-        
-        fieldsets.extend([
-            ("Prazo", {
-                "fields": ("deadline",),
-            }),
-            ("Datas", {
-                "fields": ("created_at", "updated_at"),
-                "classes": ("collapse",),
-            }),
-        ])
-        
-        return fieldsets
-
-    @admin.display(description="Valor Alvo", ordering="target_amount")
-    def valor_alvo(self, obj):
-        """Exibe o valor alvo formatado."""
-        return f"R$ {obj.target_amount:.2f}"
-
-    @admin.display(description="Progresso")
-    def progresso(self, obj):
-        """Exibe o progresso percentual da meta."""
-        if obj.target_amount <= 0:
-            return "0%"
-        percentual = min((obj.current_amount / obj.target_amount) * 100, 100)
-        return f"{percentual:.0f}%"
-
-    @admin.display(description="Status")
-    def status(self, obj):
-        """Exibe o status da meta."""
-        if obj.target_amount <= 0:
-            return "Inválida"
-        
-        percentual = (obj.current_amount / obj.target_amount) * 100
-        now = timezone.now().date()
-        
-        if percentual >= 100:
-            return "Concluída"
-        elif obj.deadline and obj.deadline < now:
-            return "Vencida"
-        elif obj.deadline and (obj.deadline - now).days <= 7:
-            return "Urgente"
-        return "Em andamento"
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user').prefetch_related('target_categories')
-
 @admin.register(Mission)
 class MissionAdmin(admin.ModelAdmin):
     """
@@ -441,7 +288,7 @@ class MissionAdmin(admin.ModelAdmin):
     list_filter = ("difficulty", "is_active", "mission_type", "validation_type", "is_system_generated")
     search_fields = ("title", "description")
     readonly_fields = ("created_at", "updated_at")
-    autocomplete_fields = ("target_category", "target_goal")
+    autocomplete_fields = ("target_category",)
 
     fieldsets = (
         ("Informações Básicas", {
@@ -468,11 +315,6 @@ class MissionAdmin(admin.ModelAdmin):
             "fields": ("target_category", "target_reduction_percent", "category_spending_limit"),
             "classes": ("collapse",),
             "description": "Para missões do tipo CATEGORY_REDUCTION.",
-        }),
-        ("Missões de Meta", {
-            "fields": ("target_goal", "goal_progress_target"),
-            "classes": ("collapse",),
-            "description": "Para missões do tipo GOAL_ACHIEVEMENT.",
         }),
         ("Critérios Temporais", {
             "fields": ("requires_consecutive_days", "min_consecutive_days", "requires_daily_action", "min_daily_actions"),
@@ -557,7 +399,6 @@ class MissionProgressAdmin(admin.ModelAdmin):
         "initial_transaction_count",
         "baseline_category_spending",
         "baseline_period_days",
-        "initial_goal_progress",
         "initial_savings_amount",
         "last_violation_date",
         "validation_details",
@@ -581,7 +422,6 @@ class MissionProgressAdmin(admin.ModelAdmin):
                 "initial_transaction_count",
                 "baseline_category_spending",
                 "baseline_period_days",
-                "initial_goal_progress",
                 "initial_savings_amount",
             ),
             "classes": ("collapse",),

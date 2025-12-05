@@ -27,7 +27,6 @@ class MissionsViewModel extends ChangeNotifier {
   String? _errorMessage;
   List<MissionModel> _recommendedMissions = [];
   final Map<int, List<MissionModel>> _missionsByCategory = {};
-  final Map<String, List<MissionModel>> _missionsByGoal = {};  // key is UUID
   Map<String, dynamic>? _contextAnalysis;
   bool _catalogLoading = false;
   String? _catalogError;
@@ -53,8 +52,6 @@ class MissionsViewModel extends ChangeNotifier {
   List<MissionModel> get recommendedMissions => _recommendedMissions;
   List<MissionModel> missionsForCategory(int categoryId) =>
       _missionsByCategory[categoryId] ?? const [];
-  List<MissionModel> missionsForGoal(String goalId) =>  // UUID
-      _missionsByGoal[goalId] ?? const [];
   Map<String, dynamic>? get missionContextAnalysis => _contextAnalysis;
   bool get isCatalogLoading => _catalogLoading;
   String? get catalogError => _catalogError;
@@ -62,7 +59,6 @@ class MissionsViewModel extends ChangeNotifier {
   String? get contextError => _contextError;
   List<CategoryMissionSummary> get categorySummaries =>
       _buildCategorySummaries();
-  List<GoalMissionSummary> get goalSummaries => _buildGoalSummaries();
   
   /// Estatísticas de qualidade de dados das missões
   Map<String, dynamic> get missionQualityStats {
@@ -70,7 +66,6 @@ class MissionsViewModel extends ChangeNotifier {
       ..._activeMissions.map((m) => m.mission),
       ..._recommendedMissions,
       ..._missionsByCategory.values.expand((list) => list),
-      ..._missionsByGoal.values.expand((list) => list),
     ];
     
     final uniqueMissions = {for (var m in allMissions) m.id: m}.values;
@@ -229,39 +224,6 @@ class MissionsViewModel extends ChangeNotifier {
     return summaries;
   }
 
-  List<GoalMissionSummary> _buildGoalSummaries() {
-    if (_recommendedMissions.isEmpty) {
-      return const [];
-    }
-
-    final Map<String, _GoalAccumulator> buckets = {};
-
-    for (final mission in _recommendedMissions) {
-      final descriptors = _extractGoalDescriptors(mission);
-      for (final descriptor in descriptors) {
-        final key = descriptor.id?.toString() ?? descriptor.label;
-        buckets.putIfAbsent(
-            key, () => _GoalAccumulator(descriptor.label, descriptor.id));
-        buckets[key]!
-          ..increment(mission.goalProgressTarget)
-          ..addMissionType(mission.missionType);
-      }
-    }
-
-    final summaries = buckets.values
-        .map((bucket) => GoalMissionSummary(
-              goalId: bucket.id,
-              label: bucket.label,
-              count: bucket.count,
-              averageTarget: bucket.averageTarget,
-              missionTypes: bucket.missionTypes,
-            ))
-        .toList()
-      ..sort((a, b) => b.count.compareTo(a.count));
-
-    return summaries;
-  }
-
   List<_CategoryDescriptor> _extractCategoryDescriptors(MissionModel mission) {
     final descriptors = <_CategoryDescriptor>[];
 
@@ -295,81 +257,6 @@ class MissionsViewModel extends ChangeNotifier {
     }
 
     return descriptors;
-  }
-
-  List<_GoalDescriptor> _extractGoalDescriptors(MissionModel mission) {
-    final descriptors = <_GoalDescriptor>[];
-
-    final targets = mission.targetInfo?['targets'];
-    if (targets is List) {
-      for (final item in targets) {
-        if (item is Map && item['metric'] == 'GOAL') {
-          descriptors.add(_GoalDescriptor(
-            id: item['goal_id']?.toString(),  // UUID
-            label: (item['label'] as String?) ?? 'Meta financeira',
-          ));
-        }
-      }
-    }
-
-    if (descriptors.isEmpty && mission.targetGoal != null) {
-      descriptors.add(_GoalDescriptor(
-        id: mission.targetGoal,
-        label: 'Meta #${mission.targetGoal}',
-      ));
-    }
-
-    return descriptors;
-  }
-
-  /// Carrega missões relacionadas a uma meta
-  Future<List<MissionModel>> loadMissionsForGoal(
-    String goalId, {  // UUID
-    bool forceReload = false,
-    String? missionType,
-    bool includeCompleted = false,
-  }) async {
-    if (!forceReload && _missionsByGoal.containsKey(goalId)) {
-      return _missionsByGoal[goalId]!;
-    }
-
-    _catalogLoading = true;
-    _catalogError = null;
-    notifyListeners();
-
-    try {
-      final missions = await _repository.fetchMissionsByGoal(
-        goalId,
-        missionType: missionType,
-        includeCompleted: includeCompleted,
-      );
-      
-      // Filtra missões com placeholders
-      final validMissions = missions.where((m) => m.isValid).toList();
-      final filteredCount = missions.length - validMissions.length;
-      
-      if (filteredCount > 0 && kDebugMode) {
-        debugPrint(
-          '🔍 Filtradas $filteredCount missões da meta $goalId com placeholders'
-        );
-      }
-      
-      _missionsByGoal[goalId] = validMissions;
-      return validMissions;
-    } on DioException catch (e) {
-      _catalogError = _mapDioError(
-        e,
-        fallback: 'Erro ao carregar missões relacionadas à meta.',
-      );
-      rethrow;
-    } catch (e) {
-      _catalogError =
-          'Erro inesperado ao carregar missões por meta: ${e.toString()}';
-      rethrow;
-    } finally {
-      _catalogLoading = false;
-      notifyListeners();
-    }
   }
 
   /// Busca análise de contexto de missões
@@ -584,22 +471,6 @@ class CategoryMissionSummary {
   final String? colorHex;
 }
 
-class GoalMissionSummary {
-  const GoalMissionSummary({
-    required this.goalId,
-    required this.label,
-    required this.count,
-    required this.missionTypes,
-    this.averageTarget,
-  });
-
-  final String? goalId;  // UUID
-  final String label;
-  final int count;
-  final Set<String> missionTypes;
-  final double? averageTarget;
-}
-
 class _CategoryAccumulator {
   _CategoryAccumulator(_CategoryDescriptor descriptor)
       : id = descriptor.id,
@@ -614,34 +485,6 @@ class _CategoryAccumulator {
   void increment() => count++;
 }
 
-class _GoalAccumulator {
-  _GoalAccumulator(this.label, this.id);
-
-  final String label;
-  final String? id;  // UUID
-  int count = 0;
-  double _totalTarget = 0;
-  int _targetSamples = 0;
-  final Set<String> missionTypes = <String>{};
-
-  void increment(double? missionTarget) {
-    count++;
-    if (missionTarget != null) {
-      _totalTarget += missionTarget;
-      _targetSamples++;
-    }
-  }
-
-  void addMissionType(String missionType) {
-    if (missionType.isNotEmpty) {
-      missionTypes.add(missionType);
-    }
-  }
-
-  double? get averageTarget =>
-      _targetSamples == 0 ? null : _totalTarget / _targetSamples;
-}
-
 class _CategoryDescriptor {
   const _CategoryDescriptor({
     required this.id,
@@ -652,14 +495,4 @@ class _CategoryDescriptor {
   final int? id;
   final String name;
   final String? colorHex;
-}
-
-class _GoalDescriptor {
-  const _GoalDescriptor({
-    required this.id,
-    required this.label,
-  });
-
-  final String? id;  // UUID
-  final String label;
 }

@@ -8,8 +8,8 @@ organizada em módulos por domínio:
 - indicators.py: Cálculo de indicadores financeiros (TPS, RDR, ILI)
 - context.py: Análise de contexto do usuário
 - missions.py: Gerenciamento de missões
-- goals.py: Gerenciamento de metas
 - analytics.py: Análises avançadas e métricas
+- transactions.py: Operações com transações
 - transactions.py: Operações com transações
 """
 
@@ -37,12 +37,6 @@ from .missions import (
     initialize_mission_progress,
     validate_mission_progress_manual,
     apply_mission_reward,
-)
-
-from .goals import (
-    update_goal_progress,
-    update_all_active_goals,
-    get_goal_insights,
 )
 
 from .analytics import (
@@ -83,10 +77,7 @@ __all__ = [
     'validate_mission_progress_manual',
     'apply_mission_reward',
     
-    # Metas
-    'update_goal_progress',
-    'update_all_active_goals',
-    'get_goal_insights',
+
     
     # Analytics
     'analyze_user_evolution',

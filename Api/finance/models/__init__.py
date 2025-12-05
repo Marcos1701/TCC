@@ -25,7 +25,7 @@ from .category import Category
 
 from .transaction import Transaction, TransactionLink
 
-from .goal import Goal
+
 
 from .mission import Mission, MissionProgress
 
@@ -51,7 +51,7 @@ __all__ = [
     'Category',
     'Transaction',
     'TransactionLink',
-    'Goal',
+
     'Mission',
     'MissionProgress',
     'XPTransaction',

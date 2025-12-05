@@ -39,7 +39,6 @@ MISSION_TYPES = [
     'RDR_REDUCTION',        # Reduzir gastos recorrentes - requer target_rdr
     'ILI_BUILDING',         # Construir reserva - requer min_ili
     'CATEGORY_REDUCTION',   # Reduzir gastos em categoria - requer target_reduction_percent
-    'GOAL_ACHIEVEMENT',     # Progredir em meta - requer goal_progress_target
 ]
 
 # Campos obrigatórios por tipo de missão
@@ -49,7 +48,6 @@ REQUIRED_FIELDS_BY_TYPE = {
     'RDR_REDUCTION': {'field': 'target_rdr', 'min': 15, 'max': 70, 'type': float},
     'ILI_BUILDING': {'field': 'min_ili', 'min': 1, 'max': 12, 'type': float},
     'CATEGORY_REDUCTION': {'field': 'target_reduction_percent', 'min': 5, 'max': 40, 'type': float},
-    'GOAL_ACHIEVEMENT': {'field': 'goal_progress_target', 'min': 10, 'max': 100, 'type': float},
 }
 
 
@@ -82,7 +80,7 @@ class UserContext:
     rdr: float = 50.0  # Razão Despesas/Receita atual (%)
     ili: float = 0.0  # Índice de Liquidez Imediata (meses)
     transaction_count: int = 0
-    has_active_goals: bool = False
+    has_categories: bool = False
     top_expense_categories: List[str] = field(default_factory=list)
     
     @classmethod
@@ -97,7 +95,7 @@ class UserContext:
             UserContext: Contexto preenchido com dados do usuário.
         """
         from .services.indicators import calculate_summary
-        from .models import Transaction, Goal, UserProfile
+        from .models import Transaction, UserProfile
         
         try:
             profile = UserProfile.objects.get(user=user)
@@ -126,10 +124,11 @@ class UserContext:
         # Contar transações
         transaction_count = Transaction.objects.filter(user=user).count()
         
-        # Verificar metas ativas
-        has_active_goals = Goal.objects.filter(
+        # Verificar se tem categorias de despesa
+        has_categories = Transaction.objects.filter(
             user=user, 
-            is_active=True
+            type='EXPENSE',
+            category__isnull=False
         ).exists()
         
         # Top categorias de despesa
@@ -147,7 +146,7 @@ class UserContext:
             rdr=rdr,
             ili=ili,
             transaction_count=transaction_count,
-            has_active_goals=has_active_goals,
+            has_categories=has_categories,
             top_expense_categories=[c for c in top_categories if c],
         )
     
@@ -276,35 +275,9 @@ MISSION_TEMPLATES = {
             'description_template': 'Diminua seus gastos em uma categoria específica em {target}%. '
                 'Identifique onde você pode economizar sem perder qualidade de vida.',
             'difficulty_range': ['EASY', 'MEDIUM'],
-        },
-        {
-            'title_template': 'Desafio de economia: -{target}%',
-            'description_template': 'Corte {target}% dos gastos em uma categoria selecionada. '
-                'Analise suas compras e identifique o que é essencial.',
-            'difficulty_range': ['MEDIUM', 'HARD'],
+            'category': 'category_reduction',
         },
     ],
-    
-    'GOAL_ACHIEVEMENT': [
-        {
-            'title_template': 'Alcance {target}% da sua meta',
-            'description_template': 'Atinja {target}% de progresso na sua meta financeira. '
-                'Cada contribuição te aproxima do seu objetivo!',
-            'difficulty_range': ['EASY', 'MEDIUM'],
-        },
-        {
-            'title_template': 'Rumo à conquista: {target}%',
-            'description_template': 'Complete {target}% da meta estabelecida. '
-                'Mantenha o foco e a disciplina para alcançar seus sonhos.',
-            'difficulty_range': ['MEDIUM', 'HARD'],
-        },
-    ],
-}
-
-
-# =============================================================================
-# PROMPT PARA GEMINI
-# =============================================================================
 
 GEMINI_MISSION_PROMPT = """Você é um especialista em educação financeira criando missões gamificadas para um aplicativo.
 

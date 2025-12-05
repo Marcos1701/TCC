@@ -27,7 +27,6 @@ from finance.mission_templates import (
     RDR_TEMPLATES,
     ILI_TEMPLATES,
     CATEGORY_TEMPLATES,
-    GOAL_TEMPLATES,
     BEHAVIOR_TEMPLATES,
     ADVANCED_TEMPLATES,
     generate_mission_batch_from_templates
@@ -54,7 +53,6 @@ class Command(BaseCommand):
                 'RDR_REDUCTION',
                 'ILI_BUILDING',
                 'CATEGORY_REDUCTION',
-                'GOAL_ACHIEVEMENT',
                 'BEHAVIOR',
                 'ADVANCED'
             ],
@@ -91,7 +89,6 @@ class Command(BaseCommand):
             'RDR_REDUCTION': RDR_TEMPLATES,
             'ILI_BUILDING': ILI_TEMPLATES,
             'CATEGORY_REDUCTION': CATEGORY_TEMPLATES,
-            'GOAL_ACHIEVEMENT': GOAL_TEMPLATES,
             'BEHAVIOR': BEHAVIOR_TEMPLATES,
             'ADVANCED': ADVANCED_TEMPLATES,
         }
@@ -234,18 +231,6 @@ class Command(BaseCommand):
             data['description'] = description
             data['target_reduction_percent'] = percent
             data['validation_type'] = 'CATEGORY_REDUCTION'
-
-        # Para GOAL: preencher {percent}
-        elif 'progress_percent_ranges' in template:
-            ranges = template['progress_percent_ranges']
-            min_val, max_val = random.choice(ranges)
-            percent = random.randint(min_val, max_val)
-            title = title.format(percent=percent)
-            description = template['description'].format(percent=percent)
-            data['title'] = title
-            data['description'] = description
-            data['goal_progress_target'] = percent
-            data['validation_type'] = 'GOAL_PROGRESS'
 
         # Para BEHAVIOR com {days}
         elif '{days}' in title or '{days}' in template['description']:

@@ -790,7 +790,7 @@ class AdminMissionSelectOptionsView(APIView):
     """
     View para obter opções de seleção para missões.
     
-    Fornece listas de categorias e metas do sistema disponíveis
+    Fornece listas de categorias do sistema disponíveis
     para serem vinculadas às missões, evitando que o administrador
     precise inserir IDs manualmente.
     
@@ -800,19 +800,7 @@ class AdminMissionSelectOptionsView(APIView):
     permission_classes = [permissions.IsAdminUser]
     
     def get(self, request):
-        """
-        Retorna opções de seleção para campos de missão.
-        
-        Inclui:
-        - Categorias do sistema (padrão) para CATEGORY_REDUCTION
-        - Informação sobre metas (GOAL_ACHIEVEMENT só aceita metas do usuário)
-        - Grupos de categorias para facilitar seleção
-        
-        Returns:
-            Response com listas de opções organizadas.
-        """
-        from ..models import Goal
-        
+        """Retorna opções de seleção para campos de missão."""
         # Buscar categorias do sistema (is_system_default=True)
         categorias_sistema = Category.objects.filter(
             is_system_default=True
@@ -862,24 +850,6 @@ class AdminMissionSelectOptionsView(APIView):
             },
         }
         
-        # Nota sobre metas
-        nota_metas = {
-            'info': 'Missões de GOAL_ACHIEVEMENT são vinculadas dinamicamente',
-            'detalhe': (
-                'As missões de "Progredir em Meta" (GOAL_ACHIEVEMENT) são '
-                'atribuídas automaticamente às metas ativas de cada usuário. '
-                'Não é necessário especificar uma meta específica ao criar '
-                'a missão - o sistema fará a vinculação automaticamente '
-                'quando a missão for atribuída ao usuário.'
-            ),
-            'opcoes_configuracao': [
-                {
-                    'valor': None,
-                    'label': 'Qualquer meta ativa',
-                    'descricao': 'A missão será aplicada a qualquer meta ativa do usuário',
-                },
-            ],
-        }
         
         # Dicas de preenchimento por tipo de missão
         dicas_por_tipo = {
@@ -913,15 +883,6 @@ class AdminMissionSelectOptionsView(APIView):
                 'campos_relevantes': ['target_reduction_percent', 'target_category'],
                 'permite_selecao_categoria': True,
             },
-            'GOAL_ACHIEVEMENT': {
-                'titulo': 'Progresso em Meta',
-                'dica': (
-                    'NÃO NECESSÁRIO selecionar meta. A missão será vinculada '
-                    'automaticamente às metas ativas do usuário quando atribuída.'
-                ),
-                'campos_relevantes': ['goal_progress_target'],
-                'nota_meta': nota_metas['detalhe'],
-            },
         }
         
         return Response({
@@ -930,11 +891,9 @@ class AdminMissionSelectOptionsView(APIView):
                 'total': categorias_sistema.count(),
                 'grupos_sugeridos': grupos_categorias,
             },
-            'metas': nota_metas,
             'dicas_por_tipo': dicas_por_tipo,
             'resumo': {
                 'tipos_com_categoria': ['CATEGORY_REDUCTION'],
-                'tipos_com_meta': [],  # Metas são vinculadas automaticamente
                 'tipos_sem_selecao': [
                     'ONBOARDING', 'TPS_IMPROVEMENT', 
                     'RDR_REDUCTION', 'ILI_BUILDING'

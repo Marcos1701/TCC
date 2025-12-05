@@ -11,7 +11,6 @@ from rest_framework import serializers
 
 from ..models import (
     Category,
-    Goal,
     Mission,
     MissionProgress,
     Transaction,
@@ -25,7 +24,6 @@ __all__ = [
     'timezone',
     'serializers',
     'Category',
-    'Goal',
     'Mission',
     'MissionProgress',
     'Transaction',

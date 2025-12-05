@@ -9,7 +9,6 @@ from .transaction import (
     TransactionLinkSerializer,
     TransactionLinkSummarySerializer,
 )
-from .goal import GoalSerializer
 from .mission import MissionSerializer, MissionProgressSerializer
 from .dashboard import (
     DashboardSummarySerializer,
@@ -23,7 +22,6 @@ from .dashboard import (
 __all__ = [
     'CategorySerializer',
     'TransactionSerializer',
-    'GoalSerializer',
     'MissionSerializer',
     'MissionProgressSerializer',
     'DashboardSummarySerializer',

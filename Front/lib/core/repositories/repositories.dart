@@ -9,7 +9,6 @@
 // - CategoryRepository - Category CRUD operations
 // - TransactionRepository - Transaction and links operations
 // - MissionRepository - Mission progress and templates
-// - GoalRepository - Goal management and insights
 // - FinanceRepository - Legacy repository with user profile/account methods
 //
 // Note: User profile and dev methods are available via FinanceRepository.
@@ -23,7 +22,6 @@ export 'auth_repository.dart';
 // Domain-specific repositories (recommended for new code)
 export 'category_repository.dart';
 export 'dashboard_repository.dart';
-export 'goal_repository.dart';
 export 'mission_repository.dart';
 export 'transaction_repository.dart';
 

@@ -4,7 +4,6 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     CategoryViewSet,
     DashboardViewSet,
-    GoalViewSet,
     MissionProgressViewSet,
     MissionViewSet,
     ProfileView,
@@ -33,7 +32,6 @@ from .views import (
 router = DefaultRouter()
 router.register(r"categories", CategoryViewSet, basename="category")
 router.register(r"transactions", TransactionViewSet, basename="transaction")
-router.register(r"goals", GoalViewSet, basename="goal")
 router.register(r"missions", MissionViewSet, basename="mission")
 router.register(r"mission-progress", MissionProgressViewSet, basename="mission-progress")
 router.register(r"user-profiles", UserProfileViewSet, basename="user-profile")

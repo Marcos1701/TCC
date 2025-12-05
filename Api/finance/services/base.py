@@ -28,7 +28,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 
-from ..models import Category, Goal, Mission, MissionProgress, Transaction, UserProfile
+from ..models import Category, Mission, MissionProgress, Transaction, UserProfile
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,6 @@ __all__ = [
     'When',
     # Models
     'Category',
-    'Goal',
     'Mission',
     'MissionProgress',
     'Transaction',

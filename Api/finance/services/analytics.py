@@ -7,7 +7,7 @@ from django.db.models import Avg, Count, F, Min, Max, Q, Sum
 from django.utils import timezone
 
 from ..models import (
-    Category, Goal, Mission, MissionProgress, Transaction, UserProfile
+    Category, Mission, MissionProgress, Transaction, UserProfile
 )
 from .base import _decimal, logger
 from .indicators import calculate_summary

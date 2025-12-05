@@ -6,7 +6,7 @@ from typing import List
 from django.db.models import F, Q, Sum
 
 from ..models import (
-    Category, Goal, MissionProgress, Transaction, UserProfile
+    Category, MissionProgress, Transaction, UserProfile
 )
 from .base import _decimal, logger
 from .indicators import calculate_summary
@@ -107,13 +107,6 @@ def check_criteria_met(user, criteria):
             count = MissionProgress.objects.filter(
                 user=user, 
                 status='COMPLETED'
-            ).count()
-            return count >= target
-        
-        elif metric == 'goals':
-            count = Goal.objects.filter(
-                user=user,
-                current_amount__gte=F('target_amount')
             ).count()
             return count >= target
         
@@ -236,11 +229,6 @@ def update_achievement_progress(user, achievement_id):
             current_progress = Transaction.objects.filter(user=user).count()
         elif metric == 'missions':
             current_progress = MissionProgress.objects.filter(user=user, status='COMPLETED').count()
-        elif metric == 'goals':
-            current_progress = Goal.objects.filter(
-                user=user,
-                current_amount__gte=F('target_amount')
-            ).count()
         elif metric == 'friends':
             from ..models import Friendship
             current_progress = Friendship.objects.filter(

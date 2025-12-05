@@ -177,10 +177,6 @@ class _MissionsPageState extends State<MissionsPage> {
                     CategoryMissionBadgeList(viewModel: _viewModel),
                     const SizedBox(height: 24),
                   ],
-                  if (_viewModel.goalSummaries.isNotEmpty) ...[
-                    GoalMissionPanel(viewModel: _viewModel),
-                    const SizedBox(height: 24),
-                  ],
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [

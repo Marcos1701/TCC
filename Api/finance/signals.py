@@ -5,7 +5,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 import uuid
 
-from .models import Category, Transaction, TransactionLink, Goal, UserProfile
+from .models import Category, Transaction, TransactionLink, UserProfile
 
 
 def _ensure_default_categories(user):
@@ -95,79 +95,6 @@ def update_missions_on_transaction(sender, instance, created, **kwargs):
         db_transaction.on_commit(update_after_commit)
 
 
-@receiver(post_save, sender=Transaction)
-def update_goals_on_transaction_change(sender, instance, **kwargs):
-    """
-    Atualiza metas relevantes quando uma transação é criada ou atualizada.
-    
-    Para cada tipo de meta:
-    - SAVINGS: atualiza se transação em categoria SAVINGS/INVESTMENT ou target_categories
-    - EXPENSE_REDUCTION: atualiza se transação EXPENSE está nas target_categories
-    - INCOME_INCREASE: atualiza se transação é INCOME (e em target_categories se definido)
-    - CUSTOM: não atualiza automaticamente
-    """
-    from .services import update_goal_progress
-    from .models import Goal, Category
-    
-    if not instance.category:
-        return
-    
-    # Buscar todas metas ativas do usuário (exceto CUSTOM)
-    goals = Goal.objects.filter(user=instance.user).exclude(
-        goal_type=Goal.GoalType.CUSTOM
-    ).prefetch_related('target_categories')
-    
-    for goal in goals:
-        should_update = False
-        
-        if goal.goal_type == Goal.GoalType.SAVINGS:
-            # Verifica se categoria está em target_categories ou é SAVINGS/INVESTMENT
-            if goal.target_categories.exists():
-                should_update = goal.target_categories.filter(id=instance.category_id).exists()
-            else:
-                should_update = instance.category.group in [
-                    Category.CategoryGroup.SAVINGS,
-                    Category.CategoryGroup.INVESTMENT
-                ]
-        
-        elif goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
-            # Só atualiza se transação é EXPENSE e está nas categorias monitoradas
-            if instance.type == Transaction.TransactionType.EXPENSE:
-                should_update = goal.target_categories.filter(id=instance.category_id).exists()
-        
-        elif goal.goal_type == Goal.GoalType.INCOME_INCREASE:
-            # Atualiza se transação é INCOME
-            if instance.type == Transaction.TransactionType.INCOME:
-                if goal.target_categories.exists():
-                    should_update = goal.target_categories.filter(id=instance.category_id).exists()
-                else:
-                    should_update = True  # Todas receitas
-        
-        if should_update:
-            update_goal_progress(goal)
-
-
-from django.db.models.signals import post_delete
-
-
-@receiver(post_delete, sender=Transaction)
-def update_goals_on_transaction_delete(sender, instance, **kwargs):
-    """
-    Atualiza metas com auto_update quando uma transação é deletada.
-    Verifica se o usuário ainda existe antes de atualizar (para evitar erros em deleções em cascata).
-    """
-    from .services import update_all_active_goals
-    
-    # Verifica se o usuário ainda existe antes de tentar atualizar
-    # (evita erro quando transações são deletadas em cascata ao deletar usuário)
-    try:
-        if instance.user_id and instance.user:
-            update_all_active_goals(instance.user)
-    except User.DoesNotExist:
-        # Usuário foi deletado, não há metas para atualizar
-        pass
-
-
 # ======= Signals para garantir UUID em novos registros =======
 
 @receiver(pre_save, sender=Transaction)
@@ -177,22 +104,8 @@ def ensure_transaction_uuid(sender, instance, **kwargs):
         instance.id = uuid.uuid4()
 
 
-@receiver(pre_save, sender=Goal)
-def ensure_goal_uuid(sender, instance, **kwargs):
-    """Garante que toda meta tenha UUID antes de salvar."""
-    if not instance.id:
-        instance.id = uuid.uuid4()
-
-
 @receiver(pre_save, sender=TransactionLink)
 def ensure_transaction_link_uuid(sender, instance, **kwargs):
     """Garante que todo link tenha UUID antes de salvar."""
     if not instance.id:
         instance.id = uuid.uuid4()
-
-
-
-
-
-
-

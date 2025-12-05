@@ -16,7 +16,6 @@ from .indicators import (
     IndicatorMaintenanceValidator,
 )
 from .categories import CategoryReductionValidator, CategoryLimitValidator
-from .goals import GoalProgressValidator, GoalContributionValidator
 from .transactions import TransactionConsistencyValidator, PaymentDisciplineValidator
 from .advanced import AdvancedMissionValidator, MultiCriteriaValidator
 
@@ -35,14 +34,10 @@ class MissionValidatorFactory:
         'ADVANCED': AdvancedMissionValidator,
         'ONBOARDING_TRANSACTIONS': OnboardingMissionValidator,
         'ONBOARDING_CATEGORIES': OnboardingMissionValidator,
-        'ONBOARDING_GOALS': OnboardingMissionValidator,
         'CATEGORY_REDUCTION': CategoryReductionValidator,
         'CATEGORY_SPENDING_LIMIT': CategoryLimitValidator,
         'CATEGORY_ELIMINATION': CategoryLimitValidator,
-        'GOAL_ACHIEVEMENT': GoalProgressValidator,
-        'GOAL_CONSISTENCY': GoalContributionValidator,
-        'GOAL_ACCELERATION': GoalContributionValidator,
-        'SAVINGS_STREAK': GoalContributionValidator,
+        'SAVINGS_STREAK': TransactionConsistencyValidator,
         'EXPENSE_CONTROL': CategoryLimitValidator,
         'INCOME_TRACKING': TransactionConsistencyValidator,
         'PAYMENT_DISCIPLINE': PaymentDisciplineValidator,
@@ -54,9 +49,6 @@ class MissionValidatorFactory:
         'CATEGORY_REDUCTION': CategoryReductionValidator,
         'CATEGORY_LIMIT': CategoryLimitValidator,
         'CATEGORY_ZERO': CategoryLimitValidator,
-        'GOAL_PROGRESS': GoalProgressValidator,
-        'GOAL_CONTRIBUTION': GoalContributionValidator,
-        'GOAL_COMPLETION': GoalProgressValidator,
         'TRANSACTION_COUNT': OnboardingMissionValidator,
         'TRANSACTION_CONSISTENCY': TransactionConsistencyValidator,
         'PAYMENT_COUNT': PaymentDisciplineValidator,

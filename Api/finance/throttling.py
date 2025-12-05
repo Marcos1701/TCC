@@ -54,15 +54,6 @@ class LinkCreateThrottle(UserRateThrottle):
     scope = 'link_create'
 
 
-class GoalCreateThrottle(UserRateThrottle):
-    """
-    Rate limiting para criação de metas.
-    Limita a 10 metas por hora.
-    """
-    rate = '10/hour'
-    scope = 'goal_create'
-
-
 class DashboardRefreshThrottle(UserRateThrottle):
     """
     Rate limiting para refresh de dashboard/indicadores.

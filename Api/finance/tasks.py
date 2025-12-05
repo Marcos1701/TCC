@@ -11,13 +11,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Avg, Count, Min, Max, Sum, Q
 from django.utils import timezone
 
-from .models import (
-    Category,
-    Goal,
-    Mission,
-    MissionProgress,
-    Transaction,
-)
+from .models import (\r\n    Category,\r\n    Mission,\r\n    MissionProgress,\r\n    Transaction,\r\n)
 from .services import calculate_summary, apply_mission_reward
 
 User = get_user_model()
