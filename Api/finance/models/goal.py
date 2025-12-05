@@ -71,14 +71,23 @@ class Goal(models.Model):
         help_text="Tipo da meta"
     )
     
-    target_category = models.ForeignKey(
+    target_categories = models.ManyToManyField(
         'Category',
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         related_name='goals_targeting_this',
-        help_text="Categoria alvo para metas de redução de gastos"
+        help_text="Categorias alvo para metas de redução de gastos (máximo 5)"
     )
+    
+    @property
+    def target_category(self):
+        """Compatibilidade retroativa: retorna a primeira categoria."""
+        return self.target_categories.first()
+    
+    @property
+    def target_category_name(self):
+        """Nome da primeira categoria (compatibilidade)."""
+        cat = self.target_categories.first()
+        return cat.name if cat else None
     
     baseline_amount = models.DecimalField(
         max_digits=12,
@@ -165,18 +174,10 @@ class Goal(models.Model):
     def _validate_goal_type_fields(self):
         """Valida campos específicos por tipo de meta."""
         from django.core.exceptions import ValidationError
-        from .category import Category
         
         if self.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
-            if not self.target_category:
-                raise ValidationError({
-                    'target_category': 'Metas de redução de gastos requerem uma categoria alvo.'
-                })
-            
-            if self.target_category and self.target_category.type != Category.CategoryType.EXPENSE:
-                raise ValidationError({
-                    'target_category': 'A categoria alvo deve ser de despesas (não de receitas).'
-                })
+            # Nota: validação de target_categories é feita no serializer
+            # pois ManyToMany não está disponível antes do save()
             
             if not self.baseline_amount or self.baseline_amount <= 0:
                 raise ValidationError({

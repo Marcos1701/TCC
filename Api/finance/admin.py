@@ -300,7 +300,7 @@ class GoalAdmin(admin.ModelAdmin):
     list_filter = ("goal_type", "deadline")
     search_fields = ("title", "user__username", "description")
     readonly_fields = ("created_at", "updated_at")
-    autocomplete_fields = ["target_category"]
+    filter_horizontal = ["target_categories"]  # Widget para ManyToMany
     date_hierarchy = "deadline"
     
     def get_fieldsets(self, request, obj=None):
@@ -319,7 +319,7 @@ class GoalAdmin(admin.ModelAdmin):
             fieldsets.append(
                 ("Redução de Gastos", {
                     "fields": (
-                        "target_category",
+                        "target_categories",
                         "baseline_amount",
                         "tracking_period_months",
                         "target_amount",
@@ -371,7 +371,7 @@ class GoalAdmin(admin.ModelAdmin):
                         "current_amount",
                         "initial_amount",
                         "baseline_amount",
-                        "target_category",
+                        "target_categories",
                         "tracking_period_months"
                     ),
                     "description": "Configure os campos conforme o tipo de meta selecionado."
@@ -421,7 +421,7 @@ class GoalAdmin(admin.ModelAdmin):
         return "Em andamento"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user', 'target_category')
+        return super().get_queryset(request).select_related('user').prefetch_related('target_categories')
 
 @admin.register(Mission)
 class MissionAdmin(admin.ModelAdmin):

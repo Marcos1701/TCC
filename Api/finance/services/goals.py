@@ -60,12 +60,13 @@ def _update_expense_reduction_goal(goal) -> None:
     Atualiza meta de redução de gastos.
     
     Lógica:
-    - Calcula gastos médios mensais na categoria alvo nos últimos X meses
+    - Calcula gastos médios mensais nas categorias alvo nos últimos X meses
     - Compara com baseline_amount
     - Redução = baseline - gastos_atuais
     - current_amount = redução alcançada
     """
-    if not goal.target_category or not goal.baseline_amount:
+    # Verifica se há categorias alvo
+    if not goal.target_categories.exists() or not goal.baseline_amount:
         return  # Sem dados suficientes
     
     from dateutil.relativedelta import relativedelta
@@ -74,11 +75,11 @@ def _update_expense_reduction_goal(goal) -> None:
     today = timezone.now().date()
     period_start = today - relativedelta(months=goal.tracking_period_months)
     
-    # Gastos atuais na categoria alvo
+    # Gastos atuais em TODAS as categorias alvo
     current_expenses = Transaction.objects.filter(
         user=goal.user,
         type=Transaction.TransactionType.EXPENSE,
-        category=goal.target_category,
+        category__in=goal.target_categories.all(),  # Múltiplas categorias
         date__gte=period_start,
         date__lte=today
     ).aggregate(total=Coalesce(Sum('amount'), Decimal('0')))['total']

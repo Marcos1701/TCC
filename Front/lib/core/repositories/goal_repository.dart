@@ -86,10 +86,14 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
     double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
-    String? targetCategory,
+    String? targetCategory,  // Compatibilidade retroativa
+    List<String>? targetCategories,  // Nova: múltiplas categorias
     double? baselineAmount,
     int trackingPeriodMonths = 3,
   }) async {
+    // Combina categorias: prioriza lista, fallback para única
+    final categories = targetCategories ?? (targetCategory != null ? [targetCategory] : null);
+    
     final payload = {
       'title': title,
       'description': description,
@@ -98,10 +102,14 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
       'initial_amount': initialAmount,
       if (deadline != null) 'deadline': DateFormatter.toApiFormat(deadline),
       'goal_type': goalType,
-      if (targetCategory != null) 'target_category': targetCategory,
+      if (categories != null && categories.isNotEmpty) 'target_categories': categories,
       if (baselineAmount != null) 'baseline_amount': baselineAmount,
       'tracking_period_months': trackingPeriodMonths,
     };
+
+    if (kDebugMode) {
+      debugPrint('🎯 [GoalRepository.createGoal] Payload: $payload');
+    }
 
     try {
       final response = await client.client.post<Map<String, dynamic>>(

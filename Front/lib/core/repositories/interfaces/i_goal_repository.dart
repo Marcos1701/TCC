@@ -12,7 +12,8 @@ abstract class IGoalRepository {
     double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
-    String? targetCategory,
+    String? targetCategory,  // Compatibilidade retroativa
+    List<String>? targetCategories,  // Múltiplas categorias
     double? baselineAmount,
     int trackingPeriodMonths = 3,
   });

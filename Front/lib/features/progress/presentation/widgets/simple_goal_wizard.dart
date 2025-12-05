@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -37,12 +38,14 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   DateTime? _deadline;
   bool _isCreating = false;
   
-  // Category selection
+  // Category selection - suporte a múltiplas categorias
   List<CategoryModel> _availableCategories = [];
-  CategoryModel? _selectedCategory;
+  Set<CategoryModel> _selectedCategories = {};  // Múltiplas categorias
   bool _useDefaultCategories = true;
   double _baselineAmount = 0;
   bool _loadingCategories = false;
+  
+  static const int _maxCategories = 5;  // Limite de categorias
 
   // Templates sugeridos por tipo
   final Map<GoalType, List<String>> _templates = {
@@ -89,11 +92,15 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     final totalSteps = _getTotalSteps();
     if (_currentStep < totalSteps - 1) {
       setState(() => _currentStep++);
-      _pageController.animateToPage(
-        _currentStep,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.animateToPage(
+            _currentStep,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
     }
   }
   
@@ -146,20 +153,96 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
     if (!mounted) return;
     if (_currentStep > 0) {
       setState(() => _currentStep--);
-      _pageController.animateToPage(
-        _currentStep,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.animateToPage(
+            _currentStep,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
     }
+  }
+
+  /// Valida os campos obrigatórios antes de submeter ao backend
+  String? _validateBeforeSubmit() {
+    // Validação para EXPENSE_REDUCTION
+    if (_selectedType == GoalType.expenseReduction) {
+      if (_selectedCategories.isEmpty) {
+        return 'Selecione pelo menos uma categoria para reduzir gastos';
+      }
+      if (_selectedCategories.length > _maxCategories) {
+        return 'Máximo de $_maxCategories categorias por meta';
+      }
+      if (_baselineAmount <= 0) {
+        return 'Informe quanto você gasta atualmente nessas categorias';
+      }
+      if (_targetAmount >= _baselineAmount) {
+        return 'A meta de redução deve ser menor que o gasto atual (R\$ ${_baselineAmount.toStringAsFixed(2)})';
+      }
+    }
+    
+    // Validação para INCOME_INCREASE
+    if (_selectedType == GoalType.incomeIncrease && _baselineAmount <= 0) {
+      return 'Informe sua receita média mensal atual';
+    }
+    
+    // Validações gerais
+    if (_title.trim().isEmpty) {
+      return 'Informe um título para a meta';
+    }
+    if (_targetAmount <= 0) {
+      return 'Informe um valor para a meta';
+    }
+    
+    return null;
+  }
+  
+  /// Extrai mensagem de erro amigável da resposta da API
+  String _extractErrorMessage(dynamic error) {
+    if (error is DioException && error.response?.data != null) {
+      final data = error.response!.data;
+      if (data is Map<String, dynamic>) {
+        // Mapear campos para nomes amigáveis
+        final fieldNames = {
+          'target_categories': 'Categorias',
+          'target_category': 'Categoria alvo',
+          'baseline_amount': 'Valor base',
+          'target_amount': 'Valor da meta',
+          'title': 'Título',
+          'goal_type': 'Tipo de meta',
+          'non_field_errors': 'Erro',
+        };
+        
+        for (final entry in data.entries) {
+          final fieldName = fieldNames[entry.key] ?? entry.key;
+          final message = entry.value is List 
+              ? (entry.value as List).join(', ')
+              : entry.value.toString();
+          return '$fieldName: $message';
+        }
+      }
+    }
+    return error.toString();
   }
 
   Future<void> _createGoal() async {
     if (_isCreating) return;
     
+    // Validação pré-submit
+    final validationError = _validateBeforeSubmit();
+    if (validationError != null) {
+      FeedbackService.showError(context, validationError);
+      return;
+    }
+    
     setState(() => _isCreating = true);
 
     try {
+      // Converte categorias para lista de IDs
+      final categoryIds = _selectedCategories.map((c) => c.id.toString()).toList();
+      
       await _repository.createGoal(
         title: _title,
         description: '',
@@ -168,7 +251,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         initialAmount: 0,
         deadline: _deadline,
         goalType: _selectedType!.value,
-        targetCategory: _selectedCategory?.id.toString(),
+        targetCategories: categoryIds.isNotEmpty ? categoryIds : null,
         baselineAmount: _baselineAmount > 0 ? _baselineAmount : null,
       );
 
@@ -188,9 +271,10 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMessage = _extractErrorMessage(e);
         FeedbackService.showError(
           context,
-          'Erro ao criar meta: ${e.toString()}',
+          'Erro ao criar meta: $errorMessage',
         );
       }
     } finally {
@@ -423,6 +507,11 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
       defaultLabel = 'Poupança e Investimentos';
     }
     
+    // Texto adicional para seleção múltipla
+    final multipleSelectionHint = isExpenseReduction 
+        ? 'Selecione até $_maxCategories categorias'
+        : subtitle;
+    
     return Padding(
       padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
@@ -439,9 +528,18 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
             ),
             const SizedBox(height: 8),
             Text(
-              subtitle,
+              multipleSelectionHint,
               style: TextStyle(color: Colors.grey[400], fontSize: 16),
             ),
+            // Mostrar contador de categorias selecionadas
+            if (isExpenseReduction && _selectedCategories.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '${_selectedCategories.length} categoria(s) selecionada(s)',
+                  style: TextStyle(color: AppColors.primary, fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
             const SizedBox(height: 24),
             
             // Loading state
@@ -494,15 +592,30 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
                 ),
               
               // Baseline amount para EXPENSE_REDUCTION e INCOME_INCREASE
-              if ((isExpenseReduction && _selectedCategory != null) || 
+              if ((isExpenseReduction && _selectedCategories.isNotEmpty) || 
                   (isIncomeIncrease && !_useDefaultCategories) ||
                   (isIncomeIncrease && _useDefaultCategories)) ...[
                 const SizedBox(height: 24),
+                RichText(
+                  text: TextSpan(
+                    text: isExpenseReduction 
+                        ? 'Quanto você gasta em média nessas categorias? '
+                        : 'Qual sua receita média mensal atual? ',
+                    style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                    children: const [
+                      TextSpan(
+                        text: '*',
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  isExpenseReduction 
-                      ? 'Quanto você gasta em média nessa categoria?'
-                      : 'Qual sua receita média mensal atual?',
-                  style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                  isExpenseReduction
+                      ? 'Sua meta de redução deve ser menor que este valor'
+                      : 'Este valor será usado para comparar seu progresso',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -564,9 +677,9 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   }
   
   bool _canProceedFromCategoryStep() {
-    // EXPENSE_REDUCTION requer categoria selecionada e baseline
+    // EXPENSE_REDUCTION requer pelo menos uma categoria selecionada e baseline
     if (_selectedType == GoalType.expenseReduction) {
-      return _selectedCategory != null && _baselineAmount > 0;
+      return _selectedCategories.isNotEmpty && _baselineAmount > 0;
     }
     // INCOME_INCREASE requer baseline
     if (_selectedType == GoalType.incomeIncrease) {
@@ -588,7 +701,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         onTap: () {
           setState(() {
             _useDefaultCategories = true;
-            _selectedCategory = null;
+            _selectedCategories.clear();
           });
         },
         child: Container(
@@ -640,7 +753,8 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   }
   
   Widget _buildCategoryOption(CategoryModel category) {
-    final isSelected = _selectedCategory?.id == category.id;
+    final isSelected = _selectedCategories.contains(category);
+    final canAddMore = _selectedCategories.length < _maxCategories;
     final categoryColor = _parseColor(category.color);
     
     return Material(
@@ -653,7 +767,14 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         onTap: () {
           setState(() {
             _useDefaultCategories = false;
-            _selectedCategory = category;
+            if (isSelected) {
+              _selectedCategories.remove(category);
+            } else if (canAddMore) {
+              _selectedCategories.add(category);
+            } else {
+              // Limite atingido, mostrar feedback
+              FeedbackService.showWarning(context, 'Máximo de $_maxCategories categorias');
+            }
           });
         },
         child: Container(

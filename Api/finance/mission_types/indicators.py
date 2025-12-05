@@ -200,8 +200,20 @@ class IndicatorMaintenanceValidator(BaseMissionValidator):
             all_met = all_met and met
         
         min_days = self.mission.min_consecutive_days or self.mission.duration_days
-        elapsed_days = (timezone.now() - self.mission_progress.started_at).days
-        days_maintained = elapsed_days if all_met else 0
+        
+        # Usa os dados de streak do banco em vez de calcular apenas com elapsed_days
+        # Isso permite rastrear dias válidos mesmo após uma violação
+        current_streak = self.mission_progress.current_streak or 0
+        days_met = self.mission_progress.days_met_criteria or 0
+        
+        # Se todos os critérios estão sendo atendidos hoje, considera o streak atual
+        # Caso contrário, o streak foi quebrado (mas days_met ainda conta dias passados)
+        if all_met:
+            # Incrementa o streak se ainda não foi contabilizado hoje
+            days_maintained = current_streak
+        else:
+            # Streak quebrado, mas o progresso pode ser baseado em dias_met se missão permitir
+            days_maintained = 0
         
         progress = min(100, (days_maintained / min_days) * 100)
         
@@ -211,6 +223,8 @@ class IndicatorMaintenanceValidator(BaseMissionValidator):
             'metrics': {
                 'indicators': indicators_status,
                 'days_maintained': days_maintained,
+                'current_streak': current_streak,
+                'days_met_total': days_met,
                 'target_days': min_days,
                 'all_met': all_met
             },

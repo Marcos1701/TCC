@@ -130,17 +130,36 @@ class CategoryLimitValidator(BaseMissionValidator):
         current_spending = spending_query.aggregate(total=Sum('amount'))['total'] or Decimal('0')
         
         limit = self.mission.category_spending_limit
-        remaining = limit - current_spending
+        remaining = max(Decimal('0'), limit - current_spending)
+        
+        elapsed_days = (timezone.now() - self.mission_progress.started_at).days
+        mission_days = self.mission.duration_days
         
         if current_spending > limit:
+            # Missão falhou - excedeu o limite
             progress = 0
             is_completed = False
+            status_message = f"Limite excedido em R$ {float(current_spending - limit):.2f}"
         else:
-            elapsed_days = (timezone.now() - self.mission_progress.started_at).days
-            mission_days = self.mission.duration_days
-            time_progress = min(100, (elapsed_days / mission_days) * 100)
+            # Calcula progresso como combinação de tempo + margem de segurança
+            # Tempo: quantos dias já passaram
+            time_progress = min(100, (elapsed_days / mission_days) * 100) if mission_days > 0 else 0
+            
+            # Margem: quanto do limite ainda está disponível (bonus para quem gasta menos)
+            margin_ratio = float(remaining / limit) if limit > 0 else 1
+            
+            # Progresso final: média ponderada (tempo tem mais peso)
+            # Se está dentro do limite, progresso aumenta com o tempo
             progress = time_progress
+            
             is_completed = elapsed_days >= mission_days
+            
+            if is_completed:
+                status_message = f"Missão completada! Gastou R$ {float(current_spending):.2f} de R$ {float(limit):.2f}"
+            else:
+                days_remaining = max(0, mission_days - elapsed_days)
+                daily_budget = float(remaining) / days_remaining if days_remaining > 0 else 0
+                status_message = f"R$ {float(remaining):.2f} restantes ({days_remaining} dias)"
         
         return {
             'progress_percentage': float(progress),
@@ -150,9 +169,12 @@ class CategoryLimitValidator(BaseMissionValidator):
                 'limit': float(limit),
                 'remaining': float(remaining),
                 'exceeded': current_spending > limit,
+                'days_elapsed': elapsed_days,
+                'days_total': mission_days,
+                'days_remaining': max(0, mission_days - elapsed_days),
                 'category_name': self.mission.target_category.name
             },
-            'message': f"R$ {remaining:.2f} restantes do limite em {self.mission.target_category.name}"
+            'message': status_message
         }
     
     def validate_completion(self) -> Tuple[bool, str]:

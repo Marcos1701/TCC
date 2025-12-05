@@ -91,9 +91,12 @@ class MissionValidatorFactory:
         return validator_class(mission, user, mission_progress)
 
 
-def update_mission_progress(mission_progress) -> Dict[str, Any]:
+def update_single_mission_progress(mission_progress) -> Dict[str, Any]:
     """
-    Atualiza o progresso de uma missão usando o validador apropriado.
+    Atualiza o progresso de uma única missão usando o validador apropriado.
+    
+    Nota: Para atualizar todas as missões de um usuário, use
+    finance.services.missions.update_mission_progress(user) em vez desta função.
     
     Args:
         mission_progress: Instância do modelo MissionProgress
@@ -101,6 +104,9 @@ def update_mission_progress(mission_progress) -> Dict[str, Any]:
     Returns:
         Dict com resultado da atualização
     """
+    from decimal import Decimal
+    from ..models import MissionProgress as MissionProgressModel
+    
     validator = MissionValidatorFactory.create_validator(
         mission_progress.mission,
         mission_progress.user,
@@ -109,13 +115,15 @@ def update_mission_progress(mission_progress) -> Dict[str, Any]:
     
     result = validator.calculate_progress()
     
-    mission_progress.progress_percentage = result['progress_percentage']
+    # Usa o atributo correto do modelo: 'progress' (não 'progress_percentage')
+    mission_progress.progress = Decimal(str(result['progress_percentage']))
     
     if result['is_completed'] and not mission_progress.completed_at:
         is_valid, message = validator.validate_completion()
         if is_valid:
             mission_progress.completed_at = timezone.now()
-            mission_progress.is_completed = True
+            # Usa o campo correto: 'status' com enum (não 'is_completed')
+            mission_progress.status = MissionProgressModel.Status.COMPLETED
             logger.info(f"Missão completada: {mission_progress.mission.title} - {message}")
     
     mission_progress.save()

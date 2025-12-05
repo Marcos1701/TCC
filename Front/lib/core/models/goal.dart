@@ -26,8 +26,8 @@ class GoalModel {
     required this.progressPercentage,
     required this.createdAt,
     required this.updatedAt,
-    this.targetCategory,
-    this.targetCategoryName,
+    this.targetCategories = const [],
+    this.targetCategoryNames = const [],
     this.baselineAmount,
     this.trackingPeriodMonths = 3,
   });
@@ -44,13 +44,41 @@ class GoalModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   
-  // Novos campos para tipos específicos de meta
-  final String? targetCategory;       // UUID da categoria (para EXPENSE_REDUCTION)
-  final String? targetCategoryName;   // Nome da categoria (read-only da API)
-  final double? baselineAmount;       // Valor de referência inicial
-  final int trackingPeriodMonths;     // Período de cálculo em meses (padrão 3)
+  // Suporte a múltiplas categorias
+  final List<String> targetCategories;     // Lista de IDs de categorias
+  final List<String> targetCategoryNames;  // Lista de nomes (read-only)
+  final double? baselineAmount;            // Valor de referência inicial
+  final int trackingPeriodMonths;          // Período de cálculo em meses
+
+  /// Compatibilidade retroativa: primeira categoria
+  String? get targetCategory => targetCategories.isNotEmpty ? targetCategories.first : null;
+  
+  /// Compatibilidade retroativa: nome da primeira categoria
+  String? get targetCategoryName => targetCategoryNames.isNotEmpty ? targetCategoryNames.first : null;
 
   factory GoalModel.fromMap(Map<String, dynamic> map) {
+    // Parse target_categories (lista de IDs)
+    List<String> categories = [];
+    if (map['target_categories'] != null) {
+      categories = (map['target_categories'] as List)
+          .map((e) => e.toString())
+          .toList();
+    } else if (map['target_category'] != null) {
+      // Compatibilidade retroativa
+      categories = [map['target_category'].toString()];
+    }
+    
+    // Parse target_category_names (lista de nomes)
+    List<String> categoryNames = [];
+    if (map['target_category_names'] != null) {
+      categoryNames = (map['target_category_names'] as List)
+          .map((e) => e.toString())
+          .toList();
+    } else if (map['target_category_name'] != null) {
+      // Compatibilidade retroativa
+      categoryNames = [map['target_category_name'].toString()];
+    }
+    
     return GoalModel(
       id: map['id'].toString(),
       title: (map['title'] as String?) ?? '',
@@ -72,9 +100,9 @@ class GoalModel {
       updatedAt: map['updated_at'] != null
           ? DateTime.tryParse(map['updated_at'] as String) ?? DateTime.now()
           : DateTime.now(),
-      // Novos campos
-      targetCategory: map['target_category'] as String?,
-      targetCategoryName: map['target_category_name'] as String?,
+      // Múltiplas categorias
+      targetCategories: categories,
+      targetCategoryNames: categoryNames,
       baselineAmount: map['baseline_amount'] != null
           ? double.tryParse(map['baseline_amount'].toString())
           : null,
@@ -106,8 +134,8 @@ class GoalModel {
       if (initialAmount > 0) 'initial_amount': initialAmount.toString(),
       if (deadline != null) 
         'deadline': deadline!.toIso8601String().split('T')[0],
-      // Novos campos (condicionais)
-      if (targetCategory != null) 'target_category': targetCategory,
+      // Múltiplas categorias
+      if (targetCategories.isNotEmpty) 'target_categories': targetCategories,
       if (baselineAmount != null) 'baseline_amount': baselineAmount.toString(),
       'tracking_period_months': trackingPeriodMonths,
     };
@@ -140,4 +168,11 @@ class GoalModel {
 
   /// Valor restante para atingir a meta
   double get amountRemaining => (targetAmount - currentAmount).clamp(0, double.infinity);
+  
+  /// Nome(s) das categorias formatado para exibição
+  String get categoriesDisplayName {
+    if (targetCategoryNames.isEmpty) return '';
+    if (targetCategoryNames.length == 1) return targetCategoryNames.first;
+    return '${targetCategoryNames.first} +${targetCategoryNames.length - 1}';
+  }
 }

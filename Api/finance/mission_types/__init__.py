@@ -8,7 +8,7 @@ Arquitetura:
 """
 
 from .base import BaseMissionValidator
-from .factory import MissionValidatorFactory, update_mission_progress
+from .factory import MissionValidatorFactory, update_single_mission_progress
 from .onboarding import OnboardingMissionValidator
 from .indicators import (
     TPSImprovementMissionValidator,
@@ -36,7 +36,7 @@ from .advanced import (
 __all__ = [
     'BaseMissionValidator',
     'MissionValidatorFactory',
-    'update_mission_progress',
+    'update_single_mission_progress',
     'OnboardingMissionValidator',
     'TPSImprovementMissionValidator',
     'RDRReductionMissionValidator',
