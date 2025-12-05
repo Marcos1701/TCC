@@ -12,6 +12,9 @@ abstract class IGoalRepository {
     double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
+    String? targetCategory,
+    double? baselineAmount,
+    int trackingPeriodMonths = 3,
   });
 
   Future<GoalModel> updateGoal({

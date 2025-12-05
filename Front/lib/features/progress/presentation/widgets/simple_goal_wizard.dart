@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/models/category.dart';
 import '../../../../core/models/goal.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
@@ -35,6 +36,13 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   double _targetAmount = 0;
   DateTime? _deadline;
   bool _isCreating = false;
+  
+  // Category selection
+  List<CategoryModel> _availableCategories = [];
+  CategoryModel? _selectedCategory;
+  bool _useDefaultCategories = true;
+  double _baselineAmount = 0;
+  bool _loadingCategories = false;
 
   // Templates sugeridos por tipo
   final Map<GoalType, List<String>> _templates = {
@@ -78,13 +86,59 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
 
   void _nextStep() {
     if (!mounted) return;
-    if (_currentStep < 3) { // 4 steps: 0-3
+    final totalSteps = _getTotalSteps();
+    if (_currentStep < totalSteps - 1) {
       setState(() => _currentStep++);
       _pageController.animateToPage(
         _currentStep,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+    }
+  }
+  
+  int _getTotalSteps() {
+    // CUSTOM não precisa de step de categoria
+    if (_selectedType == GoalType.custom) return 4;
+    return 5; // Tipo -> Categoria -> Nome -> Valor -> Prazo
+  }
+  
+  bool _needsCategoryStep() {
+    return _selectedType != null && _selectedType != GoalType.custom;
+  }
+  
+  Future<void> _loadCategories() async {
+    if (_loadingCategories) return;
+    setState(() => _loadingCategories = true);
+    
+    try {
+      String? typeFilter;
+      if (_selectedType == GoalType.expenseReduction) {
+        typeFilter = 'EXPENSE';
+      } else if (_selectedType == GoalType.incomeIncrease) {
+        typeFilter = 'INCOME';
+      }
+      // Para SAVINGS e EMERGENCY_FUND, buscamos EXPENSE (pois são transações de saída para poupança)
+      typeFilter ??= 'EXPENSE';
+      
+      final categories = await _repository.fetchCategories(type: typeFilter);
+      
+      if (mounted) {
+        setState(() {
+          _availableCategories = categories;
+          _loadingCategories = false;
+          
+          // Para EXPENSE_REDUCTION, não pré-selecionar
+          if (_selectedType == GoalType.expenseReduction) {
+            _useDefaultCategories = false;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingCategories = false);
+        FeedbackService.showError(context, 'Erro ao carregar categorias');
+      }
     }
   }
 
@@ -114,6 +168,8 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         initialAmount: 0,
         deadline: _deadline,
         goalType: _selectedType!.value,
+        targetCategory: _selectedCategory?.id.toString(),
+        baselineAmount: _baselineAmount > 0 ? _baselineAmount : null,
       );
 
       AnalyticsService.trackGoalCreated(
@@ -173,6 +229,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildStep1Type(),
+                  if (_needsCategoryStep()) _buildStepCategory(),
                   _buildStep2Title(),
                   _buildStep3Amount(),
                   _buildStep4Deadline(),
@@ -190,14 +247,15 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
   }
 
   Widget _buildProgressIndicator() {
+    final totalSteps = _getTotalSteps();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
-        children: List.generate(4, (index) {
+        children: List.generate(totalSteps, (index) {
           final isActive = index <= _currentStep;
           return Expanded(
             child: Container(
-              margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
+              margin: EdgeInsets.only(right: index < totalSteps - 1 ? 8 : 0),
               height: 4,
               decoration: BoxDecoration(
                 color: isActive ? AppColors.primary : Colors.grey[800],
@@ -255,10 +313,11 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Juntar dinheiro',
               description: 'Economizar para um objetivo específico',
               examples: '📱 Celular, ✈️ Viagem, 🏠 Casa própria',
-              trackedInfo: 'Monitora: Poupança e Investimentos',
+              trackedInfo: 'Padrão: Poupança e Investimentos',
               isSelected: _selectedType == GoalType.savings,
               onTap: () {
                 setState(() => _selectedType = GoalType.savings);
+                _loadCategories();
                 _nextStep();
               },
             ),
@@ -272,10 +331,11 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Reduzir gastos',
               description: 'Diminuir despesas em uma categoria',
               examples: '🍔 Delivery, ☕ Café, 📺 Assinaturas',
-              trackedInfo: 'Monitora: Categoria de despesa específica',
+              trackedInfo: 'Você escolherá a categoria',
               isSelected: _selectedType == GoalType.expenseReduction,
               onTap: () {
                 setState(() => _selectedType = GoalType.expenseReduction);
+                _loadCategories();
                 _nextStep();
               },
             ),
@@ -289,10 +349,11 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Aumentar receita',
               description: 'Alcançar uma meta de renda',
               examples: '💼 Renda extra, 📈 Aumento, 💻 Freelance',
-              trackedInfo: 'Monitora: Todas suas receitas',
+              trackedInfo: 'Padrão: Todas as receitas',
               isSelected: _selectedType == GoalType.incomeIncrease,
               onTap: () {
                 setState(() => _selectedType = GoalType.incomeIncrease);
+                _loadCategories();
                 _nextStep();
               },
             ),
@@ -306,10 +367,11 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Fundo de emergência',
               description: 'Criar uma reserva financeira',
               examples: '🛡️ Reserva 3, 6 ou 12 meses',
-              trackedInfo: 'Monitora: Poupança e Investimentos',
+              trackedInfo: 'Padrão: Poupança e Investimentos',
               isSelected: _selectedType == GoalType.emergencyFund,
               onTap: () {
                 setState(() => _selectedType = GoalType.emergencyFund);
+                _loadCategories();
                 _nextStep();
               },
             ),
@@ -336,6 +398,322 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
         ),
       ),
     );
+  }
+
+  // STEP CATEGORY: Escolher categorias para monitorar
+  Widget _buildStepCategory() {
+    final isExpenseReduction = _selectedType == GoalType.expenseReduction;
+    final isIncomeIncrease = _selectedType == GoalType.incomeIncrease;
+    
+    String title;
+    String subtitle;
+    String defaultLabel;
+    
+    if (isExpenseReduction) {
+      title = 'Qual categoria reduzir?';
+      subtitle = 'Selecione a categoria de despesa que você quer diminuir';
+      defaultLabel = '';
+    } else if (isIncomeIncrease) {
+      title = 'Quais receitas monitorar?';
+      subtitle = 'Por padrão, monitoramos todas suas receitas';
+      defaultLabel = 'Todas as receitas';
+    } else {
+      title = 'Quais categorias monitorar?';
+      subtitle = 'Por padrão, monitoramos Poupança e Investimentos';
+      defaultLabel = 'Poupança e Investimentos';
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
+            ),
+            const SizedBox(height: 24),
+            
+            // Loading state
+            if (_loadingCategories)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else ...[
+              // Para tipos que não são EXPENSE_REDUCTION, mostrar opção padrão
+              if (!isExpenseReduction) ...[
+                _buildDefaultCategoryOption(defaultLabel),
+                const SizedBox(height: 16),
+                const Divider(color: Colors.grey),
+                const SizedBox(height: 8),
+                Text(
+                  'Ou escolha uma categoria específica:',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+              ],
+              
+              // Lista de categorias
+              ..._availableCategories.map((category) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildCategoryOption(category),
+              )),
+              
+              if (_availableCategories.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.grey[600]),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Nenhuma categoria encontrada. Crie categorias primeiro.',
+                          style: TextStyle(color: Colors.grey[400]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              
+              // Baseline amount para EXPENSE_REDUCTION e INCOME_INCREASE
+              if ((isExpenseReduction && _selectedCategory != null) || 
+                  (isIncomeIncrease && !_useDefaultCategories) ||
+                  (isIncomeIncrease && _useDefaultCategories)) ...[
+                const SizedBox(height: 24),
+                Text(
+                  isExpenseReduction 
+                      ? 'Quanto você gasta em média nessa categoria?'
+                      : 'Qual sua receita média mensal atual?',
+                  style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'R\$ 0,00 / mês',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    filled: true,
+                    fillColor: const Color(0xFF1E1E1E),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixText: 'R\$ ',
+                    prefixStyle: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+                    CurrencyInputFormatter(),
+                  ],
+                  onChanged: (value) {
+                    final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
+                    setState(() => _baselineAmount = double.tryParse(cleanValue) ?? 0);
+                  },
+                ),
+              ],
+            ],
+            
+            const SizedBox(height: 32),
+            
+            // Botão continuar
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _canProceedFromCategoryStep() ? _nextStep : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  disabledBackgroundColor: Colors.grey[800],
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Continuar',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  bool _canProceedFromCategoryStep() {
+    // EXPENSE_REDUCTION requer categoria selecionada e baseline
+    if (_selectedType == GoalType.expenseReduction) {
+      return _selectedCategory != null && _baselineAmount > 0;
+    }
+    // INCOME_INCREASE requer baseline
+    if (_selectedType == GoalType.incomeIncrease) {
+      return _baselineAmount > 0;
+    }
+    // Outros tipos podem usar padrão ou categoria específica
+    return true;
+  }
+  
+  Widget _buildDefaultCategoryOption(String label) {
+    final isSelected = _useDefaultCategories;
+    return Material(
+      color: isSelected 
+          ? AppColors.primary.withOpacity(0.2)
+          : const Color(0xFF1E1E1E),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          setState(() {
+            _useDefaultCategories = true;
+            _selectedCategory = null;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.grey[800]!,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.auto_awesome, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Usar padrão',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      label,
+                      style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                const Icon(Icons.check_circle, color: AppColors.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildCategoryOption(CategoryModel category) {
+    final isSelected = _selectedCategory?.id == category.id;
+    final categoryColor = _parseColor(category.color);
+    
+    return Material(
+      color: isSelected 
+          ? AppColors.primary.withOpacity(0.2)
+          : const Color(0xFF1E1E1E),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          setState(() {
+            _useDefaultCategories = false;
+            _selectedCategory = category;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.grey[800]!,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: categoryColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    category.name.isNotEmpty ? category.name[0].toUpperCase() : '?',
+                    style: TextStyle(
+                      color: categoryColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  category.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                const Icon(Icons.check_circle, color: AppColors.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Color _parseColor(String? hexColor) {
+    if (hexColor == null || hexColor.isEmpty) {
+      return Colors.grey;
+    }
+    try {
+      return Color(int.parse(hexColor.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      return Colors.grey;
+    }
   }
 
   // STEP 2: Escolher título

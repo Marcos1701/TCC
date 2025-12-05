@@ -519,6 +519,9 @@ class FinanceRepository {
     double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
+    String? targetCategory,
+    double? baselineAmount,
+    int trackingPeriodMonths = 3,
   }) async {
     final payload = {
       'title': title,
@@ -529,6 +532,9 @@ class FinanceRepository {
       if (deadline != null)
         'deadline': DateFormatter.toApiFormat(deadline),
       'goal_type': goalType,
+      if (targetCategory != null) 'target_category': targetCategory,
+      if (baselineAmount != null) 'baseline_amount': baselineAmount,
+      'tracking_period_months': trackingPeriodMonths,
     };
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.goals,

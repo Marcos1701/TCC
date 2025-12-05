@@ -86,6 +86,9 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
     double initialAmount = 0,
     DateTime? deadline,
     String goalType = 'CUSTOM',
+    String? targetCategory,
+    double? baselineAmount,
+    int trackingPeriodMonths = 3,
   }) async {
     final payload = {
       'title': title,
@@ -95,6 +98,9 @@ class GoalRepository extends BaseRepository implements IGoalRepository {
       'initial_amount': initialAmount,
       if (deadline != null) 'deadline': DateFormatter.toApiFormat(deadline),
       'goal_type': goalType,
+      if (targetCategory != null) 'target_category': targetCategory,
+      if (baselineAmount != null) 'baseline_amount': baselineAmount,
+      'tracking_period_months': trackingPeriodMonths,
     };
 
     try {
