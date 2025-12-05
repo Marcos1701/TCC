@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/services/cache_manager.dart';
 import '../../core/state/session_controller.dart';
 import '../../features/admin/presentation/admin_panel_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
@@ -16,15 +17,16 @@ class AuthFlow extends StatefulWidget {
 
 class _AuthFlowState extends State<AuthFlow> {
   bool _showLogin = true;
-  final _rootShellKey = GlobalKey(); // Key para forçar rebuild da home
-  
+  int _rootShellRebuildKey = 0; // Key para forçar rebuild da home
+
   // Controle de onboarding - persiste entre rebuilds
   static bool _onboardingCheckedThisSession = false;
   static String? _lastUserIdChecked;
-  static String? _lastAuthenticatedUserId; // Rastreia último usuário autenticado
+  static String?
+      _lastAuthenticatedUserId; // Rastreia último usuário autenticado
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
-  
+
   static void resetOnboardingFlags() {
     _onboardingCheckedThisSession = false;
     _lastUserIdChecked = null;
@@ -33,48 +35,55 @@ class _AuthFlowState extends State<AuthFlow> {
   Future<void> _checkAndShowOnboardingIfNeeded() async {
     final session = SessionScope.of(context);
     final currentUserId = session.session?.user.id.toString();
-    
+
     if (currentUserId == null) return;
-    
+
     // Administradores não passam pelo onboarding
     final isAdmin = session.session?.user.isAdmin ?? false;
     if (isAdmin) return;
-    
+
     if (_onboardingCheckedThisSession && _lastUserIdChecked == currentUserId) {
       return;
     }
-    
+
     try {
       await session.refreshSession();
-      
+
       // Verifica novamente após refresh se virou admin
       if (session.session?.user.isAdmin ?? false) return;
-      
+
       final isFirstAccess = session.profile?.isFirstAccess ?? false;
-      
+
       if (mounted && isFirstAccess) {
         _onboardingCheckedThisSession = true;
         _lastUserIdChecked = currentUserId;
-        
-        await Navigator.of(context).push(
+
+        final completed = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (context) => const SimplifiedOnboardingPage(),
             fullscreenDialog: true,
           ),
         );
-        
+
         if (mounted) {
+          // Invalida todo o cache para garantir que os dados iniciais sejam
+          // carregados
+          CacheManager().invalidateAll();
+
           await session.refreshSession();
-          
-          setState(() {
-            _rootShellKey.currentState?.setState(() {});
-          });
+
+          // Força rebuild da home se o onboarding foi completado
+          if (completed == true) {
+            setState(() {
+              _rootShellRebuildKey++;
+            });
+          }
         }
       } else {
         _onboardingCheckedThisSession = true;
         _lastUserIdChecked = currentUserId;
       }
-      
+
       if (mounted && session.isNewRegistration) {
         session.clearNewRegistrationFlag();
       }
@@ -129,7 +138,7 @@ class _AuthFlowState extends State<AuthFlow> {
 
         // Detecta mudança de usuário autenticado (logout/login)
         final currentUserId = session.session?.user.id.toString();
-        if (_lastAuthenticatedUserId != null && 
+        if (_lastAuthenticatedUserId != null &&
             _lastAuthenticatedUserId != currentUserId) {
           resetOnboardingFlags();
         }
@@ -140,12 +149,12 @@ class _AuthFlowState extends State<AuthFlow> {
           // PRIMEIRO: Verifica se é administrador - admins vão direto para o painel
           // sem passar pelo onboarding
           final isAdmin = session.session?.user.isAdmin ?? false;
-          
+
           if (isAdmin) {
             // Admin vai direto para o painel administrativo
             return const AdminPanelPage();
           }
-          
+
           // SEGUNDO: Apenas para usuários normais - verifica onboarding
           // Se for novo cadastro, permite nova verificação de onboarding
           if (session.isNewRegistration) {
@@ -154,12 +163,12 @@ class _AuthFlowState extends State<AuthFlow> {
               _lastUserIdChecked = null;
             }
           }
-          
+
           // Verifica onboarding apenas uma vez por sessão do app (usuários normais)
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _checkAndShowOnboardingIfNeeded();
           });
-          return RootShell(key: _rootShellKey);
+          return RootShell(key: ValueKey('root_shell_$_rootShellRebuildKey'));
         }
 
         // Retorna o child que contém as páginas de auth

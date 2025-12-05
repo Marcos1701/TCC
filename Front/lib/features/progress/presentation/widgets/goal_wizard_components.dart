@@ -14,6 +14,7 @@ class GoalTypeCard extends StatelessWidget {
     required this.examples,
     required this.isSelected,
     required this.onTap,
+    this.trackedInfo,
   });
 
   /// Ícone do tipo de meta.
@@ -36,6 +37,9 @@ class GoalTypeCard extends StatelessWidget {
 
   /// Callback ao tocar no card.
   final VoidCallback onTap;
+
+  /// Informação sobre categorias monitoradas.
+  final String? trackedInfo;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +99,37 @@ class GoalTypeCard extends StatelessWidget {
                         fontSize: 12,
                       ),
                     ),
+                    if (trackedInfo != null) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: iconColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: iconColor.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.auto_graph, size: 12, color: iconColor),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                trackedInfo!,
+                                style: TextStyle(
+                                  color: iconColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

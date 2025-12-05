@@ -255,6 +255,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Juntar dinheiro',
               description: 'Economizar para um objetivo específico',
               examples: '📱 Celular, ✈️ Viagem, 🏠 Casa própria',
+              trackedInfo: 'Monitora: Poupança e Investimentos',
               isSelected: _selectedType == GoalType.savings,
               onTap: () {
                 setState(() => _selectedType = GoalType.savings);
@@ -271,6 +272,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Reduzir gastos',
               description: 'Diminuir despesas em uma categoria',
               examples: '🍔 Delivery, ☕ Café, 📺 Assinaturas',
+              trackedInfo: 'Monitora: Categoria de despesa específica',
               isSelected: _selectedType == GoalType.expenseReduction,
               onTap: () {
                 setState(() => _selectedType = GoalType.expenseReduction);
@@ -287,6 +289,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Aumentar receita',
               description: 'Alcançar uma meta de renda',
               examples: '💼 Renda extra, 📈 Aumento, 💻 Freelance',
+              trackedInfo: 'Monitora: Todas suas receitas',
               isSelected: _selectedType == GoalType.incomeIncrease,
               onTap: () {
                 setState(() => _selectedType = GoalType.incomeIncrease);
@@ -303,6 +306,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Fundo de emergência',
               description: 'Criar uma reserva financeira',
               examples: '🛡️ Reserva 3, 6 ou 12 meses',
+              trackedInfo: 'Monitora: Poupança e Investimentos',
               isSelected: _selectedType == GoalType.emergencyFund,
               onTap: () {
                 setState(() => _selectedType = GoalType.emergencyFund);
@@ -319,6 +323,7 @@ class _SimpleGoalWizardState extends State<SimpleGoalWizard> {
               title: 'Meta personalizada',
               description: 'Crie uma meta customizada',
               examples: '🎯 Qualquer objetivo',
+              trackedInfo: 'Atualização manual',
               isSelected: _selectedType == GoalType.custom,
               onTap: () {
                 setState(() => _selectedType = GoalType.custom);

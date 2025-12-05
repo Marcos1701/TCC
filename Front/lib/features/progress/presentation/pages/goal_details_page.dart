@@ -144,13 +144,9 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
                       children: [
                         _buildProgressCard(theme, tokens),
                         const SizedBox(height: 20),
-                        // Informações específicas por tipo de meta
-                        if (_currentGoal.goalType == GoalType.expenseReduction ||
-                            _currentGoal.goalType == GoalType.incomeIncrease)
-                          ...[
-                            _buildGoalTypeInfoCard(theme, tokens),
-                            const SizedBox(height: 20),
-                          ],
+                        // Informações sobre monitoramento de categorias por tipo
+                        _buildGoalTypeInfoCard(theme, tokens),
+                        const SizedBox(height: 20),
                         _buildInfoCard(theme, tokens),
                         const SizedBox(height: 80), // Espaço para os botões flutuantes
                       ],
@@ -512,6 +508,45 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
   }
 
   Widget _buildGoalTypeInfoCard(ThemeData theme, AppDecorations tokens) {
+    // Definir cor e ícone baseado no tipo
+    Color typeColor;
+    IconData typeIcon;
+    String typeTitle;
+    String trackingDescription;
+    
+    switch (_currentGoal.goalType) {
+      case GoalType.savings:
+        typeColor = Colors.green;
+        typeIcon = Icons.savings;
+        typeTitle = 'Meta de Poupança';
+        trackingDescription = 'Monitora transações em categorias de Poupança e Investimentos';
+        break;
+      case GoalType.emergencyFund:
+        typeColor = Colors.purple;
+        typeIcon = Icons.shield;
+        typeTitle = 'Fundo de Emergência';
+        trackingDescription = 'Monitora transações em categorias de Poupança e Investimentos';
+        break;
+      case GoalType.expenseReduction:
+        typeColor = Colors.orange;
+        typeIcon = Icons.trending_down;
+        typeTitle = 'Meta de Redução de Gastos';
+        trackingDescription = 'Monitora gastos na categoria específica selecionada';
+        break;
+      case GoalType.incomeIncrease:
+        typeColor = Colors.blue;
+        typeIcon = Icons.trending_up;
+        typeTitle = 'Meta de Aumento de Receita';
+        trackingDescription = 'Monitora todas as suas transações de receita';
+        break;
+      case GoalType.custom:
+        typeColor = Colors.grey;
+        typeIcon = Icons.edit;
+        typeTitle = 'Meta Personalizada';
+        trackingDescription = 'Atualização manual - você controla o progresso';
+        break;
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -519,9 +554,7 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         borderRadius: tokens.cardRadius,
         boxShadow: tokens.mediumShadow,
         border: Border.all(
-          color: _currentGoal.goalType == GoalType.expenseReduction
-              ? Colors.orange.withOpacity(0.3)
-              : Colors.blue.withOpacity(0.3),
+          color: typeColor.withOpacity(0.3),
           width: 1.5,
         ),
       ),
@@ -530,56 +563,59 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
         children: [
           Row(
             children: [
-              Icon(
-                _currentGoal.goalType == GoalType.expenseReduction
-                    ? Icons.trending_down
-                    : Icons.trending_up,
-                color: _currentGoal.goalType == GoalType.expenseReduction
-                    ? Colors.orange
-                    : Colors.blue,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: typeColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(typeIcon, color: typeColor, size: 20),
               ),
-              const SizedBox(width: 8),
-              Text(
-                _currentGoal.goalType ==GoalType.expenseReduction
-                    ? 'Meta de Redução de Gastos'
-                    : 'Meta de Aumento de Receita',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  typeTitle,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
+          
+          // Card informativo sobre monitoramento
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade900.withOpacity(0.2),
+              color: typeColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Colors.blue.shade700.withOpacity(0.3),
+                color: typeColor.withOpacity(0.2),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.blue.shade300),
+                Icon(Icons.auto_graph, size: 16, color: typeColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Progresso atualizado automaticamente com base nas suas transações',
+                    trackingDescription,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.blue.shade200,
-                      fontSize: 11,
+                      color: typeColor.withOpacity(0.9),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
           
-          // Informações específicas
+          // Informações específicas por tipo
           if (_currentGoal.goalType == GoalType.expenseReduction) ...[
+            const SizedBox(height: 16),
             if (_currentGoal.targetCategoryName != null)
               _buildTypeInfoRow(
                 Icons.category,
@@ -607,7 +643,14 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               theme,
               color: AppColors.support,
             ),
+            _buildTypeInfoRow(
+              Icons.date_range,
+              'Período de Cálculo',
+              '${_currentGoal.trackingPeriodMonths} meses',
+              theme,
+            ),
           ] else if (_currentGoal.goalType == GoalType.incomeIncrease) ...[
+            const SizedBox(height: 16),
             if (_currentGoal.baselineAmount != null)
               _buildTypeInfoRow(
                 Icons.attach_money,
@@ -628,15 +671,53 @@ class _GoalDetailsPageState extends State<GoalDetailsPage> {
               theme,
               color: AppColors.support,
             ),
+            _buildTypeInfoRow(
+              Icons.date_range,
+              'Período de Cálculo',
+              '${_currentGoal.trackingPeriodMonths} meses',
+              theme,
+            ),
+          ] else if (_currentGoal.goalType == GoalType.savings || 
+                     _currentGoal.goalType == GoalType.emergencyFund) ...[
+            const SizedBox(height: 16),
+            _buildTypeInfoRow(
+              Icons.category,
+              'Categorias Monitoradas',
+              'Poupança, Investimentos',
+              theme,
+            ),
+            if (_currentGoal.initialAmount > 0)
+              _buildTypeInfoRow(
+                Icons.start,
+                'Valor Inicial',
+                widget.currency.format(_currentGoal.initialAmount),
+                theme,
+              ),
+          ] else if (_currentGoal.goalType == GoalType.custom) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade800.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.touch_app, size: 16, color: Colors.grey[400]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Use o botão de edição para atualizar o progresso manualmente',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[400],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
-          
-          // Período de tracking
-          _buildTypeInfoRow(
-            Icons.date_range,
-            'Período de Cálculo',
-            '${_currentGoal.trackingPeriodMonths} meses',
-            theme,
-          ),
         ],
       ),
     );
