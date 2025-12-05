@@ -25,7 +25,6 @@ class Goal(models.Model):
     - SAVINGS: Juntar dinheiro (acumular valor)
     - EXPENSE_REDUCTION: Reduzir gastos em uma categoria
     - INCOME_INCREASE: Aumentar receita
-    - EMERGENCY_FUND: Fundo de emergência (reserva de X meses)
     - CUSTOM: Meta personalizada (atualização manual)
     """
     
@@ -33,7 +32,6 @@ class Goal(models.Model):
         SAVINGS = "SAVINGS", "Juntar Dinheiro"
         EXPENSE_REDUCTION = "EXPENSE_REDUCTION", "Reduzir Gastos"
         INCOME_INCREASE = "INCOME_INCREASE", "Aumentar Receita"
-        EMERGENCY_FUND = "EMERGENCY_FUND", "Fundo de Emergência"
         CUSTOM = "CUSTOM", "Personalizada"
 
     id = models.UUIDField(
@@ -197,7 +195,7 @@ class Goal(models.Model):
                     'baseline_amount': 'Informe sua receita média mensal atual para comparação.'
                 })
         
-        # SAVINGS, EMERGENCY_FUND e CUSTOM não precisam de validações extras
+        # SAVINGS e CUSTOM não precisam de validações extras
 
 
     @property

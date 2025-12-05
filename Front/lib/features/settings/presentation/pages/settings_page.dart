@@ -118,6 +118,48 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _showFinancialTargetsSheet(BuildContext context, dynamic profile) {
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erro ao carregar perfil.')),
+      );
+      return;
+    }
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => EditFinancialTargetsSheet(
+        currentTps: profile.targetTps,
+        currentRdr: profile.targetRdr,
+        currentIli: profile.targetIli,
+        onSave: (tps, rdr, ili) async {
+          try {
+            await _repository.updateFinancialTargets(
+              targetTps: tps,
+              targetRdr: rdr,
+              targetIli: ili,
+            );
+            if (!context.mounted) return;
+            final session = SessionScope.of(context);
+            await session.refreshSession();
+            if (!context.mounted) return;
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Metas atualizadas com sucesso.')),
+            );
+          } catch (e) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Erro ao atualizar metas: $e')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = SessionScope.of(context);
@@ -287,6 +329,15 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CategoriesPage()),
               ),
+              tokens: tokens,
+            ),
+            const SizedBox(height: 12),
+            
+            SettingsTile(
+              icon: Icons.track_changes_outlined,
+              title: 'Metas Financeiras',
+              subtitle: 'Definir metas de TPS, RDR e reserva',
+              onTap: () => _showFinancialTargetsSheet(context, profile),
               tokens: tokens,
             ),
             const SizedBox(height: 12),

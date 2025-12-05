@@ -121,7 +121,7 @@ class GoalViewSet(viewsets.ModelViewSet):
         """
         Retorna transações relacionadas à meta.
         
-        Para metas do tipo SAVINGS/EMERGENCY_FUND:
+        Para metas do tipo SAVINGS:
           - Se target_categories definido: transações nessas categorias
           - Senão: transações em categorias SAVINGS/INVESTMENT
         Para metas do tipo EXPENSE_REDUCTION: transações EXPENSE nas target_categories
@@ -133,7 +133,7 @@ class GoalViewSet(viewsets.ModelViewSet):
         goal = self.get_object()
         transactions = Transaction.objects.none()
         
-        if goal.goal_type in [Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]:
+        if goal.goal_type == Goal.GoalType.SAVINGS:
             if goal.target_categories.exists():
                 # Usar categorias específicas definidas pelo usuário
                 transactions = Transaction.objects.filter(

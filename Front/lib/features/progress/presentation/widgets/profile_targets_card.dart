@@ -72,7 +72,12 @@ class _ProfileTargetsCardState extends State<ProfileTargetsCard> {
           const SizedBox(height: 16),
           _IndicatorsTitle(theme: theme),
           const SizedBox(height: 10),
-          _IndicatorsSection(repository: _repository),
+          _IndicatorsSection(
+            repository: _repository,
+            tpsTarget: widget.profile.targetTps.toDouble(),
+            rdrTarget: widget.profile.targetRdr.toDouble(),
+            iliTarget: widget.profile.targetIli,
+          ),
         ],
       ),
     );
@@ -195,9 +200,17 @@ class _IndicatorsTitle extends StatelessWidget {
 
 /// Secao com os indicadores financeiros carregados via FutureBuilder.
 class _IndicatorsSection extends StatelessWidget {
-  const _IndicatorsSection({required this.repository});
+  const _IndicatorsSection({
+    required this.repository,
+    required this.tpsTarget,
+    required this.rdrTarget,
+    required this.iliTarget,
+  });
 
   final FinanceRepository repository;
+  final double tpsTarget;
+  final double rdrTarget;
+  final double iliTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +237,9 @@ class _IndicatorsSection extends StatelessWidget {
           tpsCurrent: tpsCurrent,
           rdrCurrent: rdrCurrent,
           iliCurrent: iliCurrent,
+          tpsTarget: tpsTarget,
+          rdrTarget: rdrTarget,
+          iliTarget: iliTarget,
         );
       },
     );
@@ -254,11 +270,17 @@ class _IndicatorsList extends StatelessWidget {
     required this.tpsCurrent,
     required this.rdrCurrent,
     required this.iliCurrent,
+    this.tpsTarget = 20,
+    this.rdrTarget = 35,
+    this.iliTarget = 6,
   });
 
   final double tpsCurrent;
   final double rdrCurrent;
   final double iliCurrent;
+  final double tpsTarget;
+  final double rdrTarget;
+  final double iliTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +290,7 @@ class _IndicatorsList extends StatelessWidget {
         FriendlyIndicatorCard(
           title: UxStrings.savings,
           value: tpsCurrent,
-          target: 20, // Meta: 20%
+          target: tpsTarget,
           type: IndicatorType.percentage,
           subtitle: 'da sua renda',
           customIcon: Icons.savings_outlined,
@@ -279,7 +301,7 @@ class _IndicatorsList extends StatelessWidget {
         FriendlyIndicatorCard(
           title: UxStrings.fixedExpensesMonthly,
           value: rdrCurrent,
-          target: 35, // Meta: < 35%
+          target: rdrTarget,
           type: IndicatorType.percentage,
           subtitle: 'comprometido da renda',
           customIcon: Icons.pie_chart_outline,
@@ -291,7 +313,7 @@ class _IndicatorsList extends StatelessWidget {
         FriendlyIndicatorCard(
           title: UxStrings.emergencyFundMonths,
           value: iliCurrent,
-          target: 6, // Meta: 6 meses
+          target: iliTarget,
           type: IndicatorType.months,
           subtitle: 'para cobrir despesas',
           customIcon: Icons.health_and_safety_outlined,

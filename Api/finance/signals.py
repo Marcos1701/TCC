@@ -143,16 +143,6 @@ def update_goals_on_transaction_change(sender, instance, **kwargs):
                 else:
                     should_update = True  # Todas receitas
         
-        # EMERGENCY_FUND tratado como SAVINGS (compatibilidade durante migração)
-        elif goal.goal_type == Goal.GoalType.EMERGENCY_FUND:
-            if goal.target_categories.exists():
-                should_update = goal.target_categories.filter(id=instance.category_id).exists()
-            else:
-                should_update = instance.category.group in [
-                    Category.CategoryGroup.SAVINGS,
-                    Category.CategoryGroup.INVESTMENT
-                ]
-        
         if should_update:
             update_goal_progress(goal)
 

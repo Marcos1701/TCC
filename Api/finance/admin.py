@@ -350,7 +350,7 @@ class GoalAdmin(admin.ModelAdmin):
                     )
                 })
             )
-        elif obj and obj.goal_type in [Goal.GoalType.SAVINGS, Goal.GoalType.EMERGENCY_FUND]:
+        elif obj and obj.goal_type == Goal.GoalType.SAVINGS:
             fieldsets.append(
                 ("Poupança/Reserva", {
                     "fields": ("target_amount", "current_amount", "initial_amount"),

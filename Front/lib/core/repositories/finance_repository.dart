@@ -838,6 +838,23 @@ class FinanceRepository {
     );
   }
 
+  /// Updates user's financial target indicators (TPS, RDR, ILI)
+  Future<Map<String, dynamic>> updateFinancialTargets({
+    required int targetTps,
+    required int targetRdr,
+    required double targetIli,
+  }) async {
+    final response = await _client.client.patch<Map<String, dynamic>>(
+      ApiEndpoints.profile,
+      data: {
+        'target_tps': targetTps,
+        'target_rdr': targetRdr,
+        'target_ili': targetIli,
+      },
+    );
+    return response.data ?? {};
+  }
+
   Future<Map<String, dynamic>> completeSimplifiedOnboarding({
     required double monthlyIncome,
     required double essentialExpenses,

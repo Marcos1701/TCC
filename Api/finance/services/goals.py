@@ -42,7 +42,7 @@ def calculate_initial_amount(
         date__lte=today
     )
     
-    if goal_type == 'SAVINGS' or goal_type == 'EMERGENCY_FUND':
+    if goal_type == 'SAVINGS':
         if category_ids:
             query = base_query.filter(category_id__in=category_ids)
         else:
@@ -86,7 +86,6 @@ def update_goal_progress(goal) -> None:
     
     Tipos suportados:
     - SAVINGS: Soma transações em categorias SAVINGS/INVESTMENT ou target_categories
-    - EMERGENCY_FUND: Tratado como SAVINGS (compatibilidade durante migração)
     - EXPENSE_REDUCTION: Compara gastos atuais vs baseline nas target_categories
     - INCOME_INCREASE: Compara receitas atuais vs baseline
     - CUSTOM: Não atualizado automaticamente
@@ -96,8 +95,6 @@ def update_goal_progress(goal) -> None:
     
     if goal.goal_type == Goal.GoalType.SAVINGS:
         _update_savings_goal(goal)
-    elif goal.goal_type == Goal.GoalType.EMERGENCY_FUND:
-        _update_savings_goal(goal)  # Tratado como SAVINGS
     elif goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
         _update_expense_reduction_goal(goal)
     elif goal.goal_type == Goal.GoalType.INCOME_INCREASE:
@@ -340,9 +337,9 @@ def get_goal_insights(goal) -> Dict[str, str]:
     if goal.goal_type == Goal.GoalType.EXPENSE_REDUCTION:
         if progress < 50:
             insights['suggestion'] = 'Revise seus gastos e identifique onde pode economizar. ' + insights['suggestion']
-    elif goal.goal_type == Goal.GoalType.EMERGENCY_FUND:
-        if progress < 100:
-            insights['suggestion'] = 'Priorize essa reserva - ela te protege de imprevistos! ' + insights['suggestion']
+    elif goal.goal_type == Goal.GoalType.SAVINGS:
+        if progress < 50:
+            insights['suggestion'] = 'Mantenha a disciplina - cada valor poupado conta! ' + insights['suggestion']
     elif goal.goal_type == Goal.GoalType.INCOME_INCREASE:
         if progress < 50:
             insights['suggestion'] = 'Considere formas de aumentar sua renda extra. ' + insights['suggestion']

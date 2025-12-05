@@ -558,3 +558,245 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
     );
   }
 }
+
+/// Bottom sheet para editar metas financeiras (TPS, RDR, ILI).
+class EditFinancialTargetsSheet extends StatefulWidget {
+  /// Cria um sheet de edição de metas financeiras.
+  const EditFinancialTargetsSheet({
+    super.key,
+    required this.currentTps,
+    required this.currentRdr,
+    required this.currentIli,
+    required this.onSave,
+  });
+
+  /// Meta atual de TPS (%).
+  final int currentTps;
+
+  /// Meta atual de RDR (%).
+  final int currentRdr;
+
+  /// Meta atual de ILI (meses).
+  final double currentIli;
+
+  /// Callback ao salvar.
+  final void Function(int tps, int rdr, double ili) onSave;
+
+  @override
+  State<EditFinancialTargetsSheet> createState() => _EditFinancialTargetsSheetState();
+}
+
+class _EditFinancialTargetsSheetState extends State<EditFinancialTargetsSheet> {
+  late double _tpsValue;
+  late double _rdrValue;
+  late double _iliValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _tpsValue = widget.currentTps.toDouble();
+    _rdrValue = widget.currentRdr.toDouble();
+    _iliValue = widget.currentIli;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Metas Financeiras',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Defina suas metas pessoais para cada indicador',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white60,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // TPS Slider
+            _TargetSlider(
+              label: 'Taxa de Poupança (TPS)',
+              value: _tpsValue,
+              min: 5,
+              max: 50,
+              suffix: '%',
+              icon: Icons.savings_outlined,
+              color: AppColors.success,
+              description: 'Quanto você quer poupar da sua renda',
+              onChanged: (v) => setState(() => _tpsValue = v),
+            ),
+            const SizedBox(height: 20),
+            
+            // RDR Slider
+            _TargetSlider(
+              label: 'Limite de Dívidas (RDR)',
+              value: _rdrValue,
+              min: 10,
+              max: 60,
+              suffix: '%',
+              icon: Icons.pie_chart_outline,
+              color: AppColors.warning,
+              description: 'Máximo da renda comprometida com dívidas',
+              onChanged: (v) => setState(() => _rdrValue = v),
+            ),
+            const SizedBox(height: 20),
+            
+            // ILI Slider
+            _TargetSlider(
+              label: 'Reserva de Emergência (ILI)',
+              value: _iliValue,
+              min: 1,
+              max: 12,
+              suffix: ' meses',
+              icon: Icons.health_and_safety_outlined,
+              color: AppColors.primary,
+              description: 'Meses de despesas cobertos pela reserva',
+              onChanged: (v) => setState(() => _iliValue = v),
+            ),
+            const SizedBox(height: 32),
+            
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  widget.onSave(
+                    _tpsValue.round(),
+                    _rdrValue.round(),
+                    _iliValue,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppColors.primary,
+                ),
+                child: const Text('Salvar Metas'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget auxiliar para slider de meta.
+class _TargetSlider extends StatelessWidget {
+  const _TargetSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.suffix,
+    required this.icon,
+    required this.color,
+    required this.description,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final String suffix;
+  final IconData icon;
+  final Color color;
+  final String description;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${value.round()}$suffix',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: Colors.white54,
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: color,
+              inactiveTrackColor: color.withOpacity(0.2),
+              thumbColor: color,
+              overlayColor: color.withOpacity(0.1),
+            ),
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              divisions: (max - min).round(),
+              onChanged: onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
