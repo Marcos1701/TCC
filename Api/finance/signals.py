@@ -82,6 +82,7 @@ def update_missions_on_transaction(sender, instance, created, **kwargs):
     """
     Atualiza progresso das missões e atribui novas quando necessário após cada transação.
     Executa após commit para evitar race conditions.
+    Transações agendadas (futuras) não atualizam progresso até a data efetiva.
     """
     if created:
         from django.db import transaction as db_transaction
@@ -89,7 +90,11 @@ def update_missions_on_transaction(sender, instance, created, **kwargs):
         def update_after_commit():
             from .services import update_mission_progress, assign_missions_automatically
             
-            update_mission_progress(instance.user)
+            # Only update mission progress for non-scheduled (past/present) transactions
+            if not instance.is_scheduled:
+                update_mission_progress(instance.user)
+            
+            # Always assign new missions regardless of transaction date
             assign_missions_automatically(instance.user)
         
         db_transaction.on_commit(update_after_commit)

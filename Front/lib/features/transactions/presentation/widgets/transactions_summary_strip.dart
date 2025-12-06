@@ -36,20 +36,32 @@ class TransactionsSummaryStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
+    
+    final income = totals['INCOME'] ?? 0;
+    final expense = totals['EXPENSE'] ?? 0;
+    final balance = income - expense;
+    
     final metrics = [
       SummaryMetric(
         key: 'INCOME',
         title: 'Receitas',
-        value: totals['INCOME'] ?? 0,
+        value: income,
         icon: Icons.arrow_upward_rounded,
         color: AppColors.support,
       ),
       SummaryMetric(
         key: 'EXPENSE',
         title: 'Despesas',
-        value: totals['EXPENSE'] ?? 0,
+        value: expense,
         icon: Icons.arrow_downward_rounded,
         color: AppColors.alert,
+      ),
+      SummaryMetric(
+        key: 'BALANCE',
+        title: 'Saldo',
+        value: balance,
+        icon: Icons.account_balance_wallet_rounded,
+        color: balance >= 0 ? AppColors.support : AppColors.alert,
       ),
     ];
 
@@ -64,26 +76,39 @@ class TransactionsSummaryStrip extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Resumo do Periodo',
+            'Resumo do Período',
             style: theme.textTheme.titleMedium?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 16),
+          // Top row: Income and Expense
           Row(
             children: [
-              for (var i = 0; i < metrics.length; i++) ...[
-                Expanded(
-                  child: SummaryMetricCard(
-                    metric: metrics[i],
-                    currency: currency,
-                    dimmed: activeFilter != null && activeFilter != metrics[i].key,
-                  ),
+              Expanded(
+                child: SummaryMetricCard(
+                  metric: metrics[0],
+                  currency: currency,
+                  dimmed: activeFilter != null && activeFilter != 'INCOME',
                 ),
-                if (i < metrics.length - 1) const SizedBox(width: 10),
-              ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SummaryMetricCard(
+                  metric: metrics[1],
+                  currency: currency,
+                  dimmed: activeFilter != null && activeFilter != 'EXPENSE',
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          // Bottom row: Balance (full width)
+          BalanceCard(
+            balance: balance,
+            currency: currency,
+            dimmed: activeFilter != null,
           ),
         ],
       ),
@@ -162,6 +187,104 @@ class SummaryMetricCard extends StatelessWidget {
                   color: metric.color,
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-width balance card showing net income/expense
+class BalanceCard extends StatelessWidget {
+  const BalanceCard({
+    super.key,
+    required this.balance,
+    required this.currency,
+    required this.dimmed,
+  });
+
+  final double balance;
+  final NumberFormat currency;
+  final bool dimmed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPositive = balance >= 0;
+    final color = isPositive ? AppColors.support : AppColors.alert;
+    final icon = isPositive 
+        ? Icons.trending_up_rounded 
+        : Icons.trending_down_rounded;
+    final label = isPositive ? 'Saldo Positivo' : 'Saldo Negativo';
+
+    return AnimatedOpacity(
+      opacity: dimmed ? 0.4 : 1,
+      duration: const Duration(milliseconds: 200),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              color.withOpacity(0.2),
+              color.withOpacity(0.08),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label.toUpperCase(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color.withOpacity(0.8),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    currency.format(balance.abs()),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                isPositive ? '+' : '-',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
                 ),
               ),
             ),

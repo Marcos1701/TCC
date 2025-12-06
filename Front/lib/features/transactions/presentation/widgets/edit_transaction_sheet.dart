@@ -28,6 +28,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
   late TextEditingController _descriptionController;
   late TextEditingController _amountController;
   late TextEditingController _dateController;
+  late TextEditingController _recurrenceEndDateController;
 
   late DateTime _selectedDate;
   late String _type;
@@ -35,6 +36,20 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
   List<CategoryModel> _categories = [];
   bool _loadingCategories = true;
   bool _submitting = false;
+  
+  // Recurrence fields
+  late bool _isRecurring;
+  late int? _recurrenceValue;
+  late String? _recurrenceUnit;
+  DateTime? _recurrenceEndDate;
+  
+  // Original values for change tracking
+  late String _originalDescription;
+  late double _originalAmount;
+  late DateTime _originalDate;
+  late String _originalType;
+  late int? _originalCategoryId;
+  late bool _originalIsRecurring;
 
   @override
   void initState() {
@@ -51,6 +66,26 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
     _selectedDate = widget.transaction.date;
     _type = widget.transaction.type;
     _categoryId = widget.transaction.category?.id;
+    
+    // Recurrence
+    _isRecurring = widget.transaction.isRecurring;
+    _recurrenceValue = widget.transaction.recurrenceValue;
+    _recurrenceUnit = widget.transaction.recurrenceUnit;
+    _recurrenceEndDate = widget.transaction.recurrenceEndDate;
+    _recurrenceEndDateController = TextEditingController(
+      text: _recurrenceEndDate != null 
+          ? DateFormat('dd/MM/yyyy').format(_recurrenceEndDate!) 
+          : '',
+    );
+    
+    // Store original values for change detection
+    _originalDescription = widget.transaction.description;
+    _originalAmount = widget.transaction.amount;
+    _originalDate = widget.transaction.date;
+    _originalType = widget.transaction.type;
+    _originalCategoryId = widget.transaction.category?.id;
+    _originalIsRecurring = widget.transaction.isRecurring;
+    
     _loadCategories();
   }
 
@@ -59,8 +94,17 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
     _descriptionController.dispose();
     _amountController.dispose();
     _dateController.dispose();
+    _recurrenceEndDateController.dispose();
     super.dispose();
   }
+
+  // Change detection helpers
+  bool get _isDescriptionChanged => _descriptionController.text.trim() != _originalDescription;
+  bool get _isAmountChanged => CurrencyInputFormatter.parse(_amountController.text) != _originalAmount;
+  bool get _isDateChanged => _selectedDate != _originalDate;
+  bool get _isTypeChanged => _type != _originalType;
+  bool get _isCategoryChanged => _categoryId != _originalCategoryId;
+  bool get _isRecurrenceChanged => _isRecurring != _originalIsRecurring;
 
   Future<void> _loadCategories() async {
     try {
@@ -91,6 +135,10 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
         amount: amount,
         date: _selectedDate,
         categoryId: _categoryId,
+        isRecurring: _isRecurring,
+        recurrenceValue: _isRecurring ? _recurrenceValue : null,
+        recurrenceUnit: _isRecurring ? _recurrenceUnit : null,
+        recurrenceEndDate: _isRecurring ? _recurrenceEndDate : null,
       );
 
       if (!mounted) return;
@@ -185,7 +233,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                 ),
                 const SizedBox(height: 24),
                 DropdownButtonFormField<String>(
-          initialValue: _type,
+                  value: _type,
                   decoration: const InputDecoration(
                     labelText: 'Tipo',
                     prefixIcon: Icon(Icons.category_outlined),
@@ -250,10 +298,17 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                   const Center(child: CircularProgressIndicator())
                 else
                   DropdownButtonFormField<int>(
-          initialValue: _categoryId,
-                    decoration: const InputDecoration(
+                    value: _categoryId,
+                    decoration: InputDecoration(
                       labelText: 'Categoria',
-                      prefixIcon: Icon(Icons.label_outline),
+                      prefixIcon: const Icon(Icons.label_outline),
+                      // Visual change indicator
+                      enabledBorder: _isCategoryChanged
+                          ? OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                            )
+                          : null,
                     ),
                     items: _categories.map((cat) {
                       return DropdownMenuItem(
@@ -269,6 +324,126 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
                       return null;
                     },
                   ),
+                const SizedBox(height: 24),
+                // Recurrence Section
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isRecurrenceChanged 
+                        ? AppColors.primary.withOpacity(0.1)
+                        : const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _isRecurrenceChanged 
+                          ? AppColors.primary 
+                          : Colors.grey[800]!,
+                      width: _isRecurrenceChanged ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.repeat_rounded,
+                            color: _isRecurring ? AppColors.primary : Colors.grey[600],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Transação Recorrente',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Switch(
+                            value: _isRecurring,
+                            onChanged: (value) => setState(() => _isRecurring = value),
+                            activeColor: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                      if (_isRecurring) ...[
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _recurrenceValue?.toString() ?? '1',
+                                decoration: const InputDecoration(
+                                  labelText: 'Intervalo',
+                                  prefixIcon: Icon(Icons.numbers),
+                                  isDense: true,
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                onChanged: (value) {
+                                  _recurrenceValue = int.tryParse(value);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: _recurrenceUnit ?? 'MONTHS',
+                                decoration: const InputDecoration(
+                                  labelText: 'Unidade',
+                                  prefixIcon: Icon(Icons.schedule),
+                                  isDense: true,
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'DAYS', child: Text('Dias')),
+                                  DropdownMenuItem(value: 'WEEKS', child: Text('Semanas')),
+                                  DropdownMenuItem(value: 'MONTHS', child: Text('Meses')),
+                                ],
+                                onChanged: (value) => setState(() => _recurrenceUnit = value),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _recurrenceEndDateController,
+                          decoration: const InputDecoration(
+                            labelText: 'Data de Término (opcional)',
+                            prefixIcon: Icon(Icons.event),
+                            isDense: true,
+                          ),
+                          readOnly: true,
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _recurrenceEndDate ?? DateTime.now().add(const Duration(days: 365)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2100),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.dark(
+                                      primary: AppColors.primary,
+                                      surface: Color(0xFF1E1E1E),
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                _recurrenceEndDate = picked;
+                                _recurrenceEndDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,

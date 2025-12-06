@@ -56,6 +56,17 @@ class MissionValidatorFactory:
     
     @classmethod
     def create_validator(cls, mission, user, mission_progress) -> BaseMissionValidator:
+        # INDICATOR_THRESHOLD precisa usar validators específicos baseado no mission_type
+        if mission.validation_type == 'INDICATOR_THRESHOLD':
+            if mission.mission_type == 'TPS_IMPROVEMENT':
+                return TPSImprovementMissionValidator(mission, user, mission_progress)
+            elif mission.mission_type == 'RDR_REDUCTION':
+                return RDRReductionMissionValidator(mission, user, mission_progress)
+            elif mission.mission_type == 'ILI_BUILDING':
+                return ILIBuildingMissionValidator(mission, user, mission_progress)
+            # Fallback para múltiplos indicadores
+            return AdvancedMissionValidator(mission, user, mission_progress)
+        
         validator_class = cls._validation_type_validators.get(mission.validation_type)
         
         if validator_class is None:

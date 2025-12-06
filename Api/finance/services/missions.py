@@ -50,11 +50,7 @@ def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
     
     new_progress_list = []
     for mission in selected_missions:
-        should_auto_start = mission.mission_type in [
-            'ONBOARDING_TRANSACTIONS',
-            'ONBOARDING_CATEGORIES', 
-            'ONBOARDING_GOALS'
-        ]
+        should_auto_start = mission.mission_type == 'ONBOARDING'
         
         progress, created = MissionProgress.objects.get_or_create(
             user=user,
@@ -101,7 +97,7 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
             elif indicator == 'RDR' and mission.mission_type in ['RDR_REDUCTION', 'CATEGORY_REDUCTION', 'EXPENSE_CONTROL']:
                 score += 40
                 break
-            elif indicator == 'ILI' and mission.mission_type in ['ILI_BUILDING', 'GOAL_ACHIEVEMENT', 'WEALTH_BUILDING']:
+            elif indicator == 'ILI' and mission.mission_type in ['ILI_BUILDING', 'WEALTH_BUILDING']:
                 score += 40
                 break
         
@@ -111,11 +107,7 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
                     score += 30
                 else:
                     score += 15
-            elif opp['type'] == 'GOAL_STAGNANT' and mission.mission_type in ['GOAL_ACHIEVEMENT', 'GOAL_CONSISTENCY']:
-                if mission.target_goal and mission.target_goal.id == opp['data'].get('goal_id'):
-                    score += 30
-                else:
-                    score += 15
+            # GOAL_ACHIEVEMENT removido - sistema de goals desativado
         
         difficulty_multiplier = {
             'EASY': 1.0,
@@ -204,7 +196,7 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
     priority_types = []
     
     if transaction_count < 5:
-        priority_types = ['ONBOARDING_TRANSACTIONS']
+        priority_types = ['ONBOARDING']
     elif ili <= 3:
         priority_types = ['ILI_BUILDING', 'TPS_IMPROVEMENT']
     elif rdr >= 50:
@@ -214,7 +206,7 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
     elif 3 < ili < 6:
         priority_types = ['TPS_IMPROVEMENT', 'ILI_BUILDING']
     elif ili >= 6:
-        priority_types = ['FINANCIAL_HEALTH']
+        priority_types = ['TPS_IMPROVEMENT', 'CATEGORY_REDUCTION']  # FINANCIAL_HEALTH não existe no model
     else:
         priority_types = ['TPS_IMPROVEMENT']
     
@@ -248,7 +240,7 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
             if ili > float(mission.max_ili):
                 continue
         
-        if mission.mission_type not in ['ONBOARDING_TRANSACTIONS', 'ONBOARDING_CATEGORIES', 'ONBOARDING_GOALS']:
+        if mission.mission_type != 'ONBOARDING':
             would_complete_instantly = False
             
             if mission.target_tps is not None and tps >= mission.target_tps * 0.95:
@@ -388,10 +380,7 @@ def initialize_mission_progress(progress):
             progress.baseline_category_spending = baseline.get('total') or Decimal('0')
             progress.baseline_period_days = baseline_days
     
-    if mission.validation_type == 'GOAL_PROGRESS':
-        if mission.target_goal:
-            goal = mission.target_goal
-            progress.initial_goal_progress = goal.progress
+    # GOAL_PROGRESS removido - sistema de goals desativado
     
     if mission.validation_type == 'SAVINGS_INCREASE':
         savings = Transaction.objects.filter(

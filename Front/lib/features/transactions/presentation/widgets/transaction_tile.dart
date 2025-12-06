@@ -108,6 +108,10 @@ class TransactionTile extends StatelessWidget {
                 endDate: transaction.recurrenceEndDate,
               ),
             ],
+            if (transaction.isScheduled) ...[
+              const SizedBox(height: 12),
+              const ScheduledBadge(),
+            ],
           ],
         ),
       ),
@@ -316,6 +320,72 @@ class RecurringBadge extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   secondary,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[500],
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Badge displayed for scheduled (future) transactions
+class ScheduledBadge extends StatelessWidget {
+  const ScheduledBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const scheduleColor = Color(0xFFFF9800); // Orange/Amber color
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheduleColor.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheduleColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: scheduleColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.schedule_rounded,
+              color: scheduleColor,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Transação Agendada',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheduleColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Esta transação será efetivada na data informada',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: Colors.grey[500],
                     fontSize: 11,

@@ -37,7 +37,8 @@ class TransactionConsistencyValidator(BaseMissionValidator):
             week_transactions = Transaction.objects.filter(
                 transaction_filter,
                 date__gte=current_date,
-                date__lt=week_end
+                date__lt=week_end,
+                date__lte=timezone.now().date()  # Exclude future/scheduled transactions
             ).count()
             
             if week_transactions >= min_frequency:

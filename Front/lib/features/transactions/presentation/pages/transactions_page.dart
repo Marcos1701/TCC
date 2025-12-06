@@ -140,6 +140,12 @@ class _TransactionsPageState extends State<TransactionsPage>
     });
   }
 
+  void _applyScheduleFilter(String? status) {
+    setState(() {
+      _viewModel.updateScheduleFilter(status);
+    });
+  }
+
   Map<String, double> _buildTotals(List<TransactionModel> transactions) {
     final totals = <String, double>{
       'INCOME': 0,
@@ -152,6 +158,56 @@ class _TransactionsPageState extends State<TransactionsPage>
     }
     
     return totals;
+  }
+
+  /// Returns a human-readable date label for grouping
+  String _getDateGroupLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final itemDate = DateTime(date.year, date.month, date.day);
+    final diff = today.difference(itemDate).inDays;
+    
+    // Future dates (scheduled transactions)
+    if (diff < 0) {
+      final futureDiff = -diff;
+      if (futureDiff == 1) return 'Amanhã';
+      if (futureDiff < 7) return 'Próxima Semana';
+      if (futureDiff < 30) return 'Próximo Mês';
+      return 'Agendado';
+    }
+    
+    // Past and present dates
+    if (diff == 0) return 'Hoje';
+    if (diff == 1) return 'Ontem';
+    if (diff < 7) return 'Esta Semana';
+    if (diff < 30) return 'Este Mês';
+    if (diff < 365) return DateFormat('MMMM yyyy', 'pt_BR').format(date);
+    return DateFormat('yyyy', 'pt_BR').format(date);
+  }
+
+  /// Groups items and inserts date headers
+  List<Map<String, dynamic>> _groupItemsByDate(List<Map<String, dynamic>> items) {
+    if (items.isEmpty) return items;
+    
+    final result = <Map<String, dynamic>>[];
+    String? currentGroup;
+    
+    for (final item in items) {
+      final date = item['date'] as DateTime;
+      final group = _getDateGroupLabel(date);
+      
+      if (group != currentGroup) {
+        result.add({
+          'type': 'header',
+          'data': group,
+          'date': date,
+        });
+        currentGroup = group;
+      }
+      result.add(item);
+    }
+    
+    return result;
   }
 
   void _showLinkDetails(TransactionLinkModel link) {
@@ -268,7 +324,77 @@ class _TransactionsPageState extends State<TransactionsPage>
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Row(
+                children: [
+                  const Text(
+                    'Status:',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          TransactionFilterChip(
+                            label: 'Todas',
+                            selected: _viewModel.scheduleFilter == null,
+                            onTap: () => _applyScheduleFilter(null),
+                            icon: Icons.all_inclusive_rounded,
+                          ),
+                          TransactionFilterChip(
+                            label: 'Efetivadas',
+                            selected: _viewModel.scheduleFilter == 'effective',
+                            onTap: () => _applyScheduleFilter('effective'),
+                            icon: Icons.check_circle_outline_rounded,
+                          ),
+                          TransactionFilterChip(
+                            label: 'Agendadas',
+                            selected: _viewModel.scheduleFilter == 'scheduled',
+                            onTap: () => _applyScheduleFilter('scheduled'),
+                            icon: Icons.schedule_rounded,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Search field
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: TextField(
+                onChanged: (query) => _viewModel.updateSearchQuery(query),
+                decoration: InputDecoration(
+                  hintText: 'Buscar por descrição ou categoria...',
+                  hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: const Color(0xFF1E1E1E),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[800]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+            ),
             Expanded(
               child: RefreshIndicator(
                 color: AppColors.primary,
@@ -341,17 +467,27 @@ class _TransactionsPageState extends State<TransactionsPage>
                     }
                     
                     allItems.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+                    
+                    // Group items by date with headers
+                    final groupedItems = _groupItemsByDate(allItems);
 
                     return Stack(
                       children: [
                         ListView.separated(
                           padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-                          itemCount: allItems.length + 1,
+                          itemCount: groupedItems.length + 1,
                           separatorBuilder: (_, index) {
                             if (index == 0) {
                               return const SizedBox(height: 20);
                             }
-                            return const SizedBox(height: 10);
+                            // Check if next item is a header - add more space before headers
+                            if (index < groupedItems.length) {
+                              final nextItem = groupedItems[index];
+                              if (nextItem['type'] == 'header') {
+                                return const SizedBox(height: 16);
+                              }
+                            }
+                            return const SizedBox(height: 8);
                           },
                           itemBuilder: (context, index) {
                             if (index == 0) {
@@ -362,8 +498,14 @@ class _TransactionsPageState extends State<TransactionsPage>
                               );
                             }
                             
-                            final item = allItems[index - 1];
+                            final item = groupedItems[index - 1];
                             final itemType = item['type'] as String;
+                            
+                            // Render date group header
+                            if (itemType == 'header') {
+                              final label = item['data'] as String;
+                              return DateGroupHeader(label: label);
+                            }
                             
                             if (itemType == 'transaction') {
                               final transaction = item['data'] as TransactionModel;
@@ -450,6 +592,69 @@ class _TransactionsPageState extends State<TransactionsPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Date group header widget for transaction list sections
+class DateGroupHeader extends StatelessWidget {
+  const DateGroupHeader({super.key, required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.primary.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 14,
+                  color: AppColors.primary.withOpacity(0.8),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary.withOpacity(0.3),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

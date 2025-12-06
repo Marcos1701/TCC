@@ -118,21 +118,7 @@ class MultiCriteriaValidator(BaseMissionValidator):
                     total_progress += 100
                 criteria_count += 1
         
-        if self.mission.target_goals.exists():
-            for goal in self.mission.target_goals.all():
-                goal_progress = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0
-                target_progress = float(self.mission.goal_progress_target or Decimal('50'))
-                met = goal_progress >= target_progress
-                criteria_results.append({
-                    'type': 'goal',
-                    'name': goal.title,
-                    'met': met,
-                    'value': float(goal_progress),
-                    'target': target_progress
-                })
-                if met:
-                    total_progress += 100
-                criteria_count += 1
+        # target_goals removido - Goal model deletado em migration 0058
         
         from ..services import calculate_summary
         metrics = calculate_summary(self.user)

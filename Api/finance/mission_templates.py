@@ -180,32 +180,7 @@ CATEGORY_TEMPLATES = [
     },
 ]
 
-GOAL_TEMPLATES = [
-    {
-        'title': 'Progresso de {percent}% na Meta',
-        'description': 'Alcance {percent}% de progresso na meta selecionada.',
-        'progress_percent_ranges': [(30, 50), (50, 75), (75, 100)],
-        'duration_days': 30,
-        'xp_reward': 200,
-        'difficulty': 'MEDIUM'
-    },
-    {
-        'title': 'Rumo à Conquista: {percent}%',
-        'description': 'Atinja {percent}% da meta estabelecida.',
-        'progress_percent_ranges': [(40, 60), (60, 80), (80, 100)],
-        'duration_days': 30,
-        'xp_reward': 250,
-        'difficulty': 'HARD'
-    },
-    {
-        'title': 'Primeiros Passos: {percent}%',
-        'description': 'Complete {percent}% da meta inicial.',
-        'progress_percent_ranges': [(10, 25), (25, 40), (40, 60)],
-        'duration_days': 21,
-        'xp_reward': 150,
-        'difficulty': 'EASY'
-    },
-]
+# GOAL_TEMPLATES removido - Goal system desativado em migration 0058
 
 BEHAVIOR_TEMPLATES = [
     {
@@ -256,6 +231,7 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['title'] = template['title'].format(count=count)
         mission_data['description'] = template['description'].format(count=count)
         mission_data['mission_type'] = 'ONBOARDING'
+        mission_data['validation_type'] = 'TRANSACTION_COUNT'
         mission_data['min_transactions'] = count
     
     elif 'target_tps_ranges' in template:
@@ -272,6 +248,7 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['title'] = template['title'].format(target=target)
         mission_data['description'] = template['description'].format(target=target)
         mission_data['mission_type'] = 'TPS_IMPROVEMENT'
+        mission_data['validation_type'] = 'INDICATOR_THRESHOLD'
         mission_data['target_tps'] = target
     
     elif 'target_rdr_ranges' in template:
@@ -288,6 +265,7 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['title'] = template['title'].format(target=target)
         mission_data['description'] = template['description'].format(target=target)
         mission_data['mission_type'] = 'RDR_REDUCTION'
+        mission_data['validation_type'] = 'INDICATOR_THRESHOLD'
         mission_data['target_rdr'] = target
     
     elif 'min_ili_ranges' in template:
@@ -304,6 +282,7 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['title'] = template['title'].format(target=target)
         mission_data['description'] = template['description'].format(target=target)
         mission_data['mission_type'] = 'ILI_BUILDING'
+        mission_data['validation_type'] = 'INDICATOR_THRESHOLD'
         mission_data['min_ili'] = target
     
     elif 'reduction_percent_ranges' in template:
@@ -319,22 +298,10 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['title'] = template['title'].format(percent=percent)
         mission_data['description'] = template['description'].format(percent=percent)
         mission_data['mission_type'] = 'CATEGORY_REDUCTION'
+        mission_data['validation_type'] = 'CATEGORY_REDUCTION'
         mission_data['target_reduction_percent'] = percent
     
-    elif 'progress_percent_ranges' in template:
-        ranges = template['progress_percent_ranges']
-        if tier == 'BEGINNER':
-            target_range = ranges[0]
-        elif tier == 'INTERMEDIATE':
-            target_range = ranges[min(1, len(ranges)-1)]
-        else:
-            target_range = ranges[-1]
-        
-        percent = target_range[1]
-        mission_data['title'] = template['title'].format(percent=percent)
-        mission_data['description'] = template['description'].format(percent=percent)
-        mission_data['mission_type'] = 'GOAL_ACHIEVEMENT'
-        mission_data['goal_progress_target'] = percent
+    # progress_percent_ranges removido - Goal system desativado
     
     return mission_data
 
@@ -348,29 +315,25 @@ def generate_mission_batch_from_templates(
     if distribution is None:
         if tier == 'BEGINNER':
             distribution = {
-                'ONBOARDING': 6,
+                'ONBOARDING': 7,
                 'TPS_IMPROVEMENT': 5,
                 'RDR_REDUCTION': 4,
                 'ILI_BUILDING': 2,
                 'CATEGORY_REDUCTION': 2,
-                'GOAL_ACHIEVEMENT': 1,
             }
-        elif tier == 'INTERMEDIATE':
             distribution = {
-                'ONBOARDING': 2,
-                'TPS_IMPROVEMENT': 5,
+                'ONBOARDING': 3,
+                'TPS_IMPROVEMENT': 6,
                 'RDR_REDUCTION': 4,
                 'ILI_BUILDING': 4,
                 'CATEGORY_REDUCTION': 3,
-                'GOAL_ACHIEVEMENT': 2,
             }
         else:
             distribution = {
-                'TPS_IMPROVEMENT': 5,
-                'ILI_BUILDING': 5,
+                'TPS_IMPROVEMENT': 6,
+                'ILI_BUILDING': 6,
                 'RDR_REDUCTION': 4,
-                'CATEGORY_REDUCTION': 3,
-                'GOAL_ACHIEVEMENT': 3,
+                'CATEGORY_REDUCTION': 4,
             }
     
     missions = []
@@ -386,8 +349,6 @@ def generate_mission_batch_from_templates(
             templates = ILI_TEMPLATES
         elif mission_type == 'CATEGORY_REDUCTION':
             templates = CATEGORY_TEMPLATES
-        elif mission_type == 'GOAL_ACHIEVEMENT':
-            templates = GOAL_TEMPLATES
         else:
             continue
         
@@ -406,7 +367,6 @@ def get_template_variety_score(tier: str, mission_type: str) -> int:
         'RDR_REDUCTION': len(RDR_TEMPLATES),
         'ILI_BUILDING': len(ILI_TEMPLATES),
         'CATEGORY_REDUCTION': len(CATEGORY_TEMPLATES),
-        'GOAL_ACHIEVEMENT': len(GOAL_TEMPLATES),
     }
     
     return template_counts.get(mission_type, 0)

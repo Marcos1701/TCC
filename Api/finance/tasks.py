@@ -124,6 +124,39 @@ def generate_missions_async(
         raise
 
 
+@shared_task(name='finance.check_expired_missions')
+def check_expired_missions():
+    """
+    Marca missões ativas que passaram do prazo como FAILED.
+    Deve ser executada periodicamente (ex: diariamente).
+    """
+    from datetime import timedelta
+    
+    now = timezone.now()
+    expired_count = 0
+    
+    # Busca missões ativas/pendentes que passaram do prazo
+    active_missions = MissionProgress.objects.filter(
+        status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE],
+        started_at__isnull=False
+    ).select_related('mission')
+    
+    for progress in active_missions:
+        deadline = progress.started_at + timedelta(days=progress.mission.duration_days)
+        if now > deadline:
+            progress.status = MissionProgress.Status.FAILED
+            progress.save(update_fields=['status'])
+            expired_count += 1
+            logger.info(f"Missão expirada: {progress.mission.title} (usuário: {progress.user_id})")
+    
+    logger.info(f"Verificação de expiração: {expired_count} missões marcadas como FAILED")
+    
+    return {
+        'expired_count': expired_count,
+        'checked_at': now.isoformat()
+    }
+
+
 @shared_task(name='finance.cleanup_old_missions')
 def cleanup_old_missions(days: int = 90):
     from datetime import timedelta

@@ -364,6 +364,11 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                               _buildValueSection(theme, typeColor, tokens),
                               const SizedBox(height: 24),
                               _buildInfoSection(theme, tokens),
+                              // Show impact section if available
+                              if (_details?['estimated_impact'] != null) ...[
+                                const SizedBox(height: 24),
+                                _buildImpactSection(theme, tokens),
+                              ],
                               if (widget.transaction.isRecurring) ...[
                                 const SizedBox(height: 24),
                                 _buildRecurrenceSection(theme, tokens),
@@ -809,6 +814,146 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactSection(ThemeData theme, AppDecorations tokens) {
+    final impact = _details?['estimated_impact'] as Map<String, dynamic>?;
+    if (impact == null) return const SizedBox.shrink();
+    
+    final tpsImpact = (impact['tps_impact'] as num?)?.toDouble() ?? 0;
+    final rdrImpact = (impact['rdr_impact'] as num?)?.toDouble() ?? 0;
+    final message = impact['message'] as String? ?? '';
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: tokens.cardRadius,
+        border: Border.all(
+          color: Colors.white.withOpacity(0.05),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(tokens.cardRadius.topLeft.x),
+                topRight: Radius.circular(tokens.cardRadius.topRight.x),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.analytics_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Impacto nos Indicadores',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildImpactRow(
+                  theme,
+                  'Taxa de Poupança (TPS)',
+                  tpsImpact,
+                  Icons.savings_outlined,
+                ),
+                if (rdrImpact != 0) ...[
+                  const SizedBox(height: 12),
+                  _buildImpactRow(
+                    theme,
+                    'Recorrência de Despesas (RDR)',
+                    rdrImpact,
+                    Icons.repeat_rounded,
+                  ),
+                ],
+                if (message.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[500],
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImpactRow(
+    ThemeData theme,
+    String label,
+    double impact,
+    IconData icon,
+  ) {
+    final isPositive = impact >= 0;
+    final color = isPositive ? AppColors.support : AppColors.alert;
+    final sign = isPositive ? '+' : '';
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '$sign${impact.toStringAsFixed(1)}%',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),

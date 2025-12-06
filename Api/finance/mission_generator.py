@@ -29,6 +29,15 @@ REQUIRED_FIELDS_BY_TYPE = {
     'CATEGORY_REDUCTION': {'field': 'target_reduction_percent', 'min': 5, 'max': 40, 'type': float},
 }
 
+# Mapeamento mission_type → validation_type para garantir validators corretos
+MISSION_TYPE_TO_VALIDATION = {
+    'ONBOARDING': 'TRANSACTION_COUNT',
+    'TPS_IMPROVEMENT': 'INDICATOR_THRESHOLD',
+    'RDR_REDUCTION': 'INDICATOR_THRESHOLD',
+    'ILI_BUILDING': 'INDICATOR_THRESHOLD',
+    'CATEGORY_REDUCTION': 'CATEGORY_REDUCTION',
+}
+
 
 @dataclass
 class MissionConfig:
@@ -56,6 +65,7 @@ class UserContext:
     ili: float = 0.0
     transaction_count: int = 0
     has_categories: bool = False
+    has_active_goals: bool = False  # Goals system removed
     top_expense_categories: List[str] = field(default_factory=list)
     
     @classmethod
@@ -108,6 +118,7 @@ class UserContext:
             ili=ili,
             transaction_count=transaction_count,
             has_categories=has_categories,
+            has_active_goals=False,  # Goals system removed
             top_expense_categories=[c for c in top_categories if c],
         )
     
@@ -116,15 +127,15 @@ class UserContext:
         defaults = {
             'BEGINNER': {
                 'level': 3, 'tps': 5.0, 'rdr': 55.0, 'ili': 0.5,
-                'transaction_count': 20,
+                'transaction_count': 20, 'has_active_goals': False,
             },
             'INTERMEDIATE': {
                 'level': 10, 'tps': 18.0, 'rdr': 40.0, 'ili': 2.5,
-                'transaction_count': 150,
+                'transaction_count': 150, 'has_active_goals': False,
             },
             'ADVANCED': {
                 'level': 20, 'tps': 28.0, 'rdr': 28.0, 'ili': 6.0,
-                'transaction_count': 500,
+                'transaction_count': 500, 'has_active_goals': False,
             },
         }
         
@@ -227,6 +238,7 @@ MISSION_TEMPLATES = {
             'category': 'category_reduction',
         },
     ],
+}
 
 GEMINI_MISSION_PROMPT = """Você é um especialista em educação financeira criando missões gamificadas para um aplicativo.
 
@@ -284,163 +296,52 @@ Retorne APENAS um array JSON, sem texto antes ou depois:
     "description": "Descrição educacional clara",
     "mission_type": "TIPO_DA_MISSAO",
     "difficulty": "EASY|MEDIUM|HARD",
-    "duration_days": número (7-30),
-    "xp_reward": número (30-350),
-    "min_transactions": número ou null,
-    "target_tps": número ou null,
-    "target_rdr": número ou null,
-    "min_ili": número ou null,
-    "target_reduction_percent": número ou null,
-    "goal_progress_target": número ou null
+    "duration_days": 14,
+    "xp_reward": 100,
+    "min_transactions": null,
+    "target_tps": null,
+    "target_rdr": null,
+    "min_ili": null,
+    "target_reduction_percent": null
   }}
 ]
-    Valida se uma missão é alcançável dado o contexto do usuário.
+"""
+
+
+def _validate_mission_viability(mission_data: Dict, context: UserContext):
+    """Valida se uma missão é viável dado o contexto do usuário."""
+    mission_type = mission_data.get('mission_type')
     
-    Evita a geração de missões impossíveis ou sem sentido.
-        Valida missão de onboarding.
-        
-        Args:
-            min_transactions: Número mínimo de transações requerido.
-            duration_days: Duração da missão em dias.
-            context: Contexto do usuário.
-            
-        Returns:
-            Tuple com (é_válida, mensagem_erro).
-        Valida missão de melhoria de TPS.
-        
-        Args:
-            target_tps: Meta de TPS a alcançar.
-            duration_days: Duração da missão em dias.
-            context: Contexto do usuário.
-            
-        Returns:
-            Tuple com (é_válida, mensagem_erro).
-        Valida missão de redução de RDR.
-        
-        Args:
-            target_rdr: Meta de RDR a alcançar (quanto menor, melhor).
-            duration_days: Duração da missão em dias.
-            context: Contexto do usuário.
-            
-        Returns:
-            Tuple com (é_válida, mensagem_erro).
-        Valida missão de construção de reserva (ILI).
-        
-        Args:
-            min_ili: Meta de ILI em meses.
-            duration_days: Duração da missão em dias.
-            context: Contexto do usuário.
-            
-        Returns:
-            Tuple com (é_válida, mensagem_erro).
-        Valida missão de redução em categoria.
-        
-        Args:
-            target_reduction_percent: Percentual de redução alvo.
-            duration_days: Duração da missão em dias.
-            context: Contexto do usuário.
-            
-        Returns:
-            Tuple com (é_válida, mensagem_erro).
-        Valida missão de progresso em meta.
-        
-        Args:
-            goal_progress_target: Percentual de progresso alvo.
-            duration_days: Duração da missão em dias.
-            context: Contexto do usuário.
-            
-        Returns:
-            Tuple com (é_válida, mensagem_erro).
-    Valida missão gerada ANTES de salvar no banco.
+    if mission_type == 'ONBOARDING':
+        min_tx = mission_data.get('min_transactions', 10)
+        if min_tx < 5 or min_tx > 50:
+            return False, f"min_transactions deve estar entre 5 e 50, recebido: {min_tx}"
+    elif mission_type == 'TPS_IMPROVEMENT':
+        target = mission_data.get('target_tps')
+        if target and target <= context.tps:
+            return False, f"target_tps ({target}) deve ser maior que TPS atual ({context.tps})"
+    elif mission_type == 'RDR_REDUCTION':
+        target = mission_data.get('target_rdr')
+        if target and target >= context.rdr:
+            return False, f"target_rdr ({target}) deve ser menor que RDR atual ({context.rdr})"
+    elif mission_type == 'ILI_BUILDING':
+        target = mission_data.get('min_ili')
+        if target and target <= context.ili:
+            return False, f"min_ili ({target}) deve ser maior que ILI atual ({context.ili})"
+    elif mission_type == 'CATEGORY_REDUCTION':
+        target = mission_data.get('target_reduction_percent')
+        if target and (target < 5 or target > 40):
+            return False, f"target_reduction_percent deve estar entre 5 e 40, recebido: {target}"
     
-    Verifica:
-    - mission_type válido (6 tipos)
-    - Campos obrigatórios por tipo
-    - Ranges de valores
-    - Campos básicos (title, description)
+    return True, None
+
+
+class UnifiedMissionGenerator:
+    """Gerador unificado de missões com suporte a templates."""
     
-    Args:
-        mission_data: Dicionário com dados da missão gerada.
-        
-    Returns:
-        Tuple com (é_válida, lista_de_erros).
-    Verifica se já existe missão similar no banco (evita duplicação semântica).
-    
-    Args:
-        title: Título da missão a verificar.
-        description: Descrição da missão a verificar.
-        threshold_title: Threshold de similaridade para títulos (0-1).
-        threshold_desc: Threshold de similaridade para descrições (0-1).
-        check_inactive: Se deve também verificar missões pendentes (inativas).
-        
-    Returns:
-        Tuple com (é_duplicata, mensagem).
-    Gerador unificado de missões com suporte a IA.
-    
-    Estratégia:
-    1. Tenta gerar via IA Gemini (mais criativo e personalizado)
-    2. Fallback para templates se IA falhar
-    3. Validação rigorosa antes de salvar
-        Inicializa o gerador.
-        
-        Args:
-            context: Contexto do usuário. Se None, usa contexto padrão.
-        Verifica se a IA (Gemini) está disponível.
-        
-        Returns:
-            bool: True se Gemini está configurado e disponível.
-        Gera um lote de missões.
-        
-        Args:
-            count: Número total de missões a gerar.
-            distribution: Distribuição por tipo (opcional).
-            use_ai: Se deve tentar usar IA (default: True).
-        
-        Returns:
-            Dict com 'created', 'failed', 'summary' e 'source'.
-        Gera missões usando IA Gemini.
-        
-        Args:
-            count: Número de missões.
-            distribution: Distribuição por tipo.
-            
-        Returns:
-            Dict com 'success', 'missions' ou 'error'.
-        Valida viabilidade de uma missão baseada nos dados.
-        
-        Args:
-            mission_data: Dados da missão.
-            
-        Returns:
-            Tuple com (é_viável, mensagem_erro).
-        Gera uma missão a partir de templates (fallback).
-        
-        Args:
-            mission_type: Tipo da missão.
-            
-        Returns:
-            Dict com dados da missão ou None.
-        Instancia um template com valores concretos.
-        
-        Args:
-            mission_type: Tipo da missão.
-            template: Template a instanciar.
-            
-        Returns:
-            Dict com dados da missão ou None.
-        if mission_type == 'ONBOARDING':
-            return self.validator.validate_onboarding(int(target_value), duration, self.context)
-        elif mission_type == 'TPS_IMPROVEMENT':
-            return self.validator.validate_tps_improvement(float(target_value), duration, self.context)
-        elif mission_type == 'RDR_REDUCTION':
-            return self.validator.validate_rdr_reduction(float(target_value), duration, self.context)
-        elif mission_type == 'ILI_BUILDING':
-            return self.validator.validate_ili_building(float(target_value), duration, self.context)
-        elif mission_type == 'CATEGORY_REDUCTION':
-            return self.validator.validate_category_reduction(float(target_value), duration, self.context)
-        elif mission_type == 'GOAL_ACHIEVEMENT':
-            return self.validator.validate_goal_achievement(float(target_value), duration, self.context)
-        return True, None
+    def __init__(self, context: UserContext = None):
+        self.context = context or UserContext.default_for_tier('BEGINNER')
+        self.config = MissionConfig()
     
     def _get_smart_distribution(self, count: int) -> Dict[str, int]:
         tier = self.context.tier
@@ -602,13 +503,7 @@ Retorne APENAS um array JSON, sem texto antes ou depois:
             else:
                 return random.choice([25, 30, 35])
         
-        elif mission_type == 'GOAL_ACHIEVEMENT':
-            if difficulty == 'EASY':
-                return random.choice([25, 30, 40])
-            elif difficulty == 'MEDIUM':
-                return random.choice([50, 60, 75])
-            else:
-                return random.choice([75, 90, 100])
+        # GOAL_ACHIEVEMENT removido - sistema de goals desativado
         
         return None
     
@@ -625,6 +520,15 @@ def generate_missions(
     use_ai: bool = True,
 ) -> Dict[str, Any]:
     from .models import Mission
+    
+    def _ensure_validation_type(mission_data: Dict) -> Dict:
+        """Garante que validation_type está definido corretamente."""
+        if 'validation_type' not in mission_data or not mission_data.get('validation_type'):
+            mission_type = mission_data.get('mission_type', 'ONBOARDING')
+            mission_data['validation_type'] = MISSION_TYPE_TO_VALIDATION.get(
+                mission_type, 'TRANSACTION_COUNT'
+            )
+        return mission_data
     
     results = {
         'created': [],
@@ -645,6 +549,7 @@ def generate_missions(
         
         for mission_data in batch_result['created']:
             try:
+                mission_data = _ensure_validation_type(mission_data)
                 mission = Mission.objects.create(**mission_data)
                 results['created'].append({
                     'id': mission.id,
@@ -670,6 +575,7 @@ def generate_missions(
         
         for mission_data in batch_result['created']:
             try:
+                mission_data = _ensure_validation_type(mission_data)
                 mission = Mission.objects.create(**mission_data)
                 results['created'].append({
                     'id': mission.id,
@@ -710,6 +616,7 @@ def generate_missions(
             
             for mission_data in batch_result['created']:
                 try:
+                    mission_data = _ensure_validation_type(mission_data)
                     mission = Mission.objects.create(**mission_data)
                     results['created'].append({
                         'id': mission.id,

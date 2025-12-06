@@ -27,6 +27,8 @@ class TransactionsViewModel extends ChangeNotifier {
   List<TransactionModel> _transactions = [];
   List<TransactionLinkModel> _links = [];
   String? _filter;
+  String? _scheduleFilter; // null = all, 'scheduled' = future only, 'effective' = past/present only
+  String _searchQuery = '';
   String? _errorMessage;
   
   bool _hasMore = true;
@@ -40,10 +42,30 @@ class TransactionsViewModel extends ChangeNotifier {
   TransactionsViewState get state => _state;
   List<TransactionModel> get transactions {
     final pending = _pendingTransactions.values.toList();
-    return [...pending, ..._transactions];
+    var result = [...pending, ..._transactions];
+    
+    // Apply schedule filter
+    if (_scheduleFilter == 'scheduled') {
+      result = result.where((t) => t.isScheduled).toList();
+    } else if (_scheduleFilter == 'effective') {
+      result = result.where((t) => !t.isScheduled).toList();
+    }
+    
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      result = result.where((t) => 
+        t.description.toLowerCase().contains(query) ||
+        (t.category?.name.toLowerCase().contains(query) ?? false)
+      ).toList();
+    }
+    
+    return result;
   }
   List<TransactionLinkModel> get links => _links;
   String? get filter => _filter;
+  String? get scheduleFilter => _scheduleFilter;
+  String get searchQuery => _searchQuery;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _state == TransactionsViewState.loading;
   bool get hasError => _state == TransactionsViewState.error;
@@ -309,6 +331,20 @@ class TransactionsViewModel extends ChangeNotifier {
     } finally {
       _safeNotifyListeners();
     }
+  }
+
+  /// Update schedule filter (null = all, 'scheduled' = future, 'effective' = past/present)
+  void updateScheduleFilter(String? newScheduleFilter) {
+    if (_scheduleFilter == newScheduleFilter) return;
+    _scheduleFilter = newScheduleFilter;
+    _safeNotifyListeners();
+  }
+
+  /// Update search query for filtering by description
+  void updateSearchQuery(String query) {
+    if (_searchQuery == query) return;
+    _searchQuery = query;
+    _safeNotifyListeners();
   }
 
   void clearError() {

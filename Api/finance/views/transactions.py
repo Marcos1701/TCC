@@ -256,6 +256,114 @@ class TransactionViewSet(viewsets.ModelViewSet):
             'message': 'Nenhuma categoria encontrada. Tente uma descrição mais específica.'
         })
 
+    @action(detail=False, methods=['post'])
+    def preview_impact(self, request):
+        """
+        Preview impact of a transaction on financial indicators and missions.
+        
+        POST /api/transactions/preview_impact/
+        {
+            "type": "EXPENSE",
+            "amount": 150.00,
+            "category_id": 1,
+            "is_recurring": false
+        }
+        
+        Returns estimated impact on TPS, RDR, and active missions.
+        """
+        from ..models import Mission, MissionProgress
+        from ..services import calculate_summary
+        
+        tx_type = request.data.get('type', 'EXPENSE')
+        amount = request.data.get('amount', 0)
+        category_id = request.data.get('category_id')
+        is_recurring = request.data.get('is_recurring', False)
+        
+        try:
+            amount = float(amount)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Valor inválido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if amount <= 0:
+            return Response(
+                {'error': 'Valor deve ser maior que zero'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Calculate indicator impact
+        summary = calculate_summary(request.user)
+        total_income = float(summary.get('total_income', 0))
+        
+        tps_impact = 0
+        rdr_impact = 0
+        
+        if total_income > 0:
+            if tx_type == 'INCOME':
+                tps_impact = (amount / (total_income + amount)) * 100
+            elif tx_type == 'EXPENSE':
+                tps_impact = -(amount / total_income) * 100
+            
+            if tx_type == 'EXPENSE' and is_recurring:
+                rdr_impact = (amount / total_income) * 100
+        
+        # Calculate mission impact
+        mission_impacts = []
+        
+        active_missions = MissionProgress.objects.filter(
+            user=request.user,
+            status=MissionProgress.Status.ACTIVE
+        ).select_related('mission')
+        
+        for progress in active_missions:
+            mission = progress.mission
+            impact_info = {
+                'mission_name': mission.name,
+                'mission_type': mission.mission_type,
+                'current_progress': progress.current_progress,
+                'impact': 'none',
+                'message': '',
+            }
+            
+            # Check if this transaction affects category-based missions
+            if mission.target_category_id and category_id:
+                if mission.target_category_id == int(category_id):
+                    if mission.mission_type in ['CATEGORY_REDUCTION', 'CATEGORY_LIMIT']:
+                        if tx_type == 'EXPENSE':
+                            impact_info['impact'] = 'negative'
+                            impact_info['message'] = f'Aumentará gastos na categoria alvo (R$ {amount:.2f})'
+                        else:
+                            impact_info['impact'] = 'positive'
+                            impact_info['message'] = 'Não afeta missões de redução de gastos'
+                    elif mission.mission_type == 'INCOME_INCREASE' and tx_type == 'INCOME':
+                        impact_info['impact'] = 'positive'
+                        impact_info['message'] = f'Contribuirá para a meta de aumento de receita'
+            
+            # Check transaction consistency missions
+            if mission.mission_type == 'TRANSACTION_CONSISTENCY':
+                impact_info['impact'] = 'positive'
+                impact_info['message'] = 'Contribuirá para a consistência de registros'
+            
+            if impact_info['impact'] != 'none':
+                mission_impacts.append(impact_info)
+        
+        return Response({
+            'preview': {
+                'type': tx_type,
+                'amount': amount,
+                'is_recurring': is_recurring,
+            },
+            'indicator_impact': {
+                'tps_impact': round(tps_impact, 2),
+                'rdr_impact': round(rdr_impact, 2),
+                'has_income': total_income > 0,
+            },
+            'mission_impacts': mission_impacts,
+            'message': 'Preview de impacto calculado com sucesso',
+        })
+
 
 class TransactionLinkViewSet(viewsets.ModelViewSet):
     """

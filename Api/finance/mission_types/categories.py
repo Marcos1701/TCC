@@ -42,7 +42,8 @@ class CategoryReductionValidator(BaseMissionValidator):
             user=self.user,
             type='EXPENSE',
             date__gte=reference_start.date(),
-            date__lt=reference_end.date()
+            date__lt=reference_end.date(),
+            date__lte=timezone.now().date()  # Exclude future/scheduled transactions
         )
         if self.mission.target_category:
             reference_query = reference_query.filter(category=self.mission.target_category)
@@ -52,7 +53,8 @@ class CategoryReductionValidator(BaseMissionValidator):
             user=self.user,
             type='EXPENSE',
             date__gte=current_start.date(),
-            date__lt=current_end.date()
+            date__lt=current_end.date(),
+            date__lte=timezone.now().date()  # Exclude future/scheduled transactions
         )
         if self.mission.target_category:
             current_query = current_query.filter(category=self.mission.target_category)
@@ -110,7 +112,8 @@ class CategoryLimitValidator(BaseMissionValidator):
         spending_query = Transaction.objects.filter(
             user=self.user,
             type='EXPENSE',
-            date__gte=self.mission_progress.started_at.date()
+            date__gte=self.mission_progress.started_at.date(),
+            date__lte=timezone.now().date()  # Exclude future/scheduled transactions
         )
         if self.mission.target_category:
             spending_query = spending_query.filter(category=self.mission.target_category)

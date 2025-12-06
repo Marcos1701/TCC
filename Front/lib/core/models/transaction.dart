@@ -17,6 +17,7 @@ class TransactionModel {
     this.linkPercentage,
     this.outgoingLinksCount,
     this.incomingLinksCount,
+    this.isScheduled = false,
   });
 
   final String id;
@@ -35,6 +36,7 @@ class TransactionModel {
   final double? linkPercentage;
   final int? outgoingLinksCount;
   final int? incomingLinksCount;
+  final bool isScheduled;
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
     return TransactionModel(
@@ -69,6 +71,7 @@ class TransactionModel {
       incomingLinksCount: map['incoming_links_count'] != null
           ? int.tryParse(map['incoming_links_count'].toString())
           : null,
+      isScheduled: map['is_scheduled'] as bool? ?? false,
     );
   }
   

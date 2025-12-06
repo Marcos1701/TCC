@@ -17,6 +17,7 @@ except Exception as e:
     logger.warning(f"Gemini API não configurada: {e}")
     model = None
 
+
 USER_TIER_DESCRIPTIONS = {
     'BEGINNER': """
 **INICIANTES (Níveis 1-5)**
@@ -37,8 +38,6 @@ clareza sobre para onde vai seu dinheiro e estão aprendendo conceitos básicos.
 - Estabelecer categorias básicas
 - Metas pequenas e alcançáveis
 - Educação sobre conceitos (TPS, RDR, ILI)
-""",
-    'INTERMEDIATE': """
 **INTERMEDIÁRIOS (Níveis 6-15)**
 
 Usuários que já têm controle básico e estão otimizando suas finanças. Registram 
@@ -58,8 +57,6 @@ transações regularmente e entendem os conceitos fundamentais.
 - Melhoria de reserva de emergência (ILI)
 - Metas de médio prazo
 - Identificação de padrões de consumo
-""",
-    'ADVANCED': """
 **AVANÇADOS (Níveis 16+)**
 
 Usuários experientes com controle financeiro consolidado. Buscam otimização avançada 
@@ -79,11 +76,7 @@ e estratégias de investimento.
 - Estratégias de alocação avançada
 - Desafios de longo prazo
 - Preparação para objetivos maiores (casa, carro, aposentadoria)
-"""
-}
-
-SEASON_DESCRIPTIONS = {
-    'JANUARY': """**Janeiro - Ano Novo, Novos Começos**
+**Janeiro - Ano Novo, Novos Começos**
 
 Momento de renovação e planejamento. Muitos usuários estão motivados após as festas 
 e querem começar o ano com o pé direito financeiramente.
@@ -93,8 +86,7 @@ e querem começar o ano com o pé direito financeiramente.
 - Recuperação de excessos de dezembro
 - Planejamento de grandes objetivos
 - Limpeza financeira (cancelar assinaturas não usadas)
-""",
-    'FEBRUARY': """**Fevereiro - Planejamento e Disciplina**
+**Fevereiro - Planejamento e Disciplina**
 
 Mês de manter o foco nas metas estabelecidas em janeiro. Período de consolidação de hábitos.
 
@@ -102,8 +94,7 @@ Mês de manter o foco nas metas estabelecidas em janeiro. Período de consolida�
 - Reforçar hábitos iniciados em janeiro
 - Ajustar metas se necessário
 - Preparação para gastos de meio de ano
-""",
-    'JULY': """**Julho - Metade do Ano, Revisão de Metas**
+**Julho - Metade do Ano, Revisão de Metas**
 
 Momento de avaliar o progresso do ano e fazer ajustes. Férias escolares podem impactar 
 orçamentos familiares.
@@ -113,8 +104,7 @@ orçamentos familiares.
 - Ajustes de categoria para férias
 - Preparação para 2º semestre
 - Análise de progresso TPS/RDR
-""",
-    'NOVEMBER': """**Novembro - Black Friday e Preparação para Festas**
+**Novembro - Black Friday e Preparação para Festas**
 
 Mês de tentações de consumo com promoções. Importante manter controle antes das 
 despesas de dezembro.
@@ -124,8 +114,7 @@ despesas de dezembro.
 - Planejamento de presentes
 - Economia para festas
 - Análise crítica de "promoções"
-""",
-    'DECEMBER': """**Dezembro - Festas e Planejamento do Próximo Ano**
+**Dezembro - Festas e Planejamento do Próximo Ano**
 
 Mês de gastos maiores mas também de planejamento para o ano seguinte.
 
@@ -134,8 +123,7 @@ Mês de gastos maiores mas também de planejamento para o ano seguinte.
 - Análise do ano completo
 - Definição de metas para próximo ano
 - Balanço financeiro anual
-""",
-    'DEFAULT': """**Período Regular**
+**Período Regular**
 
 Mês comum, foco em manutenção de hábitos e progresso incremental.
 
@@ -143,11 +131,8 @@ Mês comum, foco em manutenção de hábitos e progresso incremental.
 - Manter consistência
 - Progresso gradual em TPS/RDR
 - Otimização de categorias específicas
-"""
-}
-
-GEMINI_MISSION_PROMPT = """
 Você é um ESPECIALISTA EM EDUCAÇÃO FINANCEIRA criando missões gamificadas ÚNICAS e MENSURÁVEIS.
+
 
 Cada missão DEVE ser SUBSTANCIALMENTE DIFERENTE das outras. Use:
 - Títulos COMPLETAMENTE distintos (evite repetir palavras-chave)
@@ -155,7 +140,6 @@ Cada missão DEVE ser SUBSTANCIALMENTE DIFERENTE das outras. Use:
 - Contextos diferentes (curto prazo, médio prazo, emergencial, planejado)
 - Linguagem diversificada (motivacional, desafiadora, educacional, prática)
 
-**INDICADORES FINANCEIROS:**
 
 **TPS (Taxa de Poupança)**: (Receitas - Despesas) / Receitas × 100
 - Iniciante: 10-15% | Intermediário: 15-25% | Avançado: 25%+
@@ -166,53 +150,121 @@ Cada missão DEVE ser SUBSTANCIALMENTE DIFERENTE das outras. Use:
 **ILI (Reserva em Meses)**: Saldo / Despesas Mensais
 - Básico: 3 meses | Ideal: 6 meses | Excelente: 12+ meses
 
-**TIPOS DE MISSÃO:**
 
-ONBOARDING:
-- Campo OBRIGATÓRIO: min_transactions (int, 5-50)
-- Foco: Familiarização com o app, primeiros registros
+**Campo OBRIGATÓRIO**: `min_transactions` (int, 5-50)
+**Foco**: Familiarização com o app, primeiros registros
+**Exemplos de abordagens**:
+- "Complete sua primeira semana financeira" (10 transações)
+- "Mapeie seus gastos essenciais" (15 transações básicas)
+- "Construa sua linha do tempo financeira" (20 registros variados)
 
-TPS_IMPROVEMENT:
-- Campo OBRIGATÓRIO: target_tps (float, 5-40)
-- Foco: Aumentar % de economia sobre receita
+**Campo OBRIGATÓRIO**: `target_tps` (float, 5-40)
+**Foco**: Aumentar % de economia sobre receita
+**Exemplos de abordagens**:
+- "Economize X% este mês" (meta direta)
+- "Reduza gastos supérfluos para atingir X%" (via cortes)
+- "Otimize sua renda disponível para X%" (via eficiência)
 
-RDR_REDUCTION:
-- Campo OBRIGATÓRIO: target_rdr (float, 10-50)
-- Foco: Reduzir comprometimento de renda
+**Campo OBRIGATÓRIO**: `target_rdr` (float, 10-50)
+**Foco**: Reduzir comprometimento de renda
+**Exemplos de abordagens**:
+- "Mantenha despesas abaixo de X%" (limite)
+- "Corte X% dos gastos recorrentes" (redução ativa)
+- "Libere X% da sua renda" (via renegociação/cancelamentos)
 
-ILI_BUILDING:
-- Campo OBRIGATÓRIO: min_ili (float, 1-12)
-- Foco: Aumentar meses de cobertura
+**Campo OBRIGATÓRIO**: `min_ili` (float, 1-12)
+**Foco**: Aumentar meses de cobertura
+**Exemplos de abordagens**:
+- "Construa X meses de reserva" (acumulação)
+- "Proteja-se por X meses" (segurança)
+- "Alcance X meses de independência" (liberdade)
 
-CATEGORY_REDUCTION:
-- Campo OBRIGATÓRIO: target_reduction_percent (float, 10-30)
-- Foco: Reduzir gastos em categoria específica
+**Campos**: Combinar 2+ de (target_tps, target_rdr, min_ili)
+**Foco**: Otimização completa das finanças
+**Exemplos de abordagens**:
+- "Equilíbrio total: TPS X%, RDR Y%, ILI Z meses"
+- "Transformação financeira completa"
+- "Maestria em gestão de recursos"
 
-**REGRAS TÉCNICAS:**
 
-1. mission_type: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING ou CATEGORY_REDUCTION
+{reference_missions}
 
-2. Campos obrigatórios por tipo:
-   - ONBOARDING → min_transactions (int entre 5-50)
-   - TPS_IMPROVEMENT → target_tps (float entre 5-40)
-   - RDR_REDUCTION → target_rdr (float entre 10-50)
-   - ILI_BUILDING → min_ili (float entre 1-12)
-   - CATEGORY_REDUCTION → target_reduction_percent (float entre 10-30)
 
-3. difficulty: EASY, MEDIUM ou HARD (maiúsculas)
+**Descrição**: {scenario_description}
+**Foco**: {scenario_focus}
+**Faixa**: {user_tier}
 
-4. duration_days: 7, 14, 21 ou 30 (números exatos)
+{tier_description}
 
-5. xp_reward: 
-   - EASY: 50-150 XP
-   - MEDIUM: 100-250 XP
-   - HARD: 200-500 XP
 
-6. title: Máximo 150 caracteres, SEM emojis, ÚNICO
+- Nível: {avg_level}
+- TPS atual: {avg_tps}%{tps_context}
+- RDR atual: {avg_rdr}%{rdr_context}
+- ILI atual: {avg_ili} meses{ili_context}
+- Categorias comuns: {common_categories}
+- Experiência: {experience_level}
 
-7. description: Clara, educacional, motivadora, SEM jargão excessivo
 
-**FORMATO DE RESPOSTA:**
+{period_context}
+
+
+**DISTRIBUIÇÃO OBRIGATÓRIA**:
+{distribution_requirements}
+
+**DIFICULDADE** (progressiva):
+- {easy_count} EASY: Alcançável para 80% dos usuários
+- {medium_count} MEDIUM: Alcançável para 50% dos usuários  
+- {hard_count} HARD: Desafio para top 20%
+
+**DURAÇÃO** (variada):
+- Curtas: 7 dias (ação rápida)
+- Médias: 14-21 dias (formação de hábito)
+- Longas: 30 dias (transformação completa)
+
+**XP REWARD** (por dificuldade):
+- EASY: 50-150 XP
+- MEDIUM: 100-250 XP
+- HARD: 200-500 XP
+
+
+1. **mission_type**: Deve ser EXATAMENTE um de: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, ADVANCED
+
+2. **Campos obrigatórios por tipo**:
+   - ONBOARDING → `min_transactions` (int entre 5-50)
+   - TPS_IMPROVEMENT → `target_tps` (float entre 5-40)
+   - RDR_REDUCTION → `target_rdr` (float entre 10-50)
+   - ILI_BUILDING → `min_ili` (float entre 1-12)
+   - ADVANCED → 2 ou mais dos campos acima
+
+3. **difficulty**: EASY, MEDIUM ou HARD (maiúsculas)
+
+4. **duration_days**: 7, 14, 21 ou 30 (números exatos)
+
+5. **xp_reward**: Dentro do range da difficulty
+
+6. **title**: Máximo 150 caracteres, SEM emojis, ÚNICO
+
+7. **description**: Clara, educacional, motivadora, SEM jargão excessivo
+
+
+**Títulos**: Use estruturas completamente diferentes
+- ✅ "Economize 15% Este Mês"
+- ✅ "Construa Sua Reserva de 3 Meses"  
+- ✅ "Otimize Gastos Recorrentes"
+- ❌ "Economize 15%", "Economize 20%", "Economize 25%" (muito similar)
+
+**Descrições**: Varie abordagens educacionais
+- Motivação: "Cada real economizado..."
+- Prática: "Revise seus gastos em..."
+- Benefício: "Garanta tranquilidade com..."
+- Desafio: "Supere a meta de..."
+
+**Contexto**: Adapte ao cenário
+- Use {period_name} quando relevante
+- Mencione {common_categories} em missões de controle
+- Referencie métricas atuais do usuário
+- Considere próximos passos naturais
+
 
 Retorne APENAS um array JSON válido, SEM texto antes/depois.
 NÃO inclua campos não utilizados.
@@ -221,17 +273,17 @@ NÃO inclua campos não utilizados.
     {{
         "title": "Título único e claro (max 150 chars)",
         "description": "Descrição educacional e motivadora",
-        "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|CATEGORY_REDUCTION",
-        "target_tps": null,
-        "target_rdr": null,
-        "min_ili": null,
-        "min_transactions": null,
-        "target_reduction_percent": null,
-        "duration_days": 7,
-        "xp_reward": 100,
+        "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
+        "target_tps": null ou float (obrigatório se TPS_IMPROVEMENT),
+        "target_rdr": null ou float (obrigatório se RDR_REDUCTION),
+        "min_ili": null ou float (obrigatório se ILI_BUILDING),
+        "min_transactions": null ou int (obrigatório se ONBOARDING),
+        "duration_days": 7|14|21|30,
+        "xp_reward": int (50-500),
         "difficulty": "EASY|MEDIUM|HARD"
     }}
 ]
+
 
 Antes de retornar, verifique:
 - [ ] Todos os títulos são ÚNICOS e DISTINTOS
@@ -242,17 +294,91 @@ Antes de retornar, verifique:
 - [ ] Distribuição de dificuldade atendida
 - [ ] Contexto do usuário considerado
 - [ ] Linguagem clara e motivadora (não punitiva)
-"""
-
-
-def _get_experience_level(level):
-    """Retorna descrição do nível de experiência baseado no level."""
+    Conta missões existentes no banco por tipo e/ou faixa.
+    
+    Args:
+        mission_type: Tipo da missão (SAVINGS, EXPENSE_CONTROL, etc)
+        tier: Faixa de usuários (BEGINNER, INTERMEDIATE, ADVANCED)
+        
+    Returns:
+        int: Número de missões existentes
+    Determina o melhor cenário de geração baseado nas estatísticas da faixa.
+    
+    Args:
+        tier_stats: Dicionário com estatísticas da faixa
+        
+    Returns:
+        str: Chave do cenário mais apropriado
+    Busca missões padrão (priority>=90) como referência para a IA.
+    
+    Args:
+        mission_type: Tipo específico de missão (ONBOARDING, TPS_IMPROVEMENT, etc)
+        limit: Número máximo de exemplos a retornar
+        
+    Returns:
+        list: Lista de dicionários com exemplos de missões padrão
+    Valida missão gerada pela IA ANTES de salvar no banco.
+    
+    Verifica:
+    - mission_type válido (6 tipos)
+    - Campos obrigatórios por tipo
+    - Ranges de valores
+    - Difficulty vs XP coerente
+    - duration_days válido
+    
+    Args:
+        mission_data: Dicionário com dados da missão gerada
+        
+    Returns:
+        tuple: (is_valid: bool, errors: list)
+    Verifica se já existe missão similar no banco (evita duplicação semântica).
+    
+    Usa SequenceMatcher para comparar similaridade de strings.
+    - Títulos: threshold padrão 90% (reduzido de 85% para diminuir falsos positivos)
+    - Descrições: threshold padrão 85% (reduzido de 75% para diminuir falsos positivos)
+    
+    Args:
+        title: Título da missão a verificar
+        description: Descrição da missão a verificar
+        threshold_title: Threshold de similaridade para títulos (0-1)
+        threshold_desc: Threshold de similaridade para descrições (0-1)
+        
+    Returns:
+        tuple: (is_duplicate: bool, message: str or None)
+    Retorna diretrizes específicas para cada cenário.
+    
+    Args:
+        scenario_key: Chave do cenário
+        tier_stats: Estatísticas da faixa
+        
+    Returns:
+        str: Texto com diretrizes
+    Calcula estatísticas agregadas para uma faixa de usuários.
+    
+    Args:
+        tier: 'BEGINNER', 'INTERMEDIATE' ou 'ADVANCED'
+        
+    Returns:
+        dict: Estatísticas da faixa ou None se não houver usuários
+    Retorna contexto do período atual (mês/sazonalidade).
+    
+    Returns:
+        tuple: (tipo, nome, contexto)
+    Extrai estatísticas do contexto completo do usuário para geração de missões.
+    
+    Args:
+        user_context: Dict retornado por get_comprehensive_mission_context()
+    
+    Returns:
+        dict: Estatísticas formatadas para uso na geração
     if level <= 5:
         return "Primeiras semanas no app"
     elif level <= 15:
         return "1-3 meses de uso regular"
     else:
         return "Mais de 3 meses de uso consistente"
+
+    """
 
 
 def _determine_scenario_from_context(user_context):

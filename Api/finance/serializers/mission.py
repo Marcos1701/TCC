@@ -400,12 +400,13 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             })
         
         if 'current_rdr' in metrics:
+            rdr_value = metrics['current_rdr']
             formatted.append({
                 'label': 'RDR Atual',
-                'value': metrics['current_rdr'],
-                'display': f"{value:.1f}%",
+                'value': rdr_value,
+                'display': f"{rdr_value:.1f}%",
                 'type': 'percentage',
-                'icon': '📉' if value > 0 else '📈'
+                'icon': '📉' if rdr_value > 0 else '📈'
             })
         
         if 'target_reduction' in metrics:
