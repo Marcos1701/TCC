@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_theme_extension.dart';
 
-/// Tema institucional aplicado ao app inteiro com tokens reutilizáveis.
 class AppTheme {
   const AppTheme._();
 

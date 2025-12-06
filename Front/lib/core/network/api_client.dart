@@ -2,23 +2,18 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/secure_storage_service.dart';
 
-/// Callback called when token expires and cannot be refreshed
 typedef OnSessionExpired = void Function();
 
-/// Single client to talk to the API.
-/// Keeps token in memory and refreshes when 401 hits.
 class ApiClient {
   ApiClient._internal() {
     final options = BaseOptions(
       baseUrl: _normaliseBaseUrl(_resolveBaseUrl()),
-      connectTimeout: const Duration(seconds: 30),  // Increased to 30s
-      receiveTimeout: const Duration(minutes: 5),   // 5 minutes for AI mission generation
-      sendTimeout: const Duration(seconds: 60),     // 1 minute for sending
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 5),
+      sendTimeout: const Duration(seconds: 60),
       contentType: 'application/json',
       headers: const {'Accept': 'application/json'},
       responseType: ResponseType.json,
-      // Only 2xx status are considered success
-      // 4xx and 5xx status will throw DioException
       validateStatus: (status) => status != null && status >= 200 && status < 300,
     );
 
@@ -26,19 +21,16 @@ class ApiClient {
       ..interceptors.add(
         InterceptorsWrapper(
           onRequest: (options, handler) async {
-            // List of public endpoints that should not receive token
             final publicEndpoints = [
               '/api/token/',
               '/api/token/refresh/',
               '/api/auth/register/',
             ];
             
-            // Check if current endpoint is public
             final isPublicEndpoint = publicEndpoints.any(
               (endpoint) => options.path.contains(endpoint),
             );
             
-            // Only add token if NOT a public endpoint
             if (!isPublicEndpoint) {
               final token = _accessToken ?? await _storage.readToken();
               if (token != null) {
@@ -48,14 +40,12 @@ class ApiClient {
             handler.next(options);
           },
           onError: (error, handler) async {
-            // Try to extract error message from API
             if (error.response?.data != null) {
               try {
                 final data = error.response!.data;
                 String? errorMessage;
                 
                 if (data is Map<String, dynamic>) {
-                  // Try to extract message from non_field_errors
                   if (data.containsKey('non_field_errors')) {
                     final errors = data['non_field_errors'];
                     if (errors is List && errors.isNotEmpty) {
@@ -110,12 +100,10 @@ class ApiClient {
 
   Dio get client => _dio;
 
-  /// Sets callback for when session expires
   void setOnSessionExpired(OnSessionExpired callback) {
     _onSessionExpired = callback;
   }
 
-  /// Removes session expired callback
   void clearOnSessionExpired() {
     _onSessionExpired = null;
   }
@@ -197,7 +185,6 @@ class ApiClient {
     return null;
   }
 
-  /// Notifies that session expired
   void _notifySessionExpired() {
     debugPrint('📢 Notifying session expiration');
     _onSessionExpired?.call();

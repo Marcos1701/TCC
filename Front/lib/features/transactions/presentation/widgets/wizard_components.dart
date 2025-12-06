@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/theme/app_colors.dart';
 
-/// Card para seleção de tipo de transação (Receita/Despesa).
 class TransactionTypeCard extends StatelessWidget {
-  /// Cria um card de tipo de transação.
   const TransactionTypeCard({
     super.key,
     required this.icon,
@@ -17,25 +15,18 @@ class TransactionTypeCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Ícone do tipo.
   final IconData icon;
 
-  /// Cor do ícone.
   final Color iconColor;
 
-  /// Título do card.
   final String title;
 
-  /// Subtítulo do card.
   final String subtitle;
 
-  /// Exemplos de uso.
   final String examples;
 
-  /// Se o card está selecionado.
   final bool isSelected;
 
-  /// Callback ao tocar no card.
   final VoidCallback onTap;
 
   @override
@@ -109,9 +100,7 @@ class TransactionTypeCard extends StatelessWidget {
   }
 }
 
-/// Card para seleção de categoria.
 class TransactionCategoryCard extends StatelessWidget {
-  /// Cria um card de categoria.
   const TransactionCategoryCard({
     super.key,
     required this.category,
@@ -119,13 +108,10 @@ class TransactionCategoryCard extends StatelessWidget {
     required this.onTap,
   });
 
-  /// Modelo da categoria.
   final CategoryModel category;
 
-  /// Se o card está selecionado.
   final bool isSelected;
 
-  /// Callback ao tocar no card.
   final VoidCallback onTap;
 
   @override
@@ -187,9 +173,7 @@ class TransactionCategoryCard extends StatelessWidget {
   }
 }
 
-/// Botão de ação rápida para valores.
 class QuickAmountButton extends StatelessWidget {
-  /// Cria um botão de valor rápido.
   const QuickAmountButton({
     super.key,
     required this.label,
@@ -197,13 +181,10 @@ class QuickAmountButton extends StatelessWidget {
     this.isDestructive = false,
   });
 
-  /// Rótulo do botão.
   final String label;
 
-  /// Callback ao tocar.
   final VoidCallback onTap;
 
-  /// Se é uma ação destrutiva (estilo diferente).
   final bool isDestructive;
 
   @override
@@ -234,9 +215,7 @@ class QuickAmountButton extends StatelessWidget {
   }
 }
 
-/// Linha de resumo para exibir dados da transação.
 class TransactionSummaryRow extends StatelessWidget {
-  /// Cria uma linha de resumo.
   const TransactionSummaryRow({
     super.key,
     required this.label,
@@ -245,16 +224,12 @@ class TransactionSummaryRow extends StatelessWidget {
     required this.iconColor,
   });
 
-  /// Rótulo da linha.
   final String label;
 
-  /// Valor a ser exibido.
   final String value;
 
-  /// Ícone da linha.
   final IconData icon;
 
-  /// Cor do ícone.
   final Color iconColor;
 
   @override

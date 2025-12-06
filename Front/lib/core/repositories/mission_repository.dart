@@ -6,7 +6,6 @@ import '../network/endpoints.dart';
 import '../services/cache_service.dart';
 import 'base_repository.dart';
 
-/// Repositório para operações de missões.
 class MissionRepository extends BaseRepository {
   MissionRepository({super.client});
 
@@ -113,7 +112,9 @@ class MissionRepository extends BaseRepository {
               Map<String, dynamic>.from(e as Map),
             ))
         .toList();
-  }\r\n\r\n  Future<Map<String, dynamic>?> fetchMissionContextAnalysis({
+  }
+
+  Future<Map<String, dynamic>?> fetchMissionContextAnalysis({
     bool forceRefresh = false,
   }) async {
     try {

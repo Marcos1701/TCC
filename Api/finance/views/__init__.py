@@ -1,8 +1,3 @@
-"""
-Package de views do módulo finance.
-
-Exporta todos os ViewSets e Views para uso no urls.py.
-"""
 
 from .auth import (
     ProfileView,
@@ -32,23 +27,17 @@ from .admin_panel import (
 )
 
 __all__ = [
-    # Categories
     'CategoryViewSet',
-    # Transactions
     'TransactionViewSet',
     'TransactionLinkViewSet',
-    # Missions
     'MissionViewSet',
     'MissionProgressViewSet',
-    # Dashboard
     'DashboardViewSet',
-    # Auth & Profile
     'ProfileView',
     'XPHistoryView',
     'SimplifiedOnboardingView',
     'RegisterView',
     'UserProfileViewSet',
-    # Admin Panel
     'AdminDashboardView',
     'AdminMissionsView',
     'AdminMissionDetailView',

@@ -36,7 +36,6 @@ extension _RecurrenceUnitMapper on _RecurrenceUnit {
   }
 }
 
-/// Wizard de criação de transação em 5 etapas
 class TransactionWizard extends StatefulWidget {
   const TransactionWizard({super.key});
 
@@ -105,12 +104,10 @@ class _TransactionWizardState extends State<TransactionWizard> {
       ),
     );
 
-    // Se criou com sucesso, recarrega as categorias
     if (result == true) {
       setState(() => _loadingCategories = true);
       await _loadCategories();
       
-      // Seleciona automaticamente a categoria recém-criada
       if (_filteredCategories.isNotEmpty) {
         setState(() {
           _selectedCategoryId = _filteredCategories.last.id;
@@ -125,16 +122,16 @@ class _TransactionWizardState extends State<TransactionWizard> {
 
   bool _canGoNext() {
     switch (_currentStep) {
-      case 0: // Tipo
-        return true; // Sempre pode avançar, tem seleção padrão
-      case 1: // Categoria
+      case 0:
+        return true;
+      case 1:
         return _selectedCategoryId != null;
-      case 2: // Valor
+      case 2:
         return _amountController.text.isNotEmpty &&
             (double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0) > 0;
-      case 3: // Recorrência
-        return true; // Sempre pode avançar
-      case 4: // Descrição e data
+      case 3:
+        return true;
+      case 4:
         return _descriptionController.text.trim().isNotEmpty;
       default:
         return false;
@@ -212,7 +209,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -274,7 +270,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Progress indicator
                   Row(
                     children: List.generate(5, (index) {
                       final isActive = index == _currentStep;
@@ -299,7 +294,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
               ),
             ),
 
-            // Content
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
@@ -307,7 +301,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
               ),
             ),
 
-            // Navigation buttons
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -390,7 +383,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
     }
   }
 
-  // Etapa 1: Selecionar tipo (Receita ou Despesa)
   Widget _buildStepType() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +427,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
     );
   }
 
-  // Etapa 2: Selecionar categoria
   Widget _buildStepCategory() {
     if (_loadingCategories) {
       return const Center(
@@ -524,7 +515,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
     );
   }
 
-  // Etapa 3: Definir valor
   Widget _buildStepAmount() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -609,7 +599,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
           ),
         ),
         const SizedBox(height: 16),
-        // Botões rápidos de valor
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -644,7 +633,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
     setState(() {});
   }
 
-  // Etapa 4: Configurar recorrência
   Widget _buildStepRecurrence() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -839,7 +827,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
     );
   }
 
-  // Etapa 5: Descrição e data
   Widget _buildStepDescription() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -915,7 +902,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
           ),
         ),
         const SizedBox(height: 24),
-        // Resumo
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(

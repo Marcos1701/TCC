@@ -1,9 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Service that stores sensitive info using native vault (Keychain, Keystore...).
-///
-/// Tokens, salts and similar items mentioned in the document stay here. The API is short,
-/// ready to grow along with the authentication module.
 class SecureStorageService {
   SecureStorageService({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();

@@ -2,26 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../data/admin_viewmodel.dart';
 
-/// Página de Gerenciamento de Usuários do Sistema.
-///
-/// Esta tela fornece ao administrador ferramentas para visualizar
-/// e gerenciar os usuários cadastrados no sistema, incluindo:
-///
-/// - Listagem paginada de todos os usuários;
-/// - Busca por nome ou endereço de e-mail;
-/// - Filtragem por status de ativação;
-/// - Ativação e desativação de contas de usuários;
-/// - Visualização do nível e pontos de experiência.
-///
-/// A interface exibe informações resumidas de cada usuário, permitindo
-/// identificação rápida do progresso de cada um no sistema de gamificação.
-///
-/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminUsersPage extends StatefulWidget {
-  /// Cria uma nova instância da página de gerenciamento de usuários.
   const AdminUsersPage({super.key, required this.viewModel});
 
-  /// ViewModel responsável pelo gerenciamento de estado dos usuários.
   final AdminViewModel viewModel;
 
   @override
@@ -62,7 +45,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabeçalho
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -82,7 +64,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Barra de busca e filtros
                   Row(
                     children: [
                       Expanded(
@@ -124,12 +105,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               ),
             ),
 
-            // Lista de usuários
             Expanded(
               child: _buildUsersList(),
             ),
 
-            // Paginação
             if (widget.viewModel.usersTotalPages > 1)
               _Pagination(
                 currentPage: widget.viewModel.usersCurrentPage,
@@ -239,7 +218,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   }
 }
 
-/// Card de usuário individual.
 class _UserCard extends StatelessWidget {
   const _UserCard({
     required this.user,
@@ -268,7 +246,6 @@ class _UserCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // Avatar
             CircleAvatar(
               radius: 24,
               backgroundColor: ativo
@@ -284,7 +261,6 @@ class _UserCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            // Informações
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,7 +316,7 @@ class _UserCard extends StatelessWidget {
                         style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(width: 16),
-                      Icon(
+                      const Icon(
                         Icons.stars,
                         size: 16,
                         color: Colors.amber,
@@ -368,7 +344,6 @@ class _UserCard extends StatelessWidget {
                 ],
               ),
             ),
-            // Status e toggle
             const SizedBox(width: 16),
             Column(
               children: [
@@ -390,7 +365,7 @@ class _UserCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (!admin) // Não permite desativar admins
+                if (!admin)
                   IconButton(
                     icon: Icon(
                       ativo ? Icons.person_off : Icons.person_add,
@@ -428,7 +403,6 @@ class _UserCard extends StatelessWidget {
   }
 }
 
-/// Componente de paginação.
 class _Pagination extends StatelessWidget {
   const _Pagination({
     required this.currentPage,

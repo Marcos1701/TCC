@@ -14,7 +14,6 @@ from .indicators import calculate_summary
 
 
 def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
-    """Atribui missões inteligentemente baseado em análise contextual (até max_active missões)."""
     existing_progress = MissionProgress.objects.filter(user=user)
     active_missions = existing_progress.filter(
         status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
@@ -78,7 +77,6 @@ def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
 
 
 def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[Tuple[Mission, float]]:
-    """Calcula score de prioridade de missões baseado em contexto e oportunidades."""
     if context is None:
         context = analyze_user_context(user)
     
@@ -157,10 +155,6 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
 
 
 def apply_mission_reward(progress: MissionProgress) -> None:
-    """
-    Aplica recompensa de XP ao completar uma missão.
-    Usa transaction.atomic e select_for_update para evitar race conditions.
-    """
     from django.db import transaction
     from ..models import XPTransaction
     
@@ -190,17 +184,6 @@ def apply_mission_reward(progress: MissionProgress) -> None:
 
 
 def assign_missions_automatically(user) -> List[MissionProgress]:
-    """
-    Atribui missões automaticamente baseado nos índices do usuário.
-    
-    Lógica de atribuição:
-    1. Usuários novos (< 5 transações): missões ONBOARDING
-    2. ILI <= 3: prioriza ILI_BUILDING
-    3. RDR >= 50: prioriza RDR_REDUCTION
-    4. TPS < 10: prioriza TPS_IMPROVEMENT
-    5. ILI entre 3-6: missões de controle
-    6. ILI >= 6: missões ADVANCED
-    """
     summary = calculate_summary(user)
     tps = float(summary.get("tps", Decimal("0")))
     rdr = float(summary.get("rdr", Decimal("0")))
@@ -317,10 +300,6 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
 
 
 def update_mission_progress(user) -> List[MissionProgress]:
-    """
-    Atualiza o progresso das missões ativas do usuário baseado em seus dados atuais.
-    Usa validadores especializados por tipo de missão (mission_types.py).
-    """
     from django.db import transaction
     from ..mission_types import MissionValidatorFactory
     
@@ -382,10 +361,6 @@ def update_mission_progress(user) -> List[MissionProgress]:
 
 
 def initialize_mission_progress(progress):
-    """
-    Inicializa MissionProgress com todos os baselines necessários.
-    Chamado quando missão é atribuída ao usuário pela primeira vez.
-    """
     from django.db.models import Sum
     
     user = progress.user
@@ -439,13 +414,6 @@ def initialize_mission_progress(progress):
 
 
 def validate_mission_progress_manual(progress):
-    """
-    Valida progresso de uma missão MANUALMENTE (fora do ciclo diário).
-    Útil para validação imediata após transação ou verificação on-demand.
-    
-    Nota: Esta função foi simplificada após remoção do modelo UserDailySnapshot.
-    Agora utiliza os validadores de missão diretamente.
-    """
     from ..mission_types import MissionValidatorFactory
     
     try:

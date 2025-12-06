@@ -1,6 +1,3 @@
-"""
-Módulo base com imports e helpers comuns para todas as views.
-"""
 
 import logging
 from decimal import Decimal
@@ -66,7 +63,6 @@ User = get_user_model()
 
 
 def invalidate_user_dashboard_cache(user):
-    """Invalida todos os caches relacionados ao usuário."""
     cache_keys = [
         f'dashboard_main_{user.id}',
         f'summary_{user.id}',

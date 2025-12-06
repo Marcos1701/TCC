@@ -601,8 +601,6 @@ IconData _opportunityIcon(String? metric) {
   switch ((metric ?? '').toUpperCase()) {
     case 'CATEGORY':
       return Icons.category_outlined;
-    case 'GOAL':
-      return Icons.flag_outlined;
     case 'PAYMENT':
       return Icons.receipt_long_outlined;
     default:
@@ -614,8 +612,6 @@ Color _opportunityColor(String? metric) {
   switch ((metric ?? '').toUpperCase()) {
     case 'CATEGORY':
       return const Color(0xFFFFC107);
-    case 'GOAL':
-      return const Color(0xFF4CAF50);
     case 'PAYMENT':
       return const Color(0xFF2196F3);
     default:

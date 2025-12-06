@@ -5,24 +5,20 @@ echo "🚀 Docker Entrypoint - Starting Django Service"
 echo "📋 Environment: ${DJANGO_SETTINGS_MODULE:-config.settings}"
 echo "📋 Service Type: ${1:-gunicorn}"
 
-# Validar variáveis de ambiente críticas
 validate_env() {
     echo "🔍 Validating environment variables..."
     
     local missing_vars=()
     
-    # SECRET_KEY é obrigatório em produção (aceita SECRET_KEY ou DJANGO_SECRET_KEY)
     if [ -z "$SECRET_KEY" ] && [ -z "$DJANGO_SECRET_KEY" ] && [ "$DJANGO_DEBUG" != "True" ] && [ "$DJANGO_DEBUG" != "true" ]; then
         missing_vars+=("SECRET_KEY or DJANGO_SECRET_KEY")
     fi
     
-    # Exportar DJANGO_SECRET_KEY como SECRET_KEY se necessário
     if [ -z "$SECRET_KEY" ] && [ -n "$DJANGO_SECRET_KEY" ]; then
         export SECRET_KEY="$DJANGO_SECRET_KEY"
         echo "✅ Using DJANGO_SECRET_KEY as SECRET_KEY"
     fi
     
-    # DATABASE_URL ou variáveis individuais de DB
     if [ -z "$DATABASE_URL" ]; then
         if [ -z "$DB_HOST" ] || [ -z "$DB_NAME" ]; then
             echo "⚠️  No DATABASE_URL or DB_HOST/DB_NAME found, will use defaults or SQLite"
@@ -37,7 +33,6 @@ validate_env() {
     echo "✅ Environment validation passed!"
 }
 
-# Função para aguardar o banco de dados
 wait_for_db() {
     echo "⏳ Waiting for database to be ready..."
     
@@ -46,7 +41,6 @@ import os
 import sys
 import time
 
-# Tentar psycopg primeiro, depois psycopg2
 try:
     import psycopg
     psycopg_version = 3
@@ -62,7 +56,6 @@ from urllib.parse import urlparse
 
 db_url = os.getenv('DATABASE_URL')
 
-# Se não tem DATABASE_URL, tenta construir a partir das variáveis individuais
 if not db_url:
     db_host = os.getenv('DB_HOST', 'localhost')
     db_port = os.getenv('DB_PORT', '5432')
@@ -110,10 +103,8 @@ else:
 "
 }
 
-# O primeiro argumento determina qual serviço executar
 SERVICE_TYPE="${1:-gunicorn}"
 
-# Validar ambiente
 validate_env
 
 case "$SERVICE_TYPE" in
@@ -140,7 +131,6 @@ case "$SERVICE_TYPE" in
         
         echo "✅ Database initialization complete!"
         
-        # Configurar número de workers baseado em CPU disponível
         WORKERS=${WORKERS:-4}
         TIMEOUT=${TIMEOUT:-120}
         PORT=${PORT:-8000}
@@ -167,7 +157,6 @@ case "$SERVICE_TYPE" in
         echo "⏳ Waiting for migrations (API service should handle this)..."
         sleep 15
         
-        # Configurar concorrência baseada em recursos disponíveis
         CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-2}
         
         echo "🔄 Starting Celery Worker with concurrency=${CELERY_CONCURRENCY}..."

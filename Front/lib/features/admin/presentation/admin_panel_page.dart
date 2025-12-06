@@ -7,23 +7,7 @@ import 'admin_missions_page.dart';
 import 'admin_categories_page.dart';
 import 'admin_users_page.dart';
 
-/// Página Principal do Painel Administrativo.
-///
-/// Esta tela fornece acesso centralizado às funcionalidades de
-/// gerenciamento do sistema de educação financeira gamificada,
-/// organizada em quatro seções principais:
-///
-/// 1. Visão Geral: Exibe estatísticas consolidadas do sistema.
-/// 2. Missões: Gerenciamento das missões de gamificação.
-/// 3. Categorias: Administração das categorias padrão.
-/// 4. Usuários: Visualização e gerenciamento de usuários.
-///
-/// A interface utiliza o componente NavigationRail do Material Design 3
-/// para proporcionar uma navegação intuitiva entre as seções.
-///
-/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminPanelPage extends StatefulWidget {
-  /// Cria uma nova instância da página do painel administrativo.
   const AdminPanelPage({super.key});
 
   @override
@@ -40,20 +24,12 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
     _viewModel.loadDashboard();
   }
 
-  /// Navega para a tela principal do aplicativo.
-  ///
-  /// Permite ao administrador alternar para a visão de usuário comum
-  /// do aplicativo, mantendo sua sessão autenticada.
   void _navigateToApp(BuildContext context) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const RootShell()),
     );
   }
 
-  /// Exibe diálogo de confirmação e executa o logout.
-  ///
-  /// Após confirmação do usuário, encerra a sessão atual
-  /// e redireciona para a tela de login.
   Future<void> _confirmLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -92,13 +68,11 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         centerTitle: true,
         elevation: 0,
         actions: [
-          // Botão para acessar o app como usuário
           IconButton(
             icon: const Icon(Icons.home_outlined),
             tooltip: 'Ir para o App',
             onPressed: () => _navigateToApp(context),
           ),
-          // Botão de logout
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Sair',
@@ -108,7 +82,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       ),
       body: Row(
         children: [
-          // Menu lateral
           NavigationRail(
             selectedIndex: _selectedIndex,
             onDestinationSelected: (index) {
@@ -140,7 +113,6 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
-          // Conteúdo principal
           Expanded(
             child: _buildContent(),
           ),
@@ -165,17 +137,7 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   }
 }
 
-/// Conteúdo da seção Visão Geral do painel administrativo.
-///
-/// Exibe estatísticas consolidadas do sistema através de cards
-/// informativos e gráficos de distribuição, incluindo:
-///
-/// - Total de usuários ativos e administradores;
-/// - Quantidade de missões ativas no sistema;
-/// - Taxa de conclusão das missões pelos usuários;
-/// - Distribuição de missões por tipo e dificuldade.
 class _AdminDashboardContent extends StatelessWidget {
-  /// Cria o conteúdo do dashboard administrativo.
   const _AdminDashboardContent({required this.viewModel});
 
   final AdminViewModel viewModel;
@@ -237,7 +199,6 @@ class _AdminDashboardContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Título
                 Text(
                   'Visão Geral do Sistema',
                   style: theme.textTheme.headlineSmall?.copyWith(
@@ -253,7 +214,6 @@ class _AdminDashboardContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Cards de estatísticas
                 Wrap(
                   spacing: 16,
                   runSpacing: 16,
@@ -291,7 +251,6 @@ class _AdminDashboardContent extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Distribuição de missões por tipo
                 if (missoes['por_tipo'] != null) ...[
                   Text(
                     'Missões por Tipo',
@@ -305,7 +264,6 @@ class _AdminDashboardContent extends StatelessWidget {
 
                 const SizedBox(height: 32),
 
-                // Distribuição por dificuldade
                 if (missoes['por_dificuldade'] != null) ...[
                   Text(
                     'Missões por Dificuldade',
@@ -325,13 +283,7 @@ class _AdminDashboardContent extends StatelessWidget {
   }
 }
 
-/// Card de estatística para exibição de métricas do sistema.
-///
-/// Componente reutilizável que apresenta uma métrica numérica
-/// com título, valor principal, subtítulo descritivo e ícone
-/// representativo, seguindo o padrão visual do Material Design.
 class _StatCard extends StatelessWidget {
-  /// Cria um card de estatística.
   const _StatCard({
     required this.title,
     required this.value,
@@ -402,13 +354,7 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// Gráfico de distribuição de missões por tipo.
-///
-/// Apresenta visualmente a proporção de missões cadastradas
-/// em cada categoria (ONBOARDING, TPS_IMPROVEMENT, etc.),
-/// utilizando indicadores coloridos e percentuais.
 class _MissionTypeChart extends StatelessWidget {
-  /// Cria um gráfico de tipos de missão.
   const _MissionTypeChart({required this.data});
 
   final Map<String, dynamic> data;
@@ -488,13 +434,7 @@ class _MissionTypeChart extends StatelessWidget {
   }
 }
 
-/// Gráfico de distribuição de missões por nível de dificuldade.
-///
-/// Apresenta uma barra horizontal segmentada que ilustra a
-/// proporção de missões em cada nível de dificuldade:
-/// Fácil (verde), Média (laranja) e Difícil (vermelho).
 class _DifficultyChart extends StatelessWidget {
-  /// Cria um gráfico de dificuldade.
   const _DifficultyChart({required this.data});
 
   final Map<String, dynamic> data;

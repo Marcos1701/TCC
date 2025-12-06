@@ -7,7 +7,6 @@ import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'register_transaction/register_transaction_components.dart';
 
-/// Bottom sheet para registrar nova transação.
 class RegisterTransactionSheet extends StatefulWidget {
   const RegisterTransactionSheet({
     super.key,
@@ -42,14 +41,12 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     decimalDigits: 2,
   );
 
-  // Recurrence state
   int? _recurrenceValue;
   RecurrenceUnit? _recurrenceUnit;
   DateTime? _recurrenceEndDate;
   bool _usingCustomRecurrence = false;
   String? _recurrenceError;
 
-  // Theme constants
   static const _sheetColor = Color(0xFF05060A);
   static const _fieldColor = Color(0xFF111522);
 
@@ -133,7 +130,6 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
         _categoryId = focusId;
       } else if (_categoryId != null &&
           result.any((e) => e.id == _categoryId)) {
-        // Keep current selection
       } else {
         _categoryId = result.isNotEmpty ? result.first.id : null;
       }

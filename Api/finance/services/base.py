@@ -1,7 +1,3 @@
-"""
-Módulo base para serviços do finance.
-Contém importações comuns e helpers utilizados por todos os serviços.
-"""
 
 from __future__ import annotations
 
@@ -34,37 +30,30 @@ logger = logging.getLogger(__name__)
 
 
 def _decimal(value) -> Decimal:
-    """Converte um valor para Decimal, retornando 0 se None."""
     if isinstance(value, Decimal):
         return value
     return Decimal(value or 0)
 
 
 def _xp_threshold(level: int) -> int:
-    """Calcula o limiar de XP necessário para o próximo nível."""
     return 150 + (level - 1) * 50
 
 
 __all__ = [
-    # Tipos
     'Any',
     'Dict',
     'Iterable',
     'List',
     'Tuple',
-    # Datetime
     'date',
     'datetime',
     'timedelta',
     'relativedelta',
     'timezone',
-    # Decimal
     'Decimal',
     '_decimal',
     '_xp_threshold',
-    # Collections
     'defaultdict',
-    # Django ORM
     'Avg',
     'Case',
     'Coalesce',
@@ -78,12 +67,10 @@ __all__ = [
     'TruncMonth',
     'Value',
     'When',
-    # Models
     'Category',
     'Mission',
     'MissionProgress',
     'Transaction',
     'UserProfile',
-    # Utils
     'logger',
 ]

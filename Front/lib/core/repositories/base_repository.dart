@@ -4,8 +4,6 @@ import 'package:flutter/foundation.dart';
 import '../errors/failures.dart';
 import '../network/api_client.dart';
 
-/// Classe base para todos os repositórios.
-/// Contém métodos utilitários comuns.
 abstract class BaseRepository {
   BaseRepository({ApiClient? client}) : _client = client ?? ApiClient();
 
@@ -17,7 +15,6 @@ abstract class BaseRepository {
   @protected
   Failure handleError(dynamic error) {
     if (error is DioException) {
-      // Primeiro, verifica se o interceptor já extraiu a mensagem de erro
       if (error.error != null && error.error is String) {
         final statusCode = error.response?.statusCode;
         if (statusCode == 400) {
@@ -46,7 +43,6 @@ abstract class BaseRepository {
           }
           
           if (statusCode == 400 && data is Map<String, dynamic>) {
-            // Tenta extrair mensagem de non_field_errors primeiro
             if (data.containsKey('non_field_errors')) {
               final errors = data['non_field_errors'];
               if (errors is List && errors.isNotEmpty) {
@@ -109,7 +105,6 @@ abstract class BaseRepository {
     return [];
   }
 
-  /// Executa uma requisição e trata erros automaticamente.
   @protected
   Future<T> handleRequest<T>(Future<T> Function() request) async {
     try {

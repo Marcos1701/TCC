@@ -6,7 +6,6 @@ import '../../../core/models/mission_progress.dart';
 import '../../../core/repositories/finance_repository.dart';
 import '../../../core/constants/user_friendly_strings.dart';
 
-/// Estados do ViewModel
 enum MissionsViewState {
   initial,
   loading,
@@ -14,14 +13,12 @@ enum MissionsViewState {
   error,
 }
 
-/// ViewModel para gerenciar desafios e celebrações
 class MissionsViewModel extends ChangeNotifier {
   MissionsViewModel({FinanceRepository? repository})
       : _repository = repository ?? FinanceRepository();
 
   final FinanceRepository _repository;
 
-  // Estado
   MissionsViewState _state = MissionsViewState.initial;
   List<MissionProgressModel> _activeMissions = [];
   String? _errorMessage;
@@ -33,14 +30,11 @@ class MissionsViewModel extends ChangeNotifier {
   bool _contextLoading = false;
   String? _contextError;
 
-  // Missões recém completadas (para celebração)
   final Set<int> _newlyCompleted = {};
 
-  // Getters
   MissionsViewState get state => _state;
   List<MissionProgressModel> get activeMissions => _activeMissions;
   List<MissionProgressModel> get completedMissions {
-    // Filtra missões completadas da lista ativa
     return _activeMissions.where((m) => m.status == 'COMPLETED').toList();
   }
 
@@ -60,7 +54,6 @@ class MissionsViewModel extends ChangeNotifier {
   List<CategoryMissionSummary> get categorySummaries =>
       _buildCategorySummaries();
   
-  /// Estatísticas de qualidade de dados das missões
   Map<String, dynamic> get missionQualityStats {
     final allMissions = [
       ..._activeMissions.map((m) => m.mission),
@@ -81,7 +74,6 @@ class MissionsViewModel extends ChangeNotifier {
     };
   }
 
-  /// Carrega missões do dashboard
   Future<void> loadMissions() async {
     _state = MissionsViewState.loading;
     _errorMessage = null;
@@ -95,7 +87,6 @@ class MissionsViewModel extends ChangeNotifier {
     } on DioException catch (e) {
       _state = MissionsViewState.error;
 
-      // Mensagens de erro mais amigáveis
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         _errorMessage = 'Tempo de conexão esgotado. Verifique sua internet.';
@@ -118,7 +109,6 @@ class MissionsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Carrega missões recomendadas para o usuário
   Future<void> loadRecommendedMissions({
     String? missionType,
     String? difficulty,
@@ -135,7 +125,6 @@ class MissionsViewModel extends ChangeNotifier {
         limit: limit,
       );
       
-      // Filtra missões com placeholders
       _recommendedMissions = missions.where((m) => m.isValid).toList();
       
     } on DioException catch (e) {
@@ -152,7 +141,6 @@ class MissionsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Carrega missões disponíveis para uma categoria específica
   Future<List<MissionModel>> loadMissionsForCategory(
     int categoryId, {
     bool forceReload = false,
@@ -174,7 +162,6 @@ class MissionsViewModel extends ChangeNotifier {
         includeInactive: includeInactive,
       );
       
-      // Filtra missões com placeholders
       final validMissions = missions.where((m) => m.isValid).toList();
       
       _missionsByCategory[categoryId] = validMissions;
@@ -259,7 +246,6 @@ class MissionsViewModel extends ChangeNotifier {
     return descriptors;
   }
 
-  /// Busca análise de contexto de missões
   Future<Map<String, dynamic>?> refreshMissionContextAnalysis({
     bool forceRefresh = false,
   }) async {
@@ -276,14 +262,12 @@ class MissionsViewModel extends ChangeNotifier {
         forceRefresh: forceRefresh,
       );
       
-      // Se retornou null (404), não é um erro, apenas indisponível
       if (_contextAnalysis == null) {
-        _contextError = null; // Não exibir erro
+        _contextError = null;
       }
       
       return _contextAnalysis;
     } on DioException catch (e) {
-      // Ignorar erro 404 (análise não disponível)
       if (e.response?.statusCode == 404) {
         _contextError = null;
         _contextAnalysis = null;
@@ -311,7 +295,6 @@ class MissionsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Atualiza missões verificando se há novas completadas
   void _updateMissions(List<MissionProgressModel> missions) {
     final validMissions = <MissionProgressModel>[];
     final invalidMissions = <MissionProgressModel>[];
@@ -338,7 +321,6 @@ class MissionsViewModel extends ChangeNotifier {
       );
     }
 
-    // Identifica missões recém completadas (apenas das válidas)
     final previousCompleted = _activeMissions
         .where((m) => m.status == 'COMPLETED')
         .map((m) => m.mission.id)
@@ -359,7 +341,6 @@ class MissionsViewModel extends ChangeNotifier {
     _activeMissions = validMissions;
   }
 
-  /// Atualiza missões silenciosamente (sem loading)
   Future<void> refreshSilently() async {
     try {
       final dashboard = await _repository.fetchDashboard();
@@ -370,27 +351,22 @@ class MissionsViewModel extends ChangeNotifier {
     }
   }
 
-  /// Marca missão como visualizada (remove de newlyCompleted)
   void markMissionAsViewed(int missionId) {
     _newlyCompleted.remove(missionId);
     notifyListeners();
   }
 
-  /// Limpa todas as celebrações pendentes
   void clearCelebrations() {
     _newlyCompleted.clear();
     notifyListeners();
   }
 
-  /// Atualiza progresso de missão otimisticamente (apenas visual)
-  /// O cálculo real é feito pelo backend
   void updateMissionProgressOptimistic(int missionId, double newProgress) {
     final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
     if (index == -1) return;
 
     final mission = _activeMissions[index];
 
-    // Cria novo objeto com progresso atualizado
     final updated = MissionProgressModel(
       id: mission.id,
       status: newProgress >= 100 ? 'COMPLETED' : mission.status,
@@ -407,7 +383,6 @@ class MissionsViewModel extends ChangeNotifier {
 
     _activeMissions[index] = updated;
 
-    // Se completou (>= 100%), adiciona aos recém completados
     if (newProgress >= 100) {
       _newlyCompleted.add(missionId);
     }
@@ -415,7 +390,6 @@ class MissionsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Limpa erro
   void clearError() {
     _errorMessage = null;
     if (_state == MissionsViewState.error) {
@@ -424,7 +398,6 @@ class MissionsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Limpa erros relacionados ao catálogo de missões
   void clearCatalogError() {
     _catalogError = null;
     notifyListeners();

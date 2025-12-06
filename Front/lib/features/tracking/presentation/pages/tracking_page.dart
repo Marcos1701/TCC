@@ -7,13 +7,6 @@ import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/tracking_widgets.dart';
 
-/// Página de Análise Financeira.
-///
-/// Exibe gráficos e métricas sobre a situação financeira do usuário:
-/// - Resumo do período (receitas, despesas, saldo)
-/// - Evolução temporal (gráfico de linha)
-/// - Saldo mensal (gráfico de barras)
-/// - Distribuição por categoria (gráfico de pizza)
 class TrackingPage extends StatefulWidget {
   const TrackingPage({super.key});
 
@@ -103,7 +96,6 @@ class _TrackingPageState extends State<TrackingPage> {
   }
 }
 
-/// Conteúdo principal da página de análise.
 class _TrackingContent extends StatelessWidget {
   const _TrackingContent({required this.data});
 
@@ -128,7 +120,6 @@ class _TrackingContent extends StatelessWidget {
   }
 }
 
-/// Seção de distribuição por categoria.
 class _CategoryDistribution extends StatelessWidget {
   const _CategoryDistribution({required this.categories});
 
@@ -162,7 +153,6 @@ class _CategoryDistribution extends StatelessWidget {
   }
 }
 
-/// Estado de erro da página.
 class _ErrorState extends StatelessWidget {
   const _ErrorState({required this.onRetry});
 
@@ -215,7 +205,6 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-/// Estado vazio da página.
 class _EmptyState extends StatelessWidget {
   const _EmptyState();
 

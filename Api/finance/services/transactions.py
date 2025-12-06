@@ -10,17 +10,6 @@ from .indicators import invalidate_indicators_cache
 
 
 def auto_link_recurring_transactions(user) -> int:
-    """
-    Vincula automaticamente transações recorrentes baseado em configuração.
-    
-    Lógica:
-    1. Buscar todos os TransactionLinks com is_recurring=True do usuário
-    2. Para cada link recorrente, verificar se existem novas instâncias
-    3. Criar links automáticos entre as novas instâncias
-    
-    Returns:
-        Número de links criados automaticamente
-    """
     links_created = 0
     
     recurring_links = TransactionLink.objects.filter(

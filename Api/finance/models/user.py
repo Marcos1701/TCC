@@ -1,6 +1,3 @@
-"""
-Modelo UserProfile - Perfil do usuário com dados de gamificação e cache de indicadores.
-"""
 
 from decimal import Decimal
 
@@ -16,15 +13,6 @@ from .base import (
 
 
 class UserProfile(models.Model):
-    """
-    Perfil do usuário com dados de gamificação e metas financeiras.
-    
-    Campos principais:
-    - level: Nível atual do usuário
-    - experience_points: XP acumulado
-    - target_tps/rdr/ili: Metas personalizadas de indicadores
-    - cached_*: Cache de indicadores para otimização
-    """
     
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, 
@@ -168,20 +156,8 @@ class UserProfile(models.Model):
             })
 
     def _validate_xp_for_level(self):
-        """
-        Valida que o XP atual está dentro dos limites válidos para o nível atual.
-        
-        O experience_points representa o XP acumulado DENTRO do nível atual,
-        não o XP total desde o nível 1. Ao subir de nível, o XP é subtraído
-        do threshold, então o XP atual deve ser menor que o threshold
-        (se for >= threshold, deveria ter subido de nível).
-        
-        Nota: A validação de XP < 0 já é feita no método clean().
-        """
         from django.core.exceptions import ValidationError
         
-        # XP dentro do nível não deve exceder o threshold do próximo nível
-        # (se excedesse, o usuário deveria ter subido de nível)
         current_threshold = 150 + (self.level - 1) * 50
         if self.experience_points >= current_threshold:
             raise ValidationError({

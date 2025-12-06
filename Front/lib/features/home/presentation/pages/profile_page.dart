@@ -8,9 +8,6 @@ import '../../../../core/state/session_controller.dart';
 import '../../../admin/presentation/admin_panel_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
-/// Unified Profile Page
-/// Combines Level + XP + Settings + Ranking
-/// Simplifies navigation from 5 to 3 main tabs
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -130,19 +127,15 @@ class _ProfilePageState extends State<ProfilePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 1. Level and XP Card
           _buildLevelCard(),
           const SizedBox(height: 16),
 
-          // 2. Quick Stats
           _buildQuickStats(),
           const SizedBox(height: 16),
 
-          // 3. Action Buttons
           _buildActionButtons(context),
           const SizedBox(height: 16),
 
-          // 4. Info Section
           _buildInfoSection(),
         ],
       ),
@@ -150,8 +143,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLevelCard() {
-    // Os dados vêm do endpoint /api/user/me/ que retorna {user, profile, snapshot}
-    // Usamos 'snapshot' que contém os dados mais recentes do perfil
     final snapshot = _profile!['snapshot'] as Map<String, dynamic>? ?? {};
     final level = (snapshot['level'] as int?) ?? 1;
     final xp = (snapshot['experience_points'] as int?) ?? 0;
@@ -166,7 +157,6 @@ class _ProfilePageState extends State<ProfilePage> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            // Avatar/Icon
             Container(
               width: 80,
               height: 80,
@@ -188,7 +178,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
 
-            // Level
             Text(
               'Nível $level',
               style: const TextStyle(
@@ -199,7 +188,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 8),
 
-            // Experience Points
             Text(
               '${NumberFormat('#,###', 'pt_BR').format(xp)} pontos',
               style: TextStyle(
@@ -209,7 +197,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 16),
 
-            // Progress Bar
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -239,7 +226,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildQuickStats() {
-    // Os dados vêm do endpoint /api/user/me/ que retorna {user, profile, snapshot}
     final snapshot = _profile!['snapshot'] as Map<String, dynamic>? ?? {};
     final level = (snapshot['level'] as int?) ?? 1;
     final xp = (snapshot['experience_points'] as int?) ?? 0;
@@ -304,13 +290,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    // Verifica se o usuário é administrador
     final session = SessionScope.of(context);
     final isAdmin = session.session?.user.isAdmin ?? false;
     
     return Column(
       children: [
-        // Painel Administrativo (apenas para admins)
         if (isAdmin)
           Card(
             color: Colors.deepPurple[900]?.withOpacity(0.7),
@@ -331,7 +315,6 @@ class _ProfilePageState extends State<ProfilePage> {
         
         if (isAdmin) const SizedBox(height: 8),
 
-        // Configurações
         Card(
           color: Colors.grey[900],
           child: ListTile(

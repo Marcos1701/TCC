@@ -1,7 +1,3 @@
-"""
-Módulo base para serializers do finance.
-Contém imports comuns utilizados por todos os serializers.
-"""
 
 from decimal import Decimal
 

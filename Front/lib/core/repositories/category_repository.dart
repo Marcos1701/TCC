@@ -4,7 +4,6 @@ import '../services/cache_service.dart';
 import '../errors/failures.dart';
 import 'base_repository.dart';
 
-/// Repositório para operações de categorias.
 class CategoryRepository extends BaseRepository {
   CategoryRepository({super.client});
 

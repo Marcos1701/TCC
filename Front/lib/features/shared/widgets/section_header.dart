@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 
-/// Cabeçalho simples com título e ação opcional.
 class SectionHeader extends StatelessWidget {
   const SectionHeader({
     super.key,

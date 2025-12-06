@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Paleta oficial seguindo as diretrizes do TCC.
 class AppColors {
   const AppColors._();
 

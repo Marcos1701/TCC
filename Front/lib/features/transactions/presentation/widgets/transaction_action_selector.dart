@@ -2,13 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// Tipo de ação ao adicionar nova entrada financeira
 enum TransactionActionType {
   transaction,
   payment,
 }
 
-/// Seletor do tipo de ação: Nova Transação ou Novo Pagamento
 class TransactionActionSelector extends StatelessWidget {
   const TransactionActionSelector({
     super.key,
@@ -28,7 +26,6 @@ class TransactionActionSelector extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -89,7 +86,6 @@ class TransactionActionSelector extends StatelessWidget {
               ),
             ),
 
-            // Options
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -121,7 +117,6 @@ class TransactionActionSelector extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 16),
-                  // Info box
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(

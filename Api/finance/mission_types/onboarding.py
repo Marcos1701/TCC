@@ -1,6 +1,3 @@
-"""
-Validador para missões de integração inicial (onboarding).
-"""
 
 from typing import Any, Dict, Tuple
 
@@ -8,12 +5,6 @@ from .base import BaseMissionValidator
 
 
 class OnboardingMissionValidator(BaseMissionValidator):
-    """
-    Validador para missões de integração inicial.
-    
-    Foco: Criar hábito de registro e explorar funcionalidades básicas.
-    Tracking: Número de transações registradas, categorias criadas, etc.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         from ..models import Transaction

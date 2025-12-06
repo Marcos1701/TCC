@@ -1,6 +1,3 @@
-"""
-Views para dashboard e analytics.
-"""
 
 import logging
 
@@ -27,12 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    """ViewSet para dashboard principal."""
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [DashboardRefreshThrottle]
 
     def list(self, request, *args, **kwargs):
-        """Dashboard principal com cache de 5 minutos."""
         user = request.user
         force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
         cache_key = f'dashboard_main_{user.id}'
@@ -85,7 +80,6 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     @action(detail=False, methods=["get"], url_path="missions")
     def missions_summary(self, request):
-        """Resumo de missões do usuário."""
         update_mission_progress(request.user)
         
         progress_qs = MissionProgress.objects.filter(user=request.user).select_related("mission")
@@ -94,7 +88,6 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     
     @action(detail=False, methods=["get"], url_path="analytics")
     def analytics(self, request):
-        """Retorna análises avançadas sobre evolução e padrões."""
         from ..services import (
             analyze_category_patterns,
             analyze_tier_progression,

@@ -13,13 +13,6 @@ from .indicators import calculate_summary
 
 
 def check_achievements_for_user(user, event_type='generic'):
-    """
-    Valida e desbloqueia conquistas automaticamente para o usuário.
-    
-    Chamada de:
-    - Signals: transaction_created, mission_completed, goal_completed
-    - Celery tasks: daily_streak_check
-    """
     try:
         from ..models import Achievement, UserAchievement
     except ImportError:
@@ -68,14 +61,6 @@ def check_achievements_for_user(user, event_type='generic'):
 
 
 def check_criteria_met(user, criteria):
-    """
-    Verifica se o usuário atende os critérios de uma conquista.
-    
-    Tipos de critérios suportados:
-    1. count: Contagem de elementos (transações, missões, amigos, etc.)
-    2. value: Valor numérico de indicadores (TPS, RDR, ILI, savings, etc.)
-    3. streak: Dias consecutivos de atividade
-    """
     if not criteria or not isinstance(criteria, dict):
         return False
     
@@ -190,10 +175,6 @@ def check_criteria_met(user, criteria):
 
 
 def update_achievement_progress(user, achievement_id):
-    """
-    Atualiza o progresso de uma conquista específica para o usuário.
-    Útil para mostrar progresso parcial antes do unlock completo.
-    """
     try:
         from ..models import Achievement, UserAchievement
     except ImportError:

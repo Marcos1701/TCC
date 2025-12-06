@@ -1,15 +1,9 @@
-"""
-Modelos administrativos e de auditoria.
-"""
 
 from django.conf import settings
 from django.db import models
 
 
 class XPTransaction(models.Model):
-    """
-    Modelo de auditoria para rastrear concessões de XP.
-    """
     
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -51,9 +45,6 @@ class XPTransaction(models.Model):
 
 
 class AdminActionLog(models.Model):
-    """
-    Modelo para registrar ações administrativas realizadas em usuários.
-    """
     
     class ActionType(models.TextChoices):
         USER_DEACTIVATED = 'USER_DEACTIVATED', 'Usuário Desativado'

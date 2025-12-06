@@ -1,40 +1,22 @@
 import 'package:flutter/foundation.dart';
 
-/// Simple Analytics Service for event tracking
-/// 
-/// Basic implementation without external dependencies.
-/// In production, could integrate with Firebase Analytics, Mixpanel, etc.
-/// 
-/// Tracked events:
-/// - Screen views
-/// - Important user actions
-/// - Engagement metrics
-/// - Dwell times
 class AnalyticsService {
   static final AnalyticsService _instance = AnalyticsService._internal();
   factory AnalyticsService() => _instance;
   AnalyticsService._internal();
 
-  /// Flag to enable/disable logging in debug
   static const bool _debugMode = kDebugMode;
 
-  /// Stores events in memory (for debug/demo)
   final List<AnalyticsEvent> _events = [];
 
-  /// Start timestamp of each screen (to measure dwell time)
   final Map<String, DateTime> _screenStartTimes = {};
 
-  // ============================================================
-  // SCREEN VIEWS
-  // ============================================================
 
-  /// Tracks screen view
   static void trackScreenView(String screenName) {
     _instance._logEvent('screen_view', {'screen': screenName});
     _instance._screenStartTimes[screenName] = DateTime.now();
   }
 
-  /// Tracks screen exit (to calculate dwell time)
   static void trackScreenExit(String screenName) {
     if (_instance._screenStartTimes.containsKey(screenName)) {
       final startTime = _instance._screenStartTimes[screenName]!;
@@ -49,27 +31,18 @@ class AnalyticsService {
     }
   }
 
-  // ============================================================
-  // CUSTOM EVENTS
-  // ============================================================
 
-  /// Tracks generic event
   static void trackEvent(String eventName, Map<String, dynamic> parameters) {
     _instance._logEvent(eventName, parameters);
   }
 
-  // ============================================================
-  // ONBOARDING EVENTS
-  // ============================================================
 
-  /// Tracks onboarding start
   static void trackOnboardingStarted() {
     _instance._logEvent('onboarding_started', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  /// Tracks simplified onboarding completion
   static void trackOnboardingCompleted({
     required int daysToComplete,
     required int stepsCompleted,
@@ -81,7 +54,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks onboarding step
   static void trackOnboardingStep(int stepNumber, String stepName) {
     _instance._logEvent('onboarding_step', {
       'step_number': stepNumber,
@@ -89,53 +61,8 @@ class AnalyticsService {
     });
   }
 
-  // ============================================================
-  // GOAL EVENTS
-  // ============================================================
 
-  /// Tracks goal creation
-  static void trackGoalCreated({
-    required String goalType,
-    required double targetAmount,
-    required bool hasDeadline,
-    required String creationMethod, // 'wizard' or 'manual'
-  }) {
-    _instance._logEvent('goal_created', {
-      'type': goalType,
-      'target_amount': targetAmount,
-      'has_deadline': hasDeadline,
-      'creation_method': creationMethod,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
 
-  /// Tracks goal completion
-  static void trackGoalCompleted({
-    required String goalType,
-    required int daysToComplete,
-    required double finalAmount,
-  }) {
-    _instance._logEvent('goal_completed', {
-      'type': goalType,
-      'days_to_complete': daysToComplete,
-      'final_amount': finalAmount,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  /// Tracks goal deletion
-  static void trackGoalDeleted(String goalType) {
-    _instance._logEvent('goal_deleted', {
-      'type': goalType,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  // ============================================================
-  // MISSION EVENTS
-  // ============================================================
-
-  /// Tracks mission view
   static void trackMissionViewed(String missionId, String missionType) {
     _instance._logEvent('mission_viewed', {
       'mission_id': missionId,
@@ -143,7 +70,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks mission recommendations loading
   static void trackMissionRecommendationsLoaded({required int count}) {
     _instance._logEvent('mission_recommendations_loaded', {
       'count': count,
@@ -151,7 +77,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks interaction with recommended cards
   static void trackMissionRecommendationSwiped({
     required String missionId,
     required String missionType,
@@ -165,7 +90,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks detailed view of recommendation
   static void trackMissionRecommendationDetail({
     required String missionId,
     required String missionType,
@@ -181,10 +105,9 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks opening of collections (category/goal)
   static void trackMissionCollectionViewed({
     required String collectionType,
-    required Object targetId,  // int for category, String (UUID) for goal
+    required Object targetId,
     required int missionCount,
   }) {
     _instance._logEvent('mission_collection_viewed', {
@@ -195,7 +118,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks context analysis snapshot
   static void trackMissionContextSnapshot({
     required int indicatorCount,
     required int opportunityCount,
@@ -209,14 +131,12 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks manual analysis refresh request
   static void trackMissionContextRefreshRequested() {
     _instance._logEvent('mission_context_refresh_requested', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  /// Tracks mission completion
   static void trackMissionCompleted({
     required String missionId,
     required String missionType,
@@ -230,13 +150,9 @@ class AnalyticsService {
     });
   }
 
-  // ============================================================
-  // TRANSACTION EVENTS
-  // ============================================================
 
-  /// Tracks transaction creation
   static void trackTransactionCreated({
-    required String type, // 'income' or 'expense'
+    required String type,
     required double amount,
     required String category,
     required bool isRecurrent,
@@ -250,7 +166,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks transaction edit
   static void trackTransactionEdited({
     required String type,
     required String category,
@@ -262,7 +177,6 @@ class AnalyticsService {
     });
   }
 
-  /// Tracks transaction deletion
   static void trackTransactionDeleted({
     required String type,
     required double amount,
@@ -274,11 +188,7 @@ class AnalyticsService {
     });
   }
 
-  // ============================================================
-  // EVENTOS DE ENGAJAMENTO
-  // ============================================================
 
-  /// Rastreia login do usuário
   static void trackLogin({required String method}) {
     _instance._logEvent('user_login', {
       'method': method, // 'email', 'google', etc
@@ -286,14 +196,12 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia logout do usuário
   static void trackLogout() {
     _instance._logEvent('user_logout', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  /// Rastreia registro de novo usuário
   static void trackSignup({required String method}) {
     _instance._logEvent('user_signup', {
       'method': method,
@@ -301,18 +209,13 @@ class AnalyticsService {
     });
   }
 
-  /// Rastreia atualização de perfil
   static void trackProfileUpdated() {
     _instance._logEvent('profile_updated', {
       'timestamp': DateTime.now().toIso8601String(),
     });
   }
 
-  // ============================================================
-  // EVENTOS DE ERRO
-  // ============================================================
 
-  /// Rastreia erro na aplicação
   static void trackError({
     required String errorType,
     required String errorMessage,
@@ -326,11 +229,7 @@ class AnalyticsService {
     });
   }
 
-  // ============================================================
-  // MÉTODOS INTERNOS
-  // ============================================================
 
-  /// Loga evento (implementação interna)
   void _logEvent(String eventName, Map<String, dynamic> parameters) {
     final event = AnalyticsEvent(
       name: eventName,
@@ -340,30 +239,23 @@ class AnalyticsService {
 
     _events.add(event);
 
-    // Em debug, imprime no console
     if (_debugMode) {
       debugPrint('📊 Analytics: $eventName');
       debugPrint('   Parameters: $parameters');
     }
   }
 
-  // ============================================================
-  // MÉTODOS DE UTILIDADE
-  // ============================================================
 
-  /// Retorna todos os eventos registrados (para debug/demonstração)
   static List<AnalyticsEvent> getEvents() {
     return List.unmodifiable(_instance._events);
   }
 
-  /// Retorna eventos filtrados por nome
   static List<AnalyticsEvent> getEventsByName(String eventName) {
     return _instance._events
         .where((event) => event.name == eventName)
         .toList();
   }
 
-  /// Retorna contagem de eventos por tipo
   static Map<String, int> getEventCounts() {
     final counts = <String, int>{};
     for (final event in _instance._events) {
@@ -372,17 +264,14 @@ class AnalyticsService {
     return counts;
   }
 
-  /// Limpa histórico de eventos (útil para testes)
   static void clearEvents() {
     _instance._events.clear();
     _instance._screenStartTimes.clear();
   }
 
-  /// Retorna tempo total gasto em cada tela
   static Map<String, Duration> getScreenTimes() {
     final times = <String, Duration>{};
     
-    // Calcular tempo de telas que ainda estão abertas
     final now = DateTime.now();
     for (final entry in _instance._screenStartTimes.entries) {
       times[entry.key] = now.difference(entry.value);
@@ -391,7 +280,6 @@ class AnalyticsService {
     return times;
   }
 
-  /// Retorna resumo de analytics para debug
   static String getSummary() {
     final buffer = StringBuffer();
     buffer.writeln('📊 Analytics Summary');
@@ -415,7 +303,6 @@ class AnalyticsService {
   }
 }
 
-/// Modelo de evento de analytics
 class AnalyticsEvent {
   final String name;
   final Map<String, dynamic> parameters;
@@ -432,7 +319,6 @@ class AnalyticsEvent {
     return 'AnalyticsEvent(name: $name, parameters: $parameters, timestamp: $timestamp)';
   }
 
-  /// Converte para JSON (útil para envio ao backend)
   Map<String, dynamic> toJson() {
     return {
       'event_name': name,

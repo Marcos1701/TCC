@@ -15,15 +15,6 @@ from .base import _decimal, logger
 
 
 def calculate_summary(user) -> Dict[str, Decimal]:
-    """
-    Calcula indicadores financeiros de um usuário.
-    Utiliza cache quando disponível e não expirado.
-    
-    Indicadores calculados (Base: Últimos 30 Dias):
-    - TPS (Taxa de Poupança Pessoal): ((Receitas - Despesas) / Receitas) × 100
-    - ILI (Índice de Liquidez Imediata): Reservas / Despesas Essenciais (30 dias)
-    - RDR (Razão Despesas/Renda): Pagamentos de Dívidas / Renda × 100
-    """
     profile, _ = UserProfile.objects.get_or_create(user=user)
     if not profile.should_recalculate_indicators():
         return {
@@ -37,7 +28,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     today = timezone.now().date()
     start_date = today - timedelta(days=30)
     
-    # 1. Receitas (Últimos 30 dias)
     total_income = _decimal(
         Transaction.objects.filter(
             user=user,
@@ -47,7 +37,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
 
-    # 2. Despesas Totais (Últimos 30 dias)
     total_expense = _decimal(
         Transaction.objects.filter(
             user=user,
@@ -57,9 +46,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
 
-    # 3. Pagamentos de Dívidas (Últimos 30 dias) - Para RDR
-    # Soma dos valores vinculados (linked_amount) em TransactionLink
-    # onde a transação de origem (pagamento) ocorreu nos últimos 30 dias.
     source_transaction_ids = Transaction.objects.filter(
         user=user,
         date__gte=start_date,
@@ -73,8 +59,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum('linked_amount'), Decimal("0")))['total']
     )
     
-    # 4. Reserva de Emergência (Acumulado Vitalício) - Para ILI
-    # A reserva é um estoque (saldo), não um fluxo, então considera tudo.
     reserve_transactions = Transaction.objects.filter(
         user=user, 
         category__group=Category.CategoryGroup.SAVINGS
@@ -93,7 +77,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
 
     reserve_balance = reserve_deposits - reserve_withdrawals
 
-    # 5. Despesas Essenciais (Últimos 30 dias) - Para ILI
     essential_expense = _decimal(
         Transaction.objects.filter(
             user=user,
@@ -104,7 +87,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum("amount"), Decimal("0")))["total"]
     )
 
-    # Cálculos Finais
     tps = Decimal("0")
     rdr = Decimal("0")
     ili = Decimal("0")
@@ -142,7 +124,6 @@ def calculate_summary(user) -> Dict[str, Decimal]:
 
 
 def invalidate_indicators_cache(user) -> None:
-    """Invalida o cache de indicadores, forçando recálculo na próxima consulta."""
     try:
         profile = UserProfile.objects.get(user=user)
         profile.indicators_updated_at = None
@@ -152,7 +133,6 @@ def invalidate_indicators_cache(user) -> None:
 
 
 def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dict[str, Dict[str, str]]:
-    """Gera dicas alinhadas às faixas descritas no texto."""
 
     def _quantize(value: Decimal) -> Decimal:
         return value.quantize(Decimal("0.01"))
@@ -252,7 +232,6 @@ def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dic
 
 
 def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
-    """Quebra transações por categoria, agrupando por tipo."""
     buckets: Dict[str, List[Dict[str, str]]] = defaultdict(list)
     queryset = (
         Transaction.objects.filter(user=user, category__isnull=False)
@@ -274,10 +253,6 @@ def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
 
 
 def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
-    """
-    Gera série temporal de fluxo de caixa e indicadores mensais.
-    Inclui dados históricos e projeções baseadas em transações recorrentes.
-    """
     now = timezone.now().date()
     current_month = now.replace(day=1)
     first_day = (now.replace(day=1) - timedelta(days=months * 31)).replace(day=1)
@@ -347,17 +322,8 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         rdr = Decimal("0")
         if income > 0:
             if is_future:
-                # Para projeção futura, ainda usamos despesas recorrentes como proxy para RDR
-                # pois não temos links futuros criados ainda.
-                # Idealmente, deveríamos projetar links recorrentes, mas isso é complexo.
-                # Vamos manter a lógica de despesas recorrentes APENAS para projeção,
-                # ou assumir 0 se quisermos ser estritos.
-                # Por consistência com a mudança, vamos assumir que despesas recorrentes
-                # marcadas como tal são "dívidas" ou compromissos fixos.
                 recurring_debt = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
             else:
-                # Para histórico, usamos os links reais
-                # Buscar IDs de transações do mês/ano específico
                 month_transaction_ids = Transaction.objects.filter(
                     user=user,
                     date__year=current.year,
@@ -392,7 +358,6 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
 
 
 def profile_snapshot(user) -> Dict[str, int]:
-    """Retorna snapshot do perfil do usuário."""
     profile, _ = UserProfile.objects.get_or_create(user=user)
     return {
         "level": profile.level,

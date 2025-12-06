@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/mission.dart';
 import 'mission_progress_detail_widget.dart';
 
-/// Chip de alvo/target da missão.
 class TargetChip extends StatelessWidget {
   const TargetChip(this.target, {super.key});
 
@@ -44,7 +43,6 @@ class TargetChip extends StatelessWidget {
   }
 }
 
-/// Indicador de página do carrossel.
 class PageIndicator extends StatelessWidget {
   const PageIndicator({
     super.key,
@@ -77,7 +75,6 @@ class PageIndicator extends StatelessWidget {
   }
 }
 
-/// Skeleton de carregamento para recomendações.
 class RecommendationSkeleton extends StatelessWidget {
   const RecommendationSkeleton({
     super.key,
@@ -112,7 +109,6 @@ class RecommendationSkeleton extends StatelessWidget {
   }
 }
 
-/// Placeholder quando não há recomendações.
 class RecommendationPlaceholder extends StatelessWidget {
   const RecommendationPlaceholder({super.key});
 
@@ -146,7 +142,6 @@ class RecommendationPlaceholder extends StatelessWidget {
   }
 }
 
-/// Widget de erro para recomendações.
 class RecommendationError extends StatelessWidget {
   const RecommendationError({
     super.key,
@@ -204,7 +199,6 @@ class RecommendationError extends StatelessWidget {
   }
 }
 
-/// Chip de informação genérico.
 class InfoChip extends StatelessWidget {
   const InfoChip({
     super.key,
@@ -242,7 +236,6 @@ class InfoChip extends StatelessWidget {
   }
 }
 
-/// Sheet de preview detalhado da recomendação.
 class RecommendationPreviewSheet extends StatelessWidget {
   const RecommendationPreviewSheet({
     super.key,

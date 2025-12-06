@@ -218,8 +218,7 @@ CORS_ALLOW_CREDENTIALS = env_bool("CORS_ALLOW_CREDENTIALS", True)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
-# Configurações de Cache de Indicadores Financeiros
-INDICATORS_CACHE_TTL = env_int("INDICATORS_CACHE_TTL", 300)  # 5 minutos padrão
+INDICATORS_CACHE_TTL = env_int("INDICATORS_CACHE_TTL", 300)
 
 
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")

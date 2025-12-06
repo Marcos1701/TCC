@@ -7,21 +7,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 
-/// Tipo de card de pagamento.
 enum PaymentCardType {
-  /// Receita (entrada de dinheiro).
   income,
   
-  /// Despesa (saída de dinheiro).
   expense,
 }
 
-/// Card de transação para seleção em pagamentos em lote.
-/// 
-/// Exibe informações de receita ou despesa com opção de seleção
-/// e campo de valor customizável.
 class PaymentTransactionCard extends StatelessWidget {
-  /// Cria um card de transação para pagamento.
   const PaymentTransactionCard({
     super.key,
     required this.transaction,
@@ -34,28 +26,20 @@ class PaymentTransactionCard extends StatelessWidget {
     required this.tokens,
   });
 
-  /// Transação a ser exibida.
   final TransactionModel transaction;
 
-  /// Tipo do card (receita ou despesa).
   final PaymentCardType type;
 
-  /// Se a transação está selecionada.
   final bool isSelected;
 
-  /// Valor selecionado atual.
   final double selectedAmount;
 
-  /// Callback ao alternar seleção.
   final VoidCallback onToggle;
 
-  /// Callback quando o valor muda.
   final ValueChanged<double> onAmountChanged;
 
-  /// Callback ao pressionar botão de valor máximo.
   final VoidCallback onMaxPressed;
 
-  /// Design tokens do tema.
   final AppDecorations tokens;
 
   static final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
@@ -78,7 +62,6 @@ class PaymentTransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Validar ID disponível
     if (transaction.id.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -111,11 +94,9 @@ class PaymentTransactionCard extends StatelessWidget {
               children: [
                 _buildHeader(theme, available, paymentPercentage),
                 
-                // Barra de progresso (apenas para despesas)
                 if (type == PaymentCardType.expense && paymentPercentage > 0) 
                   _buildProgressBar(paymentPercentage),
                 
-                // Campo de valor quando selecionado
                 if (isSelected) _buildValueInput(theme, available),
               ],
             ),
@@ -267,7 +248,6 @@ class PaymentTransactionCard extends StatelessWidget {
                   final cleanValue = value.replaceAll('.', '').replaceAll(',', '.');
                   final amount = double.tryParse(cleanValue) ?? 0.0;
                   
-                  // Validar limites
                   if (amount < 0) return;
                   if (amount > 999999999.99) return;
                   
@@ -288,19 +268,15 @@ class PaymentTransactionCard extends StatelessWidget {
   }
 }
 
-/// Card vazio para exibir mensagem quando não há transações.
 class EmptyTransactionCard extends StatelessWidget {
-  /// Cria um card vazio.
   const EmptyTransactionCard({
     super.key,
     required this.message,
     required this.tokens,
   });
 
-  /// Mensagem a ser exibida.
   final String message;
 
-  /// Design tokens do tema.
   final AppDecorations tokens;
 
   @override
@@ -325,9 +301,7 @@ class EmptyTransactionCard extends StatelessWidget {
   }
 }
 
-/// Header de seção para lista de transações.
 class TransactionSectionHeader extends StatelessWidget {
-  /// Cria um header de seção.
   const TransactionSectionHeader({
     super.key,
     required this.icon,
@@ -335,13 +309,10 @@ class TransactionSectionHeader extends StatelessWidget {
     required this.color,
   });
 
-  /// Ícone da seção.
   final IconData icon;
 
-  /// Título da seção.
   final String title;
 
-  /// Cor do ícone.
   final Color color;
 
   @override
@@ -364,9 +335,7 @@ class TransactionSectionHeader extends StatelessWidget {
   }
 }
 
-/// Resumo de valores selecionados para pagamento.
 class PaymentSummaryRow extends StatelessWidget {
-  /// Cria uma linha de resumo.
   const PaymentSummaryRow({
     super.key,
     required this.incomeTotal,
@@ -374,13 +343,10 @@ class PaymentSummaryRow extends StatelessWidget {
     required this.balance,
   });
 
-  /// Total de receitas selecionadas.
   final double incomeTotal;
 
-  /// Total de despesas selecionadas.
   final double expenseTotal;
 
-  /// Saldo restante.
   final double balance;
 
   static final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');

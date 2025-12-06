@@ -281,15 +281,11 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
         }
       }
 
-      // Não marca mais como completo no storage local
-      // O callback onComplete irá marcar na API através do auth_flow
 
-      // Atualiza sessão para refletir as novas transações
       if (mounted) {
         final session = SessionScope.of(context);
         await session.refreshSession();
         
-        // Pequeno delay para garantir que tudo foi atualizado
         await Future.delayed(const Duration(milliseconds: 300));
       }
 
@@ -307,10 +303,9 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
         );
       }
 
-      // Chama callback para notificar conclusão
       widget.onComplete?.call();
 
-      Navigator.of(context).pop(true); // Retorna true indicando sucesso
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
         FeedbackService.showError(
@@ -335,10 +330,8 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header com progresso
             _buildHeader(theme),
             
-            // Conteúdo das páginas
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -351,7 +344,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
               ),
             ),
 
-            // Botões de navegação
             _buildNavigationButtons(theme),
           ],
         ),
@@ -386,7 +378,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
             ],
           ),
           const SizedBox(height: 16),
-          // Indicador de progresso
           Row(
             children: List.generate(2, (index) {
               final isActive = index == _currentPage;
@@ -558,7 +549,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
           ),
           const SizedBox(height: 24),
 
-          // Receitas
           _buildSectionHeader(
             icon: Icons.arrow_upward_rounded,
             title: 'Receitas',
@@ -570,7 +560,6 @@ class _InitialSetupPageState extends State<InitialSetupPage> {
           
           const SizedBox(height: 32),
 
-          // Despesas
           _buildSectionHeader(
             icon: Icons.arrow_downward_rounded,
             title: 'Despesas',

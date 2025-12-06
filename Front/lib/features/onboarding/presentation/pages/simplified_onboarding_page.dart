@@ -237,7 +237,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 setState(() {
                   _monthlyIncome = CurrencyInputFormatter.parse(value);
                   _incomeError = null;
-                  // Re-validar gastos quando a renda muda
                   if (_essentialExpenses > _monthlyIncome &&
                       _monthlyIncome > 0) {
                     _expenseError =
@@ -322,7 +321,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
 
             const SizedBox(height: 16),
 
-            // Resumo visual dos valores
             if (_monthlyIncome > 0) ...[
               Container(
                 padding: const EdgeInsets.all(16),
@@ -535,7 +533,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
   }
 
   Future<void> _submitOnboarding() async {
-    // Validar antes de enviar
     _validateFields();
     if (_incomeError != null || _expenseError != null) {
       return;
@@ -550,7 +547,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
       );
 
       if (mounted) {
-        // Invalida o cache para forçar atualização da home
         CacheManager().invalidateAll();
 
         setState(() {
@@ -620,7 +616,6 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
   }
 
   void _completeOnboarding() {
-    // Rastreia conclusão do onboarding
     final daysToComplete =
         DateTime.now().difference(_onboardingStartTime).inDays;
     AnalyticsService.trackOnboardingCompleted(
@@ -628,15 +623,12 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
       stepsCompleted: 3,
     );
 
-    // Invalida o cache novamente para garantir atualização completa
     CacheManager().invalidateAll();
 
-    // Fecha a página de onboarding e retorna para o AuthFlow gerenciar a navegação
-    Navigator.of(context).pop(true); // Retorna true para indicar que completou
+    Navigator.of(context).pop(true);
   }
 
   void _skipOnboarding() {
-    // Fecha a página de onboarding sem completar
     Navigator.of(context).pop();
   }
 }

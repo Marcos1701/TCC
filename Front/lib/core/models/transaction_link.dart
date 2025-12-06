@@ -68,10 +68,8 @@ class TransactionLinkModel {
     }
   }
 
-  /// Retorna o identificador preferencial
   String get identifier => id;
   
-  /// Verifica se possui UUID
   bool get hasUuid => true;
 }
 

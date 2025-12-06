@@ -8,7 +8,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import 'chart_helpers.dart';
 
-/// Gráfico de linha mostrando evolução temporal de receitas e despesas.
 class CashflowChart extends StatelessWidget {
   const CashflowChart({
     super.key,

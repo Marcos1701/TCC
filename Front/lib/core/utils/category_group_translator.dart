@@ -1,7 +1,5 @@
-/// Helper to translate category groups from English to Portuguese
 class CategoryGroupTranslator {
   static const Map<String, String> _translations = {
-    // Essential expenses
     'ESSENTIAL_EXPENSE': 'Essencial',
     'HOUSING': 'Moradia',
     'UTILITIES': 'Utilidades',
@@ -10,7 +8,6 @@ class CategoryGroupTranslator {
     'HEALTHCARE': 'Saúde',
     'INSURANCE': 'Seguros',
     
-    // Lifestyle expenses
     'LIFESTYLE_EXPENSE': 'Estilo de Vida',
     'ENTERTAINMENT': 'Entretenimento',
     'SHOPPING': 'Compras',
@@ -21,13 +18,11 @@ class CategoryGroupTranslator {
     'PETS': 'Pets',
     'GIFTS': 'Presentes',
     
-    // Investments and savings
     'SAVINGS': 'Poupança',
     'INVESTMENT': 'Investimentos',
     'EMERGENCY_FUND': 'Reserva de Emergência',
     'RETIREMENT': 'Aposentadoria',
     
-    // Income
     'INCOME': 'Receita',
     'SALARY': 'Salário',
     'FREELANCE': 'Freelance',
@@ -37,12 +32,10 @@ class CategoryGroupTranslator {
     'REFUND': 'Reembolso',
     'OTHER_INCOME': 'Outras Receitas',
     
-    // Other
     'OTHER': 'Outros',
     'UNCATEGORIZED': 'Sem Categoria',
   };
 
-  /// Translates a category group from English to Portuguese
   static String translate(String? group) {
     if (group == null || group.isEmpty) {
       return 'Outros';
@@ -50,13 +43,11 @@ class CategoryGroupTranslator {
     return _translations[group.toUpperCase()] ?? group;
   }
 
-  /// Returns the color associated with a group
   static String getGroupColor(String? group) {
     if (group == null) return '#9E9E9E';
     
     final normalizedGroup = group.toUpperCase();
     
-    // Essential - blue shades
     if (normalizedGroup.contains('ESSENTIAL') || 
         normalizedGroup.contains('HOUSING') ||
         normalizedGroup.contains('UTILITIES') ||
@@ -64,38 +55,32 @@ class CategoryGroupTranslator {
       return '#2196F3';
     }
     
-    // Transportation and healthcare - green shades
     if (normalizedGroup.contains('TRANSPORTATION') ||
         normalizedGroup.contains('HEALTHCARE')) {
       return '#4CAF50';
     }
     
-    // Lifestyle - purple/pink shades
     if (normalizedGroup.contains('LIFESTYLE') ||
         normalizedGroup.contains('ENTERTAINMENT') ||
         normalizedGroup.contains('SHOPPING')) {
       return '#9C27B0';
     }
     
-    // Investments and savings - gold shades
     if (normalizedGroup.contains('SAVINGS') ||
         normalizedGroup.contains('INVESTMENT') ||
         normalizedGroup.contains('EMERGENCY')) {
       return '#FFC107';
     }
     
-    // Income - dark green shades
     if (normalizedGroup.contains('INCOME') ||
         normalizedGroup.contains('SALARY') ||
         normalizedGroup.contains('FREELANCE')) {
       return '#4CAF50';
     }
     
-    // Default - gray
     return '#9E9E9E';
   }
 
-  /// Returns a suggested icon for a group
   static String getGroupIcon(String? group) {
     if (group == null) return '📦';
     

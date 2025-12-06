@@ -1,25 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Funções auxiliares para formatação de dados em gráficos.
 class ChartHelpers {
   const ChartHelpers._();
 
-  /// Calcula intervalo apropriado para os gráficos baseado no valor máximo.
   static double calculateInterval(double maxValue) {
     if (maxValue == 0) return 100;
 
-    // Determina a ordem de magnitude
     final magnitude = (maxValue / 5).ceilToDouble();
     const base = 10.0;
 
-    // Calcula um intervalo "arredondado"
     final niceInterval = (magnitude / base.toInt()).ceilToDouble() * base;
 
-    // Retorna um valor mínimo de 100 para evitar intervalos muito pequenos
     return niceInterval < 100 ? 100 : niceInterval;
   }
 
-  /// Formata o mês para exibição nas labels do gráfico (ex: "2025-01" -> "JAN").
   static String formatMonthLabel(String monthStr) {
     try {
       final parts = monthStr.split('-');
@@ -40,7 +34,6 @@ class ChartHelpers {
     }
   }
 
-  /// Formata o mês para exibição completa no tooltip (ex: "2025-01" -> "Janeiro/2025").
   static String formatMonthName(String monthStr) {
     try {
       final parts = monthStr.split('-');
@@ -62,14 +55,11 @@ class ChartHelpers {
     }
   }
 
-  /// Calcula cor para cada categoria baseado no índice.
   static Color getCategoryColor(int index, int total, Color baseColor) {
-    // Converte a cor base para HSL
     final hslColor = HSLColor.fromColor(baseColor);
 
-    // Varia o matiz (hue) e luminosidade para criar variedade visual
-    final hueVariation = (index / total) * 60; // Variação de até 60 graus
-    final lightnessVariation = (index / total) * 0.2; // Variação de luminosidade
+    final hueVariation = (index / total) * 60;
+    final lightnessVariation = (index / total) * 0.2;
 
     return HSLColor.fromAHSL(
       1.0,
@@ -80,7 +70,6 @@ class ChartHelpers {
   }
 }
 
-/// Item de legenda para gráficos.
 class LegendItem extends StatelessWidget {
   const LegendItem({
     super.key,
@@ -118,7 +107,6 @@ class LegendItem extends StatelessWidget {
   }
 }
 
-/// Item de legenda com suporte a linha tracejada.
 class DashedLegendItem extends StatelessWidget {
   const DashedLegendItem({
     super.key,
@@ -163,7 +151,6 @@ class DashedLegendItem extends StatelessWidget {
   }
 }
 
-/// CustomPainter para desenhar uma linha tracejada.
 class DashedLinePainter extends CustomPainter {
   const DashedLinePainter({required this.color});
 

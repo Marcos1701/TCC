@@ -1,6 +1,3 @@
-"""
-Validadores para missões relacionadas a transações e pagamentos.
-"""
 
 from datetime import timedelta
 from typing import Any, Dict, Tuple
@@ -12,11 +9,6 @@ from .base import BaseMissionValidator
 
 
 class TransactionConsistencyValidator(BaseMissionValidator):
-    """
-    Validador para missões de consistência no registro de transações.
-    
-    Foco: Registrar X transações por semana durante Y semanas.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         from ..models import Transaction
@@ -75,11 +67,6 @@ class TransactionConsistencyValidator(BaseMissionValidator):
 
 
 class PaymentDisciplineValidator(BaseMissionValidator):
-    """
-    Validador para missões de disciplina em pagamentos.
-    
-    Foco: Registrar X pagamentos (transações com is_paid=True) no período.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         from ..models import Transaction

@@ -1,6 +1,3 @@
-"""
-Modelos Transaction e TransactionLink - Transações financeiras e vinculações.
-"""
 
 from datetime import timedelta
 from decimal import Decimal
@@ -21,11 +18,6 @@ from .category import Category
 
 
 class Transaction(models.Model):
-    """
-    Transação financeira (receita ou despesa).
-    
-    Usa UUID como chave primária para melhor integração com frontend.
-    """
     
     class TransactionType(models.TextChoices):
         INCOME = "INCOME", "Receita"
@@ -221,11 +213,6 @@ class Transaction(models.Model):
 
 
 class TransactionLink(models.Model):
-    """
-    Vinculação entre transações (ex: receita pagando despesa).
-    
-    Permite rastrear de onde veio o dinheiro para cada pagamento.
-    """
     
     class LinkType(models.TextChoices):
         EXPENSE_PAYMENT = "EXPENSE_PAYMENT", "Pagamento de despesa"

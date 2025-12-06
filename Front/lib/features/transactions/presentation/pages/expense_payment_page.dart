@@ -95,7 +95,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
 
       if (!mounted) return;
       
-      // Invalida cache após pagar despesa
       _cacheManager.invalidateAfterPayment();
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -199,7 +198,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
   Widget _buildStepper() {
     return Column(
       children: [
-        // Progress indicator
         Container(
           padding: const EdgeInsets.all(16),
           color: const Color(0xFF1E1E1E),
@@ -214,7 +212,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
           ),
         ),
         
-        // Content
         Expanded(
           child: IndexedStack(
             index: _currentStep,
@@ -226,7 +223,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
           ),
         ),
         
-        // Navigation buttons
         Container(
           padding: const EdgeInsets.all(16),
           color: const Color(0xFF1E1E1E),
@@ -567,7 +563,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
     final remainingDebt = debt.availableAmount ?? debt.amount;
     final maxAmount = availableIncome < remainingDebt ? availableIncome : remainingDebt;
 
-    // Atualizar texto do controller apenas se diferente
     final formattedMax = CurrencyInputFormatter.format(maxAmount);
     if (_amountController.text.isEmpty || _amountController.text != formattedMax) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -630,7 +625,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              // Mostra 'Máximo' apenas se a despesa for maior que a receita disponível
               if (remainingDebt > availableIncome)
                 Expanded(
                   child: OutlinedButton(
@@ -649,7 +643,6 @@ class _ExpensePaymentPageState extends State<ExpensePaymentPage> {
                     ),
                   ),
                 ),
-              // Mostra 'Quitar' apenas se a despesa for menor ou igual à receita disponível
               if (remainingDebt <= availableIncome)
                 Expanded(
                   child: OutlinedButton(

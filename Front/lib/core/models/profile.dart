@@ -18,12 +18,11 @@ class ProfileModel {
   final bool isFirstAccess;
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
-    // Retorna valores padrão se o mapa estiver vazio (usuário sem dados ainda)
     if (map.isEmpty) {
       return const ProfileModel(
         level: 1,
         experiencePoints: 0,
-        nextLevelThreshold: 150,  // Corrigido: nível 1→2 requer 150 XP
+        nextLevelThreshold: 150,
         targetTps: 0,
         targetRdr: 0,
         targetIli: 0.0,
@@ -56,14 +55,10 @@ class UserHeader {
   final String name;
   final String email;
   
-  /// Indica se o usuário é staff (acesso administrativo)
   final bool isStaff;
   
-  /// Indica se o usuário é superuser (acesso total ao sistema)
   final bool isSuperuser;
 
-  /// Verifica se o usuário tem privilégios de administrador
-  /// Retorna true se for staff OU superuser
   bool get isAdmin => isStaff || isSuperuser;
 
   factory UserHeader.fromMap(Map<String, dynamic> map) {

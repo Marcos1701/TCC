@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/missions_viewmodel.dart';
 
-/// Widget de monitoramento de qualidade de missões (debug/admin)
 class MissionQualityMonitor extends StatelessWidget {
   final MissionsViewModel viewModel;
   final bool alwaysShow;
@@ -20,7 +19,6 @@ class MissionQualityMonitor extends StatelessWidget {
         final stats = viewModel.missionQualityStats;
         final invalidCount = stats['invalid'] as int;
 
-        // Só mostra se houver problemas ou se alwaysShow = true
         if (!alwaysShow && invalidCount == 0) {
           return const SizedBox.shrink();
         }

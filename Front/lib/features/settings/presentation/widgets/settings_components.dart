@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Item de estatística do perfil do usuário.
 class ProfileStatItem extends StatelessWidget {
-  /// Cria um item de estatística.
   const ProfileStatItem({
     super.key,
     required this.label,
@@ -13,13 +11,10 @@ class ProfileStatItem extends StatelessWidget {
     required this.icon,
   });
 
-  /// Rótulo da estatística.
   final String label;
 
-  /// Valor da estatística.
   final String value;
 
-  /// Ícone da estatística.
   final IconData icon;
 
   @override
@@ -48,9 +43,7 @@ class ProfileStatItem extends StatelessWidget {
   }
 }
 
-/// Tile de configuração reutilizável.
 class SettingsTile extends StatelessWidget {
-  /// Cria um tile de configuração.
   const SettingsTile({
     super.key,
     required this.icon,
@@ -60,19 +53,14 @@ class SettingsTile extends StatelessWidget {
     required this.tokens,
   });
 
-  /// Ícone do tile.
   final IconData icon;
 
-  /// Título do tile.
   final String title;
 
-  /// Subtítulo do tile.
   final String subtitle;
 
-  /// Callback ao tocar.
   final VoidCallback? onTap;
 
-  /// Design tokens do tema.
   final AppDecorations tokens;
 
   @override
@@ -140,9 +128,7 @@ class SettingsTile extends StatelessWidget {
   }
 }
 
-/// Bottom sheet para editar perfil do usuário.
 class EditProfileSheet extends StatefulWidget {
-  /// Cria um sheet de edição de perfil.
   const EditProfileSheet({
     super.key,
     required this.currentName,
@@ -150,13 +136,10 @@ class EditProfileSheet extends StatefulWidget {
     required this.onSave,
   });
 
-  /// Nome atual do usuário.
   final String currentName;
 
-  /// Email atual do usuário.
   final String currentEmail;
 
-  /// Callback ao salvar.
   final void Function(String name, String email) onSave;
 
   @override
@@ -281,15 +264,12 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   }
 }
 
-/// Bottom sheet para alterar senha do usuário.
 class ChangePasswordSheet extends StatefulWidget {
-  /// Cria um sheet de alteração de senha.
   const ChangePasswordSheet({
     super.key,
     required this.onSave,
   });
 
-  /// Callback ao salvar.
   final void Function(String currentPassword, String newPassword) onSave;
 
   @override
@@ -461,15 +441,12 @@ class _ChangePasswordSheetState extends State<ChangePasswordSheet> {
   }
 }
 
-/// Dialog de confirmação para exclusão de conta.
 class DeleteAccountDialog extends StatefulWidget {
-  /// Cria um dialog de exclusão de conta.
   const DeleteAccountDialog({
     super.key,
     required this.onConfirm,
   });
 
-  /// Callback ao confirmar exclusão.
   final void Function(String password) onConfirm;
 
   @override
@@ -559,9 +536,7 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
   }
 }
 
-/// Bottom sheet para editar metas financeiras (TPS, RDR, ILI).
 class EditFinancialTargetsSheet extends StatefulWidget {
-  /// Cria um sheet de edição de metas financeiras.
   const EditFinancialTargetsSheet({
     super.key,
     required this.currentTps,
@@ -570,16 +545,12 @@ class EditFinancialTargetsSheet extends StatefulWidget {
     required this.onSave,
   });
 
-  /// Meta atual de TPS (%).
   final int currentTps;
 
-  /// Meta atual de RDR (%).
   final int currentRdr;
 
-  /// Meta atual de ILI (meses).
   final double currentIli;
 
-  /// Callback ao salvar.
   final void Function(int tps, int rdr, double ili) onSave;
 
   @override
@@ -639,7 +610,6 @@ class _EditFinancialTargetsSheetState extends State<EditFinancialTargetsSheet> {
             ),
             const SizedBox(height: 24),
             
-            // TPS Slider
             _TargetSlider(
               label: 'Taxa de Poupança (TPS)',
               value: _tpsValue,
@@ -653,7 +623,6 @@ class _EditFinancialTargetsSheetState extends State<EditFinancialTargetsSheet> {
             ),
             const SizedBox(height: 20),
             
-            // RDR Slider
             _TargetSlider(
               label: 'Limite de Dívidas (RDR)',
               value: _rdrValue,
@@ -667,7 +636,6 @@ class _EditFinancialTargetsSheetState extends State<EditFinancialTargetsSheet> {
             ),
             const SizedBox(height: 20),
             
-            // ILI Slider
             _TargetSlider(
               label: 'Reserva de Emergência (ILI)',
               value: _iliValue,
@@ -705,7 +673,6 @@ class _EditFinancialTargetsSheetState extends State<EditFinancialTargetsSheet> {
   }
 }
 
-/// Widget auxiliar para slider de meta.
 class _TargetSlider extends StatelessWidget {
   const _TargetSlider({
     required this.label,

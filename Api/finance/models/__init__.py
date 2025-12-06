@@ -1,8 +1,3 @@
-"""
-Pacote de modelos do app finance.
-
-Este arquivo exporta todos os modelos para manter compatibilidade com imports existentes.
-"""
 
 from .base import (
     MAX_AMOUNT,
@@ -33,7 +28,6 @@ from .admin import XPTransaction, AdminActionLog
 
 
 __all__ = [
-    # Constantes
     'MAX_AMOUNT',
     'MAX_LEVEL',
     'MIN_LEVEL',
@@ -46,7 +40,6 @@ __all__ = [
     'MAX_REWARD_POINTS',
     'MAX_DEADLINE_YEARS',
     'MAX_FUTURE_DATE_YEARS',
-    # Modelos
     'UserProfile',
     'Category',
     'Transaction',

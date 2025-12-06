@@ -11,9 +11,7 @@ import '../../../../core/repositories/transaction_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
 
-// ========== DIA 4-5: NOVOS WIDGETS SIMPLIFICADOS ==========
 
-/// Card de resumo mensal simplificado
 class MonthSummaryCard extends StatelessWidget {
   const MonthSummaryCard({
     super.key,
@@ -136,7 +134,6 @@ class SummaryMetric extends StatelessWidget {
   }
 }
 
-/// Card de desafio da semana em destaque
 class WeeklyChallengeCard extends StatelessWidget {
   const WeeklyChallengeCard({
     super.key,
@@ -225,17 +222,14 @@ class WeeklyChallengeCard extends StatelessWidget {
   }
 }
 
-/// Card de ações rápidas
 class QuickActionsCard extends StatelessWidget {
   const QuickActionsCard({
     super.key,
     required this.onAddTransaction,
-    required this.onViewGoals,
     required this.onViewAnalysis,
   });
 
   final VoidCallback onAddTransaction;
-  final VoidCallback onViewGoals;
   final VoidCallback onViewAnalysis;
 
   @override
@@ -266,12 +260,6 @@ class QuickActionsCard extends StatelessWidget {
                   label: 'Adicionar',
                   color: Colors.green,
                   onTap: onAddTransaction,
-                ),
-                QuickActionButton(
-                  icon: Icons.flag,
-                  label: 'Metas',
-                  color: Colors.blue,
-                  onTap: onViewGoals,
                 ),
                 QuickActionButton(
                   icon: Icons.analytics,
@@ -335,7 +323,6 @@ class QuickActionButton extends StatelessWidget {
   }
 }
 
-/// Seção de transações recentes (5 últimas)
 class RecentTransactionsSection extends StatefulWidget {
   const RecentTransactionsSection({
     super.key,
@@ -390,7 +377,6 @@ class _RecentTransactionsSectionState extends State<RecentTransactionsSection> {
         transaction: transaction,
         repository: transactionRepository,
         onUpdate: () {
-          // Recarregar transações após atualização
           _loadTransactions();
         },
       ),
@@ -472,7 +458,6 @@ class SimpleTransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIncome = transaction.type == 'INCOME';
     final color = isIncome ? AppColors.support : AppColors.alert;
-    // Receita = seta pra cima (dinheiro entrando), Despesa = seta pra baixo (dinheiro saindo)
     final icon = isIncome ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
 
     return Material(
@@ -550,7 +535,6 @@ class SimpleTransactionTile extends StatelessWidget {
   }
 }
 
-/// Seção de pagamentos recentes
 class RecentPaymentsCard extends StatefulWidget {
   const RecentPaymentsCard({
     super.key,

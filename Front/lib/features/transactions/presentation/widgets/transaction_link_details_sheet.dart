@@ -5,7 +5,6 @@ import '../../../../core/models/transaction_link.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Sheet que exibe detalhes de um link de transacao.
 class TransactionLinkDetailsSheet extends StatelessWidget {
   const TransactionLinkDetailsSheet({
     super.key,
@@ -115,7 +114,6 @@ class TransactionLinkDetailsSheet extends StatelessWidget {
   }
 }
 
-/// Handle do sheet (barra superior).
 class SheetHandle extends StatelessWidget {
   const SheetHandle({super.key});
 
@@ -133,7 +131,6 @@ class SheetHandle extends StatelessWidget {
   }
 }
 
-/// Header com icone e informacoes do link.
 class LinkDetailsHeader extends StatelessWidget {
   const LinkDetailsHeader({super.key, required this.link});
 
@@ -179,7 +176,6 @@ class LinkDetailsHeader extends StatelessWidget {
   }
 }
 
-/// Card com valor vinculado.
 class LinkedAmountCard extends StatelessWidget {
   const LinkedAmountCard({
     super.key,
@@ -220,7 +216,6 @@ class LinkedAmountCard extends StatelessWidget {
   }
 }
 
-/// Card com informacoes de uma transacao (receita ou despesa).
 class TransactionInfoCard extends StatelessWidget {
   const TransactionInfoCard({
     super.key,
@@ -306,7 +301,6 @@ class TransactionInfoCard extends StatelessWidget {
   }
 }
 
-/// Secao de descricao do link.
 class DescriptionSection extends StatelessWidget {
   const DescriptionSection({super.key, required this.description});
 
@@ -335,7 +329,6 @@ class DescriptionSection extends StatelessWidget {
   }
 }
 
-/// Botoes de acao do sheet (fechar/remover).
 class LinkActionButtons extends StatelessWidget {
   const LinkActionButtons({super.key, required this.onDelete});
 

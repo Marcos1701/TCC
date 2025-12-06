@@ -1,6 +1,3 @@
-"""
-Views para gerenciamento de missões e progresso de missões.
-"""
 
 import logging
 from collections import Counter, defaultdict
@@ -28,12 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 class MissionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para CRUD completo de missões.
-    
-    - LIST/RETRIEVE: Qualquer usuário autenticado (apenas missões ativas)
-    - CREATE/UPDATE/DELETE: Apenas admins (is_staff ou is_superuser)
-    """
     serializer_class = MissionSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = [
@@ -50,7 +41,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     ordering = ['priority', '-created_at']
 
     def _get_tier_level_range(self, tier):
-        """Retorna o range de níveis para um tier específico."""
         tier_ranges = {
             'BEGINNER': (1, 5),
             'INTERMEDIATE': (6, 15),
@@ -59,13 +49,11 @@ class MissionViewSet(viewsets.ModelViewSet):
         return tier_ranges.get(tier, (1, 100))
     
     def get_permissions(self):
-        """Define permissões baseadas na ação."""
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        """Retorna missões com filtros customizados."""
         queryset = Mission.objects.all().select_related(
             'target_category'
         ).prefetch_related(
@@ -99,26 +87,22 @@ class MissionViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        """Valida e cria nova missão."""
         mission = serializer.save()
         logger.info(f"Missão '{mission.title}' criada por admin {self.request.user.username}")
         return mission
     
     def perform_update(self, serializer):
-        """Valida e atualiza missão existente."""
         mission = serializer.save()
         logger.info(f"Missão '{mission.title}' atualizada por admin {self.request.user.username}")
         return mission
     
     def perform_destroy(self, instance):
-        """Desativa missão ao invés de deletar (soft delete)."""
         instance.is_active = False
         instance.save()
         logger.info(f"Missão '{instance.title}' desativada por admin {self.request.user.username}")
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def duplicate(self, request, pk=None):
-        """Duplica uma missão existente."""
         original_mission = self.get_object()
         title_suffix = request.data.get('title_suffix', ' - Cópia')
         
@@ -157,7 +141,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def toggle_active(self, request, pk=None):
-        """Ativa/desativa uma missão."""
         mission = self.get_object()
         mission.is_active = not mission.is_active
         mission.save()
@@ -174,7 +157,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def by_validation_type(self, request):
-        """Lista missões agrupadas por validation_type."""
         queryset = self.filter_queryset(self.get_queryset())
         
         missions_by_type = defaultdict(list)
@@ -187,7 +169,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):
-        """Retorna estatísticas sobre missões."""
         queryset = self.filter_queryset(self.get_queryset())
         
         stats = {
@@ -209,7 +190,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def recommend(self, request):
-        """Recomenda missões baseado em análise contextual."""
         from ..services import analyze_user_context, calculate_mission_priorities
         
         limit = int(request.query_params.get('limit', 5))
@@ -250,7 +230,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='by-category/(?P<category_id>[^/.]+)')
     def by_category(self, request, category_id=None):
-        """Retorna missões por categoria."""
         if not category_id:
             category_id = request.query_params.get('category_id')
         
@@ -282,7 +261,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated], url_path='context-analysis')
     def context_analysis(self, request):
-        """Análise contextual completa do usuário."""
         from ..services import analyze_user_context, identify_improvement_opportunities
         
         try:
@@ -312,7 +290,6 @@ class MissionViewSet(viewsets.ModelViewSet):
         })
     
     def _get_recommendation_reason(self, mission, context, score):
-        """Gera razão para recomendação baseada no score e contexto."""
         at_risk = context.get('at_risk_indicators', [])
         
         for indicator in at_risk:
@@ -331,7 +308,6 @@ class MissionViewSet(viewsets.ModelViewSet):
             return "Adequada para desenvolvimento contínuo"
     
     def _opportunity_to_action(self, opportunity):
-        """Converte oportunidade em ação sugerida."""
         opp_type = opportunity.get('type')
         
         if opp_type == 'CATEGORY_GROWTH':
@@ -344,15 +320,6 @@ class MissionViewSet(viewsets.ModelViewSet):
                 'data': opportunity['data']
             }
         
-        elif opp_type == 'GOAL_STAGNANT':
-            goal_name = opportunity['data'].get('goal_name')
-            days = opportunity['data'].get('days_stagnant', 0)
-            return {
-                'action': 'RESUME_GOAL_PROGRESS',
-                'description': f"Retomar progresso na meta '{goal_name}' (estagnada há {days} dias)",
-                'priority': opportunity.get('priority'),
-                'data': opportunity['data']
-            }
         
         elif opp_type in ['INDICATOR_BELOW_TARGET', 'INDICATOR_ABOVE_TARGET']:
             return {
@@ -366,7 +333,6 @@ class MissionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def templates(self, request):
-        """Lista templates disponíveis para geração de missões."""
         from ..mission_templates import (
             ONBOARDING_TEMPLATES,
             TPS_TEMPLATES,
@@ -413,7 +379,6 @@ class MissionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated], url_path='generate-from-template')
     def generate_from_template(self, request):
-        """Gera uma missão a partir de um template."""
         from ..mission_templates import generate_from_template as gen_template
         from ..services import calculate_summary
         
@@ -426,7 +391,6 @@ class MissionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Parse template_key (format: MISSION_TYPE_INDEX)
         parts = template_key.rsplit('_', 1)
         if len(parts) != 2:
             return Response(
@@ -474,7 +438,6 @@ class MissionViewSet(viewsets.ModelViewSet):
         
         template = templates[index]
         
-        # Get user metrics
         summary = calculate_summary(request.user)
         current_metrics = {
             'tps': summary.get('tps', 0),
@@ -485,12 +448,10 @@ class MissionViewSet(viewsets.ModelViewSet):
         try:
             mission_data = gen_template(template, 'INTERMEDIATE', current_metrics)
             
-            # Apply overrides
             for key, value in overrides.items():
                 if key in mission_data:
                     mission_data[key] = value
             
-            # Create mission for user
             mission = Mission.objects.create(
                 title=mission_data.get('title', 'Nova Missão'),
                 description=mission_data.get('description', ''),
@@ -518,7 +479,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_template_missions(self, request):
-        """Gera missões usando templates pré-definidos - ADMIN ONLY."""
         import time
         
         from ..mission_templates import generate_mission_batch_from_templates
@@ -610,7 +570,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_ai_missions(self, request):
-        """Gera missões usando IA (Gemini) - ADMIN ONLY."""
         from ..ai_services import generate_hybrid_missions
         
         tier = request.data.get('tier', 'BEGINNER')
@@ -701,7 +660,6 @@ class MissionViewSet(viewsets.ModelViewSet):
         url_path='generation_status/(?P<task_id>[^/.]+)'
     )
     def generation_status(self, request, task_id=None):
-        """Verifica status de uma task de geração assíncrona."""
         from celery.result import AsyncResult
         from django.core.cache import cache
         
@@ -776,7 +734,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def generate_auto(self, request):
-        """Gera missões automaticamente com distribuição por tier."""
         import random
         
         total = request.data.get('total', 100)
@@ -863,7 +820,6 @@ class MissionViewSet(viewsets.ModelViewSet):
 
 
 class MissionProgressViewSet(viewsets.ModelViewSet):
-    """ViewSet para gerenciamento de progresso de missões."""
     serializer_class = MissionProgressSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ['get', 'put', 'patch', 'head', 'options']
@@ -887,15 +843,12 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
         partial = kwargs.pop('partial', False)
         
         with transaction.atomic():
-            # Lock the row for update
             instance = MissionProgress.objects.select_for_update().get(pk=kwargs['pk'])
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
 
             if getattr(instance, '_prefetched_objects_cache', None):
-                # If 'prefetch_related' has been applied to a queryset, we need to
-                # forcibly invalidate the prefetch cache on the instance.
                 instance._prefetched_objects_cache = {}
 
             return Response(serializer.data)
@@ -919,7 +872,6 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def details(self, request, pk=None):
-        """Retorna detalhes completos da missão incluindo breakdown de progresso."""
         mission_progress = self.get_object()
         serializer = self.get_serializer(mission_progress)
         
@@ -933,7 +885,6 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
         return Response(data)
     
     def _calculate_progress_breakdown(self, mission_progress):
-        """Calcula breakdown detalhado do progresso por critério."""
         from ..services import calculate_summary
         
         mission = mission_progress.mission
@@ -1039,7 +990,6 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
         return breakdown
     
     def _get_progress_timeline(self, mission_progress):
-        """Retorna timeline simplificado do progresso."""
         from django.utils import timezone
         
         timeline = []

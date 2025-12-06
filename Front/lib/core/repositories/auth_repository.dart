@@ -23,7 +23,6 @@ class AuthRepository {
       },
     );
     
-    // Check if response is an error (even if validateStatus allows it)
     if (response.statusCode != null && response.statusCode! >= 400) {
       throw DioException(
         requestOptions: response.requestOptions,
@@ -51,7 +50,6 @@ class AuthRepository {
       },
     );
     
-    // Check if response is an error (even if validateStatus allows it)
     if (response.statusCode != null && response.statusCode! >= 400) {
       throw DioException(
         requestOptions: response.requestOptions,

@@ -1,28 +1,22 @@
-/// Utilities for formatting and validating financial indicators
 library;
 
-/// Formats an indicator value with validation and error handling
 String formatIndicator(double? value, {int decimals = 1, String suffix = '%'}) {
   if (value == null || value.isNaN || value.isInfinite) {
     return '0.0$suffix';
   }
   
-  // Ensure value is within reasonable limits
   final clampedValue = value.clamp(-9999.99, 9999.99);
   return '${clampedValue.toStringAsFixed(decimals)}$suffix';
 }
 
-/// Validates and sanitizes an indicator value
 double sanitizeIndicatorValue(double? value, {double defaultValue = 0.0}) {
   if (value == null || value.isNaN || value.isInfinite) {
     return defaultValue;
   }
   
-  // Limit to reasonable values
   return value.clamp(-9999.99, 9999.99);
 }
 
-/// Returns appropriate color for an indicator based on severity
 String getIndicatorColor(String severity) {
   switch (severity) {
     case 'good':
@@ -38,7 +32,6 @@ String getIndicatorColor(String severity) {
   }
 }
 
-/// Class to store formatted indicator data
 class FormattedIndicator {
   const FormattedIndicator({
     required this.value,
@@ -54,7 +47,6 @@ class FormattedIndicator {
   final String formattedTarget;
   final bool isValid;
 
-  /// Creates a FormattedIndicator from raw values
   factory FormattedIndicator.fromRaw({
     required double? value,
     required double? target,
@@ -74,20 +66,16 @@ class FormattedIndicator {
     );
   }
 
-  /// Checks if indicator is above target (for TPS and ILI)
   bool isAboveTarget() => value >= target;
 
-  /// Checks if indicator is below target (for RDR)
   bool isBelowTarget() => value <= target;
 
-  /// Calculates percentage difference from target
   double percentageDifferenceFromTarget() {
     if (target == 0) return 0.0;
     return ((value - target) / target) * 100;
   }
 }
 
-/// Specific class for TPS (Personal Savings Rate)
 class TPSIndicator extends FormattedIndicator {
   const TPSIndicator({
     required super.value,
@@ -117,7 +105,6 @@ class TPSIndicator extends FormattedIndicator {
     );
   }
 
-  /// Retorna a faixa de classificação do TPS
   String getClassification() {
     if (value >= 20) return 'Excelente';
     if (value >= 15) return 'Boa';
@@ -127,7 +114,6 @@ class TPSIndicator extends FormattedIndicator {
   }
 }
 
-/// Classe específica para RDR (Razão Dívida/Renda)
 class RDRIndicator extends FormattedIndicator {
   const RDRIndicator({
     required super.value,
@@ -157,7 +143,6 @@ class RDRIndicator extends FormattedIndicator {
     );
   }
 
-  /// Retorna a faixa de classificação do RDR
   String getClassification() {
     if (value <= 30) return 'Saudável';
     if (value <= 35) return 'Aceitável';
@@ -167,7 +152,6 @@ class RDRIndicator extends FormattedIndicator {
   }
 }
 
-/// Classe específica para ILI (Índice de Liquidez Imediata)
 class ILIIndicator extends FormattedIndicator {
   const ILIIndicator({
     required super.value,
@@ -197,7 +181,6 @@ class ILIIndicator extends FormattedIndicator {
     );
   }
 
-  /// Retorna a faixa de classificação do ILI
   String getClassification() {
     if (value >= 6) return 'Sólida';
     if (value >= 3) return 'Construindo';

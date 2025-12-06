@@ -1,22 +1,3 @@
-"""
-Comando para popular o banco com missões especializadas (Sprint 4).
-
-Cria missões específicas para os novos tipos implementados na refatoração:
-- CATEGORY_REDUCTION: Reduzir gastos em categorias
-- CATEGORY_SPENDING_LIMIT: Manter limites de gastos
-- CATEGORY_ELIMINATION: Eliminar gastos supérfluos
-- GOAL_ACHIEVEMENT: Completar metas
-- GOAL_CONSISTENCY: Contribuir regularmente
-- SAVINGS_STREAK: Sequência de poupança
-- PAYMENT_DISCIPLINE: Pagar contas em dia
-- INCOME_TRACKING: Registrar receitas
-
-Uso:
-    python manage.py seed_specialized_missions
-
-Opções:
-    --clear: Remove missões especializadas existentes antes de criar
-"""
 
 from django.core.management.base import BaseCommand
 from finance.models import Mission, Category
@@ -35,7 +16,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options['clear']:
-            # Remove apenas missões dos novos tipos
             new_types = [
                 'CATEGORY_REDUCTION', 'CATEGORY_SPENDING_LIMIT', 'CATEGORY_ELIMINATION',
                 'GOAL_ACHIEVEMENT', 'GOAL_CONSISTENCY', 'GOAL_ACCELERATION',
@@ -61,9 +41,7 @@ class Command(BaseCommand):
         )
 
     def _create_category_missions(self):
-        """Cria missões focadas em categorias."""
         missions = [
-            # CATEGORY_REDUCTION
             {
                 'title': '🎯 Reduzir Alimentação em 15%',
                 'description': 'Diminua seus gastos com alimentação em 15% comparado ao mês anterior. Planeje refeições e evite desperdícios!',
@@ -124,7 +102,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # CATEGORY_SPENDING_LIMIT
             {
                 'title': '🛍️ Limite de R$ 500 em Compras',
                 'description': 'Mantenha seus gastos com compras abaixo de R$ 500 no mês. Planeje antes de comprar!',
@@ -152,7 +129,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # CATEGORY_ELIMINATION
             {
                 'title': '🚭 Mês Sem Gastos Supérfluos',
                 'description': 'Passe 30 dias sem gastar com cigarro, álcool ou outros vícios. Sua saúde e carteira agradecem!',
@@ -167,7 +143,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # EXPENSE_CONTROL
             {
                 'title': '📊 Controle Total de Despesas',
                 'description': 'Mantenha suas despesas totais abaixo de R$ 2000 no mês. Planejamento é tudo!',
@@ -195,9 +170,7 @@ class Command(BaseCommand):
         return count
 
     def _create_goal_missions(self):
-        """Cria missões focadas em metas."""
         missions = [
-            # GOAL_ACHIEVEMENT
             {
                 'title': '🎯 Completar Primeira Meta',
                 'description': 'Alcance 100% de uma meta que você criou. Persistência é a chave!',
@@ -231,7 +204,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # GOAL_CONSISTENCY
             {
                 'title': '💪 Contribuidor Consistente',
                 'description': 'Contribua R$ 200 para uma meta durante o mês. Pequenas contribuições regulares fazem a diferença!',
@@ -257,7 +229,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # SAVINGS_STREAK
             {
                 'title': '🔥 Sequência de 7 Dias Poupando',
                 'description': 'Registre economia ou contribua para metas durante 7 dias consecutivos!',
@@ -302,9 +273,7 @@ class Command(BaseCommand):
         return count
 
     def _create_behavior_missions(self):
-        """Cria missões focadas em comportamentos financeiros."""
         missions = [
-            # PAYMENT_DISCIPLINE
             {
                 'title': '💳 Pagador Disciplinado',
                 'description': 'Registre e marque como pagas 5 contas diferentes no mês. Evite juros e multas!',
@@ -349,7 +318,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # INCOME_TRACKING
             {
                 'title': '💵 Rastreador de Receitas',
                 'description': 'Registre pelo menos 3 receitas durante o mês. Saiba exatamente quanto entra!',
@@ -390,9 +358,7 @@ class Command(BaseCommand):
         return count
 
     def _create_onboarding_missions(self):
-        """Cria missões de onboarding especializadas."""
         missions = [
-            # ONBOARDING_CATEGORIES
             {
                 'title': '📁 Organizador de Categorias',
                 'description': 'Crie pelo menos 5 categorias personalizadas para organizar suas transações.',
@@ -420,7 +386,6 @@ class Command(BaseCommand):
                 'is_active': True,
             },
             
-            # ONBOARDING_GOALS
             {
                 'title': '🎯 Primeira Meta Criada',
                 'description': 'Crie sua primeira meta financeira. Defina um objetivo e vá em frente!',

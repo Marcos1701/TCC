@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Widget de estado vazio para lista de transacoes.
 class TransactionsEmptyState extends StatelessWidget {
   const TransactionsEmptyState({
     super.key,

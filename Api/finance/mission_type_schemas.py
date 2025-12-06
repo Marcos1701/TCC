@@ -1,27 +1,9 @@
-"""
-Schemas de tipos de missão para edição dinâmica.
-
-Este módulo define os templates de campos necessários para cada tipo de missão,
-permitindo que o frontend exiba campos dinâmicos de acordo com o tipo selecionado.
-
-Cada tipo de missão possui:
-- Campos obrigatórios específicos
-- Campos opcionais
-- Validações e limites
-- Dicas de preenchimento
-
-Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
-"""
 
 from typing import Any, Dict, List
 
 
-# =============================================================================
-# DEFINIÇÕES DE CAMPOS
-# =============================================================================
 
 class FieldType:
-    """Tipos de campos disponíveis para formulários."""
     INTEGER = "integer"
     DECIMAL = "decimal"
     PERCENTAGE = "percentage"
@@ -32,16 +14,13 @@ class FieldType:
     MULTI_SELECT = "multi_select"
 
 
-# =============================================================================
-# SCHEMAS DOS TIPOS DE MISSÃO
-# =============================================================================
 
 MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "ONBOARDING": {
         "name": "Primeiros Passos",
         "description": "Missões para familiarizar o usuário com o registro de transações e funcionalidades básicas do sistema.",
         "icon": "📝",
-        "color": "#4CAF50",
+        "color": "
         "validation_types": ["TRANSACTION_COUNT"],
         "default_validation_type": "TRANSACTION_COUNT",
         "required_fields": [
@@ -91,7 +70,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Aumentar Poupança (TPS)",
         "description": "Missões para incentivar o aumento da Taxa de Poupança Pessoal do usuário.",
         "icon": "💰",
-        "color": "#2196F3",
+        "color": "
         "validation_types": ["INDICATOR_THRESHOLD", "INDICATOR_IMPROVEMENT"],
         "default_validation_type": "INDICATOR_THRESHOLD",
         "required_fields": [
@@ -152,7 +131,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Reduzir Gastos Recorrentes (RDR)",
         "description": "Missões para diminuir a Razão Dívida/Renda do usuário, focando em despesas fixas.",
         "icon": "📉",
-        "color": "#FF9800",
+        "color": "
         "validation_types": ["INDICATOR_THRESHOLD", "INDICATOR_IMPROVEMENT"],
         "default_validation_type": "INDICATOR_THRESHOLD",
         "required_fields": [
@@ -202,7 +181,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Construir Reserva (ILI)",
         "description": "Missões para aumentar o Índice de Liquidez Imediata, construindo reserva de emergência.",
         "icon": "🛡️",
-        "color": "#9C27B0",
+        "color": "
         "validation_types": ["INDICATOR_THRESHOLD"],
         "default_validation_type": "INDICATOR_THRESHOLD",
         "required_fields": [
@@ -263,7 +242,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Reduzir Gastos em Categoria",
         "description": "Missões para controlar gastos em categorias específicas problemáticas.",
         "icon": "📁",
-        "color": "#F44336",
+        "color": "
         "validation_types": ["CATEGORY_REDUCTION", "CATEGORY_LIMIT"],
         "default_validation_type": "CATEGORY_REDUCTION",
         "required_fields": [
@@ -323,7 +302,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Progredir em Meta",
         "description": "Missões para incentivar o progresso em metas financeiras definidas pelo usuário.",
         "icon": "🎯",
-        "color": "#00BCD4",
+        "color": "
         "validation_types": ["GOAL_PROGRESS", "GOAL_CONTRIBUTION"],
         "default_validation_type": "GOAL_PROGRESS",
         "required_fields": [
@@ -387,9 +366,6 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
 }
 
 
-# =============================================================================
-# CAMPOS COMUNS A TODOS OS TIPOS
-# =============================================================================
 
 COMMON_FIELDS: List[Dict[str, Any]] = [
     {
@@ -417,9 +393,9 @@ COMMON_FIELDS: List[Dict[str, Any]] = [
         "description": "Nível de dificuldade da missão",
         "required": True,
         "options": [
-            {"value": "EASY", "label": "Fácil", "color": "#4CAF50"},
-            {"value": "MEDIUM", "label": "Média", "color": "#FF9800"},
-            {"value": "HARD", "label": "Difícil", "color": "#F44336"},
+            {"value": "EASY", "label": "Fácil", "color": "
+            {"value": "MEDIUM", "label": "Média", "color": "
+            {"value": "HARD", "label": "Difícil", "color": "
         ],
         "default": "MEDIUM",
     },
@@ -467,9 +443,6 @@ COMMON_FIELDS: List[Dict[str, Any]] = [
 ]
 
 
-# =============================================================================
-# TIPOS DE VALIDAÇÃO
-# =============================================================================
 
 VALIDATION_TYPES: Dict[str, Dict[str, Any]] = {
     "TRANSACTION_COUNT": {
@@ -523,20 +496,8 @@ VALIDATION_TYPES: Dict[str, Dict[str, Any]] = {
 }
 
 
-# =============================================================================
-# FUNÇÕES AUXILIARES
-# =============================================================================
 
 def get_mission_type_schema(mission_type: str) -> Dict[str, Any]:
-    """
-    Retorna o schema completo para um tipo de missão específico.
-    
-    Args:
-        mission_type: Código do tipo de missão (ex: 'ONBOARDING')
-        
-    Returns:
-        Dicionário com schema completo incluindo campos comuns
-    """
     if mission_type not in MISSION_TYPE_SCHEMAS:
         return {}
     
@@ -548,12 +509,6 @@ def get_mission_type_schema(mission_type: str) -> Dict[str, Any]:
 
 
 def get_all_mission_type_schemas() -> Dict[str, Any]:
-    """
-    Retorna todos os schemas de tipos de missão.
-    
-    Returns:
-        Dicionário com todos os schemas e informações auxiliares
-    """
     return {
         "types": MISSION_TYPE_SCHEMAS,
         "common_fields": COMMON_FIELDS,
@@ -572,31 +527,12 @@ def get_all_mission_type_schemas() -> Dict[str, Any]:
 
 
 def get_required_fields_for_type(mission_type: str) -> List[str]:
-    """
-    Retorna lista de campos obrigatórios para um tipo de missão.
-    
-    Args:
-        mission_type: Código do tipo de missão
-        
-    Returns:
-        Lista com as keys dos campos obrigatórios
-    """
     schema = MISSION_TYPE_SCHEMAS.get(mission_type, {})
     required_fields = schema.get("required_fields", [])
     return [field["key"] for field in required_fields]
 
 
 def validate_mission_data_for_type(mission_type: str, data: Dict) -> List[str]:
-    """
-    Valida se os dados da missão atendem aos requisitos do tipo.
-    
-    Args:
-        mission_type: Código do tipo de missão
-        data: Dados da missão a validar
-        
-    Returns:
-        Lista de erros encontrados (vazia se válido)
-    """
     errors = []
     schema = MISSION_TYPE_SCHEMAS.get(mission_type)
     
@@ -604,7 +540,6 @@ def validate_mission_data_for_type(mission_type: str, data: Dict) -> List[str]:
         errors.append(f"Tipo de missão desconhecido: {mission_type}")
         return errors
     
-    # Validar campos obrigatórios
     for field in schema.get("required_fields", []):
         key = field["key"]
         value = data.get(key)
@@ -613,7 +548,6 @@ def validate_mission_data_for_type(mission_type: str, data: Dict) -> List[str]:
             errors.append(f"Campo obrigatório não preenchido: {field['label']}")
             continue
         
-        # Converter para numérico se necessário
         field_type = field.get("type", "")
         if field_type in (FieldType.INTEGER, FieldType.DECIMAL, FieldType.PERCENTAGE):
             try:
@@ -625,14 +559,12 @@ def validate_mission_data_for_type(mission_type: str, data: Dict) -> List[str]:
                 errors.append(f"{field['label']}: valor deve ser numérico")
                 continue
         
-        # Validar limites
         if "min" in field and value < field["min"]:
             errors.append(f"{field['label']}: valor mínimo é {field['min']}")
         
         if "max" in field and value > field["max"]:
             errors.append(f"{field['label']}: valor máximo é {field['max']}")
     
-    # Validar campos opcionais com dependências
     for field in schema.get("optional_fields", []):
         key = field["key"]
         value = data.get(key)
@@ -645,16 +577,6 @@ def validate_mission_data_for_type(mission_type: str, data: Dict) -> List[str]:
 
 
 def get_default_values_for_type(mission_type: str, difficulty: str = "MEDIUM") -> Dict:
-    """
-    Retorna valores padrão recomendados para um tipo de missão.
-    
-    Args:
-        mission_type: Código do tipo de missão
-        difficulty: Nível de dificuldade
-        
-    Returns:
-        Dicionário com valores padrão
-    """
     schema = MISSION_TYPE_SCHEMAS.get(mission_type, {})
     
     defaults = {
@@ -666,7 +588,6 @@ def get_default_values_for_type(mission_type: str, difficulty: str = "MEDIUM") -
         "priority": 50,
     }
     
-    # Adicionar defaults dos campos obrigatórios
     for field in schema.get("required_fields", []):
         if field.get("default") is not None:
             defaults[field["key"]] = field["default"]

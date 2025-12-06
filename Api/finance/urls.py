@@ -13,7 +13,6 @@ from .views import (
     TransactionViewSet,
     UserProfileViewSet,
     XPHistoryView,
-    # Admin Panel
     AdminDashboardView,
     AdminMissionsView,
     AdminMissionDetailView,
@@ -35,7 +34,7 @@ router.register(r"transactions", TransactionViewSet, basename="transaction")
 router.register(r"missions", MissionViewSet, basename="mission")
 router.register(r"mission-progress", MissionProgressViewSet, basename="mission-progress")
 router.register(r"user-profiles", UserProfileViewSet, basename="user-profile")
-router.register(r"user", UserProfileViewSet, basename="user")  # Alias para compatibilidade com o front
+router.register(r"user", UserProfileViewSet, basename="user")
 router.register(r"transaction-links", TransactionLinkViewSet, basename="transaction-link")
 router.register(r"dashboard", DashboardViewSet, basename="dashboard")
 
@@ -43,11 +42,10 @@ urlpatterns = [
     path("", include(router.urls)),
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/profile/", ProfileView.as_view(), name="profile"),
-    path("profile/", ProfileView.as_view(), name="profile-alias"),  # Alias para compatibilidade
+    path("profile/", ProfileView.as_view(), name="profile-alias"),
     path("onboarding/simplified/", SimplifiedOnboardingView.as_view(), name="simplified-onboarding"),
     path("xp-history/", XPHistoryView.as_view(), name="xp-history"),
     
-    # Painel Administrativo (requer is_staff=True)
     path("admin-panel/", AdminDashboardView.as_view(), name="admin-dashboard"),
     path("admin-panel/missoes/", AdminMissionsView.as_view(), name="admin-missions"),
     path("admin-panel/missoes/<int:pk>/", AdminMissionDetailView.as_view(), name="admin-mission-detail"),

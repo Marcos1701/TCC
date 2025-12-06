@@ -1,4 +1,3 @@
-"""ASGI do backend GenApp."""
 import os
 from django.core.asgi import get_asgi_application
 

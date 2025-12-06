@@ -5,7 +5,6 @@ import '../../../../../core/repositories/finance_repository.dart';
 import '../../../../../core/theme/app_colors.dart';
 import 'category_widgets.dart';
 
-/// Bottom sheet para criar nova categoria.
 class CategoryComposerSheet extends StatefulWidget {
   const CategoryComposerSheet({
     super.key,

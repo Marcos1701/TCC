@@ -1,30 +1,9 @@
-"""
-Serializers para os modelos Mission e MissionProgress.
-
-Este módulo contém os serializers responsáveis pela conversão
-entre os modelos de missão e suas representações JSON para a API.
-
-Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
-"""
 
 from .base import serializers, timezone, Mission, MissionProgress, Category
 from .category import CategorySerializer
 
 
 class MissionSerializer(serializers.ModelSerializer):
-    """
-    Serializer para o modelo Mission.
-
-    Responsável pela serialização e validação das missões financeiras,
-    incluindo campos computados como displays formatados e informações
-    sobre a origem da missão (sistema, template ou IA).
-
-    Campos adicionais:
-        type_display: Nome legível do tipo de missão.
-        difficulty_display: Nome legível do nível de dificuldade.
-        validation_type_display: Nome legível do tipo de validação.
-        source: Origem da missão (system, template ou ai).
-    """
     
     type_display = serializers.CharField(source='get_mission_type_display', read_only=True)
     difficulty_display = serializers.CharField(source='get_difficulty_display', read_only=True)
@@ -33,7 +12,6 @@ class MissionSerializer(serializers.ModelSerializer):
     target_categories = CategorySerializer(many=True, read_only=True)
     target_category = CategorySerializer(read_only=True)
     
-    # Campos de escrita para ForeignKeys
     target_category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
         source='target_category',
@@ -164,21 +142,6 @@ class MissionSerializer(serializers.ModelSerializer):
                 'icon': '📂'
             })
         
-        if obj.target_goal:
-            info['targets'].append({
-                'metric': 'GOAL',
-                'label': obj.target_goal.title,
-                'goal_id': obj.target_goal.id,
-                'icon': '🎯'
-            })
-        
-        if obj.target_goals.exists():
-            info['targets'].append({
-                'metric': 'GOALS',
-                'label': f'{obj.target_goals.count()} metas',
-                'count': obj.target_goals.count(),
-                'icon': '🎯'
-            })
         
         if obj.min_transaction_frequency:
             info['targets'].append({
@@ -216,14 +179,6 @@ class MissionSerializer(serializers.ModelSerializer):
                 'icon': '💰'
             })
         
-        if obj.goal_progress_target:
-            info['targets'].append({
-                'metric': 'GOAL_PROGRESS',
-                'label': 'Progresso de meta',
-                'value': float(obj.goal_progress_target),
-                'unit': '%',
-                'icon': '📈'
-            })
         
         return info
     
@@ -254,16 +209,6 @@ class MissionSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, data):
-        """
-        Valida campos obrigatórios baseados no validation_type.
-        
-        Tipos de validação disponíveis no enum:
-        - TRANSACTION_COUNT: Contar transações registradas
-        - INDICATOR_THRESHOLD: Verificar se indicador atingiu valor
-        - CATEGORY_REDUCTION: Verificar % de redução em categoria
-        - GOAL_PROGRESS: Verificar % de progresso em meta
-        - TEMPORAL: Manter critério por X dias
-        """
         validation_type = data.get('validation_type')
         
         if validation_type == Mission.ValidationType.TEMPORAL:
@@ -282,18 +227,8 @@ class MissionSerializer(serializers.ModelSerializer):
                     'target_reduction_percent': 'Obrigatório para missões de redução de categoria.'
                 })
         
-        elif validation_type == Mission.ValidationType.GOAL_PROGRESS:
-            if not data.get('target_goal'):
-                raise serializers.ValidationError({
-                    'target_goal': 'Obrigatório para missões de progresso em meta.'
-                })
-            if not data.get('goal_progress_target'):
-                raise serializers.ValidationError({
-                    'goal_progress_target': 'Obrigatório para missões de progresso em meta.'
-                })
         
         elif validation_type == Mission.ValidationType.INDICATOR_THRESHOLD:
-            # Para INDICATOR_THRESHOLD, validar que pelo menos um indicador alvo foi definido
             has_indicator_target = any([
                 data.get('target_tps') is not None,
                 data.get('target_rdr') is not None,
@@ -311,7 +246,6 @@ class MissionSerializer(serializers.ModelSerializer):
                     'min_transactions': 'Obrigatório para missões de contagem de transações.'
                 })
         
-        # Validações adicionais para campos de ações diárias (aplicável a qualquer tipo)
         if data.get('requires_daily_action') and not data.get('min_daily_actions'):
                 raise serializers.ValidationError({
                     'min_daily_actions': 'Obrigatório quando requires_daily_action é True.'
@@ -321,7 +255,6 @@ class MissionSerializer(serializers.ModelSerializer):
 
 
 class MissionProgressSerializer(serializers.ModelSerializer):
-    """Serializer para progresso em missões."""
     
     mission = MissionSerializer(read_only=True)
     mission_id = serializers.PrimaryKeyRelatedField(
@@ -355,8 +288,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "progress_status",
             "baseline_category_spending",
             "baseline_period_days",
-            "initial_goal_progress",
-            "initial_savings_amount",
             "current_streak",
             "max_streak",
             "days_met_criteria",
@@ -376,8 +307,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "progress_status",
             "baseline_category_spending",
             "baseline_period_days",
-            "initial_goal_progress",
-            "initial_savings_amount",
             "current_streak",
             "max_streak",
             "days_met_criteria",
@@ -474,70 +403,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             formatted.append({
                 'label': 'RDR Atual',
                 'value': metrics['current_rdr'],
-                'display': f"{metrics['current_rdr']:.1f}%",
-                'type': 'percentage',
-                'icon': '📉'
-            })
-        
-        if 'target_rdr' in metrics:
-            formatted.append({
-                'label': 'Meta RDR',
-                'value': metrics['target_rdr'],
-                'display': f"{metrics['target_rdr']:.1f}%",
-                'type': 'target',
-                'icon': '🎯'
-            })
-        
-        if 'current_ili' in metrics:
-            formatted.append({
-                'label': 'ILI Atual',
-                'value': metrics['current_ili'],
-                'display': f"{metrics['current_ili']:.1f} meses",
-                'type': 'months',
-                'icon': '🛡️'
-            })
-        
-        if 'target_ili' in metrics:
-            formatted.append({
-                'label': 'Meta ILI',
-                'value': metrics['target_ili'],
-                'display': f"{metrics['target_ili']:.1f} meses",
-                'type': 'target',
-                'icon': '🎯'
-            })
-        
-        if 'category_name' in metrics:
-            formatted.append({
-                'label': 'Categoria',
-                'value': metrics['category_name'],
-                'display': metrics['category_name'],
-                'type': 'text',
-                'icon': '📁'
-            })
-        
-        if 'current_spending' in metrics:
-            formatted.append({
-                'label': 'Gasto Atual',
-                'value': metrics['current_spending'],
-                'display': f"R$ {metrics['current_spending']:.2f}",
-                'type': 'currency',
-                'icon': '💸'
-            })
-        
-        if 'reference_spending' in metrics:
-            formatted.append({
-                'label': 'Gasto Anterior',
-                'value': metrics['reference_spending'],
-                'display': f"R$ {metrics['reference_spending']:.2f}",
-                'type': 'currency',
-                'icon': '📊'
-            })
-        
-        if 'reduction_percent' in metrics:
-            value = metrics['reduction_percent']
-            formatted.append({
-                'label': 'Redução Alcançada',
-                'value': value,
                 'display': f"{value:.1f}%",
                 'type': 'percentage',
                 'icon': '📉' if value > 0 else '📈'
@@ -552,59 +417,6 @@ class MissionProgressSerializer(serializers.ModelSerializer):
                 'icon': '🎯'
             })
         
-        if 'goal_name' in metrics:
-            formatted.append({
-                'label': 'Meta',
-                'value': metrics['goal_name'],
-                'display': metrics['goal_name'],
-                'type': 'text',
-                'icon': '🎯'
-            })
-        
-        if 'current_amount' in metrics:
-            formatted.append({
-                'label': 'Valor Atual',
-                'value': metrics['current_amount'],
-                'display': f"R$ {metrics['current_amount']:.2f}",
-                'type': 'currency',
-                'icon': '💰'
-            })
-        
-        if 'target_amount' in metrics:
-            formatted.append({
-                'label': 'Valor Meta',
-                'value': metrics['target_amount'],
-                'display': f"R$ {metrics['target_amount']:.2f}",
-                'type': 'currency',
-                'icon': '🎯'
-            })
-        
-        if 'goal_progress' in metrics:
-            formatted.append({
-                'label': 'Progresso da Meta',
-                'value': metrics['goal_progress'],
-                'display': f"{metrics['goal_progress']:.1f}%",
-                'type': 'percentage',
-                'icon': '📈'
-            })
-        
-        if 'contributions' in metrics:
-            formatted.append({
-                'label': 'Contribuído',
-                'value': metrics['contributions'],
-                'display': f"R$ {metrics['contributions']:.2f}",
-                'type': 'currency',
-                'icon': '💰'
-            })
-        
-        if 'target_contribution' in metrics:
-            formatted.append({
-                'label': 'Meta de Contribuição',
-                'value': metrics['target_contribution'],
-                'display': f"R$ {metrics['target_contribution']:.2f}",
-                'type': 'currency',
-                'icon': '🎯'
-            })
         
         if 'weeks_meeting_criteria' in metrics:
             formatted.append({

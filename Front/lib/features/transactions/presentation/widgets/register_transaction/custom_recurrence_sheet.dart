@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import 'recurrence_models.dart';
 
-/// Bottom sheet para configurar recorrência personalizada.
 class CustomRecurrenceSheet extends StatefulWidget {
   const CustomRecurrenceSheet({
     super.key,

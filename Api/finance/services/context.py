@@ -13,7 +13,6 @@ from .indicators import calculate_summary
 
 
 def analyze_user_context(user) -> Dict[str, Any]:
-    """Analisa contexto financeiro com regras determinísticas."""
     today = timezone.now().date()
     thirty_days_ago = today - timedelta(days=30)
     
@@ -121,7 +120,6 @@ def analyze_user_context(user) -> Dict[str, Any]:
 
 
 def identify_improvement_opportunities(user) -> List[Dict[str, Any]]:
-    """Identifica oportunidades de melhoria por padrões de gastos e indicadores."""
     opportunities = []
     today = timezone.now().date()
     

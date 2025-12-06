@@ -1,15 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-/// Formatter para entrada de valores monetários.
-///
-/// Formata automaticamente a entrada no padrão brasileiro (1.234,56).
 class CurrencyTextInputFormatter extends TextInputFormatter {
   CurrencyTextInputFormatter({required this.formatter});
 
   final NumberFormat formatter;
 
-  /// Cria um formatter com o padrão brasileiro (R$).
   factory CurrencyTextInputFormatter.brazilian() {
     return CurrencyTextInputFormatter(
       formatter: NumberFormat.currency(

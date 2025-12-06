@@ -7,7 +7,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import 'chart_helpers.dart';
 
-/// Gráfico de pizza mostrando distribuição por categoria.
 class CategoryPieChart extends StatefulWidget {
   const CategoryPieChart({
     super.key,
@@ -289,7 +288,6 @@ class _CategoryPieChartState extends State<CategoryPieChart> {
   }
 }
 
-/// Item de legenda individual para o gráfico de pizza.
 class _CategoryLegendItem extends StatelessWidget {
   const _CategoryLegendItem({
     required this.slice,

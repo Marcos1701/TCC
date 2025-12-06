@@ -4,7 +4,6 @@ import '../models/dashboard.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme_extension.dart';
 
-/// Cartão reutilizável para exibir o insight de um indicador financeiro.
 class IndicatorInsightCard extends StatelessWidget {
   const IndicatorInsightCard({
     super.key,

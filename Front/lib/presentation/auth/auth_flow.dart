@@ -17,13 +17,12 @@ class AuthFlow extends StatefulWidget {
 
 class _AuthFlowState extends State<AuthFlow> {
   bool _showLogin = true;
-  int _rootShellRebuildKey = 0; // Key para forçar rebuild da home
+  int _rootShellRebuildKey = 0;
 
-  // Controle de onboarding - persiste entre rebuilds
   static bool _onboardingCheckedThisSession = false;
   static String? _lastUserIdChecked;
   static String?
-      _lastAuthenticatedUserId; // Rastreia último usuário autenticado
+      _lastAuthenticatedUserId;
 
   void _toggle() => setState(() => _showLogin = !_showLogin);
 
@@ -38,7 +37,6 @@ class _AuthFlowState extends State<AuthFlow> {
 
     if (currentUserId == null) return;
 
-    // Administradores não passam pelo onboarding
     final isAdmin = session.session?.user.isAdmin ?? false;
     if (isAdmin) return;
 
@@ -49,7 +47,6 @@ class _AuthFlowState extends State<AuthFlow> {
     try {
       await session.refreshSession();
 
-      // Verifica novamente após refresh se virou admin
       if (session.session?.user.isAdmin ?? false) return;
 
       final isFirstAccess = session.profile?.isFirstAccess ?? false;
@@ -66,13 +63,10 @@ class _AuthFlowState extends State<AuthFlow> {
         );
 
         if (mounted) {
-          // Invalida todo o cache para garantir que os dados iniciais sejam
-          // carregados
           CacheManager().invalidateAll();
 
           await session.refreshSession();
 
-          // Força rebuild da home se o onboarding foi completado
           if (completed == true) {
             setState(() {
               _rootShellRebuildKey++;
@@ -96,9 +90,6 @@ class _AuthFlowState extends State<AuthFlow> {
 
   @override
   void dispose() {
-    // NÃO limpa as flags static no dispose
-    // As flags devem persistir durante toda a vida da aplicação
-    // para evitar que o onboarding apareça múltiplas vezes
     super.dispose();
   }
 
@@ -109,14 +100,12 @@ class _AuthFlowState extends State<AuthFlow> {
       builder: (context, child) {
         final session = SessionScope.of(context);
 
-        // Mostra loading apenas durante bootstrap
         if (!session.bootstrapDone && session.isLoading) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Se a sessão expirou, mostra mensagem e redireciona para login
         if (session.sessionExpired) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
@@ -130,13 +119,11 @@ class _AuthFlowState extends State<AuthFlow> {
                   duration: Duration(seconds: 4),
                 ),
               );
-              // Reset das flags de onboarding ao expirar sessão
               resetOnboardingFlags();
             }
           });
         }
 
-        // Detecta mudança de usuário autenticado (logout/login)
         final currentUserId = session.session?.user.id.toString();
         if (_lastAuthenticatedUserId != null &&
             _lastAuthenticatedUserId != currentUserId) {
@@ -144,19 +131,13 @@ class _AuthFlowState extends State<AuthFlow> {
         }
         _lastAuthenticatedUserId = currentUserId;
 
-        // Se autenticado, vai para a home ou painel admin
         if (session.isAuthenticated) {
-          // PRIMEIRO: Verifica se é administrador - admins vão direto para o painel
-          // sem passar pelo onboarding
           final isAdmin = session.session?.user.isAdmin ?? false;
 
           if (isAdmin) {
-            // Admin vai direto para o painel administrativo
             return const AdminPanelPage();
           }
 
-          // SEGUNDO: Apenas para usuários normais - verifica onboarding
-          // Se for novo cadastro, permite nova verificação de onboarding
           if (session.isNewRegistration) {
             if (currentUserId != null && currentUserId != _lastUserIdChecked) {
               _onboardingCheckedThisSession = false;
@@ -164,17 +145,14 @@ class _AuthFlowState extends State<AuthFlow> {
             }
           }
 
-          // Verifica onboarding apenas uma vez por sessão do app (usuários normais)
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _checkAndShowOnboardingIfNeeded();
           });
           return RootShell(key: ValueKey('root_shell_$_rootShellRebuildKey'));
         }
 
-        // Retorna o child que contém as páginas de auth
         return child!;
       },
-      // Child não é reconstruído, apenas o AnimatedBuilder
       child: IndexedStack(
         index: _showLogin ? 0 : 1,
         children: [

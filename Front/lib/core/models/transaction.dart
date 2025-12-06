@@ -30,7 +30,6 @@ class TransactionModel {
   final String? recurrenceUnit;
   final DateTime? recurrenceEndDate;
   
-  // Campos de vinculação
   final double? linkedAmount;
   final double? availableAmount;
   final double? linkPercentage;
@@ -73,15 +72,12 @@ class TransactionModel {
     );
   }
   
-  // Helpers para vinculações
   bool get hasLinks => (outgoingLinksCount ?? 0) > 0 || (incomingLinksCount ?? 0) > 0;
   bool get hasAvailableAmount => availableAmount != null && availableAmount! > 0;
   bool get isFullyLinked => linkPercentage != null && linkPercentage! >= 100.0;
 
-  /// Retorna o identificador preferencial
   String get identifier => id;
   
-  /// Verifica se possui UUID (sempre true agora)
   bool get hasUuid => true;
 
   String? get recurrenceLabel {
@@ -101,7 +97,6 @@ class TransactionModel {
     }
   }
 
-  /// Converte o modelo para Map para envio à API
   Map<String, dynamic> toMap() {
     return {
       'type': type,

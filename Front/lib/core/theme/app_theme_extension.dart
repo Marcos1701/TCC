@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Conjunto de tokens visuais reutilizáveis expostos via ThemeExtension.
 class AppDecorations extends ThemeExtension<AppDecorations> {
   const AppDecorations({
     required this.cardRadius,

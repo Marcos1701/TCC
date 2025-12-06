@@ -3,7 +3,6 @@ set -e
 
 echo "🚀 Docker Entrypoint - Starting Django Service"
 
-# Função para aguardar o banco de dados
 wait_for_db() {
     echo "⏳ Waiting for database to be ready..."
     
@@ -44,7 +43,6 @@ else:
 "
 }
 
-# O primeiro argumento determina qual serviço executar
 SERVICE_TYPE="${1:-gunicorn}"
 
 case "$SERVICE_TYPE" in

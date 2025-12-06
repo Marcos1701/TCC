@@ -1,4 +1,3 @@
-/// Central REST API endpoints.
 class ApiEndpoints {
   const ApiEndpoints._();
 
@@ -20,7 +19,6 @@ class ApiEndpoints {
   static const String user = '/api/user/';
   static const String simplifiedOnboarding = '/api/onboarding/simplified/';
   
-  // Painel Administrativo
   static const String adminDashboard = '/api/admin-panel/';
   static const String adminMissions = '/api/admin-panel/missoes/';
   static const String adminMissionsGenerate = '/api/admin-panel/missoes/gerar/';

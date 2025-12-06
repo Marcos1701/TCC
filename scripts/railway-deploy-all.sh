@@ -1,14 +1,10 @@
 #!/bin/bash
-# Script para criar todos os 4 serviços no Railway automaticamente
-# Requer: Railway CLI instalado (npm install -g @railway/cli)
-
 set -e
 
-echo "🚂 Railway Multi-Service Deployment Script"
+echo "🚚 Railway Multi-Service Deployment Script"
 echo "=========================================="
 echo ""
 
-# Verificar se Railway CLI está instalado
 if ! command -v railway &> /dev/null; then
     echo "❌ Railway CLI não encontrado!"
     echo "Instale com: npm install -g @railway/cli"
@@ -18,7 +14,6 @@ fi
 echo "✅ Railway CLI encontrado"
 echo ""
 
-# Login (se necessário)
 echo "🔐 Verificando autenticação..."
 railway whoami || railway login
 
@@ -36,7 +31,6 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# Link ao projeto ou criar novo
 echo ""
 echo "🔗 Conectando ao projeto Railway..."
 railway link || {
@@ -44,11 +38,9 @@ railway link || {
     railway init
 }
 
-# Obter ID do projeto
 PROJECT_ID=$(railway status --json | jq -r '.project.id')
 echo "✅ Projeto ID: $PROJECT_ID"
 
-# Função para criar serviço
 create_service() {
     local SERVICE_NAME=$1
     local DOCKERFILE_PATH=$2
@@ -57,15 +49,10 @@ create_service() {
     echo ""
     echo "📦 Criando serviço: $SERVICE_NAME"
     
-    # Criar serviço via API (Railway CLI não tem comando direto)
-    # Alternativa: usar railway up com diferentes configurações
-    
     railway service create $SERVICE_NAME || echo "⚠️  Serviço $SERVICE_NAME já existe"
     
-    # Configurar Dockerfile
     railway variables set DOCKERFILE_PATH="$DOCKERFILE_PATH" --service $SERVICE_NAME || true
     
-    # Configurar start command (se fornecido)
     if [ -n "$START_COMMAND" ]; then
         railway variables set START_COMMAND="$START_COMMAND" --service $SERVICE_NAME || true
     fi
@@ -73,7 +60,6 @@ create_service() {
     echo "✅ Serviço $SERVICE_NAME configurado"
 }
 
-# Criar serviços
 create_service "api" "Api/Dockerfile" ""
 create_service "worker" "Api/Dockerfile" "/docker-entrypoint.sh worker"
 create_service "beat" "Api/Dockerfile" "/docker-entrypoint.sh beat"
@@ -84,7 +70,7 @@ echo "🎉 Serviços criados com sucesso!"
 echo ""
 echo "⚠️  PRÓXIMOS PASSOS MANUAIS:"
 echo ""
-echo "1. No Railway Dashboard (https://railway.app):"
+echo "1. No Railway Dashboard:"
 echo "   - Adicionar PostgreSQL add-on"
 echo "   - Adicionar Redis add-on"
 echo ""

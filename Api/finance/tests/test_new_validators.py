@@ -1,16 +1,3 @@
-"""
-Testes para os novos validadores do sistema de missões (Sprint 2).
-
-Testa os 8 novos validadores implementados:
-- CategoryReductionValidator
-- CategoryLimitValidator
-- GoalProgressValidator
-- GoalContributionValidator
-- TransactionConsistencyValidator
-- PaymentDisciplineValidator
-- IndicatorMaintenanceValidator
-- MultiCriteriaValidator
-"""
 
 from decimal import Decimal
 from datetime import timedelta
@@ -41,7 +28,6 @@ User = get_user_model()
 
 
 class CategoryReductionValidatorTest(TestCase):
-    """Testes para CategoryReductionValidator."""
     
     def setUp(self):
         self.user = User.objects.create_user(
@@ -49,9 +35,7 @@ class CategoryReductionValidatorTest(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        # UserProfile é criado automaticamente pelo signal
         
-        # Get existing category (created by signal)
         self.category = Category.objects.get(
             user=self.user,
             name='Alimentação',
@@ -77,11 +61,8 @@ class CategoryReductionValidatorTest(TestCase):
         )
     
     def test_reduction_achieved(self):
-        """Testa quando a redução foi atingida."""
-        # Período de referência (30 dias antes)
         reference_start = self.mission_progress.started_at - timedelta(days=30)
         
-        # R$ 1000 no período de referência
         for i in range(10):
             Transaction.objects.create(
                 user=self.user,
@@ -92,7 +73,6 @@ class CategoryReductionValidatorTest(TestCase):
                 description=f'Gasto ref {i}'
             )
         
-        # R$ 800 no período atual (20% de redução)
         for i in range(8):
             Transaction.objects.create(
                 user=self.user,
@@ -116,10 +96,8 @@ class CategoryReductionValidatorTest(TestCase):
         self.assertEqual(result['metrics']['category_name'], 'Alimentação')
     
     def test_reduction_not_achieved(self):
-        """Testa quando a redução não foi atingida."""
         reference_start = self.mission_progress.started_at - timedelta(days=30)
         
-        # R$ 1000 no período de referência
         for i in range(10):
             Transaction.objects.create(
                 user=self.user,
@@ -130,7 +108,6 @@ class CategoryReductionValidatorTest(TestCase):
                 description=f'Gasto ref {i}'
             )
         
-        # R$ 950 no período atual (apenas 5% de redução)
         for i in range(19):
             Transaction.objects.create(
                 user=self.user,
@@ -154,7 +131,6 @@ class CategoryReductionValidatorTest(TestCase):
 
 
 class CategoryLimitValidatorTest(TestCase):
-    """Testes para CategoryLimitValidator."""
     
     def setUp(self):
         self.user = User.objects.create_user(
@@ -162,9 +138,7 @@ class CategoryLimitValidatorTest(TestCase):
             email='test2@example.com',
             password='testpass123'
         )
-        # UserProfile é criado automaticamente pelo signal
         
-        # Get existing category (created by signal)
         self.category = Category.objects.get(
             user=self.user,
             name='Lazer',
@@ -186,12 +160,10 @@ class CategoryLimitValidatorTest(TestCase):
             user=self.user,
             mission=self.mission,
             status=MissionProgress.Status.ACTIVE,
-            started_at=timezone.now() - timedelta(days=20)  # 20 dias atrás
+            started_at=timezone.now() - timedelta(days=20)
         )
     
     def test_within_limit(self):
-        """Testa quando está dentro do limite."""
-        # R$ 400 gastos (dentro do limite de R$ 500)
         for i in range(4):
             Transaction.objects.create(
                 user=self.user,
@@ -214,8 +186,6 @@ class CategoryLimitValidatorTest(TestCase):
         self.assertGreater(result['metrics']['remaining'], 0)
     
     def test_exceeded_limit(self):
-        """Testa quando excedeu o limite."""
-        # R$ 600 gastos (excedeu limite de R$ 500)
         for i in range(6):
             Transaction.objects.create(
                 user=self.user,
@@ -240,7 +210,6 @@ class CategoryLimitValidatorTest(TestCase):
 
 
 class GoalProgressValidatorTest(TestCase):
-    """Testes para GoalProgressValidator."""
     
     def setUp(self):
         self.user = User.objects.create_user(
@@ -248,13 +217,12 @@ class GoalProgressValidatorTest(TestCase):
             email='test3@example.com',
             password='testpass123'
         )
-        # UserProfile é criado automaticamente pelo signal
         
         self.goal = Goal.objects.create(
             user=self.user,
             title='Casa Própria',
             target_amount=Decimal('100000.00'),
-            current_amount=Decimal('50000.00')  # 50% de progresso
+            current_amount=Decimal('50000.00')
         )
         
         self.mission = Mission.objects.create(
@@ -276,8 +244,6 @@ class GoalProgressValidatorTest(TestCase):
         )
     
     def test_goal_progress_achieved(self):
-        """Testa quando o progresso da meta foi atingido."""
-        # Atualizar meta para 80% de progresso
         self.goal.current_amount = Decimal('80000.00')
         self.goal.save()
         
@@ -294,8 +260,6 @@ class GoalProgressValidatorTest(TestCase):
         self.assertEqual(result['metrics']['goal_name'], 'Casa Própria')
     
     def test_goal_progress_not_achieved(self):
-        """Testa quando o progresso ainda não foi atingido."""
-        # Meta continua em 50%
         validator = GoalProgressValidator(
             self.mission,
             self.user,
@@ -309,7 +273,6 @@ class GoalProgressValidatorTest(TestCase):
 
 
 class TransactionConsistencyValidatorTest(TestCase):
-    """Testes para TransactionConsistencyValidator."""
     
     def setUp(self):
         self.user = User.objects.create_user(
@@ -317,7 +280,6 @@ class TransactionConsistencyValidatorTest(TestCase):
             email='test4@example.com',
             password='testpass123'
         )
-        # UserProfile é criado automaticamente pelo signal
         
         self.mission = Mission.objects.create(
             title='Consistência Semanal',
@@ -326,7 +288,7 @@ class TransactionConsistencyValidatorTest(TestCase):
             validation_type='TRANSACTION_CONSISTENCY',
             min_transaction_frequency=3,
             transaction_type_filter='ALL',
-            duration_days=28,  # 4 semanas
+            duration_days=28,
             reward_points=350
         )
         
@@ -334,12 +296,10 @@ class TransactionConsistencyValidatorTest(TestCase):
             user=self.user,
             mission=self.mission,
             status=MissionProgress.Status.ACTIVE,
-            started_at=timezone.now() - timedelta(days=14)  # 2 semanas atrás
+            started_at=timezone.now() - timedelta(days=14)
         )
     
     def test_consistency_achieved(self):
-        """Testa quando a consistência foi mantida."""
-        # Criar 4 transações por semana durante 2 semanas
         for week in range(2):
             for day in range(4):
                 Transaction.objects.create(
@@ -363,7 +323,6 @@ class TransactionConsistencyValidatorTest(TestCase):
 
 
 class MissionValidatorFactoryTest(TestCase):
-    """Testes para MissionValidatorFactory."""
     
     def setUp(self):
         self.user = User.objects.create_user(
@@ -371,10 +330,8 @@ class MissionValidatorFactoryTest(TestCase):
             email='factory@example.com',
             password='testpass123'
         )
-        # UserProfile é criado automaticamente pelo signal
     
     def test_factory_creates_correct_validator(self):
-        """Testa se o factory cria o validador correto para cada tipo."""
         mission = Mission.objects.create(
             title='Teste',
             description='Teste',
@@ -400,7 +357,6 @@ class MissionValidatorFactoryTest(TestCase):
         self.assertIsInstance(validator, CategoryReductionValidator)
     
     def test_factory_fallback_to_multicriteria(self):
-        """Testa se o factory usa MultiCriteriaValidator como fallback."""
         mission = Mission.objects.create(
             title='Teste Desconhecido',
             description='Teste',
@@ -423,5 +379,4 @@ class MissionValidatorFactoryTest(TestCase):
             mission_progress
         )
         
-        # Deve usar MultiCriteriaValidator como fallback
         self.assertIsInstance(validator, MultiCriteriaValidator)

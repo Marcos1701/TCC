@@ -7,7 +7,6 @@ import '../../data/missions_viewmodel.dart';
 import 'mission_progress_detail_widget.dart';
 import 'mission_recommendation_components.dart';
 
-/// Seção de recomendações de missões prioritárias.
 class MissionRecommendationsSection extends StatefulWidget {
   const MissionRecommendationsSection({
     super.key,
@@ -204,7 +203,6 @@ class _MissionRecommendationsSectionState
   }
 }
 
-/// Card de missão recomendada.
 class MissionRecommendationCard extends StatelessWidget {
   const MissionRecommendationCard({
     super.key,
@@ -217,7 +215,6 @@ class MissionRecommendationCard extends StatelessWidget {
 
   Color _difficultyColor(String difficulty) => DifficultyColors.get(difficulty);
 
-  // Badge de origem removido - usuário não precisa saber se a missão é do sistema
 
   @override
   Widget build(BuildContext context) {

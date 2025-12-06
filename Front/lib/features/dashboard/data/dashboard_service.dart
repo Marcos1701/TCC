@@ -3,13 +3,11 @@ import '../../../core/models/dashboard.dart';
 import '../../../core/models/analytics.dart';
 import '../../../core/network/api_client.dart';
 
-/// Serviço para buscar dados do dashboard
 class DashboardService {
   DashboardService() : _dio = ApiClient().client;
 
   final Dio _dio;
 
-  /// Busca todos os dados do dashboard (métricas, gráficos, insights, missões)
   Future<DashboardData> getDashboard() async {
     try {
       final response = await _dio.get<Map<String, dynamic>>('/api/dashboard/');
@@ -41,10 +39,6 @@ class DashboardService {
     }
   }
 
-  /// Busca análises avançadas do usuário
-  /// 
-  /// Endpoint: GET /api/dashboard/analytics/
-  /// Retorna dados completos de evolução, padrões de categoria, tier e distribuição de missões
   Future<AnalyticsData> getAnalytics() async {
     try {
       final response = await _dio.get<Map<String, dynamic>>('/api/dashboard/analytics/');
@@ -78,25 +72,21 @@ class DashboardService {
     }
   }
 
-  /// Busca apenas o contexto abrangente (mais leve que analytics completo)
   Future<ComprehensiveContext> getComprehensiveContext() async {
     final analytics = await getAnalytics();
     return analytics.comprehensiveContext;
   }
 
-  /// Busca apenas padrões de categoria
   Future<CategoryPatternsAnalysis> getCategoryPatterns() async {
     final analytics = await getAnalytics();
     return analytics.categoryPatterns;
   }
 
-  /// Busca apenas progressão de tier
   Future<TierProgressionAnalysis> getTierProgression() async {
     final analytics = await getAnalytics();
     return analytics.tierProgression;
   }
 
-  /// Busca apenas distribuição de missões
   Future<MissionDistributionAnalysis> getMissionDistribution() async {
     final analytics = await getAnalytics();
     return analytics.missionDistribution;

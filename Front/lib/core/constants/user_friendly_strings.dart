@@ -73,41 +73,31 @@ class UxStrings {
   static const viewMore = 'Ver Mais';
   static const refresh = 'Atualizar';
   
-  // ========== Mensagens Contextuais ==========
   
-  /// Mensagens dinâmicas para progresso de poupança
   static String savingsProgress(double percentage) => 
       'Você está guardando ${percentage.toStringAsFixed(0)}% da sua renda';
   
-  /// Mensagens de progresso de meta
   
-  /// Mensagens de pontos ganhos
   static String pointsEarnedMessage(int points) =>
       points == 1 ? '1 ponto ganho!' : '$points pontos ganhos!';
   
-  /// Label dinâmico de pontos
   static String pointsLabel(int count) => 
       count == 1 ? '$count ponto' : '$count pontos';
   
-  /// Label dinâmico de desafios
   static String challengesLabel(int count) => 
       count == 1 ? '$count desafio' : '$count desafios';
   
-  /// Mensagens de nível alcançado
   static String levelReached(int level) => 'Você alcançou o nível $level!';
   
-  /// Mensagem de falta para próximo nível
   static String pointsToNextLevel(int points) =>
       'Faltam $points pontos para o próximo nível';
   
-  // ========== Onboarding ==========
   
   static const welcome = 'Bem-vindo!';
   static const letsStart = "Vamos começar";
   static const basicInfo = 'Informações básicas';
   static const allSet = 'Tudo pronto!';
   
-  // ========== Períodos de Tempo ==========
   
   static const today = 'Hoje';
   static const thisWeek = 'Esta semana';
@@ -115,7 +105,6 @@ class UxStrings {
   static const thisYear = 'Este ano';
   static const total = 'Total';
   
-  // ========== Feedback ==========
   
   static const success = 'Sucesso!';
   static const error = 'Erro';
@@ -123,14 +112,12 @@ class UxStrings {
   static const noData = 'Nenhum dado disponível';
   static const tryAgain = 'Tentar novamente';
   
-  // ========== Admin (Contexto TCC) ==========
   
   static const adminPanel = 'Painel Admin';
   static const userManagement = 'Gestão de Usuários';
   static const systemStats = 'Estatísticas do Sistema';
   static const generateMissions = 'Gerar Missões';
   
-  // Mensagens simples para admin
   static const adminAccessDenied = 'Acesso restrito à área administrativa';
   static const dataUpdated = 'Dados atualizados';
   static const operationSuccess = 'Operação concluída';

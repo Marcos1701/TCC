@@ -18,7 +18,6 @@ class SummaryMetrics {
   final double totalExpense;
 
   factory SummaryMetrics.fromMap(Map<String, dynamic> map) {
-    // Se o mapa estiver vazio, retorna valores padrão (zeros)
     if (map.isEmpty) {
       return const SummaryMetrics(
         tps: 0.0,

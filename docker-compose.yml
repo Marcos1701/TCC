@@ -1,7 +1,6 @@
 version: '3.9'
 
 services:
-  # Banco de dados PostgreSQL
   postgres:
     image: postgres:16-alpine
     container_name: genapp-postgres
@@ -25,7 +24,6 @@ services:
     networks:
       - genapp-network
 
-  # Redis (Message Broker para Celery)
   redis:
     image: redis:7-alpine
     container_name: genapp-redis
@@ -43,7 +41,6 @@ services:
     networks:
       - genapp-network
 
-  # Backend Django API
   api:
     build:
       context: ./Api
@@ -83,7 +80,6 @@ services:
       - genapp-network
     command: ["gunicorn"]
 
-  # Celery Worker
   celery-worker:
     build:
       context: ./Api
@@ -112,7 +108,6 @@ services:
       - genapp-network
     command: ["worker"]
 
-  # Celery Beat (Agendador)
   celery-beat:
     build:
       context: ./Api
@@ -140,7 +135,6 @@ services:
       - genapp-network
     command: ["beat"]
 
-  # Frontend Flutter (Opcional - apenas para produção web)
   frontend:
     build:
       context: ./Front

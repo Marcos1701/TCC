@@ -9,9 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
 import '../widgets/day4_5_widgets.dart';
 
-/// Unified Home Page
-/// Combines Home + Featured Challenges
-/// Reduces navigation from 5 to 3 tabs
 class UnifiedHomePage extends StatefulWidget {
   const UnifiedHomePage({super.key});
 
@@ -161,7 +158,6 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
 
           QuickActionsCard(
             onAddTransaction: _openTransactionSheet,
-            onViewGoals: () => _navigateToGoals(context),
             onViewAnalysis: () => _navigateToAnalysis(context),
           ),
           const SizedBox(height: 16),
@@ -229,16 +225,8 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
     );
   }
 
-  void _navigateToGoals(BuildContext context) {
-    // Navigates to Finances tab (index 1)
-    FeedbackService.showInfo(
-      context,
-      '💡 Metas estão na aba Finanças',
-    );
-  }
 
   void _navigateToAnalysis(BuildContext context) {
-    // Navigates to Finances tab (index 1)
     FeedbackService.showInfo(
       context,
       '💡 Análises estão na aba Finanças',
@@ -246,7 +234,6 @@ class _UnifiedHomePageState extends State<UnifiedHomePage> {
   }
 
   void _navigateToTransactions(BuildContext context) {
-    // Navigates to Finances tab (index 1)
     FeedbackService.showInfo(
       context,
       '💡 Transações estão na aba Finanças',

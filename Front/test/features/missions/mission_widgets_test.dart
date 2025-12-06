@@ -147,7 +147,6 @@ class _FakeFinanceRepository extends FinanceRepository {
     return categoryMissions[categoryId] ?? const [];
   }
 
-  @override
   Future<List<MissionModel>> fetchMissionsByGoal(
     String goalId, {  // UUID
     String? missionType,
@@ -195,8 +194,6 @@ MissionModel _buildMission() {
     targetCategories: const [],
     targetReductionPercent: 15,
     categorySpendingLimit: null,
-    targetGoal: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',  // UUID
-    goalProgressTarget: 0.6,
     savingsIncreaseAmount: null,
     requiresDailyAction: true,
     minDailyActions: 2,

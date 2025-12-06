@@ -5,7 +5,6 @@ import '../../../../core/models/transaction_link.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Tile que exibe um link de transacao na lista.
 class TransactionLinkTile extends StatelessWidget {
   const TransactionLinkTile({
     super.key,

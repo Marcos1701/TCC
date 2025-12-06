@@ -1,62 +1,39 @@
-# ==========================================
-# Simplified Dockerfile for Flutter Web
-# ==========================================
-
-# Use official Flutter image for building
-# NOTA: Verifique a versão mais recente em https://github.com/cirruslabs/docker-images-flutter
 FROM ghcr.io/cirruslabs/flutter:3.24.5 AS build
 
-# Metadados
 LABEL maintainer="GenApp Team"
 LABEL description="Flutter Web Application (Simplified Build)"
 
-# Set working directory
 WORKDIR /app
 
-# Copy pubspec files first for better caching
 COPY pubspec.yaml pubspec.lock* ./
 
-# Get dependencies (permite falha se pubspec.lock não existir)
 RUN flutter pub get || (rm -f pubspec.lock && flutter pub get)
 
-# Copy the rest of the application
 COPY . .
 
-# Build argument for API URL
 ARG API_BASE_URL=https://tcc-production-d286.up.railway.app
 ENV API_BASE_URL=${API_BASE_URL}
 
-# Clean and rebuild to avoid cache issues
 RUN flutter clean && flutter pub get
 
-# Build the Flutter web application
 RUN flutter build web \
     --release \
     --dart-define=API_BASE_URL=${API_BASE_URL} || \
     (echo "Build with dart-define failed, retrying..." && \
      flutter build web --release)
 
-# Verify build output
 RUN test -f build/web/index.html || (echo "Build verification failed!" && exit 1)
 
-# ==========================================
-# Production Stage
-# ==========================================
 FROM nginx:1.25-alpine AS production
 
-# Metadados
 LABEL maintainer="GenApp Team"
 
-# Instalar wget para healthcheck
 RUN apk add --no-cache wget
 
-# Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Remove default nginx config
 RUN rm -f /etc/nginx/conf.d/default.conf
 
-# Copy custom nginx configuration
 COPY --chown=appuser:appgroup <<'EOF' /etc/nginx/conf.d/default.conf
 server {
     listen 80;
@@ -65,36 +42,30 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
-    # Gzip compression
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
     gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json application/javascript;
 
-    # Cache static assets
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
 
-    # Disable cache for HTML
     location ~* \.html$ {
         expires -1;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
 
-    # Handle Flutter web routing
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # Health check endpoint
     location /health {
         access_log off;
         return 200 "healthy\n";
@@ -103,10 +74,8 @@ server {
 }
 EOF
 
-# Copy built Flutter web app from build stage
 COPY --from=build --chown=appuser:appgroup /app/build/web /usr/share/nginx/html
 
-# Set proper permissions
 RUN chown -R appuser:appgroup /usr/share/nginx/html && \
     chown -R appuser:appgroup /var/cache/nginx && \
     chown -R appuser:appgroup /var/log/nginx && \
@@ -114,15 +83,11 @@ RUN chown -R appuser:appgroup /usr/share/nginx/html && \
     touch /var/run/nginx.pid && \
     chown -R appuser:appgroup /var/run/nginx.pid
 
-# Switch to non-root user
 USER appuser
 
-# Expose port
 EXPOSE 80
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,6 +1,3 @@
-"""
-Factory para criação de validadores de missões.
-"""
 
 import logging
 from typing import Any, Dict
@@ -24,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class MissionValidatorFactory:
-    """Factory para criar o validador apropriado baseado no tipo de missão."""
     
     _validators = {
         'ONBOARDING': OnboardingMissionValidator,
@@ -60,17 +56,6 @@ class MissionValidatorFactory:
     
     @classmethod
     def create_validator(cls, mission, user, mission_progress) -> BaseMissionValidator:
-        """
-        Cria e retorna o validador apropriado para o tipo de missão.
-        
-        Args:
-            mission: Instância do modelo Mission
-            user: Usuário
-            mission_progress: Instância do modelo MissionProgress
-            
-        Returns:
-            Instância do validador apropriado
-        """
         validator_class = cls._validation_type_validators.get(mission.validation_type)
         
         if validator_class is None:
@@ -84,18 +69,6 @@ class MissionValidatorFactory:
 
 
 def update_single_mission_progress(mission_progress) -> Dict[str, Any]:
-    """
-    Atualiza o progresso de uma única missão usando o validador apropriado.
-    
-    Nota: Para atualizar todas as missões de um usuário, use
-    finance.services.missions.update_mission_progress(user) em vez desta função.
-    
-    Args:
-        mission_progress: Instância do modelo MissionProgress
-        
-    Returns:
-        Dict com resultado da atualização
-    """
     from decimal import Decimal
     from ..models import MissionProgress as MissionProgressModel
     
@@ -107,14 +80,12 @@ def update_single_mission_progress(mission_progress) -> Dict[str, Any]:
     
     result = validator.calculate_progress()
     
-    # Usa o atributo correto do modelo: 'progress' (não 'progress_percentage')
     mission_progress.progress = Decimal(str(result['progress_percentage']))
     
     if result['is_completed'] and not mission_progress.completed_at:
         is_valid, message = validator.validate_completion()
         if is_valid:
             mission_progress.completed_at = timezone.now()
-            # Usa o campo correto: 'status' com enum (não 'is_completed')
             mission_progress.status = MissionProgressModel.Status.COMPLETED
             logger.info(f"Missão completada: {mission_progress.mission.title} - {message}")
     

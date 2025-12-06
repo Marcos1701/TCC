@@ -8,7 +8,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
 
-/// Sheet que exibe detalhes completos de um desafio com breakdown de progresso
 class MissionDetailsSheet extends StatefulWidget {
   const MissionDetailsSheet({
     super.key,
@@ -81,7 +80,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Cabeçalho
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -132,7 +130,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             ),
             const Divider(color: Color(0xFF2A2A2A), height: 1),
 
-            // Conteúdo
             Flexible(
               child: _loading
                   ? const Center(
@@ -256,7 +253,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             ),
           ),
           
-          // Mensagem de progresso da API
           if (progressMessage != null && progressMessage.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
@@ -308,7 +304,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             ),
           ],
           
-          // Métricas detalhadas por tipo de missão
           if (widget.missionProgress.metrics.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildDetailedMetrics(theme, tokens),
@@ -350,7 +345,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           ),
           const SizedBox(height: 12),
           
-          // Métricas específicas por tipo de missão
           if (missionType == 'TPS_IMPROVEMENT') ..._buildTPSMetrics(theme, metrics)
           else if (missionType == 'RDR_REDUCTION') ..._buildRDRMetrics(theme, metrics)
           else if (missionType == 'ILI_BUILDING') ..._buildILIMetrics(theme, metrics)
@@ -530,7 +524,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
               Icons.signal_cellular_alt,
               _getDifficultyColor(mission.difficulty)),
           
-          // Tipo de validação
           if (mission.validationTypeDisplay != null) ...[
             const SizedBox(height: 12),
             _buildInfoRow(
@@ -542,7 +535,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             ),
           ],
           
-          // Target Info - informações consolidadas de alvos
           if (mission.targetInfo != null && mission.targetInfo!.isNotEmpty) ...[
             const SizedBox(height: 16),
             const Divider(color: Color(0xFF2A2A2A)),
@@ -593,7 +585,6 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       String displayValue;
       String displayLabel;
       
-      // Mapear chaves para labels e formatação apropriada
       switch (key) {
         case 'target_tps':
           icon = Icons.savings_outlined;

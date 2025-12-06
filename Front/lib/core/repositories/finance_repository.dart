@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 import '../models/dashboard.dart';
-import '../models/goal.dart';
 import '../models/mission.dart';
 import '../models/mission_progress.dart';
 import '../models/category.dart';
@@ -312,7 +311,6 @@ class FinanceRepository {
       data: payload,
     );
     
-    // Invalidar cache após atualizar transação
     await CacheService.invalidateDashboard();
     await CacheService.invalidateMissions();
     
@@ -438,7 +436,6 @@ class FinanceRepository {
           ? Map<String, dynamic>.from(response.data!)
           : null;
     } on DioException catch (e) {
-      // If endpoint does not exist (404), return null silently
       if (e.response?.statusCode == 404) {
         debugPrint('⚠️ Context analysis not available (404)');
         return null;
@@ -482,11 +479,7 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
-  // ============================================================================
-  // TRANSACTION LINK METHODS
-  // ============================================================================
 
-  /// Fetch incomes with available balance
   Future<List<TransactionModel>> fetchAvailableIncomes({double? minAmount}) async {
     final queryParams = <String, dynamic>{};
     if (minAmount != null) {
@@ -504,7 +497,6 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Fetch pending expenses
   Future<List<TransactionModel>> fetchPendingExpenses({double? maxAmount}) async {
     final queryParams = <String, dynamic>{};
     if (maxAmount != null) {
@@ -522,7 +514,6 @@ class FinanceRepository {
         .toList();
   }
 
-  /// Create link
   Future<TransactionLinkModel> createTransactionLink(
       CreateTransactionLinkRequest request) async {
     final response = await _client.client.post<Map<String, dynamic>>(
@@ -533,12 +524,10 @@ class FinanceRepository {
     return TransactionLinkModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  /// Delete link by ID or UUID
   Future<void> deleteTransactionLink(String linkId) async {
     await _client.client.delete('${ApiEndpoints.transactionLinks}$linkId/');
   }
 
-  /// Fetch pending expenses summary
   Future<Map<String, dynamic>> fetchPendingSummary({
     String sortBy = 'urgency',
   }) async {
@@ -549,7 +538,6 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
-  /// Create bulk payment (multiple links)
   Future<Map<String, dynamic>> createBulkPayment({
     required List<Map<String, dynamic>> payments,
     String? description,
@@ -564,7 +552,6 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
-  /// List links
   Future<List<TransactionLinkModel>> fetchTransactionLinks({
     String? linkType,
     String? dateFrom,
@@ -597,7 +584,6 @@ class FinanceRepository {
     }
   }
 
-  /// Fetch payment report
   Future<Map<String, dynamic>> fetchPaymentReport({
     String? startDate,
     String? endDate,
@@ -616,7 +602,6 @@ class FinanceRepository {
     return response.data ?? <String, dynamic>{};
   }
 
-  // ============ USER PROFILE ENDPOINTS ============
 
   Future<Map<String, dynamic>> fetchUserProfile() async {
     final response = await _client.client.get<Map<String, dynamic>>(
@@ -665,7 +650,6 @@ class FinanceRepository {
     return response.data ?? {};
   }
 
-  /// Marks first access as completed in backend
   Future<void> completeFirstAccess() async {
     await _client.client.patch<Map<String, dynamic>>(
       ApiEndpoints.profile,
@@ -675,7 +659,6 @@ class FinanceRepository {
     );
   }
 
-  /// Updates user's financial target indicators (TPS, RDR, ILI)
   Future<Map<String, dynamic>> updateFinancialTargets({
     required int targetTps,
     required int targetRdr,
@@ -744,15 +727,11 @@ class FinanceRepository {
   }
 }
 
-/// Modelo para resumo mensal de transações
 class MonthlySummary {
-  /// Mês no formato YYYY-MM
   final String month;
   
-  /// Total geral das transações
   final double total;
   
-  /// Breakdown por categoria
   final List<CategoryTotal> byCategory;
   
   const MonthlySummary({
@@ -771,13 +750,11 @@ class MonthlySummary {
     );
   }
   
-  /// Retorna um MonthlySummary vazio
   static MonthlySummary empty() {
     return const MonthlySummary(month: '', total: 0, byCategory: []);
   }
 }
 
-/// Total de transações em uma categoria
 class CategoryTotal {
   final String id;
   final String name;

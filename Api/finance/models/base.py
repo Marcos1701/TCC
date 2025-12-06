@@ -1,6 +1,3 @@
-"""
-Módulo base com imports comuns e constantes para todos os models.
-"""
 
 from decimal import Decimal
 import uuid

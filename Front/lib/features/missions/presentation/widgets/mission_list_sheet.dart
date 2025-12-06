@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/mission.dart';
 import 'mission_progress_detail_widget.dart';
 
-/// Bottom sheet para exibir lista de missões filtradas.
 class MissionListSheet extends StatefulWidget {
   const MissionListSheet({
     super.key,
@@ -113,7 +112,6 @@ class _MissionListSheetState extends State<MissionListSheet> {
   }
 }
 
-/// Widget de erro para lista de missões.
 class MissionListError extends StatelessWidget {
   const MissionListError({super.key, required this.onRetry});
 
@@ -145,7 +143,6 @@ class MissionListError extends StatelessWidget {
   }
 }
 
-/// Widget de estado vazio para lista de missões.
 class MissionListEmpty extends StatelessWidget {
   const MissionListEmpty({super.key});
 
@@ -170,7 +167,6 @@ class MissionListEmpty extends StatelessWidget {
   }
 }
 
-/// Tile para exibir uma missão na lista.
 class MissionListTile extends StatelessWidget {
   const MissionListTile({super.key, required this.mission});
 

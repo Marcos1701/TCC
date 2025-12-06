@@ -10,7 +10,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import 'edit_transaction_sheet.dart';
 
-/// Sheet que exibe detalhes completos de uma transação
 class TransactionDetailsSheet extends StatefulWidget {
   const TransactionDetailsSheet({
     super.key,
@@ -49,7 +48,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       });
 
       final details =
-          await widget.repository.fetchTransactionDetails(widget.transaction.identifier);  // Usar identifier
+          await widget.repository.fetchTransactionDetails(widget.transaction.identifier);
 
       if (!mounted) return;
       setState(() {
@@ -77,7 +76,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     );
 
     if (updated == true) {
-      // Invalida cache após editar transação
       _cacheManager.invalidateAfterTransaction(action: 'transaction edited');
       
       widget.onUpdate();
@@ -99,10 +97,9 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     if (!confirm) return;
 
     try {
-      await widget.repository.deleteTransaction(widget.transaction.identifier);  // Usar identifier
+      await widget.repository.deleteTransaction(widget.transaction.identifier);
       if (!mounted) return;
 
-      // Invalida cache após deletar transação
       _cacheManager.invalidateAfterTransaction(action: 'transaction deleted');
 
       widget.onUpdate();
@@ -115,7 +112,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     } catch (e) {
       if (!mounted) return;
       
-      // Extrai mensagem de erro amigável
       String errorMessage = 'Erro ao remover transação. Tente novamente.';
       if (e is Failure) {
         errorMessage = e.message;
@@ -161,7 +157,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     }
   }
   
-  /// Parse a cor da categoria do formato HEX (#RRGGBB)
   Color? _parseCategoryColor(String? colorString) {
     if (colorString == null || colorString.isEmpty) return null;
     try {
@@ -170,7 +165,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
         return Color(int.parse('FF$hexColor', radix: 16));
       }
     } catch (e) {
-      // Retorna null se falhar ao parsear
+      debugPrint('Error parsing category color: $e');
     }
     return null;
   }
@@ -181,7 +176,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
     final tokens = theme.extension<AppDecorations>()!;
     final typeColor = _getTypeColor(widget.transaction.type);
     
-    // Parsear cor da categoria
     final categoryColor = _parseCategoryColor(widget.transaction.category?.color);
 
     return Container(
@@ -200,7 +194,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Cabeçalho aprimorado
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -223,7 +216,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                 children: [
                   Row(
                     children: [
-                      // Ícone grande com categoria
                       Stack(
                         children: [
                           Container(
@@ -250,7 +242,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                               size: 32,
                             ),
                           ),
-                          // Badge de categoria
                           if (categoryColor != null)
                             Positioned(
                               bottom: 0,
@@ -282,7 +273,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Badge do tipo
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
@@ -337,7 +327,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
               ),
             ),
 
-            // Conteúdo
             Flexible(
               child: _loading
                   ? const Center(
@@ -457,7 +446,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
               ],
             ),
           ),
-          // Indicador de categoria (se disponível)
           if (categoryColor != null) ...[
             const SizedBox(height: 12),
             Container(
@@ -513,7 +501,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header da seção
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -548,7 +535,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
               ],
             ),
           ),
-          // Conteúdo
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -695,7 +681,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header com ícone animado
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -776,7 +761,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
               ],
             ),
           ),
-          // Informação de término
           Padding(
             padding: const EdgeInsets.all(16),
             child: Container(
@@ -836,7 +820,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
   Widget _buildActionsSection(ThemeData theme) {
     return Column(
       children: [
-        // Botão de Editar
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -879,7 +862,6 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
           ),
         ),
         const SizedBox(height: 12),
-        // Botão de Excluir
         SizedBox(
           width: double.infinity,
           child: OutlinedButton(

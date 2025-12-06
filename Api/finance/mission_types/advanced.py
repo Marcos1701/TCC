@@ -1,6 +1,3 @@
-"""
-Validadores para missões avançadas e com múltiplos critérios.
-"""
 
 from decimal import Decimal
 from typing import Any, Dict, Tuple
@@ -11,11 +8,6 @@ from .base import BaseMissionValidator
 
 
 class AdvancedMissionValidator(BaseMissionValidator):
-    """
-    Validador para missões avançadas com múltiplos critérios.
-    
-    Foco: Desafios complexos que combinam TPS, RDR, ILI e outras métricas.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         metrics = self.get_current_metrics()
@@ -89,11 +81,6 @@ class AdvancedMissionValidator(BaseMissionValidator):
 
 
 class MultiCriteriaValidator(BaseMissionValidator):
-    """
-    Validador para missões com múltiplos critérios simultâneos.
-    
-    Foco: Combinar validações de diferentes tipos (categorias + metas + indicadores).
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         if not self.mission_progress.started_at:

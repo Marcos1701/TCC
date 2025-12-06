@@ -33,7 +33,6 @@ class _MissionsPageState extends State<MissionsPage> {
     _viewModel.loadMissions();
     _cacheManager.addListener(_onCacheInvalidated);
 
-    // Observe mission celebrations
     _viewModel.addListener(_checkForCelebrations);
     AnalyticsService.trackScreenView('missions');
   }
@@ -55,7 +54,6 @@ class _MissionsPageState extends State<MissionsPage> {
   }
 
   void _checkForCelebrations() {
-    // Check for newly completed missions to celebrate
     if (_viewModel.newlyCompleted.isNotEmpty && mounted) {
       for (final missionId in _viewModel.newlyCompleted) {
         final mission = _viewModel.completedMissions.firstWhere(
@@ -69,7 +67,7 @@ class _MissionsPageState extends State<MissionsPage> {
           context,
           missionName: mission.mission.title,
           xpReward: mission.mission.rewardPoints,
-          coinsReward: null, // Can be added in the future
+          coinsReward: null,
         );
 
         _viewModel.markMissionAsViewed(missionId);
@@ -251,10 +249,8 @@ class _ActiveMissionCard extends StatelessWidget {
 
   final MissionProgressModel mission;
 
-  /// Returns color based on mission type.
   Color _getMissionTypeColor(String type) => MissionTypeColors.get(type);
 
-  /// Returns user-friendly description for mission type.
   String _getMissionTypeDescription(String type) =>
       MissionTypeLabels.getShort(type);
 
@@ -264,7 +260,6 @@ class _ActiveMissionCard extends StatelessWidget {
     final progress = mission.progress.clamp(0, 100) / 100;
     final tokens = theme.extension<AppDecorations>()!;
 
-    // Calculate remaining days
     String deadlineText = 'Sem prazo';
     Color deadlineColor = Colors.grey[400]!;
     if (mission.startedAt != null && mission.mission.durationDays > 0) {
@@ -306,7 +301,6 @@ class _ActiveMissionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Badge do tipo de missão
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -325,7 +319,6 @@ class _ActiveMissionCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Indicador de prazo
               Row(
                 children: [
                   Icon(
@@ -364,7 +357,6 @@ class _ActiveMissionCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Barra de progresso
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
@@ -378,7 +370,6 @@ class _ActiveMissionCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Informações de progresso e recompensa
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -428,7 +419,6 @@ class _ActiveMissionCard extends StatelessWidget {
             ],
           ),
 
-          // Mensagem de conclusão
           if (isCompleted) ...[
             const SizedBox(height: 12),
             Container(

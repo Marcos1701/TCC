@@ -51,12 +51,10 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   void _applyFilters() {
     _filteredCategories = _allCategories.where((category) {
-      // Type filter
       if (_selectedType != 'ALL' && category.type != _selectedType) {
         return false;
       }
 
-      // Search filter
       if (_searchQuery.isNotEmpty) {
         return category.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }
@@ -93,7 +91,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   Future<void> _editCategory(CategoryModel category) async {
-    // Check if global category (cannot edit)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -125,7 +122,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
   }
 
   Future<void> _deleteCategory(CategoryModel category) async {
-    // Check if global category (cannot delete)
     if (!category.isUserCreated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -136,7 +132,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
       return;
     }
 
-    // Confirmation
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -144,7 +139,7 @@ class _CategoriesPageState extends State<CategoriesPage> {
         content: Text(
           'Tem certeza que deseja deletar "${category.name}"?\n\n'
           'Esta ação não pode ser desfeita e pode falhar se a categoria '
-          'estiver sendo usada em transações ou metas.',
+          'estiver sendo usada em transações.',
         ),
         actions: [
           TextButton(
@@ -176,21 +171,17 @@ class _CategoriesPageState extends State<CategoriesPage> {
       }
     } catch (e) {
       if (mounted) {
-        // Extract friendlier error message
         String errorMessage = 'Erro ao deletar categoria';
         final errorStr = e.toString().toLowerCase();
         
         if (errorStr.contains('transação') || errorStr.contains('transaction')) {
           errorMessage = 'Esta categoria possui transações vinculadas.\nReatribua as transações antes de excluir.';
-        } else if (errorStr.contains('meta') || errorStr.contains('goal')) {
-          errorMessage = 'Esta categoria possui metas vinculadas.\nReatribua as metas antes de excluir.';
         } else if (errorStr.contains('sistema') || errorStr.contains('system') || errorStr.contains('padrão')) {
           errorMessage = 'Categorias do sistema não podem ser excluídas.';
         } else if (errorStr.contains('vinculada')) {
-          // Capture any message mentioning something linked
           errorMessage = 'Esta categoria está em uso e não pode ser excluída.';
         } else if (errorStr.contains('400') || errorStr.contains('bad request')) {
-          errorMessage = 'Não foi possível excluir esta categoria.\nEla pode estar em uso em transações ou metas.';
+          errorMessage = 'Não foi possível excluir esta categoria.\nEla pode estar em uso em transações.';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -211,7 +202,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Separate global and custom categories
     final globalCategories = _filteredCategories
         .where((c) => !c.isUserCreated)
         .toList()
@@ -229,7 +219,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
       ),
       body: Column(
         children: [
-          // Search bar
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
@@ -245,7 +234,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
             ),
           ),
 
-          // Type filter
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -261,7 +249,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
 
           const SizedBox(height: 16),
 
-          // Category list
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -275,7 +262,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        // Global Categories
                         if (globalCategories.isNotEmpty) ...[
                           const Text(
                             'Categorias do Sistema',
@@ -290,7 +276,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                           const SizedBox(height: 24),
                         ],
 
-                        // Custom Categories
                         if (userCategories.isNotEmpty) ...[
                           const Text(
                             'Minhas Categorias',
@@ -304,7 +289,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                               _buildCategoryCard(category, isGlobal: false)),
                         ],
 
-                        // Mensagem se vazio
                         if (_filteredCategories.isEmpty)
                           const Center(
                             child: Padding(

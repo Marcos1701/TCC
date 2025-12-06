@@ -3,7 +3,6 @@ import '../services/mission_notification_service.dart';
 import '../theme/app_colors.dart';
 import '../constants/user_friendly_strings.dart';
 
-/// Widget que exibe um badge com alertas de desafios urgentes
 class MissionAlertBadge extends StatelessWidget {
   final MissionSummary summary;
   final VoidCallback onTap;
@@ -94,7 +93,6 @@ class MissionAlertBadge extends StatelessWidget {
   }
 }
 
-/// Widget que exibe um resumo compacto dos desafios
 class MissionStatusCard extends StatelessWidget {
   final MissionSummary summary;
   final VoidCallback onTap;

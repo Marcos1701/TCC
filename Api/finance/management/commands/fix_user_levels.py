@@ -1,13 +1,3 @@
-"""
-Comando de gerenciamento para corrigir níveis de usuários com XP acumulado incorretamente.
-
-Este comando corrige usuários que acumularam XP acima do threshold necessário
-para o próximo nível devido a bugs anteriores no sistema de conquistas e ajustes
-manuais de XP.
-
-Uso:
-    python manage.py fix_user_levels [--dry-run]
-"""
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -31,7 +21,6 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.WARNING('Modo DRY RUN - Nenhuma alteração será feita'))
         
-        # Buscar todos os perfis
         profiles = UserProfile.objects.select_related('user').all()
         
         fixed_count = 0
@@ -46,7 +35,6 @@ class Command(BaseCommand):
                 old_level = profile.level
                 old_xp = profile.experience_points
                 
-                # Calcular novo nível e XP
                 new_level = old_level
                 new_xp = old_xp
                 
@@ -54,7 +42,6 @@ class Command(BaseCommand):
                     new_xp -= _xp_threshold(new_level)
                     new_level += 1
                 
-                # Mostrar o que será corrigido
                 self.stdout.write(
                     self.style.WARNING(
                         f'Usuário: {profile.user.username} (ID: {profile.user.id})\n'
@@ -63,7 +50,6 @@ class Command(BaseCommand):
                     )
                 )
                 
-                # Aplicar correção se não for dry-run
                 if not dry_run:
                     with transaction.atomic():
                         profile.level = new_level
@@ -78,7 +64,6 @@ class Command(BaseCommand):
                 
                 fixed_count += 1
         
-        # Resumo
         if fixed_count == 0:
             self.stdout.write(
                 self.style.SUCCESS('\n✓ Nenhum perfil precisou de correção!')

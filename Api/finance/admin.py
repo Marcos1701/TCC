@@ -1,20 +1,3 @@
-"""
-Painel Administrativo - Sistema de Educação Financeira Gamificada
-
-Este módulo configura o painel administrativo do Django para gerenciamento
-do sistema. Projetado para uso pelo desenvolvedor durante o desenvolvimento
-e apresentação do TCC.
-
-Modelos registrados:
-    - UserProfile: Perfis de usuários e dados de gamificação
-    - Category: Categorias de transações financeiras
-    - Transaction: Transações financeiras (receitas/despesas)
-    - TransactionLink: Vínculos entre transações
-    - Mission: Missões do sistema de gamificação
-    - MissionProgress: Progresso dos usuários nas missões
-    - XPTransaction: Histórico de XP ganho (somente leitura)
-    - AdminActionLog: Log de ações administrativas (somente leitura)
-"""
 
 from django.contrib import admin
 from django.utils import timezone
@@ -36,12 +19,6 @@ admin.site.index_title = "Painel de Gerenciamento"
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento de perfis de usuários.
-    
-    Exibe informações de gamificação (nível, XP) e indicadores financeiros
-    calculados (TPS, RDR, ILI).
-    """
     
     list_display = (
         "user",
@@ -95,12 +72,10 @@ class UserProfileAdmin(admin.ModelAdmin):
 
     @admin.display(description="Nível", ordering="level")
     def nivel(self, obj):
-        """Exibe o nível do usuário."""
         return f"Nv. {obj.level}"
     
     @admin.action(description="Recalcular indicadores selecionados")
     def recalculate_indicators(self, request, queryset):
-        """Força recálculo de indicadores para os perfis selecionados."""
         from .services import calculate_summary, invalidate_indicators_cache
         
         count = 0
@@ -117,12 +92,6 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento de categorias de transações.
-    
-    Categorias podem ser de receita (INCOME) ou despesa (EXPENSE).
-    Categorias padrão do sistema são marcadas como is_system_default.
-    """
     
     list_display = (
         "name",
@@ -153,12 +122,10 @@ class CategoryAdmin(admin.ModelAdmin):
 
     @admin.display(description="Tipo", ordering="type")
     def tipo(self, obj):
-        """Exibe o tipo da categoria."""
         return "Receita" if obj.type == "INCOME" else "Despesa"
     
     @admin.action(description="Duplicar categorias selecionadas")
     def duplicate_categories(self, request, queryset):
-        """Duplica categorias selecionadas para o mesmo usuário."""
         count = 0
         for category in queryset:
             category.pk = None
@@ -174,12 +141,6 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento de transações financeiras.
-    
-    Transações podem ser receitas (INCOME) ou despesas (EXPENSE).
-    Suporta recorrência para transações periódicas.
-    """
     
     list_display = (
         "description",
@@ -213,12 +174,10 @@ class TransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Tipo", ordering="type")
     def tipo(self, obj):
-        """Exibe o tipo da transação."""
         return "Receita" if obj.type == "INCOME" else "Despesa"
 
     @admin.display(description="Valor", ordering="amount")
     def valor(self, obj):
-        """Exibe o valor formatado."""
         sinal = "+" if obj.type == "INCOME" else "-"
         return f"{sinal} R$ {obj.amount:.2f}"
 
@@ -228,9 +187,6 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(TransactionLink)
 class TransactionLinkAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento de vínculos entre transações.
-    """
     
     list_display = (
         "id",
@@ -264,7 +220,6 @@ class TransactionLinkAdmin(admin.ModelAdmin):
 
     @admin.display(description="Valor", ordering="linked_amount")
     def valor_vinculado(self, obj):
-        """Exibe o valor vinculado formatado."""
         return f"R$ {obj.linked_amount:.2f}"
 
     def get_queryset(self, request):
@@ -272,9 +227,6 @@ class TransactionLinkAdmin(admin.ModelAdmin):
 
 @admin.register(Mission)
 class MissionAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento de missões do sistema de gamificação.
-    """
     
     list_display = (
         "title",
@@ -345,17 +297,14 @@ class MissionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Recompensa", ordering="reward_points")
     def recompensa(self, obj):
-        """Exibe a recompensa em XP."""
         return f"{obj.reward_points} XP"
 
     @admin.display(description="Duração", ordering="duration_days")
     def duracao(self, obj):
-        """Exibe a duração em dias."""
         return f"{obj.duration_days} dias"
 
     @admin.display(description="Usuários")
     def usuarios(self, obj):
-        """Exibe quantidade de usuários que iniciaram/completaram a missão."""
         total = obj.progress.count()
         concluidas = obj.progress.filter(status='COMPLETED').count()
         if total > 0:
@@ -368,15 +317,6 @@ class MissionAdmin(admin.ModelAdmin):
 
 @admin.register(MissionProgress)
 class MissionProgressAdmin(admin.ModelAdmin):
-    """
-    Gerenciamento do progresso de usuários nas missões.
-    
-    Status (conforme modelo):
-        - PENDING: Pendente
-        - ACTIVE: Em andamento
-        - COMPLETED: Concluída
-        - FAILED: Falhou
-    """
     
     list_display = (
         "user",
@@ -438,33 +378,19 @@ class MissionProgressAdmin(admin.ModelAdmin):
 
     @admin.display(description="Missão")
     def missao(self, obj):
-        """Exibe informações resumidas da missão."""
         return f"{obj.mission.title} ({obj.mission.reward_points} XP)"
 
     @admin.display(description="Progresso", ordering="progress")
     def progresso(self, obj):
-        """Exibe o progresso percentual."""
         return f"{min(float(obj.progress), 100):.0f}%"
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user', 'mission')
 
 
-# =============================================================================
-# LOGS E HISTÓRICO (SOMENTE LEITURA)
-# =============================================================================
 
 @admin.register(XPTransaction)
 class XPTransactionAdmin(admin.ModelAdmin):
-    """
-    Histórico de transações de XP.
-    
-    Registra cada ganho de XP por completar missões,
-    incluindo transição de nível quando aplicável.
-    
-    Este modelo é somente leitura - registros são criados
-    automaticamente pelo sistema.
-    """
     
     list_display = (
         "user",
@@ -504,33 +430,27 @@ class XPTransactionAdmin(admin.ModelAdmin):
 
     @admin.display(description="Missão")
     def missao(self, obj):
-        """Exibe o título da missão relacionada."""
         if obj.mission_progress and obj.mission_progress.mission:
             return obj.mission_progress.mission.title
         return "-"
 
     @admin.display(description="XP Ganho", ordering="points_awarded")
     def xp_ganho(self, obj):
-        """Exibe o XP ganho."""
         return f"+{obj.points_awarded} XP"
 
     @admin.display(description="Nível")
     def transicao_nivel(self, obj):
-        """Exibe a transição de nível, se houver."""
         if obj.level_before == obj.level_after:
             return f"Nível {obj.level_after}"
         return f"{obj.level_before} → {obj.level_after}"
 
     def has_add_permission(self, request):
-        """Desabilita criação manual."""
         return False
 
     def has_change_permission(self, request, obj=None):
-        """Desabilita edição."""
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Permite exclusão apenas para superusuários."""
         return request.user.is_superuser
 
     def get_queryset(self, request):
@@ -539,9 +459,6 @@ class XPTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(AdminActionLog)
 class AdminActionLogAdmin(admin.ModelAdmin):
-    """
-    Log de ações administrativas.
-    """
     
     list_display = (
         "admin_user",
@@ -585,15 +502,12 @@ class AdminActionLogAdmin(admin.ModelAdmin):
     )
 
     def has_add_permission(self, request):
-        """Desabilita criação manual."""
         return False
 
     def has_change_permission(self, request, obj=None):
-        """Desabilita edição."""
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Permite exclusão apenas para superusuários."""
         return request.user.is_superuser
 
     def get_queryset(self, request):

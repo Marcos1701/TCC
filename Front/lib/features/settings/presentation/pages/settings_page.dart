@@ -22,13 +22,11 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    // Atualiza a sessão quando a página é carregada para garantir dados atualizados
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshProfileData();
     });
   }
 
-  /// Atualiza os dados do perfil para garantir que estão sincronizados com a API.
   Future<void> _refreshProfileData() async {
     if (!mounted) return;
     final session = SessionScope.of(context);
@@ -302,7 +300,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 24),
 
-            // Account Section
             Text(
               'Conta',
               style: theme.textTheme.titleMedium?.copyWith(
@@ -366,7 +363,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 32),
 
-            // Logout Button
             ElevatedButton.icon(
               onPressed: () => _confirmLogout(context),
               style: ElevatedButton.styleFrom(

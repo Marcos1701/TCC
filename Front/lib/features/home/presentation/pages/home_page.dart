@@ -12,7 +12,6 @@ import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
 import '../../../missions/presentation/widgets/mission_details_sheet.dart';
-import '../../../progress/presentation/pages/progress_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../../transactions/presentation/pages/transactions_page.dart';
 import '../../../transactions/presentation/widgets/payment_wizard.dart';
@@ -37,7 +36,6 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // Listen to cache changes to update automatically
     _cacheManager.addListener(_onCacheInvalidated);
   }
 
@@ -48,17 +46,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onCacheInvalidated() {
-    // Reload data when cache is invalidated
     if (_cacheManager.isInvalidated(CacheType.dashboard) && mounted) {
       _cacheManager.clearInvalidation(CacheType.dashboard);
-      // Force immediate reload
       setState(() {
         _future = _repository.fetchDashboard().then((data) {
           if (mounted) {
             final session = SessionScope.of(context);
             session.updateProfile(data.profile);
             
-            // Check gamification celebrations in background
             GamificationService.checkLevelUp(
               context: context,
               profile: data.profile,
@@ -89,11 +84,9 @@ class _HomePageState extends State<HomePage> {
     final data = await _repository.fetchDashboard();
     if (!mounted) return;
     
-    // Update session with dashboard profile (avoids extra request)
     final session = SessionScope.of(context);
     session.updateProfile(data.profile);
     
-    // Check gamification celebrations
     if (!mounted) return;
     await GamificationService.checkLevelUp(
       context: context,
@@ -106,21 +99,18 @@ class _HomePageState extends State<HomePage> {
       missions: data.activeMissions,
     );
     
-    // Check missions close to expiring
     if (!mounted) return;
     await MissionNotificationService.checkExpiringMissions(
       context: context,
       missions: data.activeMissions,
     );
     
-    // Check new missions
     if (!mounted) return;
     await MissionNotificationService.checkNewMissions(
       context: context,
       missions: data.activeMissions,
     );
     
-    // Update state AFTER all async work
     if (mounted) {
       setState(() {
         _future = Future.value(data);
@@ -129,7 +119,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openTransactionSheet() async {
-    // Show action selector first
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -156,10 +145,8 @@ class _HomePageState extends State<HomePage> {
 
     if (created == null || !mounted) return;
     
-    // Invalidate cache globally after creating transaction
     _cacheManager.invalidateAfterTransaction(action: 'transaction created');
     
-    // Show success feedback
     FeedbackService.showSuccess(
       context,
       '✅ Transação registrada! Confira seu progresso nos desafios.',
@@ -175,7 +162,6 @@ class _HomePageState extends State<HomePage> {
     );
 
     if (result == true && mounted) {
-      // Update dashboard after creating payments
       _refresh();
     }
   }
@@ -320,14 +306,12 @@ class _HomePageState extends State<HomePage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 120),
                 children: [
-                  // 1. Resumo do Mês (destaque)
                   MonthSummaryCard(
                     summary: data.summary,
                     currency: _currency,
                   ),
                   const SizedBox(height: 16),
                   
-                  // 2. Desafio da Semana (motivação)
                   if (data.activeMissions.isNotEmpty)
                     WeeklyChallengeCard(
                       mission: data.activeMissions.first,
@@ -336,21 +320,17 @@ class _HomePageState extends State<HomePage> {
                   if (data.activeMissions.isNotEmpty)
                     const SizedBox(height: 16),
                   
-                  // 2.1. Botão "Ver todos os desafios"
                   if (data.activeMissions.length > 1)
                     _buildViewAllChallengesButton(data.activeMissions.length),
                   if (data.activeMissions.length > 1)
                     const SizedBox(height: 16),
                   
-                  // 3. Quick Actions
                   QuickActionsCard(
                     onAddTransaction: _openTransactionSheet,
-                    onViewGoals: () => _openPage(const ProgressPage()),
                     onViewAnalysis: () => _openPage(const FinancesPage(initialTab: 1)),
                   ),
                   const SizedBox(height: 16),
                   
-                  // 4. Últimas Transações (5 mais recentes)
                   RecentTransactionsSection(
                     repository: _repository,
                     currency: _currency,
@@ -358,7 +338,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // 5. Pagamentos Recentes com acesso ao wizard
                   RecentPaymentsCard(
                     repository: _repository,
                     currency: _currency,

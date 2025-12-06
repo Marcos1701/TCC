@@ -88,7 +88,6 @@ class _TransactionsPageState extends State<TransactionsPage>
     );
 
     if (result == true) {
-      // Update list after creating payments
       _viewModel.refreshSilently();
     }
   }
@@ -123,7 +122,6 @@ class _TransactionsPageState extends State<TransactionsPage>
     } catch (e) {
       if (!mounted) return;
       
-      // Extrai mensagem de erro amigável
       String errorMessage = 'Não foi possível remover a transação.';
       if (e is Failure) {
         errorMessage = e.message;
@@ -138,7 +136,6 @@ class _TransactionsPageState extends State<TransactionsPage>
 
   void _applyFilter(String? type) {
     setState(() {
-      // Force immediate rebuild to update visual chips
       _viewModel.updateFilter(type);
     });
   }
@@ -149,7 +146,6 @@ class _TransactionsPageState extends State<TransactionsPage>
       'EXPENSE': 0,
     };
     
-    // Sum normal transactions
     for (final tx in transactions) {
       totals.update(tx.type, (value) => value + tx.amount,
           ifAbsent: () => tx.amount);
@@ -169,15 +165,12 @@ class _TransactionsPageState extends State<TransactionsPage>
         onDelete: () async {
           await _viewModel.repository.deleteTransactionLink(link.identifier);
           
-          // Close bottom sheet
           if (sheetContext.mounted) {
             Navigator.of(sheetContext).pop();
           }
           
-          // Update data
           _viewModel.refreshSilently();
           
-          // Show feedback only if main widget is still mounted
           if (mounted && context.mounted) {
             FeedbackService.showSuccess(
               context,
@@ -191,7 +184,7 @@ class _TransactionsPageState extends State<TransactionsPage>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    super.build(context);
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
 
@@ -329,10 +322,8 @@ class _TransactionsPageState extends State<TransactionsPage>
 
                     final totals = _buildTotals(transactions);
                     
-                    // Criar lista combinada de transações e links ordenados por data
                     final allItems = <Map<String, dynamic>>[];
                     
-                    // Adicionar transações
                     for (final transaction in transactions) {
                       allItems.add({
                         'type': 'transaction',
@@ -341,7 +332,6 @@ class _TransactionsPageState extends State<TransactionsPage>
                       });
                     }
                     
-                    // Adicionar links
                     for (final link in links) {
                       allItems.add({
                         'type': 'link',
@@ -350,7 +340,6 @@ class _TransactionsPageState extends State<TransactionsPage>
                       });
                     }
                     
-                    // Ordenar por data (mais recente primeiro)
                     allItems.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
 
                     return Stack(
@@ -359,7 +348,6 @@ class _TransactionsPageState extends State<TransactionsPage>
                           padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
                           itemCount: allItems.length + 1,
                           separatorBuilder: (_, index) {
-                            // Espaçamento maior após o resumo
                             if (index == 0) {
                               return const SizedBox(height: 20);
                             }
@@ -400,13 +388,11 @@ class _TransactionsPageState extends State<TransactionsPage>
                                 onRemove: () => _deleteTransaction(transaction),
                               );
                             } else {
-                              // E um link de transacao
                               final link = item['data'] as TransactionLinkModel;
                               return TransactionLinkTile(
                                 link: link,
                                 currency: _currency,
                                 onTap: () {
-                                  // Exibir detalhes do link
                                   _showLinkDetails(link);
                                 },
                               );

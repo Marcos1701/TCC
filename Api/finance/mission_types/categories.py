@@ -1,6 +1,3 @@
-"""
-Validadores para missões relacionadas a categorias de despesas.
-"""
 
 from datetime import timedelta
 from decimal import Decimal
@@ -13,11 +10,6 @@ from .base import BaseMissionValidator
 
 
 class CategoryReductionValidator(BaseMissionValidator):
-    """
-    Validador para missões de redução de gastos em categorias específicas.
-    
-    Foco: Reduzir X% os gastos em uma categoria comparando período atual vs anterior.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         from ..models import Transaction
@@ -95,11 +87,6 @@ class CategoryReductionValidator(BaseMissionValidator):
 
 
 class CategoryLimitValidator(BaseMissionValidator):
-    """
-    Validador para missões de limite de gastos em categoria.
-    
-    Foco: Não exceder R$ X em uma categoria durante o período.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         from ..models import Transaction
@@ -136,20 +123,14 @@ class CategoryLimitValidator(BaseMissionValidator):
         mission_days = self.mission.duration_days
         
         if current_spending > limit:
-            # Missão falhou - excedeu o limite
             progress = 0
             is_completed = False
             status_message = f"Limite excedido em R$ {float(current_spending - limit):.2f}"
         else:
-            # Calcula progresso como combinação de tempo + margem de segurança
-            # Tempo: quantos dias já passaram
             time_progress = min(100, (elapsed_days / mission_days) * 100) if mission_days > 0 else 0
             
-            # Margem: quanto do limite ainda está disponível (bonus para quem gasta menos)
             margin_ratio = float(remaining / limit) if limit > 0 else 1
             
-            # Progresso final: média ponderada (tempo tem mais peso)
-            # Se está dentro do limite, progresso aumenta com o tempo
             progress = time_progress
             
             is_completed = elapsed_days >= mission_days

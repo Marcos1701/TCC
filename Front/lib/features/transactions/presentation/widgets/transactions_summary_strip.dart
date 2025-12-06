@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Dados de uma metrica do resumo de transacoes.
 class SummaryMetric {
   const SummaryMetric({
     required this.key,
@@ -21,7 +20,6 @@ class SummaryMetric {
   final Color color;
 }
 
-/// Strip horizontal com resumo das transacoes (receitas/despesas).
 class TransactionsSummaryStrip extends StatelessWidget {
   const TransactionsSummaryStrip({
     super.key,
@@ -93,7 +91,6 @@ class TransactionsSummaryStrip extends StatelessWidget {
   }
 }
 
-/// Card individual de uma metrica no resumo.
 class SummaryMetricCard extends StatelessWidget {
   const SummaryMetricCard({
     super.key,

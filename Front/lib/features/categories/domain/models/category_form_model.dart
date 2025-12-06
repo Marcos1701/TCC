@@ -1,9 +1,8 @@
-/// Modelo para formulário de criação/edição de categoria
 class CategoryFormModel {
   final String? id;
   final String name;
-  final String type; // 'INCOME' ou 'EXPENSE'
-  final String color; // Hex color (#RRGGBB)
+  final String type;
+  final String color;
   final String? group;
   final String? icon;
 
@@ -16,7 +15,6 @@ class CategoryFormModel {
     this.icon,
   });
 
-  /// Cria um formulário vazio (para criar nova categoria)
   factory CategoryFormModel.empty(String type) {
     return CategoryFormModel(
       name: '',
@@ -25,7 +23,6 @@ class CategoryFormModel {
     );
   }
 
-  /// Cria um formulário a partir de uma categoria existente
   factory CategoryFormModel.fromCategory(Map<String, dynamic> category) {
     return CategoryFormModel(
       id: category['id']?.toString(),
@@ -37,7 +34,6 @@ class CategoryFormModel {
     );
   }
 
-  /// Converte para JSON para enviar ao backend
   Map<String, dynamic> toJson() {
     return {
       'name': name.trim(),
@@ -48,7 +44,6 @@ class CategoryFormModel {
     };
   }
 
-  /// Cria uma cópia com campos alterados
   CategoryFormModel copyWith({
     String? id,
     String? name,
@@ -67,7 +62,6 @@ class CategoryFormModel {
     );
   }
 
-  /// Validação do formulário
   String? validateName() {
     if (name.trim().isEmpty) {
       return 'Nome é obrigatório';

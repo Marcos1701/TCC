@@ -6,7 +6,6 @@ import '../../../../core/services/analytics_service.dart';
 import '../../data/missions_viewmodel.dart';
 import 'mission_list_sheet.dart';
 
-/// Lista horizontal de badges de categorias com missões.
 class CategoryMissionBadgeList extends StatelessWidget {
   const CategoryMissionBadgeList({
     super.key,
@@ -61,7 +60,6 @@ class CategoryMissionBadgeList extends StatelessWidget {
   }
 }
 
-/// Badge individual de categoria com contador de missões.
 class CategoryBadge extends StatelessWidget {
   const CategoryBadge({
     super.key,
@@ -135,7 +133,6 @@ class CategoryBadge extends StatelessWidget {
   }
 }
 
-/// Parse de cor hexadecimal.
 Color? _parseColor(String? hex) {
   if (hex == null || hex.isEmpty) return null;
   final buffer = StringBuffer();

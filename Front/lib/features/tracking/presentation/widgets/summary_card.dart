@@ -6,7 +6,6 @@ import '../../../../core/models/dashboard.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Card de resumo financeiro com receitas, despesas e saldo.
 class SummaryCard extends StatelessWidget {
   const SummaryCard({
     super.key,
@@ -132,7 +131,6 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
-/// Item de métrica individual (receita ou despesa).
 class _MetricItem extends StatelessWidget {
   const _MetricItem({
     required this.label,

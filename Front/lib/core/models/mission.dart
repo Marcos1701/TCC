@@ -17,7 +17,6 @@ class MissionModel {
     this.maxIli,
     this.minTransactions,
     required this.durationDays,
-    // Novos campos de validação avançada
     required this.validationType,
     this.requiresConsecutiveDays,
     this.minConsecutiveDays,
@@ -26,8 +25,6 @@ class MissionModel {
     this.targetCategories = const [],
     this.targetReductionPercent,
     this.categorySpendingLimit,
-    this.targetGoal,
-    this.goalProgressTarget,
     this.savingsIncreaseAmount,
     this.requiresDailyAction,
     this.minDailyActions,
@@ -39,7 +36,6 @@ class MissionModel {
     this.minPaymentsCount,
     this.isSystemGenerated = false,
     this.generationContext,
-    // Campos de display da API
     this.typeDisplay,
     this.difficultyDisplay,
     this.validationTypeDisplay,
@@ -64,7 +60,6 @@ class MissionModel {
   final int? minTransactions;
   final int durationDays;
   
-  // Novos campos
   final String validationType;
   final bool? requiresConsecutiveDays;
   final int? minConsecutiveDays;
@@ -73,8 +68,6 @@ class MissionModel {
   final List<CategoryModel> targetCategories;
   final double? targetReductionPercent;
   final double? categorySpendingLimit;
-  final String? targetGoal;  // UUID da meta (Goal usa UUID)
-  final double? goalProgressTarget;
   final double? savingsIncreaseAmount;
   final bool? requiresDailyAction;
   final int? minDailyActions;
@@ -85,15 +78,13 @@ class MissionModel {
   final bool isSystemGenerated;
   final Map<String, dynamic>? generationContext;
   
-  // Gamificação contextual
   final List<Map<String, dynamic>>? impacts;
   final List<Map<String, dynamic>>? tips;
   
-  // Campos de display da API
   final String? typeDisplay;
   final String? difficultyDisplay;
   final String? validationTypeDisplay;
-  final String? source; // 'template', 'ai', 'system'
+  final String? source;
   final Map<String, dynamic>? targetInfo;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -126,7 +117,6 @@ class MissionModel {
           : null,
       minTransactions: map['min_transactions'] as int?,
       durationDays: map['duration_days'] as int,
-      // Novos campos
       validationType: map['validation_type'] as String? ?? 'SNAPSHOT',
       requiresConsecutiveDays: map['requires_consecutive_days'] as bool?,
       minConsecutiveDays: map['min_consecutive_days'] as int?,
@@ -138,10 +128,6 @@ class MissionModel {
           : null,
       categorySpendingLimit: map['category_spending_limit'] != null
           ? double.parse(map['category_spending_limit'].toString())
-          : null,
-      targetGoal: map['target_goal']?.toString(),
-      goalProgressTarget: map['goal_progress_target'] != null
-          ? double.parse(map['goal_progress_target'].toString())
           : null,
       savingsIncreaseAmount: map['savings_increase_amount'] != null
           ? double.parse(map['savings_increase_amount'].toString())
@@ -163,7 +149,6 @@ class MissionModel {
       generationContext: map['generation_context'] != null
           ? Map<String, dynamic>.from(map['generation_context'] as Map)
           : null,
-      // Campos de display da API
       typeDisplay: map['type_display'] as String?,
       difficultyDisplay: map['difficulty_display'] as String?,
       validationTypeDisplay: map['validation_type_display'] as String?,
@@ -176,11 +161,8 @@ class MissionModel {
     );
   }
 
-  /// Retorna uma descrição amigável do tipo de missão
-  /// Usa as constantes centralizadas de [MissionTypeLabels]
   String get missionTypeLabel => MissionTypeLabels.getShort(missionType);
   
-  /// Retorna uma descrição amigável do tipo de validação
   String get validationTypeLabel {
     switch (validationType) {
       case 'SNAPSHOT':
@@ -191,10 +173,6 @@ class MissionModel {
         return 'Reduzir categoria';
       case 'CATEGORY_LIMIT':
         return 'Limite de categoria';
-      case 'GOAL_PROGRESS':
-        return 'Progresso em meta';
-      case 'GOAL_CONTRIBUTION':
-        return 'Contribuir para meta';
       case 'SAVINGS_INCREASE':
         return 'Aumentar poupança';
       case 'CONSISTENCY':
@@ -268,14 +246,12 @@ class MissionModel {
     return DateTime.parse(value.toString());
   }
 
-  /// Valida se a missão contém placeholders não substituídos
   bool hasPlaceholders() {
     final placeholderPattern = RegExp(r'\{[^}]+\}');
     return placeholderPattern.hasMatch(title) || 
            placeholderPattern.hasMatch(description);
   }
 
-  /// Lista de placeholders encontrados (para debug)
   List<String> getPlaceholders() {
     final placeholderPattern = RegExp(r'\{([^}]+)\}');
     final placeholders = <String>{};
@@ -291,7 +267,6 @@ class MissionModel {
     return placeholders.toList();
   }
 
-  /// Indica se a missão é válida para exibição
   bool get isValid => !hasPlaceholders() && title.isNotEmpty && description.isNotEmpty;
 
   Map<String, dynamic> toMap() {
@@ -317,8 +292,6 @@ class MissionModel {
       'target_categories': targetCategories.map((c) => c.toMap()).toList(),
       'target_reduction_percent': targetReductionPercent,
       'category_spending_limit': categorySpendingLimit,
-      'target_goal': targetGoal,
-      'goal_progress_target': goalProgressTarget,
       'savings_increase_amount': savingsIncreaseAmount,
       'requires_daily_action': requiresDailyAction,
       'min_daily_actions': minDailyActions,

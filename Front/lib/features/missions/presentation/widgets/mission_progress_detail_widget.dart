@@ -78,16 +78,6 @@ class MissionProgressDetailWidget extends StatelessWidget {
   List<_ProgressDescriptor> _buildRows() {
     final rows = <_ProgressDescriptor>[];
 
-    final goalSummary = _buildGoalSummary();
-    if (goalSummary != null) {
-      rows.add(
-        _ProgressDescriptor(
-          label: 'O que precisa ser feito',
-          detail: goalSummary,
-          icon: Icons.flag_circle,
-        ),
-      );
-    }
 
     final actionSummary = _buildActionSummary();
     if (actionSummary != null) {
@@ -114,41 +104,6 @@ class MissionProgressDetailWidget extends StatelessWidget {
     return rows;
   }
 
-  String? _buildGoalSummary() {
-    final targetInfo = mission.targetInfo;
-    if (targetInfo is Map<String, dynamic>) {
-      final headline = targetInfo['headline'];
-      if (headline is String && headline.isNotEmpty) {
-        return headline;
-      }
-      final targets = targetInfo['targets'];
-      if (targets is List && targets.isNotEmpty) {
-        final Map first = targets.first as Map;
-        final label = first['label']?.toString();
-        if (label != null && label.isNotEmpty) {
-          return label;
-        }
-      }
-    }
-
-    if (mission.targetCategoryData != null &&
-        mission.targetReductionPercent != null) {
-      final percent = mission.targetReductionPercent!.toStringAsFixed(0);
-      return 'Reduzir ${mission.targetCategoryData!.name} em $percent%';
-    }
-
-    if (mission.targetCategoryData != null && mission.categorySpendingLimit != null) {
-      final limit = mission.categorySpendingLimit!.toStringAsFixed(0);
-      return 'Manter ${mission.targetCategoryData!.name} abaixo de R\$ $limit';
-    }
-
-    if (mission.goalProgressTarget != null) {
-      final percent = (mission.goalProgressTarget! * 100).toStringAsFixed(0);
-      return 'Levar a meta selecionada para $percent% de conclusão';
-    }
-
-    return mission.description.isNotEmpty ? mission.description : null;
-  }
 
   String? _buildActionSummary() {
     if (mission.tips != null && mission.tips!.isNotEmpty) {

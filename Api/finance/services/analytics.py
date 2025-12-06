@@ -14,19 +14,11 @@ from .indicators import calculate_summary
 
 
 def analyze_user_evolution(user, days=90):
-    """
-    Analisa evolução do usuário nos últimos X dias.
-    Usado pela IA para gerar missões personalizadas baseadas em histórico real.
-    
-    Nota: Após remoção do UserDailySnapshot, esta função utiliza dados
-    calculados em tempo real a partir das transações.
-    """
     from datetime import timedelta
     from django.db.models.functions import TruncDate
     
     start_date = timezone.now().date() - timedelta(days=days)
     
-    # Buscar transações do período
     transactions = Transaction.objects.filter(
         user=user,
         date__gte=start_date
@@ -38,10 +30,8 @@ def analyze_user_evolution(user, days=90):
             'message': 'Dados insuficientes para análise (nenhuma transação no período)'
         }
     
-    # Calcular indicadores atuais
     current_summary = calculate_summary(user)
     
-    # Analisar transações por dia
     daily_data = transactions.annotate(
         day=TruncDate('date')
     ).values('day').annotate(
@@ -54,7 +44,6 @@ def analyze_user_evolution(user, days=90):
     total_days = (timezone.now().date() - start_date).days or 1
     consistency_rate = (days_with_transactions / total_days) * 100
     
-    # Calcular gastos por categoria
     category_spending = transactions.filter(
         type=Transaction.TransactionType.EXPENSE
     ).values('category__name').annotate(
@@ -69,7 +58,6 @@ def analyze_user_evolution(user, days=90):
     
     problem_category = list(all_category_spending.keys())[0] if all_category_spending else None
     
-    # Identificar problemas e forças
     tps = float(current_summary.get('tps', 0))
     rdr = float(current_summary.get('rdr', 0))
     ili = float(current_summary.get('ili', 0))
@@ -125,12 +113,6 @@ def analyze_user_evolution(user, days=90):
 
 
 def analyze_category_patterns(user, days=90):
-    """
-    Analisa padrões de gastos por categoria para sugerir missões específicas.
-    
-    Nota: Após remoção do UserDailySnapshot, esta função utiliza dados
-    calculados em tempo real a partir das transações.
-    """
     from datetime import timedelta
     from django.core.cache import cache
     from django.db.models.functions import TruncDate
@@ -146,7 +128,6 @@ def analyze_category_patterns(user, days=90):
     try:
         start_date = timezone.now().date() - timedelta(days=days)
         
-        # Buscar transações de despesa do período
         expense_transactions = Transaction.objects.filter(
             user=user,
             type=Transaction.TransactionType.EXPENSE,
@@ -158,7 +139,6 @@ def analyze_category_patterns(user, days=90):
             cache.set(cache_key, result, 900)
             return result
         
-        # Agrupar por categoria e data
         daily_category_data = expense_transactions.annotate(
             day=TruncDate('date')
         ).values('day', 'category__name').annotate(
@@ -166,10 +146,8 @@ def analyze_category_patterns(user, days=90):
             count=Count('id')
         ).order_by('day', 'category__name')
         
-        # Calcular número de dias no período
         total_days = (timezone.now().date() - start_date).days or 1
         
-        # Construir análise por categoria
         category_analysis = {}
         
         for item in daily_category_data:
@@ -243,10 +221,6 @@ def analyze_category_patterns(user, days=90):
 
 
 def analyze_tier_progression(user):
-    """
-    Analisa a progressão do usuário através das faixas (tiers).
-    Determina tier atual, progresso dentro do tier e próximos marcos.
-    """
     from django.core.cache import cache
     
     if not user:
@@ -347,7 +321,6 @@ def analyze_tier_progression(user):
 
 
 def _get_tier_description(tier):
-    """Retorna descrição do tier."""
     descriptions = {
         'BEGINNER': 'Iniciante - Aprendendo os fundamentos da educação financeira',
         'INTERMEDIATE': 'Intermediário - Desenvolvendo hábitos financeiros sólidos',
@@ -357,10 +330,6 @@ def _get_tier_description(tier):
 
 
 def get_mission_distribution_analysis(user):
-    """
-    Analisa a distribuição de missões do usuário para balancear geração.
-    Evita gerar muitas missões do mesmo tipo e identifica lacunas.
-    """
     from django.core.cache import cache
     
     if not user:
@@ -462,11 +431,6 @@ def get_mission_distribution_analysis(user):
 
 
 def get_comprehensive_mission_context(user):
-    """
-    Retorna contexto COMPLETO para geração de missões pela IA.
-    Combina todas as análises em um único contexto rico.
-    Usa cache de 30 minutos para evitar cálculos repetidos.
-    """
     from django.core.cache import cache
     
     cache_key = f'mission_context_{user.id}'

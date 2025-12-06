@@ -5,8 +5,6 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
-/// Creates a native database connection using SQLite.
-/// This implementation is used on mobile and desktop platforms.
 QueryExecutor driftDatabase() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();

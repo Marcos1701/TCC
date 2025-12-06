@@ -14,15 +14,12 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import '../database/app_database.dart';
 
-/// Repositório para operações de transações.
 class TransactionRepository extends BaseRepository implements ITransactionRepository {
   TransactionRepository({super.client, AppDatabase? db}) 
       : _db = db ?? AppDatabase();
 
   final AppDatabase _db;
   
-  /// Flag to track if DB operations should be attempted
-  /// Disabled on web (kIsWeb) since sql.js is not configured
   static bool get _dbAvailable => !kIsWeb;
 
   @override
@@ -64,8 +61,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
         debugPrint('✅ TransactionRepository: ${transactions.length} transactions parsed');
       }
 
-      // Save to DB (non-blocking, ignore errors)
-      // Skip on web since sql.js is not configured
       if (_dbAvailable) {
         _saveTransactionsToDb(transactions).catchError((e) {
           if (kDebugMode) {
@@ -81,7 +76,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
         debugPrint('Stack trace: $stackTrace');
       }
       
-      // Fallback to DB only for connection issues
       if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
@@ -176,7 +170,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       final data = response.data ?? <String, dynamic>{};
       final transaction = TransactionModel.fromMap(data);
       
-      // Save to local DB if available (non-blocking)
       if (_dbAvailable) {
         _db.transactionsDao.insertTransaction(_mapToCompanion(transaction)).catchError((e) {
           if (kDebugMode) debugPrint('⚠️ DB insert error (ignored): $e');
@@ -191,7 +184,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
-        // Offline creation
         final id = const Uuid().v4();
         final transaction = TransactionModel(
           id: id,
@@ -221,7 +213,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
     try {
       await client.client.delete('${ApiEndpoints.transactions}$id/');
       
-      // Delete from local DB if available (non-blocking)
       if (_dbAvailable) {
         _db.transactionsDao.deleteTransaction(id).catchError((e) {
           if (kDebugMode) debugPrint('⚠️ DB delete error (ignored): $e');
@@ -235,7 +226,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
-        // Offline deletion (soft delete)
         await (_db.update(_db.transactions)..where((t) => t.id.equals(id)))
             .write(const TransactionsCompanion(
               isDeleted: Value(true),
@@ -305,7 +295,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       final data = response.data ?? <String, dynamic>{};
       final transaction = TransactionModel.fromMap(data);
       
-      // Update local DB if available (non-blocking)
       if (_dbAvailable) {
         _db.transactionsDao.updateTransaction(_mapToCompanion(transaction)).catchError((e) {
           if (kDebugMode) debugPrint('⚠️ DB update error (ignored): $e');
@@ -321,7 +310,6 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
       if (_dbAvailable && e is DioException && 
           (e.type == DioExceptionType.connectionTimeout || 
            e.type == DioExceptionType.connectionError)) {
-        // Offline update
         final current = await _db.transactionsDao.getTransactionById(id);
         if (current != null) {
           final updated = current.copyWith(

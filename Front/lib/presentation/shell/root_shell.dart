@@ -59,19 +59,16 @@ class _RootShellState extends State<RootShell> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         
-        // Se não estiver na primeira aba (Home), volta para ela
         if (_currentIndex != 0) {
           setState(() => _currentIndex = 0);
           return;
         }
         
-        // Se estiver na Home, implementa double-tap to exit
         final now = DateTime.now();
         if (_lastBackPress == null || 
             now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
           _lastBackPress = now;
           
-          // Mostra um SnackBar avisando
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -81,7 +78,6 @@ class _RootShellState extends State<RootShell> {
             );
           }
         } else {
-          // Segundo tap dentro de 2 segundos - sai do app
           _lastBackPress = null;
           await SystemChannels.platform.invokeMethod('SystemNavigator.pop');
         }

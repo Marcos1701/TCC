@@ -1,13 +1,9 @@
-"""
-Serializers para o dashboard e indicadores financeiros.
-"""
 
 from .base import serializers, UserProfile
 from .mission import MissionSerializer, MissionProgressSerializer
 
 
 class DashboardSummarySerializer(serializers.Serializer):
-    """Serializer para resumo do dashboard."""
     
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
     rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
@@ -17,7 +13,6 @@ class DashboardSummarySerializer(serializers.Serializer):
 
 
 class CategoryBreakdownSerializer(serializers.Serializer):
-    """Serializer para breakdown por categoria."""
     
     name = serializers.CharField()
     total = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -25,7 +20,6 @@ class CategoryBreakdownSerializer(serializers.Serializer):
 
 
 class CashflowPointSerializer(serializers.Serializer):
-    """Serializer para ponto de fluxo de caixa."""
     
     month = serializers.CharField()
     income = serializers.DecimalField(max_digits=12, decimal_places=2)
@@ -36,7 +30,6 @@ class CashflowPointSerializer(serializers.Serializer):
 
 
 class IndicatorInsightSerializer(serializers.Serializer):
-    """Serializer para insights de indicadores."""
     
     severity = serializers.CharField()
     title = serializers.CharField()
@@ -46,7 +39,6 @@ class IndicatorInsightSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """Serializer para perfil do usuário."""
     
     next_level_threshold = serializers.IntegerField(read_only=True)
     
@@ -88,7 +80,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class DashboardSerializer(serializers.Serializer):
-    """Serializer principal do dashboard."""
     
     summary = DashboardSummarySerializer()
     categories = serializers.DictField(child=CategoryBreakdownSerializer(many=True))

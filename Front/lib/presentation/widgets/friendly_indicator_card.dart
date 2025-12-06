@@ -40,7 +40,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabeçalho com ícone e badge de status
           Row(
             children: [
               Icon(
@@ -65,7 +64,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
           
           const SizedBox(height: 12),
           
-          // Valor principal
           Text(
             _formatValue(),
             style: TextStyle(
@@ -75,7 +73,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
             ),
           ),
           
-          // Subtítulo opcional
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
@@ -89,7 +86,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
           
           const SizedBox(height: 12),
           
-          // Barra de progresso
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
@@ -102,7 +98,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
           
           const SizedBox(height: 8),
           
-          // Meta
           Text(
             'Meta: ${_formatTarget()}',
             style: TextStyle(
@@ -115,7 +110,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
     );
   }
 
-  /// Determina o status baseado no progresso
   _IndicatorStatus _getStatus() {
     final progress = _calculateProgress();
     
@@ -146,28 +140,20 @@ class FriendlyIndicatorCard extends StatelessWidget {
     }
   }
 
-  /// Calcula o progresso (0.0 a 1.0)
   double _calculateProgress() {
     if (target == 0) return 0;
     
     if (lowerIsBetter) {
-      // Para indicadores onde MENOR é melhor (ex: RDR)
-      // Se value <= target → progresso = 100%
-      // Se value > target → progresso decresce
       if (value <= target) {
-        return 1.0; // Atingiu/superou a meta (está abaixo do limite)
+        return 1.0;
       } else {
-        // Quanto mais acima do target, pior o progresso
-        // Ex: target=35%, value=70% → progress = 35/70 = 0.5
         return (target / value).clamp(0.0, 1.0);
       }
     } else {
-      // Para indicadores onde MAIOR é melhor (ex: TPS, ILI)
       return (value / target).clamp(0.0, 1.0);
     }
   }
 
-  /// Formata o valor atual conforme o tipo
   String _formatValue() {
     switch (type) {
       case IndicatorType.currency:
@@ -182,7 +168,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
     }
   }
 
-  /// Formata o valor alvo conforme o tipo
   String _formatTarget() {
     switch (type) {
       case IndicatorType.currency:
@@ -197,7 +182,6 @@ class FriendlyIndicatorCard extends StatelessWidget {
     }
   }
 
-  /// Constrói o badge de status
   Widget _buildStatusBadge(_IndicatorStatus status) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -217,19 +201,14 @@ class FriendlyIndicatorCard extends StatelessWidget {
   }
 }
 
-/// Tipos de formatação de indicadores
 enum IndicatorType {
-  /// Valores monetários (R$)
   currency,
   
-  /// Porcentagem (%)
   percentage,
   
-  /// Meses
   months,
 }
 
-/// Status interno do indicador
 class _IndicatorStatus {
   final String label;
   final Color color;

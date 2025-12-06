@@ -8,7 +8,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import 'chart_helpers.dart';
 
-/// Gráfico de barras mostrando saldo mensal (receitas - despesas).
 class BalanceChart extends StatelessWidget {
   const BalanceChart({
     super.key,
@@ -445,7 +444,6 @@ class BalanceChart extends StatelessWidget {
   }
 }
 
-/// Indicador de contagem de meses positivos/negativos.
 class _BalanceIndicator extends StatelessWidget {
   const _BalanceIndicator({
     required this.icon,

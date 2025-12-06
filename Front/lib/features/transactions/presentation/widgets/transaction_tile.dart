@@ -5,7 +5,6 @@ import '../../../../core/models/transaction.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
-/// Helper com metodos estaticos para TransactionTile.
 abstract final class TransactionTileHelper {
   static Color colorFor(String type) {
     switch (type) {
@@ -39,13 +38,11 @@ abstract final class TransactionTileHelper {
         return Color(int.parse('FF$hexColor', radix: 16));
       }
     } catch (_) {
-      // Retorna null se falhar
     }
     return null;
   }
 }
 
-/// Tile que exibe uma transacao individual na lista.
 class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
@@ -118,7 +115,6 @@ class TransactionTile extends StatelessWidget {
   }
 }
 
-/// Icone da transacao com cor baseada no tipo.
 class TransactionIcon extends StatelessWidget {
   const TransactionIcon({
     super.key,
@@ -143,7 +139,6 @@ class TransactionIcon extends StatelessWidget {
   }
 }
 
-/// Informacoes da transacao (descricao e categoria).
 class TransactionInfo extends StatelessWidget {
   const TransactionInfo({
     super.key,
@@ -201,7 +196,6 @@ class TransactionInfo extends StatelessWidget {
   }
 }
 
-/// Valor e data da transacao.
 class TransactionAmount extends StatelessWidget {
   const TransactionAmount({
     super.key,
@@ -242,7 +236,6 @@ class TransactionAmount extends StatelessWidget {
   }
 }
 
-/// Botao de excluir transacao.
 class TransactionDeleteButton extends StatelessWidget {
   const TransactionDeleteButton({super.key, required this.onRemove});
 
@@ -265,7 +258,6 @@ class TransactionDeleteButton extends StatelessWidget {
   }
 }
 
-/// Badge que indica que uma transacao e recorrente.
 class RecurringBadge extends StatelessWidget {
   const RecurringBadge({
     super.key,

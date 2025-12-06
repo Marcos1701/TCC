@@ -6,7 +6,6 @@ import 'recurrence_models.dart';
 
 export 'recurrence_models.dart';
 
-/// Chip de opção de recorrência.
 class RecurrenceOptionChip extends StatelessWidget {
   const RecurrenceOptionChip({
     super.key,
@@ -85,7 +84,6 @@ class RecurrenceOptionChip extends StatelessWidget {
   }
 }
 
-/// Card de resumo da recorrência configurada.
 class RecurrenceSummaryCard extends StatelessWidget {
   const RecurrenceSummaryCard({
     super.key,
@@ -159,7 +157,6 @@ class RecurrenceSummaryCard extends StatelessWidget {
   }
 }
 
-/// Seletor de data final de recorrência.
 class RecurrenceEndDatePicker extends StatelessWidget {
   const RecurrenceEndDatePicker({
     super.key,
@@ -212,9 +209,6 @@ class RecurrenceEndDatePicker extends StatelessWidget {
   }
 }
 
-/// Painel de configuração de recorrência.
-///
-/// Agrupa os presets, resumo e seletor de data final.
 class RecurrencePanel extends StatelessWidget {
   const RecurrencePanel({
     super.key,

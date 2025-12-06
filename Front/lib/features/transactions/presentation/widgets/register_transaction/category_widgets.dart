@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/models/category.dart';
 
-/// Chip para seleção de tipo/grupo de categoria.
 class CategoryChip extends StatelessWidget {
   const CategoryChip({
     super.key,
@@ -40,7 +39,6 @@ class CategoryChip extends StatelessWidget {
   }
 }
 
-/// Item de menu para dropdown de categorias.
 class CategoryMenuItem extends StatelessWidget {
   const CategoryMenuItem({
     super.key,

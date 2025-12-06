@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../constants/user_friendly_strings.dart';
 
-/// Available feedback types
 enum FeedbackType {
   success,
   error,
@@ -13,7 +12,6 @@ enum FeedbackType {
   serverError,
 }
 
-/// Feedback severity
 enum FeedbackSeverity {
   low,
   medium,
@@ -21,7 +19,6 @@ enum FeedbackSeverity {
   critical,
 }
 
-/// Configuration for a feedback type
 class FeedbackConfig {
   final Color backgroundColor;
   final IconData icon;
@@ -34,7 +31,6 @@ class FeedbackConfig {
   });
 }
 
-/// Centralized service for displaying feedback to the user
 class FeedbackService {
   static const Map<FeedbackType, FeedbackConfig> _configs = {
     FeedbackType.success: FeedbackConfig(
@@ -69,7 +65,6 @@ class FeedbackService {
     ),
   };
 
-  /// Displays a snackbar with feedback to the user
   static void show(
     BuildContext context,
     String message, {
@@ -111,7 +106,6 @@ class FeedbackService {
     );
   }
 
-  /// Displays success feedback
   static void showSuccess(
     BuildContext context,
     String message, {
@@ -120,7 +114,6 @@ class FeedbackService {
     show(context, message, type: FeedbackType.success, duration: duration);
   }
 
-  /// Displays error feedback
   static void showError(
     BuildContext context,
     String message, {
@@ -136,7 +129,6 @@ class FeedbackService {
     );
   }
 
-  /// Displays warning feedback
   static void showWarning(
     BuildContext context,
     String message, {
@@ -145,7 +137,6 @@ class FeedbackService {
     show(context, message, type: FeedbackType.warning, duration: duration);
   }
 
-  /// Displays info feedback
   static void showInfo(
     BuildContext context,
     String message, {
@@ -154,7 +145,6 @@ class FeedbackService {
     show(context, message, type: FeedbackType.info, duration: duration);
   }
 
-  /// Displays confirmation dialog
   static Future<bool> showConfirmationDialog({
     required BuildContext context,
     required String title,
@@ -220,7 +210,6 @@ class FeedbackService {
     return result ?? false;
   }
 
-  /// Displays loading dialog
   static void showLoadingDialog(
     BuildContext context, {
     String message = 'Processando...',
@@ -260,14 +249,12 @@ class FeedbackService {
     );
   }
 
-  /// Hides loading dialog
   static void hideLoadingDialog(BuildContext context) {
     if (context.mounted) {
       Navigator.of(context).pop();
     }
   }
 
-  /// Displays an in-app notification (banner at the top)
   static void showBanner(
     BuildContext context,
     String message, {
@@ -300,7 +287,6 @@ class FeedbackService {
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutBack,
             builder: (context, value, child) {
-              // Garante que opacity esteja sempre entre 0.0 e 1.0
               final clampedValue = value.clamp(0.0, 1.0);
               final offset = (-50.0 * (1.0 - clampedValue)).clamp(-50.0, 0.0);
               
@@ -361,11 +347,9 @@ class FeedbackService {
 
     overlay.insert(entry);
 
-    // Remove automaticamente após o duration
     Future.delayed(duration, removeEntry);
   }
 
-  /// Exibe feedback de transação criada com sucesso
   static void showTransactionCreated(
     BuildContext context, {
     required double amount,
@@ -392,7 +376,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de missão completada
   static void showMissionCompleted(
     BuildContext context, {
     required String missionName,
@@ -414,27 +397,7 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de meta alcançada
-  static void showGoalAchieved(
-    BuildContext context, {
-    required String goalName,
-    int? xpReward,
-  }) {
-    String message = '🎯 Meta alcançada!\n$goalName';
-    
-    if (xpReward != null && xpReward > 0) {
-      message += '\n+$xpReward XP';
-    }
 
-    showBanner(
-      context,
-      message,
-      type: FeedbackType.success,
-      duration: const Duration(seconds: 5),
-    );
-  }
-
-  /// Exibe feedback de level up
   static void showLevelUp(
     BuildContext context, {
     required int newLevel,
@@ -454,7 +417,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback com ação personalizada
   static void showSuccessWithAction(
     BuildContext context,
     String message, {
@@ -473,7 +435,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de erro com opção de retry
   static void showErrorWithRetry(
     BuildContext context,
     String message, {
@@ -491,7 +452,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe notificação de progresso de missão
   static void showMissionProgress(
     BuildContext context, {
     required String missionName,
@@ -506,7 +466,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe aviso de missão próxima de expirar
   static void showMissionExpiring(
     BuildContext context, {
     required String missionName,
@@ -520,9 +479,7 @@ class FeedbackService {
     );
   }
 
-  // ========== DIA 3: NOVOS MÉTODOS COM EMOJIS E CONTEXTO ==========
 
-  /// Formata valor monetário para exibição
   static String _formatCurrency(double value) {
     return NumberFormat.currency(
       locale: 'pt_BR',
@@ -531,7 +488,6 @@ class FeedbackService {
     ).format(value);
   }
 
-  /// Exibe feedback específico de transação de receita
   static void showIncomeAdded(
     BuildContext context, {
     required double amount,
@@ -551,7 +507,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback específico de transação de despesa
   static void showExpenseAdded(
     BuildContext context, {
     required double amount,
@@ -576,34 +531,7 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de progresso de meta
-  static void showGoalProgress(
-    BuildContext context, {
-    required String goalName,
-    required double progress,
-    bool isCompleted = false,
-  }) {
-    if (isCompleted) {
-      showBanner(
-        context,
-        '🎉 Meta "$goalName" alcançada!\nParabéns pela conquista!',
-        type: FeedbackType.success,
-        duration: const Duration(seconds: 5),
-      );
-    } else {
-      final percentage = (progress * 100).toStringAsFixed(0);
-      final emoji = progress >= 0.75 ? '🔥' : progress >= 0.5 ? '📊' : '💪';
-      
-      showBanner(
-        context,
-        '$emoji "$goalName": $percentage% completa',
-        type: FeedbackType.info,
-        duration: const Duration(seconds: 3),
-      );
-    }
-  }
 
-  /// Exibe feedback de economia/poupança
   static void showSavingsAchievement(
     BuildContext context, {
     required double amount,
@@ -620,7 +548,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe dica financeira contextual
   static void showFinancialTip(
     BuildContext context, {
     required String tip,
@@ -633,7 +560,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe celebração de conquista
   static void showAchievementUnlocked(
     BuildContext context, {
     required String achievementName,
@@ -658,7 +584,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de sequência (streak)
   static void showStreak(
     BuildContext context, {
     required int days,
@@ -674,7 +599,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe alerta de gasto alto
   static void showHighExpenseAlert(
     BuildContext context, {
     required double amount,
@@ -696,7 +620,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de economia bem-sucedida
   static void showSavingSuccess(
     BuildContext context, {
     required double amountSaved,
@@ -710,7 +633,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe lembrete gentil
   static void showGentleReminder(
     BuildContext context, {
     required String message,
@@ -725,7 +647,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de desafio em andamento
   static void showChallengeProgress(
     BuildContext context, {
     required String challengeName,
@@ -743,7 +664,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe mensagem motivacional baseada no status financeiro
   static void showMotivationalMessage(
     BuildContext context, {
     required String message,
@@ -759,7 +679,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de amigo adicionado
   static void showFriendAdded(
     BuildContext context, {
     required String friendName,
@@ -779,7 +698,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de posição no ranking
   static void showRankingUpdate(
     BuildContext context, {
     required int newRank,
@@ -808,7 +726,6 @@ class FeedbackService {
     );
   }
 
-  /// Exibe feedback de categoria de gasto
   static void showCategoryInsight(
     BuildContext context, {
     required String category,

@@ -1,23 +1,9 @@
-"""
-Templates de missões para geração automática.
-
-Sistema Simplificado para TCC - 6 Tipos Principais:
-1. ONBOARDING - Primeiros passos do usuário
-2. TPS_IMPROVEMENT - Aumentar Taxa de Poupança  
-3. RDR_REDUCTION - Reduzir gastos recorrentes
-4. ILI_BUILDING - Construir reserva de emergência
-5. CATEGORY_REDUCTION - Reduzir gastos em categoria
-6. GOAL_ACHIEVEMENT - Progredir em meta financeira
-"""
 
 from typing import Dict, List, Any
 from decimal import Decimal
 import random
 
 
-# =============================================================================
-# TEMPLATES POR TIPO DE MISSÃO
-# =============================================================================
 
 ONBOARDING_TEMPLATES = [
     {
@@ -249,22 +235,8 @@ BEHAVIOR_TEMPLATES = [
 ]
 
 
-# =============================================================================
-# FUNÇÕES DE GERAÇÃO
-# =============================================================================
 
 def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> Dict[str, Any]:
-    """
-    Gera uma missão específica a partir de um template.
-    
-    Args:
-        template: Template base
-        tier: Faixa do usuário (BEGINNER, INTERMEDIATE, ADVANCED)
-        current_metrics: Métricas atuais do usuário (TPS, RDR, ILI)
-        
-    Returns:
-        Dict com dados da missão pronta para salvar
-    """
     mission_data = {
         'difficulty': template['difficulty'],
         'duration_days': template['duration_days'],
@@ -272,10 +244,8 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         'is_active': True,
     }
     
-    # ONBOARDING
     if 'min_transactions' in template:
         counts = template['min_transactions']
-        # Escolher baseado na tier
         if tier == 'BEGINNER':
             count = counts[0]
         elif tier == 'INTERMEDIATE':
@@ -288,30 +258,26 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['mission_type'] = 'ONBOARDING'
         mission_data['min_transactions'] = count
     
-    # TPS
     elif 'target_tps_ranges' in template:
         ranges = template['target_tps_ranges']
         current_tps = current_metrics.get('tps', 10)
         
-        # Escolher range apropriado baseado no TPS atual
         suitable_ranges = [r for r in ranges if r[0] > current_tps]
         if not suitable_ranges:
             suitable_ranges = [ranges[-1]]
         
         target_range = suitable_ranges[0]
-        target = target_range[1]  # Usar limite superior como meta
+        target = target_range[1]
         
         mission_data['title'] = template['title'].format(target=target)
         mission_data['description'] = template['description'].format(target=target)
         mission_data['mission_type'] = 'TPS_IMPROVEMENT'
         mission_data['target_tps'] = target
     
-    # RDR
     elif 'target_rdr_ranges' in template:
         ranges = template['target_rdr_ranges']
         current_rdr = current_metrics.get('rdr', 50)
         
-        # Escolher range apropriado (menor que o atual)
         suitable_ranges = [r for r in ranges if r[1] < current_rdr]
         if not suitable_ranges:
             suitable_ranges = [ranges[0]]
@@ -324,12 +290,10 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['mission_type'] = 'RDR_REDUCTION'
         mission_data['target_rdr'] = target
     
-    # ILI
     elif 'min_ili_ranges' in template:
         ranges = template['min_ili_ranges']
         current_ili = current_metrics.get('ili', 2)
         
-        # Escolher range apropriado (maior que o atual)
         suitable_ranges = [r for r in ranges if r[0] > current_ili]
         if not suitable_ranges:
             suitable_ranges = [ranges[-1]]
@@ -342,10 +306,8 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['mission_type'] = 'ILI_BUILDING'
         mission_data['min_ili'] = target
     
-    # CATEGORY_REDUCTION
     elif 'reduction_percent_ranges' in template:
         ranges = template['reduction_percent_ranges']
-        # Escolher range baseado na tier
         if tier == 'BEGINNER':
             target_range = ranges[0]
         elif tier == 'INTERMEDIATE':
@@ -359,10 +321,8 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['mission_type'] = 'CATEGORY_REDUCTION'
         mission_data['target_reduction_percent'] = percent
     
-    # GOAL_ACHIEVEMENT
     elif 'progress_percent_ranges' in template:
         ranges = template['progress_percent_ranges']
-        # Escolher range baseado na tier
         if tier == 'BEGINNER':
             target_range = ranges[0]
         elif tier == 'INTERMEDIATE':
@@ -385,20 +345,7 @@ def generate_mission_batch_from_templates(
     count: int = 20,
     distribution: Dict[str, int] = None
 ) -> List[Dict[str, Any]]:
-    """
-    Gera um lote de missões usando templates.
-    
-    Args:
-        tier: Faixa do usuário (BEGINNER, INTERMEDIATE, ADVANCED)
-        current_metrics: Métricas atuais (TPS, RDR, ILI)
-        count: Número de missões a gerar
-        distribution: Distribuição por tipo
-        
-    Returns:
-        Lista de dicionários com dados de missões
-    """
     if distribution is None:
-        # Distribuição padrão baseada na tier
         if tier == 'BEGINNER':
             distribution = {
                 'ONBOARDING': 6,
@@ -417,7 +364,7 @@ def generate_mission_batch_from_templates(
                 'CATEGORY_REDUCTION': 3,
                 'GOAL_ACHIEVEMENT': 2,
             }
-        else:  # ADVANCED tier
+        else:
             distribution = {
                 'TPS_IMPROVEMENT': 5,
                 'ILI_BUILDING': 5,
@@ -429,7 +376,6 @@ def generate_mission_batch_from_templates(
     missions = []
     
     for mission_type, target_count in distribution.items():
-        # Selecionar templates apropriados
         if mission_type == 'ONBOARDING':
             templates = ONBOARDING_TEMPLATES
         elif mission_type == 'TPS_IMPROVEMENT':
@@ -445,7 +391,6 @@ def generate_mission_batch_from_templates(
         else:
             continue
         
-        # Gerar missões a partir dos templates
         for i in range(target_count):
             template = random.choice(templates)
             mission_data = generate_from_template(template, tier, current_metrics)
@@ -455,10 +400,6 @@ def generate_mission_batch_from_templates(
 
 
 def get_template_variety_score(tier: str, mission_type: str) -> int:
-    """
-    Retorna o número de variações disponíveis para um tipo de missão.
-    Útil para decidir se precisa gerar mais com IA ou se templates são suficientes.
-    """
     template_counts = {
         'ONBOARDING': len(ONBOARDING_TEMPLATES),
         'TPS_IMPROVEMENT': len(TPS_TEMPLATES),
@@ -470,54 +411,3 @@ def get_template_variety_score(tier: str, mission_type: str) -> int:
     
     return template_counts.get(mission_type, 0)
 
-
-# =============================================================================
-# GUIA RÁPIDO PARA CRIAÇÃO MANUAL DE MISSÕES (ADMIN)
-# =============================================================================
-"""
-## Guia de Criação Manual de Missões
-
-### 1. ONBOARDING (Primeiros Passos)
-- Campo obrigatório: min_transactions (5-50)
-- Dificuldade: EASY
-- XP: 25-75
-- Duração: 7-14 dias
-- Exemplo: "Registre suas primeiras 10 transações"
-
-### 2. TPS_IMPROVEMENT (Aumentar Poupança)
-- Campo obrigatório: target_tps (5-50)
-- Dificuldade: MEDIUM ou HARD
-- XP: 75-200
-- Duração: 14-30 dias
-- Exemplo: "Atinja 20% de Taxa de Poupança"
-
-### 3. RDR_REDUCTION (Reduzir Gastos)
-- Campo obrigatório: target_rdr (10-80)
-- Dificuldade: MEDIUM ou HARD
-- XP: 75-200
-- Duração: 14-30 dias
-- Exemplo: "Mantenha despesas abaixo de 40% da renda"
-
-### 4. ILI_BUILDING (Construir Reserva)
-- Campo obrigatório: min_ili (1-12)
-- Dificuldade: MEDIUM ou HARD
-- XP: 100-250
-- Duração: 21-30 dias
-- Exemplo: "Construa 3 meses de reserva de emergência"
-
-### 5. CATEGORY_REDUCTION (Reduzir Categoria)
-- Campo obrigatório: target_reduction_percent (5-50)
-- Opcional: target_category (FK para Category)
-- Dificuldade: EASY ou MEDIUM
-- XP: 50-150
-- Duração: 14-30 dias
-- Exemplo: "Reduza 15% nos gastos com alimentação"
-
-### 6. GOAL_ACHIEVEMENT (Progredir em Meta)
-- Campo obrigatório: goal_progress_target (10-100)
-- Opcional: target_goal (FK para Goal)
-- Dificuldade: MEDIUM ou HARD
-- XP: 75-200
-- Duração: 14-30 dias
-- Exemplo: "Alcance 50% de progresso na sua meta"
-"""

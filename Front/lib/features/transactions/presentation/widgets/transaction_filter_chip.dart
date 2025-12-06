@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// Chip de filtro para lista de transacoes.
 class TransactionFilterChip extends StatelessWidget {
   const TransactionFilterChip({
     super.key,

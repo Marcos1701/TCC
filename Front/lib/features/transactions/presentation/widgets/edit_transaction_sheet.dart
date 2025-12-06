@@ -9,7 +9,6 @@ import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 
-/// Sheet simples para editar uma transação existente
 class EditTransactionSheet extends StatefulWidget {
   const EditTransactionSheet({
     super.key,
@@ -86,7 +85,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
       final amount = CurrencyInputFormatter.parse(_amountController.text);
 
       await widget.repository.updateTransaction(
-        id: widget.transaction.identifier,  // Usar identifier
+        id: widget.transaction.identifier,
         type: _type,
         description: _descriptionController.text.trim(),
         amount: amount,

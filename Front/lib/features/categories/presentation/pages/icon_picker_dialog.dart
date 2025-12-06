@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Widget para selecionar ícone de categoria
 class IconPickerDialog extends StatelessWidget {
   final String? initialIcon;
   final Function(String) onIconSelected;
@@ -12,40 +11,34 @@ class IconPickerDialog extends StatelessWidget {
   });
 
   static const _categoryIcons = [
-    // Financeiro
     {'name': 'Dinheiro', 'icon': Icons.attach_money},
     {'name': 'Carteira', 'icon': Icons.account_balance_wallet},
     {'name': 'Cartão', 'icon': Icons.credit_card},
     {'name': 'Moedas', 'icon': Icons.monetization_on},
     {'name': 'Poupança', 'icon': Icons.savings},
     
-    // Alimentação
     {'name': 'Restaurante', 'icon': Icons.restaurant},
     {'name': 'Café', 'icon': Icons.local_cafe},
     {'name': 'Pizza', 'icon': Icons.local_pizza},
     {'name': 'Mercado', 'icon': Icons.shopping_cart},
     {'name': 'Fast Food', 'icon': Icons.fastfood},
     
-    // Transporte
     {'name': 'Carro', 'icon': Icons.directions_car},
     {'name': 'Ônibus', 'icon': Icons.directions_bus},
     {'name': 'Gasolina', 'icon': Icons.local_gas_station},
     {'name': 'Avião', 'icon': Icons.flight},
     {'name': 'Trem', 'icon': Icons.train},
     
-    // Moradia
     {'name': 'Casa', 'icon': Icons.home},
     {'name': 'Luz', 'icon': Icons.lightbulb},
     {'name': 'Água', 'icon': Icons.water_drop},
     {'name': 'Ferramentas', 'icon': Icons.build},
     
-    // Saúde
     {'name': 'Saúde', 'icon': Icons.local_hospital},
     {'name': 'Remédio', 'icon': Icons.medication},
     {'name': 'Academia', 'icon': Icons.fitness_center},
     {'name': 'Spa', 'icon': Icons.spa},
     
-    // Lazer
     {'name': 'Filme', 'icon': Icons.movie},
     {'name': 'Música', 'icon': Icons.music_note},
     {'name': 'Jogo', 'icon': Icons.sports_esports},
@@ -53,33 +46,26 @@ class IconPickerDialog extends StatelessWidget {
     {'name': 'Praia', 'icon': Icons.beach_access},
     {'name': 'Parque', 'icon': Icons.park},
     
-    // Educação
     {'name': 'Escola', 'icon': Icons.school},
     {'name': 'Livro Educação', 'icon': Icons.import_contacts},
     {'name': 'Lápis', 'icon': Icons.edit},
     
-    // Trabalho
     {'name': 'Trabalho', 'icon': Icons.work},
     {'name': 'Laptop', 'icon': Icons.laptop},
     {'name': 'Briefcase', 'icon': Icons.business_center},
     
-    // Vestuário
     {'name': 'Roupa', 'icon': Icons.checkroom},
     {'name': 'Sapato', 'icon': Icons.shopping_bag},
     
-    // Pet
     {'name': 'Pet', 'icon': Icons.pets},
     
-    // Tecnologia
     {'name': 'Celular', 'icon': Icons.phone_android},
     {'name': 'Wi-Fi', 'icon': Icons.wifi},
     {'name': 'Headphone', 'icon': Icons.headphones},
     
-    // Presentes
     {'name': 'Presente', 'icon': Icons.card_giftcard},
     {'name': 'Celebração', 'icon': Icons.celebration},
     
-    // Outros
     {'name': 'Estrela', 'icon': Icons.star},
     {'name': 'Favorito', 'icon': Icons.favorite},
     {'name': 'Categoria', 'icon': Icons.category},

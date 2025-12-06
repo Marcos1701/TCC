@@ -1,11 +1,3 @@
-"""
-Package mission_types - Sistema de validação de missões.
-
-Arquitetura:
-- BaseMissionValidator: Classe abstrata base
-- Validators especializados por tipo de missão
-- MissionValidatorFactory: Factory para instanciar validadores
-"""
 
 from .base import BaseMissionValidator
 from .factory import MissionValidatorFactory, update_single_mission_progress

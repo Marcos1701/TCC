@@ -9,12 +9,6 @@ import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
 
-/// Wizard para criar pagamentos de despesas usando receitas
-///
-/// Fluxo de 3 passos:
-/// 1. Selecionar receitas de origem (múltiplas)
-/// 2. Selecionar despesas a pagar (múltiplas)
-/// 3. Definir valores (total ou parcial) com validações
 class PaymentWizard extends StatefulWidget {
   const PaymentWizard({super.key});
 
@@ -31,16 +25,13 @@ class _PaymentWizardState extends State<PaymentWizard> {
 
   int _currentStep = 0;
 
-  // Dados das transações
   List<TransactionModel> _availableIncomes = [];
   List<TransactionModel> _availableExpenses = [];
   bool _isLoadingData = false;
 
-  // Seleções
-  final Map<String, double> _selectedIncomes = {}; // id -> valor selecionado
-  final Map<String, double> _selectedExpenses = {}; // id -> valor selecionado
+  final Map<String, double> _selectedIncomes = {};
+  final Map<String, double> _selectedExpenses = {};
 
-  // Estado de criação
   bool _isCreating = false;
 
   @override
@@ -137,7 +128,7 @@ class _PaymentWizardState extends State<PaymentWizard> {
         return _selectedExpenses.isNotEmpty &&
             _selectedExpenses.values.every((v) => v > 0);
       case 2:
-        return true; // Sempre pode tentar criar
+        return true;
       default:
         return false;
     }
@@ -146,7 +137,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
   Future<void> _createTransfers() async {
     if (_isCreating) return;
 
-    // Validações finais
     final totalIncome =
         _selectedIncomes.values.fold<double>(0, (sum, v) => sum + v);
     final totalExpense =
@@ -168,7 +158,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
       return;
     }
 
-    // Aviso se valores não batem
     if ((totalIncome - totalExpense).abs() > 0.01) {
       final confirm = await FeedbackService.showConfirmationDialog(
         context: context,
@@ -186,7 +175,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
     try {
       final payments = <Map<String, dynamic>>[];
 
-      // Criar combinações de pagamentos
       for (final incomeEntry in _selectedIncomes.entries) {
         final income = _availableIncomes
             .firstWhere((t) => t.id == incomeEntry.key);
@@ -195,12 +183,10 @@ class _PaymentWizardState extends State<PaymentWizard> {
           final expense = _availableExpenses
               .firstWhere((t) => t.id == expenseEntry.key);
           
-          // Calcular proporção
           final proportion = expenseEntry.value / totalExpense;
           final amount = incomeEntry.value * proportion;
 
           if (amount > 0.01) {
-            // Evita valores muito pequenos
             payments.add({
               'source_id': income.id,
               'target_id': expense.id,
@@ -210,7 +196,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
         }
       }
 
-      // Criar pagamentos em lote
       await _repository.createBulkPayment(
         payments: payments,
         description: 'Pagamento criado via wizard',
@@ -218,16 +203,13 @@ class _PaymentWizardState extends State<PaymentWizard> {
 
       if (!mounted) return;
 
-      // Invalidar cache
       _cacheManager.invalidateAfterPayment();
 
-      // Feedback de sucesso
       FeedbackService.showSuccess(
         context,
         '✅ ${payments.length} pagamento(s) criado(s) com sucesso!',
       );
 
-      // Voltar
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
@@ -253,13 +235,10 @@ class _PaymentWizardState extends State<PaymentWizard> {
       ),
       child: Column(
         children: [
-          // Header
           _buildHeader(theme),
 
-          // Progress indicator
           _buildProgressIndicator(),
 
-          // Content
           if (_isLoadingData)
             const Expanded(
               child: Center(child: CircularProgressIndicator()),
@@ -277,7 +256,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
               ),
             ),
 
-          // Navigation buttons
           _buildNavigationButtons(),
         ],
       ),
@@ -527,7 +505,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
         ),
         const SizedBox(height: 24),
 
-        // Resumo de receitas
         _buildReviewSection(
           title: 'Receitas Selecionadas',
           icon: Icons.arrow_upward,
@@ -544,7 +521,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
 
         const SizedBox(height: 20),
 
-        // Resumo de despesas
         _buildReviewSection(
           title: 'Despesas Selecionadas',
           icon: Icons.arrow_downward,
@@ -562,7 +538,6 @@ class _PaymentWizardState extends State<PaymentWizard> {
 
         const SizedBox(height: 20),
 
-        // Diferença
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

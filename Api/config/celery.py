@@ -1,4 +1,3 @@
-"""Configuração do Celery para o projeto TCC."""
 
 import os
 from celery import Celery
@@ -52,5 +51,4 @@ app.conf.update(
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
-    """Task de debug para testar configuração do Celery."""
     print(f'Request: {self.request!r}')

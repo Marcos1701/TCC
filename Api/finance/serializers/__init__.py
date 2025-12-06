@@ -1,7 +1,3 @@
-"""
-Package de serializers do finance.
-Organizado em módulos por domínio.
-"""
 
 from .category import CategorySerializer
 from .transaction import (

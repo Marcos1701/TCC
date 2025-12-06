@@ -1,6 +1,3 @@
-"""
-Serializers para o modelo Transaction e TransactionLink.
-"""
 
 from django.db.models import Q
 
@@ -9,7 +6,6 @@ from .category import CategorySerializer
 
 
 class TransactionSerializer(serializers.ModelSerializer):
-    """Serializer para transações financeiras."""
     
     category = CategorySerializer(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
@@ -163,7 +159,6 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class TransactionLinkSerializer(serializers.ModelSerializer):
-    """Serializer para links entre transações."""
     
     source_transaction = serializers.SerializerMethodField()
     target_transaction = serializers.SerializerMethodField()
@@ -204,13 +199,11 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at', 'payment_status', 'urgency_score', 'category_info']
     
     def get_source_transaction(self, obj):
-        """Retorna os dados da transação de origem."""
         if hasattr(obj, '_source_transaction_cache'):
             return TransactionSerializer(obj._source_transaction_cache).data
         return TransactionSerializer(obj.source_transaction).data
     
     def get_target_transaction(self, obj):
-        """Retorna os dados da transação de destino."""
         if hasattr(obj, '_target_transaction_cache'):
             return TransactionSerializer(obj._target_transaction_cache).data
         return TransactionSerializer(obj.target_transaction).data
@@ -240,7 +233,7 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             return {
                 'status': 'paid',
                 'label': 'Reservado',
-                'color': '#4CAF50',
+                'color': '#4CAF50'
             }
         else:
             from django.utils import timezone
@@ -249,19 +242,19 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
                 return {
                     'status': 'overdue',
                     'label': 'Atrasado',
-                    'color': '#F44336',
+                    'color': '#F44336'
                 }
             elif days_until <= 7:
                 return {
                     'status': 'upcoming',
                     'label': f'Em {days_until} dias',
-                    'color': '#FF9800',
+                    'color': '#FF9800'
                 }
             else:
                 return {
                     'status': 'planned',
                     'label': 'Planejado',
-                    'color': '#2196F3',
+                    'color': '#2196F3'
                 }
 
     def get_urgency_score(self, obj):
@@ -361,7 +354,6 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
 
 
 class TransactionLinkSummarySerializer(serializers.Serializer):
-    """Serializer resumido para links de transação."""
     
     total_linked = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_available = serializers.DecimalField(max_digits=12, decimal_places=2)

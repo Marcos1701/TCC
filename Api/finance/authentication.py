@@ -8,7 +8,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Serializer que permite autenticar usando email ou username."""
 
     default_error_messages = {
         **TokenObtainPairSerializer.default_error_messages,
@@ -37,7 +36,6 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class EmailTokenObtainPairView(TokenObtainPairView):
-    """View de autenticação que permite login com email ou username."""
     serializer_class = EmailTokenObtainPairSerializer
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -45,7 +43,6 @@ class EmailTokenObtainPairView(TokenObtainPairView):
 
 
 class CustomTokenRefreshView(TokenRefreshView):
-    """View para refresh de token."""
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
     throttle_classes = []

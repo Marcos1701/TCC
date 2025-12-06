@@ -4,71 +4,42 @@ import 'package:flutter/foundation.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/endpoints.dart';
 
-/// Estados possíveis do ViewModel de Administração.
-///
-/// Define os diferentes estados que o painel administrativo
-/// pode assumir durante as operações de carregamento e processamento.
 enum AdminViewState {
-  /// Estado inicial, antes de qualquer operação.
   initial,
 
-  /// Carregando dados do servidor.
   loading,
 
-  /// Operação concluída com sucesso.
   success,
 
-  /// Erro durante a operação.
   error,
 }
 
-/// ViewModel para o Painel Administrativo do Sistema.
-///
-/// Esta classe implementa o padrão MVVM (Model-View-ViewModel) e é
-/// responsável por gerenciar o estado e a lógica de negócios do
-/// painel administrativo, incluindo:
-///
-/// - Carregamento de estatísticas do dashboard;
-/// - Gerenciamento de missões (listagem, ativação, geração em lote);
-/// - Gerenciamento de categorias do sistema;
-/// - Gerenciamento de usuários da aplicação.
-///
-/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminViewModel extends ChangeNotifier {
-  /// Cria uma nova instância do ViewModel administrativo.
   AdminViewModel();
 
   final ApiClient _api = ApiClient();
 
-  // Estado geral
   AdminViewState _state = AdminViewState.initial;
   String? _errorMessage;
 
-  // Dados do dashboard
   Map<String, dynamic>? _dashboardStats;
 
-  // Missões
   List<Map<String, dynamic>> _missions = [];
   int _missionsTotalPages = 1;
   int _missionsCurrentPage = 1;
 
-  // Categorias
   List<Map<String, dynamic>> _categories = [];
 
-  // Usuários
   List<Map<String, dynamic>> _users = [];
   int _usersTotalPages = 1;
   int _usersCurrentPage = 1;
 
-  // Schemas de tipos de missão
   Map<String, dynamic>? _missionTypeSchemas;
   bool _loadingSchemas = false;
 
-  // Opções de seleção para missões (categorias, metas, etc.)
   Map<String, dynamic>? _missionSelectOptions;
   bool _loadingSelectOptions = false;
 
-  // Getters
   AdminViewState get state => _state;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _state == AdminViewState.loading;
@@ -85,7 +56,6 @@ class AdminViewModel extends ChangeNotifier {
   Map<String, dynamic>? get missionSelectOptions => _missionSelectOptions;
   bool get loadingSelectOptions => _loadingSelectOptions;
 
-  /// Carrega estatísticas do dashboard administrativo.
   Future<void> loadDashboard() async {
     _state = AdminViewState.loading;
     _errorMessage = null;
@@ -106,13 +76,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Carrega a lista de missões com filtros opcionais.
-  ///
-  /// Parâmetros de filtragem:
-  /// - [tipo]: Tipo da missão (ONBOARDING, TPS_IMPROVEMENT, etc.);
-  /// - [dificuldade]: Nível de dificuldade (EASY, MEDIUM, HARD);
-  /// - [ativo]: Status de ativação da missão;
-  /// - [pagina]: Número da página para paginação.
   Future<void> loadMissions({
     String? tipo,
     String? dificuldade,
@@ -154,13 +117,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Alterna o estado de ativação de uma missão.
-  ///
-  /// Este método permite ativar ou desativar uma missão específica.
-  /// Missões desativadas não são exibidas para os usuários comuns,
-  /// mas permanecem no sistema para referência e possível reativação.
-  ///
-  /// Retorna `true` se a operação foi bem-sucedida.
   Future<bool> toggleMission(int missionId) async {
     try {
       final response = await _api.client.post(
@@ -169,7 +125,6 @@ class AdminViewModel extends ChangeNotifier {
 
       final data = response.data as Map<String, dynamic>;
       
-      // Atualiza a missão na lista local
       final index = _missions.indexWhere((m) => m['id'] == missionId);
       if (index != -1) {
         _missions[index]['is_active'] = data['ativo'];
@@ -183,22 +138,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Gera um lote de missões automaticamente.
-  ///
-  /// Este método permite a geração em massa de missões através
-  /// de dois métodos distintos:
-  ///
-  /// - Templates: Utiliza modelos pré-definidos com variações
-  ///   nos parâmetros. Execução mais rápida.
-  /// - Inteligência Artificial: Gera missões mais diversificadas
-  ///   através de modelo de linguagem. Execução mais demorada.
-  ///
-  /// Parâmetros:
-  /// - [quantidade]: Número de missões a serem geradas;
-  /// - [tier]: Nível dos usuários alvo (BEGINNER, INTERMEDIATE, ADVANCED).
-  ///          Se null, gera para todos os níveis.
-  ///
-  /// Retorna um mapa com o resultado da operação.
   Future<Map<String, dynamic>> generateMissions({
     required int quantidade,
     String? tier,
@@ -219,7 +158,6 @@ class AdminViewModel extends ChangeNotifier {
 
       final responseData = response.data as Map<String, dynamic>;
       
-      // Recarrega a lista de missões
       if (responseData['sucesso'] == true) {
         await loadMissions();
       }
@@ -238,7 +176,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Carrega lista de categorias do sistema.
   Future<void> loadCategories({String? tipo}) async {
     _state = AdminViewState.loading;
     _errorMessage = null;
@@ -267,7 +204,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Cria uma nova categoria do sistema.
   Future<Map<String, dynamic>> createCategory({
     required String nome,
     required String tipo,
@@ -303,7 +239,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Remove uma categoria do sistema.
   Future<bool> deleteCategory(int categoryId) async {
     try {
       await _api.client.delete(
@@ -319,7 +254,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Carrega lista de usuários.
   Future<void> loadUsers({
     String? busca,
     bool apenasAtivos = true,
@@ -361,7 +295,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Alterna o estado ativo/inativo de um usuário.
   Future<bool> toggleUser(int userId) async {
     try {
       final response = await _api.client.post(
@@ -385,12 +318,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Atualiza uma missão existente.
-  ///
-  /// Permite ao administrador modificar os dados de uma missão,
-  /// como título, descrição, recompensa, dificuldade e outros parâmetros.
-  ///
-  /// Retorna um mapa com o resultado da operação.
   Future<Map<String, dynamic>> updateMission(
     int missionId,
     Map<String, dynamic> dados,
@@ -404,7 +331,6 @@ class AdminViewModel extends ChangeNotifier {
       final data = response.data as Map<String, dynamic>;
 
       if (data['sucesso'] == true) {
-        // Atualiza a missão na lista local
         final index = _missions.indexWhere((m) => m['id'] == missionId);
         if (index != -1 && data['missao'] != null) {
           _missions[index] = data['missao'] as Map<String, dynamic>;
@@ -426,19 +352,12 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Exclui (desativa permanentemente) uma missão.
-  ///
-  /// Remove a missão do sistema. Na prática, realiza um soft delete,
-  /// mantendo os dados para histórico mas tornando-a inacessível.
-  ///
-  /// Retorna `true` se a operação foi bem-sucedida.
   Future<bool> deleteMission(int missionId) async {
     try {
       await _api.client.delete(
         '${ApiEndpoints.adminMissions}$missionId/',
       );
 
-      // Remove a missão da lista local
       _missions.removeWhere((m) => m['id'] == missionId);
       notifyListeners();
 
@@ -449,7 +368,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Extrai mensagem de erro de uma exceção Dio.
   String _extractErrorMessage(DioException e) {
     if (e.response?.statusCode == 403) {
       return 'Acesso negado. Você precisa ser administrador.';
@@ -465,12 +383,8 @@ class AdminViewModel extends ChangeNotifier {
     return 'Erro de conexão. Verifique sua internet.';
   }
 
-  /// Carrega os schemas de tipos de missão.
-  ///
-  /// Os schemas definem os campos obrigatórios e opcionais
-  /// para cada tipo de missão, permitindo formulários dinâmicos.
   Future<void> loadMissionTypeSchemas() async {
-    if (_missionTypeSchemas != null) return; // Cache
+    if (_missionTypeSchemas != null) return;
 
     _loadingSchemas = true;
     notifyListeners();
@@ -490,33 +404,26 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Retorna o schema de um tipo de missão específico.
   Map<String, dynamic>? getSchemaForType(String missionType) {
     if (_missionTypeSchemas == null) return null;
     final types = _missionTypeSchemas!['types'] as Map<String, dynamic>?;
     return types?[missionType] as Map<String, dynamic>?;
   }
 
-  /// Retorna a lista de tipos de missão para dropdown.
   List<Map<String, dynamic>> get missionTypesList {
     if (_missionTypeSchemas == null) return [];
     final list = _missionTypeSchemas!['types_list'] as List<dynamic>?;
     return list?.cast<Map<String, dynamic>>() ?? [];
   }
 
-  /// Retorna os campos comuns a todos os tipos de missão.
   List<Map<String, dynamic>> get commonFields {
     if (_missionTypeSchemas == null) return [];
     final fields = _missionTypeSchemas!['common_fields'] as List<dynamic>?;
     return fields?.cast<Map<String, dynamic>>() ?? [];
   }
 
-  /// Carrega opções de seleção para campos de missão.
-  ///
-  /// Carrega categorias do sistema e informações sobre vinculação
-  /// de metas para facilitar a criação de missões.
   Future<void> loadMissionSelectOptions() async {
-    if (_missionSelectOptions != null) return; // Cache
+    if (_missionSelectOptions != null) return;
 
     _loadingSelectOptions = true;
     notifyListeners();
@@ -536,7 +443,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Retorna lista de categorias para seleção.
   List<Map<String, dynamic>> getCategoriesForSelect({String? tipo}) {
     if (_missionSelectOptions == null) return [];
     
@@ -550,7 +456,6 @@ class AdminViewModel extends ChangeNotifier {
       return List<Map<String, dynamic>>.from(porTipo[tipo] as List);
     }
     
-    // Retorna todas as categorias se tipo não especificado
     final todas = <Map<String, dynamic>>[];
     for (final lista in porTipo.values) {
       todas.addAll(List<Map<String, dynamic>>.from(lista as List));
@@ -558,7 +463,6 @@ class AdminViewModel extends ChangeNotifier {
     return todas;
   }
 
-  /// Retorna dica de preenchimento para um tipo de missão.
   Map<String, dynamic>? getDicaParaTipo(String missionType) {
     if (_missionSelectOptions == null) return null;
     
@@ -566,16 +470,11 @@ class AdminViewModel extends ChangeNotifier {
     return dicas?[missionType] as Map<String, dynamic>?;
   }
 
-  /// Verifica se um tipo de missão permite seleção de categoria.
   bool tipoPermiteCategoria(String missionType) {
     final dica = getDicaParaTipo(missionType);
     return dica?['permite_selecao_categoria'] == true;
   }
 
-  /// Valida os dados de uma missão no servidor.
-  ///
-  /// Verifica se os campos obrigatórios estão preenchidos
-  /// e se os valores estão dentro dos limites permitidos.
   Future<Map<String, dynamic>> validateMissionData(
     Map<String, dynamic> dados,
   ) async {
@@ -598,7 +497,6 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Cria uma nova missão.
   Future<Map<String, dynamic>> createMission(Map<String, dynamic> dados) async {
     try {
       final response = await _api.client.post(

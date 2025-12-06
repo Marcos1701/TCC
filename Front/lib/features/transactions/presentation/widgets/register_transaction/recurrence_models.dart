@@ -1,13 +1,10 @@
-/// Modelos e constantes para configuração de recorrência de transações.
 library;
 
-/// Unidade de tempo para recorrência.
 enum RecurrenceUnit {
   days,
   weeks,
   months;
 
-  /// Valor enviado para o backend.
   String get backendValue {
     switch (this) {
       case RecurrenceUnit.days:
@@ -19,7 +16,6 @@ enum RecurrenceUnit {
     }
   }
 
-  /// Rótulo resumido da recorrência.
   String shortLabel(int value) {
     switch (this) {
       case RecurrenceUnit.days:
@@ -31,7 +27,6 @@ enum RecurrenceUnit {
     }
   }
 
-  /// Rótulo para seletor de unidade.
   String pickerLabel() {
     switch (this) {
       case RecurrenceUnit.days:
@@ -44,7 +39,6 @@ enum RecurrenceUnit {
   }
 }
 
-/// Preset de recorrência pré-definido.
 class RecurrencePreset {
   const RecurrencePreset({
     required this.value,
@@ -58,7 +52,6 @@ class RecurrencePreset {
   final String title;
   final String? subtitle;
 
-  /// Presets padrão disponíveis.
   static const List<RecurrencePreset> defaults = [
     RecurrencePreset(
       value: 1,
@@ -79,7 +72,6 @@ class RecurrencePreset {
   ];
 }
 
-/// Resultado de configuração de recorrência personalizada.
 class CustomRecurrenceResult {
   const CustomRecurrenceResult(this.unit, this.value);
 

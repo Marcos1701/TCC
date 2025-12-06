@@ -9,10 +9,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../widgets/bulk_payment_components.dart';
 
-/// Página de Pagamento em Lote
-/// 
-/// Permite selecionar múltiplas receitas e despesas para criar
-/// várias vinculações de uma vez, simplificando o controle de pagamentos.
 class BulkPaymentPage extends StatefulWidget {
   const BulkPaymentPage({super.key});
 
@@ -25,16 +21,13 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   final _cacheManager = CacheManager();
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   
-  // Estado de carregamento
   bool _isLoading = true;
   String? _errorMessage;
   bool _isSubmitting = false;
   
-  // Dados
   List<TransactionModel> _availableIncomes = [];
   List<TransactionModel> _pendingExpenses = [];
   
-  // Seleções (Map<transactionId, amount>)
   final Map<String, double> _selectedIncomes = {};
   final Map<String, double> _selectedExpenses = {};
   
@@ -56,7 +49,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
 
       if (!mounted) return;
       
-      // Filtrar apenas transações com ID e saldo disponível
       final validIncomes = incomes.where((income) => 
         income.id.isNotEmpty &&
         (income.availableAmount ?? income.amount) > 0
@@ -81,7 +73,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
     }
   }
 
-  // Calcular totais
   double get _totalIncomeSelected => _selectedIncomes.values.fold(0.0, (a, b) => a + b);
   double get _totalExpensesSelected => _selectedExpenses.values.fold(0.0, (a, b) => a + b);
   double get _balance => _totalIncomeSelected - _totalExpensesSelected;
@@ -94,7 +85,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   Future<void> _submitPayments() async {
     if (!_canSubmit) return;
 
-    // Validação adicional antes de enviar
     if (_selectedIncomes.isEmpty) {
       FeedbackService.showError(context, 'Selecione pelo menos uma receita');
       return;
@@ -113,7 +103,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       return;
     }
 
-    // Validar que todos os valores são positivos
     for (final entry in _selectedIncomes.entries) {
       if (entry.value <= 0) {
         FeedbackService.showError(
@@ -137,7 +126,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      // Validar limite de pagamentos (máximo 100)
       final totalPayments = _selectedExpenses.length * _selectedIncomes.length;
       if (totalPayments > 100) {
         throw Exception(
@@ -146,47 +134,38 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
         );
       }
 
-      // Montar lista de pagamentos
       final payments = <Map<String, dynamic>>[];
       
-      // Para cada despesa selecionada, distribuir pagamento das receitas
       for (final expenseEntry in _selectedExpenses.entries) {
         final expenseUuid = expenseEntry.key;
         final expenseAmount = expenseEntry.value;
         
-        // Validar UUID não vazio
         if (expenseUuid.isEmpty) {
           throw Exception('UUID de despesa inválido');
         }
         
-        // Validar valor positivo
         if (expenseAmount <= 0) {
           throw Exception('Valor de despesa deve ser positivo');
         }
         
         double remainingToAllocate = expenseAmount;
         
-        // Distribuir entre as receitas selecionadas
         for (final incomeEntry in _selectedIncomes.entries) {
           if (remainingToAllocate <= 0) break;
           
           final incomeUuid = incomeEntry.key;
           final incomeAvailable = incomeEntry.value;
           
-          // Validar UUID não vazio
           if (incomeUuid.isEmpty) {
             throw Exception('UUID de receita inválido');
           }
           
-          // Validar valor positivo
           if (incomeAvailable <= 0) continue;
           
-          // Validar que não está vinculando transação consigo mesma
           if (incomeUuid == expenseUuid) {
             throw Exception('Não é possível vincular transação consigo mesma');
           }
           
-          // Quanto alocar desta receita para esta despesa
           final allocateAmount = remainingToAllocate < incomeAvailable 
               ? remainingToAllocate 
               : incomeAvailable;
@@ -199,7 +178,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
             });
             
             remainingToAllocate -= allocateAmount;
-            // Reduzir disponível para próximas despesas
             _selectedIncomes[incomeUuid] = incomeAvailable - allocateAmount;
           }
         }
@@ -209,7 +187,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
         throw Exception('Nenhum pagamento a processar');
       }
 
-      // Enviar ao backend
       final now = DateTime.now();
       final description = 'Pagamento em lote - ${DateFormat('dd/MM/yyyy HH:mm').format(now)}';
       
@@ -220,10 +197,8 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
 
       if (!mounted) return;
 
-      // Invalidar cache
       _cacheManager.invalidateAfterPayment();
 
-      // Feedback de sucesso
       final createdCount = result['created_count'] ?? 0;
       final fullyPaidCount = (result['summary']?['fully_paid_expenses'] as List?)?.length ?? 0;
       
@@ -232,7 +207,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
         '$createdCount pagamentos criados.\n${fullyPaidCount > 0 ? "$fullyPaidCount despesa(s) quitada(s)." : ""}',
       );
 
-      // Voltar para tela anterior
       Navigator.of(context).pop(true);
 
     } catch (e) {
@@ -240,7 +214,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       
       setState(() => _isSubmitting = false);
       
-      // Melhorar mensagem de erro
       String errorMessage = 'Erro ao processar pagamentos';
       
       if (e.toString().contains('DioException')) {
@@ -256,7 +229,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           errorMessage = 'Sem conexão com a internet.';
         }
       } else {
-        // Usar mensagem do erro se disponível
         final errorStr = e.toString();
         if (errorStr.contains('Exception:')) {
           errorMessage = errorStr.replaceFirst('Exception:', '').trim();
@@ -369,7 +341,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Instruções
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -396,7 +367,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           
           const SizedBox(height: 24),
           
-          // Seção de Receitas
           const TransactionSectionHeader(
             icon: Icons.account_balance_wallet,
             title: 'Receitas Disponíveis',
@@ -414,7 +384,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
           
           const SizedBox(height: 24),
           
-          // Seção de Despesas
           const TransactionSectionHeader(
             icon: Icons.receipt_long,
             title: 'Despesas Pendentes',
@@ -522,7 +491,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Resumo
             PaymentSummaryRow(
               incomeTotal: _totalIncomeSelected,
               expenseTotal: _totalExpensesSelected,
@@ -531,7 +499,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
             
             const SizedBox(height: 16),
             
-            // Botão de confirmar
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -570,7 +537,6 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
               ),
             ),
             
-            // Texto de validação
             if (!_canSubmit && (_selectedIncomes.isNotEmpty || _selectedExpenses.isNotEmpty))
               Padding(
                 padding: const EdgeInsets.only(top: 8),

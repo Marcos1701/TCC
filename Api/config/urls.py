@@ -7,10 +7,6 @@ from finance.authentication import EmailTokenObtainPairView, CustomTokenRefreshV
 
 
 def health_check(request):
-    """
-    Endpoint de health check para verificar se a API está funcionando.
-    Usado pelo Docker/Kubernetes para verificar a saúde do container.
-    """
     return JsonResponse({
         "status": "healthy",
         "service": "genapp-api",
@@ -24,7 +20,7 @@ urlpatterns = [
     path("api/token/", EmailTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
     path("api/health/", health_check, name="health_check"),
-    path("health/", health_check, name="health_check_root"),  # Alias para compatibilidade
+    path("health/", health_check, name="health_check_root"),
 ]
 
 if settings.DEBUG:

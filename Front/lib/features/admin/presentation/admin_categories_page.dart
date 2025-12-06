@@ -2,25 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../data/admin_viewmodel.dart';
 
-/// Página de Gerenciamento de Categorias do Sistema.
-///
-/// Esta tela permite ao administrador gerenciar as categorias padrão
-/// que são automaticamente criadas para novos usuários do sistema.
-/// As operações disponíveis incluem:
-///
-/// - Visualização das categorias separadas por tipo (Receitas/Despesas);
-/// - Criação de novas categorias padrão;
-/// - Remoção de categorias existentes.
-///
-/// As categorias são fundamentais para a classificação das transações
-/// financeiras dos usuários, permitindo análises e relatórios precisos.
-///
-/// Desenvolvido como parte do TCC - Sistema de Educação Financeira Gamificada.
 class AdminCategoriesPage extends StatefulWidget {
-  /// Cria uma nova instância da página de gerenciamento de categorias.
   const AdminCategoriesPage({super.key, required this.viewModel});
 
-  /// ViewModel responsável pelo gerenciamento de estado das categorias.
   final AdminViewModel viewModel;
 
   @override
@@ -47,7 +31,6 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabeçalho
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -83,7 +66,6 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Filtro de tipo
                   SegmentedButton<String?>(
                     segments: const [
                       ButtonSegment(value: null, label: Text('Todas')),
@@ -100,7 +82,6 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
               ),
             ),
 
-            // Lista de categorias
             Expanded(
               child: _buildCategoriesList(),
             ),
@@ -145,7 +126,6 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
       );
     }
 
-    // Separar por tipo
     final receitas = viewModel.categories
         .where((c) => c['type'] == 'INCOME')
         .toList();
@@ -224,10 +204,11 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
   void _showCreateCategoryDialog() {
     final nomeController = TextEditingController();
     String tipo = 'EXPENSE';
+    final parentContext = context;
 
     showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
+      context: parentContext,
+      builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('Nova Categoria'),
           content: Column(
@@ -256,14 +237,14 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
               onPressed: () async {
                 final nome = nomeController.text.trim();
                 if (nome.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('Digite o nome da categoria'),
                       backgroundColor: Colors.orange,
@@ -272,7 +253,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
                   return;
                 }
 
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
 
                 final resultado = await widget.viewModel.createCategory(
                   nome: nome,
@@ -281,7 +262,7 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
 
                 if (mounted) {
                   final sucesso = resultado['sucesso'] == true;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     SnackBar(
                       content: Text(
                         sucesso
@@ -302,7 +283,6 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
   }
 }
 
-/// Seção de categorias por tipo.
 class _CategorySection extends StatelessWidget {
   const _CategorySection({
     required this.title,
@@ -365,7 +345,6 @@ class _CategorySection extends StatelessWidget {
   }
 }
 
-/// Chip de categoria individual.
 class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
     required this.category,

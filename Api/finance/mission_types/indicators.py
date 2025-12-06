@@ -1,6 +1,3 @@
-"""
-Validadores para missões relacionadas a indicadores financeiros (TPS, RDR, ILI).
-"""
 
 from typing import Any, Dict, Tuple
 
@@ -10,11 +7,6 @@ from .base import BaseMissionValidator
 
 
 class TPSImprovementMissionValidator(BaseMissionValidator):
-    """
-    Validador para missões de melhoria de Taxa de Poupança Pessoal.
-    
-    Foco: Aumentar % de economia sobre receita total.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         metrics = self.get_current_metrics()
@@ -54,11 +46,6 @@ class TPSImprovementMissionValidator(BaseMissionValidator):
 
 
 class RDRReductionMissionValidator(BaseMissionValidator):
-    """
-    Validador para missões de redução de Razão Dívida-Receita.
-    
-    Foco: Reduzir comprometimento de renda com despesas recorrentes.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         metrics = self.get_current_metrics()
@@ -98,11 +85,6 @@ class RDRReductionMissionValidator(BaseMissionValidator):
 
 
 class ILIBuildingMissionValidator(BaseMissionValidator):
-    """
-    Validador para missões de construção de Índice de Liquidez Imediata.
-    
-    Foco: Aumentar reserva de emergência em meses de despesas cobertas.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         metrics = self.get_current_metrics()
@@ -142,11 +124,6 @@ class ILIBuildingMissionValidator(BaseMissionValidator):
 
 
 class IndicatorMaintenanceValidator(BaseMissionValidator):
-    """
-    Validador para missões de manutenção de indicadores.
-    
-    Foco: Manter TPS/RDR/ILI em nível específico por X dias consecutivos.
-    """
     
     def calculate_progress(self) -> Dict[str, Any]:
         from ..services import calculate_summary
@@ -201,18 +178,12 @@ class IndicatorMaintenanceValidator(BaseMissionValidator):
         
         min_days = self.mission.min_consecutive_days or self.mission.duration_days
         
-        # Usa os dados de streak do banco em vez de calcular apenas com elapsed_days
-        # Isso permite rastrear dias válidos mesmo após uma violação
         current_streak = self.mission_progress.current_streak or 0
         days_met = self.mission_progress.days_met_criteria or 0
         
-        # Se todos os critérios estão sendo atendidos hoje, considera o streak atual
-        # Caso contrário, o streak foi quebrado (mas days_met ainda conta dias passados)
         if all_met:
-            # Incrementa o streak se ainda não foi contabilizado hoje
             days_maintained = current_streak
         else:
-            # Streak quebrado, mas o progresso pode ser baseado em dias_met se missão permitir
             days_maintained = 0
         
         progress = min(100, (days_maintained / min_days) * 100)

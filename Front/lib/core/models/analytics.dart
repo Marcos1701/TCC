@@ -1,11 +1,7 @@
-/// Models para Analytics avançados do backend
-/// 
-/// Baseado no endpoint GET /api/dashboard/analytics/
 library;
 
-/// Informações de tier/nível do usuário
 class TierInfo {
-  final String tier; // 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+  final String tier;
   final int level;
   final int xp;
   final int nextLevelXp;
@@ -50,7 +46,6 @@ class TierInfo {
   }
 }
 
-/// Range de níveis de um tier
 class TierRange {
   final int min;
   final int max;
@@ -65,7 +60,6 @@ class TierRange {
   }
 }
 
-/// Tipo de missão recomendado
 class RecommendedMissionType {
   final String type;
   final String description;
@@ -83,14 +77,13 @@ class RecommendedMissionType {
   }
 }
 
-/// Evolução de indicadores ao longo do tempo
 class IndicatorEvolution {
   final double average;
   final double min;
   final double max;
   final double first;
   final double last;
-  final String trend; // 'crescente' | 'decrescente' | 'estável'
+  final String trend;
 
   IndicatorEvolution({
     required this.average,
@@ -113,7 +106,6 @@ class IndicatorEvolution {
   }
 }
 
-/// Dados de consistência do usuário
 class ConsistencyData {
   final double rate;
   final int daysRegistered;
@@ -134,7 +126,6 @@ class ConsistencyData {
   }
 }
 
-/// Evolução completa do usuário
 class EvolutionData {
   final bool hasData;
   final int periodDays;
@@ -180,7 +171,6 @@ class EvolutionData {
   }
 }
 
-/// Padrão de gastos de uma categoria
 class CategoryPattern {
   final double total;
   final int count;
@@ -210,13 +200,12 @@ class CategoryPattern {
   }
 }
 
-/// Recomendação de categoria
 class CategoryRecommendation {
   final String category;
-  final String type; // 'CATEGORY_LIMIT' | 'CATEGORY_REDUCTION'
+  final String type;
   final String reason;
   final double? suggestedLimit;
-  final String priority; // 'HIGH' | 'MEDIUM' | 'LOW'
+  final String priority;
 
   CategoryRecommendation({
     required this.category,
@@ -239,7 +228,6 @@ class CategoryRecommendation {
   }
 }
 
-/// Análise de padrões de categoria
 class CategoryPatternsAnalysis {
   final bool hasData;
   final int periodDays;
@@ -275,7 +263,6 @@ class CategoryPatternsAnalysis {
   }
 }
 
-/// Análise de progressão de tier
 class TierProgressionAnalysis {
   final String tier;
   final int level;
@@ -305,7 +292,6 @@ class TierProgressionAnalysis {
   }
 }
 
-/// Análise de distribuição de missões
 class MissionDistributionAnalysis {
   final int totalMissions;
   final int activeMissions;
@@ -341,7 +327,6 @@ class MissionDistributionAnalysis {
   }
 }
 
-/// Contexto abrangente do usuário
 class ComprehensiveContext {
   final int userId;
   final String username;
@@ -381,7 +366,6 @@ class ComprehensiveContext {
   }
 }
 
-/// Dados completos de analytics
 class AnalyticsData {
   final bool success;
   final ComprehensiveContext comprehensiveContext;

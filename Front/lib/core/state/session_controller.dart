@@ -8,7 +8,6 @@ import '../repositories/auth_repository.dart';
 class SessionController extends ChangeNotifier {
   SessionController({AuthRepository? authRepository})
       : _authRepository = authRepository ?? AuthRepository() {
-    // Configura callback para quando a sessão expirar
     ApiClient().setOnSessionExpired(_handleSessionExpired);
   }
 
@@ -16,8 +15,8 @@ class SessionController extends ChangeNotifier {
   SessionData? _session;
   bool _loading = true;
   bool _bootstrapDone = false;
-  bool _isNewRegistration = false; // Flag para indicar novo cadastro
-  bool _sessionExpired = false; // Flag para indicar que a sessão expirou
+  bool _isNewRegistration = false;
+  bool _sessionExpired = false;
 
   SessionData? get session => _session;
   bool get isAuthenticated => _session != null && !_sessionExpired;
@@ -57,8 +56,8 @@ class SessionController extends ChangeNotifier {
 
   Future<void> login({required String email, required String password}) async {
     _loading = true;
-    _isNewRegistration = false; // Não é novo cadastro
-    _sessionExpired = false; // Reset flag de expiração
+    _isNewRegistration = false;
+    _sessionExpired = false;
     notifyListeners();
     try {
       final tokens =
@@ -81,8 +80,8 @@ class SessionController extends ChangeNotifier {
     required String password,
   }) async {
     _loading = true;
-    _isNewRegistration = true; // É novo cadastro!
-    _sessionExpired = false; // Reset flag de expiração
+    _isNewRegistration = true;
+    _sessionExpired = false;
     notifyListeners();
     try {
       final tokens = await _authRepository.register(
@@ -97,7 +96,7 @@ class SessionController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _loading = false;
-      _isNewRegistration = false; // Reset em caso de erro
+      _isNewRegistration = false;
       notifyListeners();
       rethrow;
     }
@@ -109,12 +108,10 @@ class SessionController extends ChangeNotifier {
       _session = await _authRepository.fetchSession();
       notifyListeners();
     } catch (e) {
-      // Ignora erros em refresh silencioso de sessão
+      debugPrint('Error refreshing session: $e');
     }
   }
 
-  /// Força atualização do profile sem fazer nova requisição
-  /// Útil quando o profile já foi obtido de outro endpoint (ex: dashboard)
   void updateProfile(ProfileModel newProfile) {
     if (_session != null) {
       _session = SessionData(user: _session!.user, profile: newProfile);
@@ -148,7 +145,6 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Reseta a flag de novo registro (chamado após verificar onboarding)
   void clearNewRegistrationFlag() {
     _isNewRegistration = false;
   }

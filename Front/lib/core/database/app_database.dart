@@ -17,7 +17,6 @@ class Transactions extends Table {
   TextColumn get recurrenceUnit => text().nullable()();
   DateTimeColumn get recurrenceEndDate => dateTime().nullable()();
   
-  // Sync fields
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
   DateTimeColumn get lastUpdated => dateTime().nullable()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -33,7 +32,6 @@ class Categories extends Table {
   TextColumn get color => text().nullable()();
   TextColumn get group => text().nullable()();
   
-  // Sync fields
   BoolColumn get isSynced => boolean().withDefault(const Constant(true))();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
 
@@ -45,27 +43,22 @@ class Categories extends Table {
 
 @DriftDatabase(tables: [Transactions, Categories], daos: [TransactionsDao])
 class AppDatabase extends _$AppDatabase {
-  /// Singleton instance
   static AppDatabase? _instance;
   
-  /// Private constructor
   AppDatabase._internal() : super(connect());
   
-  /// Factory constructor that returns the singleton instance
   factory AppDatabase() {
     _instance ??= AppDatabase._internal();
     return _instance!;
   }
   
-  /// Get the singleton instance (alternative accessor)
   static AppDatabase get instance => AppDatabase();
   
-  /// Reset the singleton (useful for testing)
   static void resetInstance() {
     _instance?.close();
     _instance = null;
   }
 
   @override
-  int get schemaVersion => 2;  // Incremented for Goals removal
+  int get schemaVersion => 2;
 }

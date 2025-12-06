@@ -5,7 +5,6 @@ import 'package:confetti/confetti.dart';
 import '../theme/app_colors.dart';
 import '../constants/user_friendly_strings.dart';
 
-/// Widget de overlay para celebrações com confetes e animações
 class CelebrationOverlay extends StatefulWidget {
   final String title;
   final String subtitle;
@@ -27,7 +26,6 @@ class CelebrationOverlay extends StatefulWidget {
   @override
   State<CelebrationOverlay> createState() => _CelebrationOverlayState();
 
-  /// Exibe celebração de desafio completado
   static void showMissionComplete({
     required BuildContext context,
     required String missionTitle,
@@ -48,7 +46,6 @@ class CelebrationOverlay extends StatefulWidget {
     );
   }
 
-  /// Exibe celebração de subida de nível (moderna e minimalista)
   static void showLevelUp({
     required BuildContext context,
     required int newLevel,
@@ -64,7 +61,7 @@ class CelebrationOverlay extends StatefulWidget {
         icon: Icons.workspace_premium,
         color: AppColors.primary,
         onComplete: () => Navigator.of(context).pop(),
-        showConfetti: false, // Sem confetes para level up
+        showConfetti: false,
       ),
     );
   }
@@ -85,7 +82,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   void initState() {
     super.initState();
 
-    // Controlador de confetes (apenas se necessário)
     if (widget.showConfetti) {
       _confettiController = ConfettiController(
         duration: const Duration(seconds: 2),
@@ -95,7 +91,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
       _confettiController = null;
     }
 
-    // Controlador de escala (suave)
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -105,7 +100,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
       curve: Curves.easeOutBack,
     );
 
-    // Controlador de fade
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -115,7 +109,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
       curve: Curves.easeIn,
     );
 
-    // Controlador de brilho pulsante (apenas para level up)
     _glowController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -130,14 +123,11 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
       ),
     );
 
-    // Iniciar animações
     _scaleController.forward();
     if (!widget.showConfetti) {
-      // Apenas para level up - efeito pulsante sutil
       _glowController.repeat(reverse: true);
     }
     
-    // Auto-fechar após 3 segundos
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         _fadeController.forward().then((_) {
@@ -162,13 +152,12 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Confetes caindo (apenas para desafios)
         if (widget.showConfetti && _confettiController != null) ...[
           Align(
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
               confettiController: _confettiController!,
-              blastDirection: pi / 2, // Para baixo
+              blastDirection: pi / 2,
               maxBlastForce: 5,
               minBlastForce: 2,
               emissionFrequency: 0.05,
@@ -186,7 +175,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
             alignment: Alignment.centerLeft,
             child: ConfettiWidget(
               confettiController: _confettiController!,
-              blastDirection: 0, // Para a direita
+              blastDirection: 0,
               maxBlastForce: 8,
               minBlastForce: 4,
               emissionFrequency: 0.1,
@@ -202,7 +191,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
             alignment: Alignment.centerRight,
             child: ConfettiWidget(
               confettiController: _confettiController!,
-              blastDirection: pi, // Para a esquerda
+              blastDirection: pi,
               maxBlastForce: 8,
               minBlastForce: 4,
               emissionFrequency: 0.1,
@@ -216,7 +205,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
           ),
         ],
 
-        // Card de celebração moderno
         Center(
           child: FadeTransition(
             opacity: Tween<double>(begin: 1.0, end: 0.0).animate(_fadeAnimation),
@@ -254,7 +242,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                     children: [
                       const SizedBox(height: 40),
                       
-                      // Ícone com efeito de brilho
                       AnimatedBuilder(
                         animation: _glowAnimation,
                         builder: (context, child) {
@@ -296,7 +283,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                       ),
                       const SizedBox(height: 32),
                       
-                      // Título
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Text(
@@ -312,7 +298,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                       ),
                       const SizedBox(height: 16),
                       
-                      // Subtítulo
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: Text(
@@ -327,7 +312,6 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
                       ),
                       const SizedBox(height: 32),
                       
-                      // Botão de continuar moderno
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 32),
                         child: SizedBox(

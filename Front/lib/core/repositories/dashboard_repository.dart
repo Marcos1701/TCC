@@ -4,7 +4,6 @@ import '../services/cache_service.dart';
 import '../errors/failures.dart';
 import 'base_repository.dart';
 
-/// Repositório para operações do dashboard.
 class DashboardRepository extends BaseRepository {
   DashboardRepository({super.client});
 

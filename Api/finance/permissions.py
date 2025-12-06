@@ -5,18 +5,8 @@ logger = logging.getLogger(__name__)
 
 
 class IsOwnerPermission(permissions.BasePermission):
-    """
-    Garante que apenas o dono do recurso pode acessá-lo.
-    Aplica-se a objetos que têm um campo 'user'.
-    
-    Uso:
-        permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
-    """
     
     def has_object_permission(self, request, view, obj):
-        """
-        Verifica se o usuário autenticado é o dono do objeto.
-        """
         if not hasattr(obj, 'user'):
             return True
         
@@ -34,11 +24,6 @@ class IsOwnerPermission(permissions.BasePermission):
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
-    """
-    Permite leitura para todos, mas escrita apenas para o dono.
-    Uso:
-        permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
-    """
     
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
@@ -60,11 +45,6 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 
 class IsFriendOrOwner(permissions.BasePermission):
-    """
-    Permite acesso ao dono ou a amigos aceitos.
-    Uso:
-        permission_classes = [permissions.IsAuthenticated, IsFriendOrOwner]
-    """
     
     def has_object_permission(self, request, view, obj):
         if not hasattr(obj, 'user'):

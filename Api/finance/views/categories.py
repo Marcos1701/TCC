@@ -1,6 +1,3 @@
-"""
-Views para gerenciamento de categorias.
-"""
 
 import logging
 
@@ -20,16 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para CRUD de categorias.
-    
-    Endpoints:
-    - GET /categories/ - Listar categorias
-    - POST /categories/ - Criar categoria
-    - GET /categories/{id}/ - Detalhe
-    - PUT/PATCH /categories/{id}/ - Atualizar
-    - DELETE /categories/{id}/ - Remover
-    """
     
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]

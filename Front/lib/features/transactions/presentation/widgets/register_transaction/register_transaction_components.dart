@@ -1,4 +1,3 @@
-/// Widgets e componentes para o registro de transação.
 library;
 
 export 'category_composer_sheet.dart';
