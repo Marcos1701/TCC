@@ -42,6 +42,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "link_percentage",
             "outgoing_links_count",
             "incoming_links_count",
+            "is_scheduled",
             "created_at",
             "updated_at",
         )
@@ -55,6 +56,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "link_percentage",
             "outgoing_links_count",
             "incoming_links_count",
+            "is_scheduled",
             "created_at",
             "updated_at",
         )

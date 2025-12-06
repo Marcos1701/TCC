@@ -87,6 +87,11 @@ class Transaction(models.Model):
     def __str__(self) -> str:
         return f"{self.description} ({self.amount})"
 
+    @property
+    def is_scheduled(self) -> bool:
+        """Returns True if this transaction is scheduled for a future date."""
+        return self.date > timezone.now().date()
+
     def clean(self):
         from django.core.exceptions import ValidationError
         
