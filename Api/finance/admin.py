@@ -268,10 +268,10 @@ class MissionAdmin(admin.ModelAdmin):
             "classes": ("collapse",),
             "description": "Para missões do tipo CATEGORY_REDUCTION.",
         }),
-        ("Critérios Temporais", {
+        ("Critérios Temporais (DEPRECATED)", {
             "fields": ("requires_consecutive_days", "min_consecutive_days", "requires_daily_action", "min_daily_actions"),
             "classes": ("collapse",),
-            "description": "Para missões que exigem consistência.",
+            "description": "⚠️ DEPRECATED: Lógica de dias consecutivos foi simplificada. Estes campos não são mais utilizados.",
         }),
         ("Dicas e Impactos", {
             "fields": ("tips", "impacts"),

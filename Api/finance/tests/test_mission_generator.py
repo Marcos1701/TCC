@@ -164,18 +164,6 @@ class MissionViabilityValidatorTestCase(TestCase):
         self.assertFalse(is_valid)
         self.assertIn("categorias", msg.lower())
 
-    def test_goal_achievement_valid(self):
-        is_valid, msg = self.validator.validate_goal_achievement(
-            goal_progress_target=50.0, duration_days=30, context=self.intermediate_ctx
-        )
-        self.assertTrue(is_valid)
-    
-    def test_goal_achievement_no_goals(self):
-        is_valid, msg = self.validator.validate_goal_achievement(
-            goal_progress_target=50.0, duration_days=30, context=self.beginner_ctx
-        )
-        self.assertFalse(is_valid)
-        self.assertIn("metas", msg.lower())
 
 
 class UnifiedMissionGeneratorTestCase(TestCase):
@@ -219,6 +207,7 @@ class UnifiedMissionGeneratorTestCase(TestCase):
         self.assertGreater(dist.get('ONBOARDING', 0), 0)
     
     def test_smart_distribution_no_goals(self):
+        """Test that distribution works correctly without Goal system."""
         ctx = UserContext(
             tier='INTERMEDIATE', level=10, tps=15.0, rdr=40.0, ili=3.0,
             transaction_count=100, has_active_goals=False,
@@ -227,7 +216,9 @@ class UnifiedMissionGeneratorTestCase(TestCase):
         
         dist = generator._get_smart_distribution(10)
         
-        self.assertEqual(dist.get('GOAL_ACHIEVEMENT', 0), 0)
+        # Should have valid distribution without Goal types
+        self.assertIsInstance(dist, dict)
+        self.assertGreater(sum(dist.values()), 0)
     
     def test_no_duplicate_titles(self):
         ctx = UserContext.default_for_tier('INTERMEDIATE')

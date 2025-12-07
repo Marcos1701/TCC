@@ -1092,9 +1092,14 @@ class _MissionDetailsDialog extends StatelessWidget {
 
     final validationLabels = {
       'TRANSACTION_COUNT': 'Contagem de Transações',
-      'INDICATOR_THRESHOLD': 'Limite de Indicador',
+      'INDICATOR_THRESHOLD': 'Atingir Indicador',
       'CATEGORY_REDUCTION': 'Redução em Categoria',
-      'TEMPORAL': 'Período de Tempo',
+      'CATEGORY_LIMIT': 'Limite de Categoria',
+      'SAVINGS_INCREASE': 'Aumentar Poupança',
+      'MULTI_CRITERIA': 'Critérios Combinados',
+      // Legados
+      'TEMPORAL': 'Período (legado)',
+      'SNAPSHOT': 'Comparação (legado)',
     };
 
     return AlertDialog(

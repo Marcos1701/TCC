@@ -165,10 +165,10 @@ class MissionModel {
   
   String get validationTypeLabel {
     switch (validationType) {
-      case 'SNAPSHOT':
-        return 'Comparação pontual';
-      case 'TEMPORAL':
-        return 'Manter por período';
+      case 'INDICATOR_THRESHOLD':
+        return 'Atingir indicador';
+      case 'TRANSACTION_COUNT':
+        return 'Registrar transações';
       case 'CATEGORY_REDUCTION':
         return 'Reduzir categoria';
       case 'CATEGORY_LIMIT':
@@ -177,20 +177,21 @@ class MissionModel {
         return 'Aumentar poupança';
       case 'CONSISTENCY':
         return 'Consistência';
-      case 'TRANSACTION_COUNT':
-        return 'Registrar transações';
       case 'TRANSACTION_CONSISTENCY':
         return 'Consistência de transações';
       case 'PAYMENT_COUNT':
         return 'Registrar pagamentos';
-      case 'INDICATOR_THRESHOLD':
-        return 'Atingir indicador';
       case 'INDICATOR_IMPROVEMENT':
         return 'Melhorar indicador';
-      case 'INDICATOR_MAINTENANCE':
-        return 'Manter indicador';
       case 'MULTI_CRITERIA':
         return 'Critérios combinados';
+      // Tipos legados mantidos para compatibilidade
+      case 'SNAPSHOT':
+        return 'Comparação pontual';
+      case 'TEMPORAL':
+        return 'Por período (legado)';
+      case 'INDICATOR_MAINTENANCE':
+        return 'Manter indicador (legado)';
       default:
         return validationType;
     }

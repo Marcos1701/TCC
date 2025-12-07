@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "C:\Users\marco\Arq\TCC\Api\manage.py", line 18, in <module>
+    main()
+  File "C:\Users\marco\Arq\TCC\Api\manage.py", line 14, in main
+    execute_from_command_line(sys.argv)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\core\management\__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\core\management\__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\core\management\commands\test.py", line 24, in run_from_argv
+    super().run_from_argv(argv)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\core\management\base.py", line 412, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\core\management\base.py", line 458, in execute
+    output = self.handle(*args, **options)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\core\management\commands\test.py", line 68, in handle
+    failures = test_runner.run_tests(test_labels)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\test\runner.py", line 1048, in run_tests
+    suite = self.build_suite(test_labels, extra_tests)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\test\runner.py", line 898, in build_suite
+    tests = self.load_tests_for_label(label, discover_kwargs)
+  File "C:\msys64\mingw64\lib\python3.9\site-packages\django\test\runner.py", line 872, in load_tests_for_label
+    tests = self.test_loader.discover(start_dir=label, **kwargs)
+  File "C:\msys64\mingw64\lib\python3.9\unittest\loader.py", line 306, in discover
+    os.path.dirname((the_module.__file__)))
+  File "C:\msys64\mingw64\lib\python3.9\ntpath.py", line 238, in dirname
+    return split(p)[0]
+  File "C:\msys64\mingw64\lib\python3.9\ntpath.py", line 200, in split
+    p = os.fspath(p)
+TypeError: expected str, bytes or os.PathLike object, not NoneType

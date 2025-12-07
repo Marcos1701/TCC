@@ -374,7 +374,7 @@ class _MissionTypeChart extends StatelessWidget {
       'RDR_REDUCTION': 'Redução de Despesas',
       'ILI_BUILDING': 'Reserva de Emergência',
       'CATEGORY_REDUCTION': 'Controle de Categoria',
-      'GOAL_ACHIEVEMENT': 'Progresso em Meta',
+      // GOAL_ACHIEVEMENT removido - sistema de goals desativado
     };
 
     final typeColors = {
@@ -383,7 +383,7 @@ class _MissionTypeChart extends StatelessWidget {
       'RDR_REDUCTION': Colors.orange,
       'ILI_BUILDING': Colors.purple,
       'CATEGORY_REDUCTION': Colors.teal,
-      'GOAL_ACHIEVEMENT': Colors.pink,
+      // GOAL_ACHIEVEMENT removido - sistema de goals desativado
     };
 
     return Wrap(

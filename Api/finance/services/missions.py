@@ -91,18 +91,19 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
         
         for indicator_data in at_risk:
             indicator = indicator_data['indicator']
-            if indicator == 'TPS' and mission.mission_type in ['TPS_IMPROVEMENT', 'SAVINGS_STREAK', 'INCOME_TRACKING']:
+            # Tipos simplificados: apenas os que existem em Mission.MissionType
+            if indicator == 'TPS' and mission.mission_type == 'TPS_IMPROVEMENT':
                 score += 40
                 break
-            elif indicator == 'RDR' and mission.mission_type in ['RDR_REDUCTION', 'CATEGORY_REDUCTION', 'EXPENSE_CONTROL']:
+            elif indicator == 'RDR' and mission.mission_type in ['RDR_REDUCTION', 'CATEGORY_REDUCTION']:
                 score += 40
                 break
-            elif indicator == 'ILI' and mission.mission_type in ['ILI_BUILDING', 'WEALTH_BUILDING']:
+            elif indicator == 'ILI' and mission.mission_type == 'ILI_BUILDING':
                 score += 40
                 break
         
         for opp in opportunities:
-            if opp['type'] == 'CATEGORY_GROWTH' and mission.mission_type in ['CATEGORY_REDUCTION', 'CATEGORY_SPENDING_LIMIT']:
+            if opp['type'] == 'CATEGORY_GROWTH' and mission.mission_type == 'CATEGORY_REDUCTION':
                 if mission.target_category and mission.target_category.id == opp['data'].get('category_id'):
                     score += 30
                 else:
@@ -392,10 +393,9 @@ def initialize_mission_progress(progress):
         progress.initial_savings_amount = savings.get('total') or Decimal('0')
     
     progress.status = MissionProgress.Status.PENDING
-    progress.current_streak = 0
-    progress.max_streak = 0
-    progress.days_met_criteria = 0
-    progress.days_violated_criteria = 0
+    
+    # Campos de streak não são mais usados (lógica de dias consecutivos removida)
+    # progress.current_streak, progress.max_streak, etc. mantidos no banco por compatibilidade
     
     progress.save()
     

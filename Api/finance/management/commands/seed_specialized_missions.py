@@ -15,6 +15,21 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # DEPRECATED: Este arquivo usa mission_types e validation_types que foram removidos
+        # MissionTypes válidos: ONBOARDING, TPS_IMPROVEMENT, RDR_REDUCTION, ILI_BUILDING, CATEGORY_REDUCTION
+        # ValidationType válidos: TRANSACTION_COUNT, INDICATOR_THRESHOLD, CATEGORY_REDUCTION, 
+        #                         CATEGORY_LIMIT, MULTI_CRITERIA, etc.
+        # Os tipos GOAL_* foram removidos quando o sistema de Goals foi desativado (migration 0058)
+        self.stdout.write(
+            self.style.WARNING(
+                '\n⚠️  DEPRECATED: Este comando foi desativado.\n'
+                '   Os tipos de missão utilizados (GOAL_*, SAVINGS_STREAK, etc) não existem mais.\n'
+                '   Use "seed_default_missions" para criar missões válidas.\n'
+            )
+        )
+        return  # Exit early - do not create missions
+        
+        # --- CÓDIGO ORIGINAL ABAIXO (desativado) ---
         if options['clear']:
             new_types = [
                 'CATEGORY_REDUCTION', 'CATEGORY_SPENDING_LIMIT', 'CATEGORY_ELIMINATION',
@@ -199,7 +214,7 @@ class Command(BaseCommand):
                 'priority': 2,
                 'reward_points': 250,
                 'duration_days': 30,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('50.00'),
                 'is_active': True,
             },
@@ -394,7 +409,7 @@ class Command(BaseCommand):
                 'priority': 1,
                 'reward_points': 200,
                 'duration_days': 7,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('1.00'),
                 'is_active': True,
             },
@@ -406,7 +421,7 @@ class Command(BaseCommand):
                 'priority': 2,
                 'reward_points': 400,
                 'duration_days': 14,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('1.00'),
                 'is_active': True,
             },

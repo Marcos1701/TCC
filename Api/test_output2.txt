@@ -1,0 +1,19 @@
+Found 1 test(s).
+System check identified no issues (0 silenced).
+E
+======================================================================
+ERROR: test_missions_api (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_missions_api
+Traceback (most recent call last):
+  File "C:\msys64\mingw64\lib\python3.9\unittest\loader.py", line 154, in loadTestsFromName
+    module = __import__(module_name)
+  File "C:\Users\marco\Arq\TCC\Api\finance\tests\test_missions_api.py", line 12, in <module>
+    from finance.models import Category, Goal, Mission
+ImportError: cannot import name 'Goal' from 'finance.models' (C:\Users\marco\Arq\TCC\Api\finance\models\__init__.py)
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)

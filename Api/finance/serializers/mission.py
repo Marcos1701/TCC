@@ -211,13 +211,9 @@ class MissionSerializer(serializers.ModelSerializer):
     def validate(self, data):
         validation_type = data.get('validation_type')
         
-        if validation_type == Mission.ValidationType.TEMPORAL:
-            if data.get('requires_consecutive_days') and not data.get('min_consecutive_days'):
-                raise serializers.ValidationError({
-                    'min_consecutive_days': 'Obrigatório quando requires_consecutive_days é True.'
-                })
+        # TEMPORAL validation removida - lógica de dias consecutivos simplificada
         
-        elif validation_type == Mission.ValidationType.CATEGORY_REDUCTION:
+        if validation_type == Mission.ValidationType.CATEGORY_REDUCTION:
             if not data.get('target_category'):
                 raise serializers.ValidationError({
                     'target_category': 'Obrigatório para missões de redução de categoria.'

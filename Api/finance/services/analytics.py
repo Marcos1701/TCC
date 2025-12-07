@@ -271,14 +271,14 @@ def analyze_tier_progression(user):
                 {'type': 'ONBOARDING', 'description': 'Completar primeiras transações'},
             ],
             'INTERMEDIATE': [
-                {'type': 'TEMPORAL', 'description': 'Manter TPS > 20% por 30 dias'},
+                {'type': 'INDICATOR_THRESHOLD', 'description': 'Alcançar TPS > 20%'},
                 {'type': 'CATEGORY_LIMIT', 'description': 'Controlar gastos por categoria'},
                 {'type': 'SAVINGS_INCREASE', 'description': 'Aumentar poupança em R$ 500'},
             ],
             'ADVANCED': [
                 {'type': 'CATEGORY_REDUCTION', 'description': 'Reduzir categoria em 15%'},
-                {'type': 'GOAL_PROGRESS', 'description': 'Completar 80% de uma meta'},
-                {'type': 'TEMPORAL', 'description': 'Manter TPS > 30% por 90 dias'},
+                {'type': 'INDICATOR_THRESHOLD', 'description': 'Alcançar TPS > 30%'},
+                {'type': 'MULTI_CRITERIA', 'description': 'Múltiplos indicadores simultaneamente'},
             ],
         }
         
@@ -363,8 +363,8 @@ def get_mission_distribution_analysis(user):
         validation_distribution = {item['mission__validation_type']: item for item in validation_counts}
         
         all_mission_types = ['ONBOARDING', 'TPS_IMPROVEMENT', 'RDR_REDUCTION', 'ILI_BUILDING', 'ADVANCED']
-        all_validation_types = ['SNAPSHOT', 'TEMPORAL', 'CATEGORY_REDUCTION', 'CATEGORY_LIMIT', 
-                               'GOAL_PROGRESS', 'SAVINGS_INCREASE', 'CONSISTENCY']
+        all_validation_types = ['SNAPSHOT', 'INDICATOR_THRESHOLD', 'CATEGORY_REDUCTION', 'CATEGORY_LIMIT', 
+                               'TRANSACTION_COUNT', 'SAVINGS_INCREASE', 'CONSISTENCY']
         
         underutilized_mission_types = []
         underutilized_validation_types = []

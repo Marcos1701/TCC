@@ -1,0 +1,39 @@
+Found 4 test(s).
+Creating test database for alias 'default'...
+
+System check identified no issues (0 silenced).
+EE[INFO] finance.signals: Created 15 default categories for user 1
+[INFO] finance.signals: New user profile created: User 1 (testuser) - is_first_access=True (onboarding enabled)
+.[INFO] finance.signals: Created 15 default categories for user 1
+[INFO] finance.signals: New user profile created: User 1 (testuser) - is_first_access=True (onboarding enabled)
+.
+======================================================================
+ERROR: test_mission_generator (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_mission_generator
+Traceback (most recent call last):
+  File "C:\msys64\mingw64\lib\python3.9\unittest\loader.py", line 154, in loadTestsFromName
+    module = __import__(module_name)
+  File "C:\Users\marco\Arq\TCC\Api\finance\tests\test_mission_generator.py", line 8, in <module>
+    from finance.mission_generator import (
+ImportError: cannot import name 'MissionViabilityValidator' from 'finance.mission_generator' (C:\Users\marco\Arq\TCC\Api\finance\mission_generator.py)
+
+
+======================================================================
+ERROR: test_mission_assignment (unittest.loader._FailedTest)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_mission_assignment
+Traceback (most recent call last):
+  File "C:\msys64\mingw64\lib\python3.9\unittest\loader.py", line 154, in loadTestsFromName
+    module = __import__(module_name)
+  File "C:\Users\marco\Arq\TCC\Api\finance\tests\test_mission_assignment.py", line 7, in <module>
+    from finance.models import (
+ImportError: cannot import name 'Goal' from 'finance.models' (C:\Users\marco\Arq\TCC\Api\finance\models\__init__.py)
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.382s
+
+FAILED (errors=2)
+Destroying test database for alias 'default'...
+

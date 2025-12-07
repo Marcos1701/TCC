@@ -10,7 +10,6 @@ from .indicators import (
     TPSImprovementMissionValidator,
     RDRReductionMissionValidator,
     ILIBuildingMissionValidator,
-    IndicatorMaintenanceValidator,
 )
 from .categories import CategoryReductionValidator, CategoryLimitValidator
 from .transactions import TransactionConsistencyValidator, PaymentDisciplineValidator
@@ -20,63 +19,53 @@ from .advanced import AdvancedMissionValidator, MultiCriteriaValidator
 logger = logging.getLogger(__name__)
 
 
+# Mapeamento simplificado: mission_type → validator
+# Esta é a ÚNICA fonte de verdade para seleção de validadores
+VALIDATOR_MAP = {
+    'ONBOARDING': OnboardingMissionValidator,
+    'TPS_IMPROVEMENT': TPSImprovementMissionValidator,
+    'RDR_REDUCTION': RDRReductionMissionValidator,
+    'ILI_BUILDING': ILIBuildingMissionValidator,
+    'CATEGORY_REDUCTION': CategoryReductionValidator,
+}
+
+# Validadores por validation_type (para casos com categoria específica)
+VALIDATION_TYPE_MAP = {
+    'CATEGORY_LIMIT': CategoryLimitValidator,
+    'TRANSACTION_CONSISTENCY': TransactionConsistencyValidator,
+    'PAYMENT_COUNT': PaymentDisciplineValidator,
+}
+
+
 class MissionValidatorFactory:
+    """Factory simplificada para criar validadores de missão.
     
-    _validators = {
-        'ONBOARDING': OnboardingMissionValidator,
-        'TPS_IMPROVEMENT': TPSImprovementMissionValidator,
-        'RDR_REDUCTION': RDRReductionMissionValidator,
-        'ILI_BUILDING': ILIBuildingMissionValidator,
-        'ADVANCED': AdvancedMissionValidator,
-        'ONBOARDING_TRANSACTIONS': OnboardingMissionValidator,
-        'ONBOARDING_CATEGORIES': OnboardingMissionValidator,
-        'CATEGORY_REDUCTION': CategoryReductionValidator,
-        'CATEGORY_SPENDING_LIMIT': CategoryLimitValidator,
-        'CATEGORY_ELIMINATION': CategoryLimitValidator,
-        'SAVINGS_STREAK': TransactionConsistencyValidator,
-        'EXPENSE_CONTROL': CategoryLimitValidator,
-        'INCOME_TRACKING': TransactionConsistencyValidator,
-        'PAYMENT_DISCIPLINE': PaymentDisciplineValidator,
-        'FINANCIAL_HEALTH': MultiCriteriaValidator,
-        'WEALTH_BUILDING': MultiCriteriaValidator,
-    }
-    
-    _validation_type_validators = {
-        'CATEGORY_REDUCTION': CategoryReductionValidator,
-        'CATEGORY_LIMIT': CategoryLimitValidator,
-        'CATEGORY_ZERO': CategoryLimitValidator,
-        'TRANSACTION_COUNT': OnboardingMissionValidator,
-        'TRANSACTION_CONSISTENCY': TransactionConsistencyValidator,
-        'PAYMENT_COUNT': PaymentDisciplineValidator,
-        'INDICATOR_THRESHOLD': AdvancedMissionValidator,
-        'INDICATOR_IMPROVEMENT': TPSImprovementMissionValidator,
-        'INDICATOR_MAINTENANCE': IndicatorMaintenanceValidator,
-        'MULTI_CRITERIA': MultiCriteriaValidator,
-    }
+    A seleção do validador é baseada primariamente no mission_type.
+    O validation_type só é usado como fallback para casos específicos.
+    """
     
     @classmethod
     def create_validator(cls, mission, user, mission_progress) -> BaseMissionValidator:
-        # INDICATOR_THRESHOLD precisa usar validators específicos baseado no mission_type
-        if mission.validation_type == 'INDICATOR_THRESHOLD':
-            if mission.mission_type == 'TPS_IMPROVEMENT':
-                return TPSImprovementMissionValidator(mission, user, mission_progress)
-            elif mission.mission_type == 'RDR_REDUCTION':
-                return RDRReductionMissionValidator(mission, user, mission_progress)
-            elif mission.mission_type == 'ILI_BUILDING':
-                return ILIBuildingMissionValidator(mission, user, mission_progress)
-            # Fallback para múltiplos indicadores
-            return AdvancedMissionValidator(mission, user, mission_progress)
+        """Cria e retorna o validador correto para a missão."""
         
-        validator_class = cls._validation_type_validators.get(mission.validation_type)
+        # 1. Primeiro, tenta pelo mission_type (preferido)
+        validator_class = VALIDATOR_MAP.get(mission.mission_type)
         
-        if validator_class is None:
-            validator_class = cls._validators.get(mission.mission_type)
+        if validator_class:
+            return validator_class(mission, user, mission_progress)
         
-        if validator_class is None:
-            logger.warning(f"Tipo de missão desconhecido: {mission.mission_type}, usando MultiCriteriaValidator")
-            validator_class = MultiCriteriaValidator
+        # 2. Se não encontrou, tenta pelo validation_type (fallback)
+        if mission.validation_type:
+            validator_class = VALIDATION_TYPE_MAP.get(mission.validation_type)
+            if validator_class:
+                return validator_class(mission, user, mission_progress)
         
-        return validator_class(mission, user, mission_progress)
+        # 3. Fallback final: MultiCriteriaValidator
+        logger.warning(
+            f"Tipo de missão desconhecido: {mission.mission_type} "
+            f"(validation_type: {mission.validation_type}), usando MultiCriteriaValidator"
+        )
+        return MultiCriteriaValidator(mission, user, mission_progress)
 
 
 def update_single_mission_progress(mission_progress) -> Dict[str, Any]:

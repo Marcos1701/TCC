@@ -102,7 +102,7 @@ class Command(BaseCommand):
                 'priority': 1,
                 'reward_points': 150,
                 'duration_days': 14,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('1.00'),  # Qualquer progresso
                 'is_active': True,
             },
@@ -126,8 +126,9 @@ class Command(BaseCommand):
                 'reward_points': 200,
                 'duration_days': 14,
                 'validation_type': 'CONSISTENCY',
-                'requires_consecutive_days': True,
-                'min_consecutive_days': 7,
+                # requires_consecutive_days removido - lógica simplificada
+                # 'requires_consecutive_days': True,
+                # 'min_consecutive_days': 7,
                 'is_active': True,
             },
             
@@ -188,7 +189,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 250,
                 'duration_days': 30,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'target_tps': Decimal('15.00'),
                 'is_active': True,
             },
@@ -300,7 +301,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 300,
                 'duration_days': 90,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('100.00'),
                 'is_active': True,
             },
@@ -312,7 +313,7 @@ class Command(BaseCommand):
                 'priority': 2,
                 'reward_points': 220,
                 'duration_days': 30,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'min_ili': Decimal('10.00'),  # Incremento mínimo
                 'is_active': True,
             },
@@ -368,7 +369,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 400,
                 'duration_days': 45,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'target_tps': Decimal('18.00'),
                 'is_active': True,
             },
@@ -392,7 +393,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 450,
                 'duration_days': 90,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('100.00'),
                 'is_active': True,
             },
@@ -516,7 +517,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 500,
                 'duration_days': 120,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('100.00'),
                 'is_active': True,
             },
@@ -528,7 +529,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 380,
                 'duration_days': 45,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'min_ili': Decimal('20.00'),
                 'is_active': True,
             },
@@ -554,8 +555,8 @@ class Command(BaseCommand):
                 'reward_points': 500,
                 'duration_days': 45,
                 'validation_type': 'CONSISTENCY',
-                'requires_consecutive_days': True,
-                'min_consecutive_days': 30,
+                # 'requires_consecutive_days': True,  # Removido
+                # 'min_consecutive_days': 30,
                 'is_active': True,
             },
             {
@@ -566,7 +567,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 600,
                 'duration_days': 30,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'target_tps': Decimal('20.00'),
                 'target_rdr': Decimal('60.00'),
                 'min_ili': Decimal('50.00'),
@@ -624,7 +625,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 800,
                 'duration_days': 90,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'target_tps': Decimal('35.00'),
                 'is_active': True,
             },
@@ -648,7 +649,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 900,
                 'duration_days': 180,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('100.00'),
                 'is_active': True,
             },
@@ -760,7 +761,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 1000,
                 'duration_days': 365,
-                'validation_type': 'GOAL_PROGRESS',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era GOAL_PROGRESS - goals desativados
                 'goal_progress_target': Decimal('100.00'),
                 'is_active': True,
             },
@@ -772,7 +773,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 650,
                 'duration_days': 60,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'min_ili': Decimal('40.00'),
                 'is_active': True,
             },
@@ -798,8 +799,8 @@ class Command(BaseCommand):
                 'reward_points': 1000,
                 'duration_days': 120,
                 'validation_type': 'CONSISTENCY',
-                'requires_consecutive_days': True,
-                'min_consecutive_days': 90,
+                # 'requires_consecutive_days': True,  # Removido
+                # 'min_consecutive_days': 90,
                 'is_active': True,
             },
             {
@@ -810,7 +811,7 @@ class Command(BaseCommand):
                 'priority': 3,
                 'reward_points': 1200,
                 'duration_days': 45,
-                'validation_type': 'TEMPORAL',
+                'validation_type': 'INDICATOR_THRESHOLD',  # Era TEMPORAL - simplificado
                 'target_tps': Decimal('30.00'),
                 'target_rdr': Decimal('40.00'),
                 'min_ili': Decimal('100.00'),

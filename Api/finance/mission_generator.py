@@ -11,32 +11,17 @@ from django.db.models import Avg
 
 logger = logging.getLogger(__name__)
 
-
-
-MISSION_TYPES = [
-    'ONBOARDING',
-    'TPS_IMPROVEMENT',
-    'RDR_REDUCTION',
-    'ILI_BUILDING',
-    'CATEGORY_REDUCTION',
-]
-
-REQUIRED_FIELDS_BY_TYPE = {
-    'ONBOARDING': {'field': 'min_transactions', 'min': 5, 'max': 50, 'type': int},
-    'TPS_IMPROVEMENT': {'field': 'target_tps', 'min': 5, 'max': 50, 'type': float},
-    'RDR_REDUCTION': {'field': 'target_rdr', 'min': 15, 'max': 70, 'type': float},
-    'ILI_BUILDING': {'field': 'min_ili', 'min': 1, 'max': 12, 'type': float},
-    'CATEGORY_REDUCTION': {'field': 'target_reduction_percent', 'min': 5, 'max': 40, 'type': float},
-}
-
-# Mapeamento mission_type → validation_type para garantir validators corretos
-MISSION_TYPE_TO_VALIDATION = {
-    'ONBOARDING': 'TRANSACTION_COUNT',
-    'TPS_IMPROVEMENT': 'INDICATOR_THRESHOLD',
-    'RDR_REDUCTION': 'INDICATOR_THRESHOLD',
-    'ILI_BUILDING': 'INDICATOR_THRESHOLD',
-    'CATEGORY_REDUCTION': 'CATEGORY_REDUCTION',
-}
+# Importa da configuração unificada
+from .mission_config import (
+    MISSION_TYPES as MISSION_TYPES_CONFIGS,
+    MISSION_TYPE_TO_VALIDATION,
+    REQUIRED_FIELDS_BY_TYPE,
+    VALID_MISSION_TYPES as MISSION_TYPES,
+    get_value_range_for_difficulty,
+    get_tier_distribution,
+    generate_title_from_template,
+    generate_description_from_template,
+)
 
 
 @dataclass
@@ -266,8 +251,9 @@ GEMINI_MISSION_PROMPT = """Você é um especialista em educação financeira cri
 5. **CATEGORY_REDUCTION** - Reduzir gastos em categoria
    - Campo OBRIGATÓRIO: "target_reduction_percent" (float, 5-40)
    
-6. **GOAL_ACHIEVEMENT** - Progredir em meta financeira
-   - Campo OBRIGATÓRIO: "goal_progress_target" (float, 10-100)
+# GOAL_ACHIEVEMENT removido - sistema de goals desativado
+# 6. **GOAL_ACHIEVEMENT** - Progredir em meta financeira
+#    - Campo OBRIGATÓRIO: "goal_progress_target" (float, 10-100)
 
 {distribution_text}
 
@@ -309,29 +295,18 @@ Retorne APENAS um array JSON, sem texto antes ou depois:
 
 
 def _validate_mission_viability(mission_data: Dict, context: UserContext):
-    """Valida se uma missão é viável dado o contexto do usuário."""
-    mission_type = mission_data.get('mission_type')
+    """Valida se uma missão é viável dado o contexto do usuário.
     
-    if mission_type == 'ONBOARDING':
-        min_tx = mission_data.get('min_transactions', 10)
-        if min_tx < 5 or min_tx > 50:
-            return False, f"min_transactions deve estar entre 5 e 50, recebido: {min_tx}"
-    elif mission_type == 'TPS_IMPROVEMENT':
-        target = mission_data.get('target_tps')
-        if target and target <= context.tps:
-            return False, f"target_tps ({target}) deve ser maior que TPS atual ({context.tps})"
-    elif mission_type == 'RDR_REDUCTION':
-        target = mission_data.get('target_rdr')
-        if target and target >= context.rdr:
-            return False, f"target_rdr ({target}) deve ser menor que RDR atual ({context.rdr})"
-    elif mission_type == 'ILI_BUILDING':
-        target = mission_data.get('min_ili')
-        if target and target <= context.ili:
-            return False, f"min_ili ({target}) deve ser maior que ILI atual ({context.ili})"
-    elif mission_type == 'CATEGORY_REDUCTION':
-        target = mission_data.get('target_reduction_percent')
-        if target and (target < 5 or target > 40):
-            return False, f"target_reduction_percent deve estar entre 5 e 40, recebido: {target}"
+    Note: Esta função agora delega para MissionViabilityChecker para validação mais completa.
+    """
+    from .mission_viability import MissionViabilityChecker
+    
+    checker = MissionViabilityChecker(context=context)
+    is_viable, issues = checker.check(mission_data)
+    
+    if not is_viable:
+        # Retorna apenas o primeiro issue para compatibilidade
+        return False, issues[0] if issues else "Missão não é viável"
     
     return True, None
 
@@ -346,6 +321,13 @@ class UnifiedMissionGenerator:
     def _get_smart_distribution(self, count: int) -> Dict[str, int]:
         tier = self.context.tier
         
+        # Usar distribuição da config unificada se disponível
+        try:
+            return get_tier_distribution(tier, count)
+        except Exception:
+            pass
+        
+        # Fallback para distribuição local
         if tier == 'BEGINNER':
             if self.context.transaction_count < 30:
                 weights = {
@@ -354,7 +336,6 @@ class UnifiedMissionGenerator:
                     'RDR_REDUCTION': 1,
                     'ILI_BUILDING': 1,
                     'CATEGORY_REDUCTION': 1,
-                    'GOAL_ACHIEVEMENT': 1 if self.context.has_active_goals else 0,
                 }
             else:
                 weights = {
@@ -363,7 +344,6 @@ class UnifiedMissionGenerator:
                     'RDR_REDUCTION': 2,
                     'ILI_BUILDING': 2,
                     'CATEGORY_REDUCTION': 1,
-                    'GOAL_ACHIEVEMENT': 1 if self.context.has_active_goals else 0,
                 }
         elif tier == 'INTERMEDIATE':
             weights = {
@@ -372,7 +352,6 @@ class UnifiedMissionGenerator:
                 'RDR_REDUCTION': 2,
                 'ILI_BUILDING': 2,
                 'CATEGORY_REDUCTION': 2,
-                'GOAL_ACHIEVEMENT': 2 if self.context.has_active_goals else 0,
             }
         else:
             weights = {
@@ -381,7 +360,6 @@ class UnifiedMissionGenerator:
                 'RDR_REDUCTION': 2,
                 'ILI_BUILDING': 3,
                 'CATEGORY_REDUCTION': 2,
-                'GOAL_ACHIEVEMENT': 3 if self.context.has_active_goals else 0,
             }
         
         if self.context.transaction_count > 200:
@@ -389,8 +367,7 @@ class UnifiedMissionGenerator:
         
         total_weight = sum(weights.values())
         if total_weight == 0:
-            active_types = [t for t in MISSION_TYPES if t != 'GOAL_ACHIEVEMENT']
-            return {t: count // len(active_types) for t in active_types}
+            return {t: count // len(MISSION_TYPES) for t in MISSION_TYPES}
         
         distribution = {}
         remaining = count

@@ -182,33 +182,8 @@ CATEGORY_TEMPLATES = [
 
 # GOAL_TEMPLATES removido - Goal system desativado em migration 0058
 
-BEHAVIOR_TEMPLATES = [
-    {
-        'title': 'Consistência de {days} Dias',
-        'description': 'Registre transações por {days} dias consecutivos.',
-        'consecutive_days_ranges': [(7, 10), (14, 21), (21, 30)],
-        'duration_days': 30,
-        'xp_reward': 180,
-        'difficulty': 'MEDIUM'
-    },
-    {
-        'title': 'Disciplina Financeira',
-        'description': 'Mantenha registros diários por {days} dias.',
-        'consecutive_days_ranges': [(10, 14), (14, 21), (21, 30)],
-        'duration_days': 30,
-        'xp_reward': 220,
-        'difficulty': 'HARD'
-    },
-    {
-        'title': 'Construindo o Hábito',
-        'description': 'Registre finanças por {days} dias seguidos.',
-        'consecutive_days_ranges': [(3, 7), (7, 14), (14, 21)],
-        'duration_days': 21,
-        'xp_reward': 150,
-        'difficulty': 'EASY'
-    },
-]
-
+# BEHAVIOR_TEMPLATES removido - Lógica de dias consecutivos simplificada
+# Agora todas as missões usam apenas prazo (duration_days)
 
 
 def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> Dict[str, Any]:

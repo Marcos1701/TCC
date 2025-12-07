@@ -412,7 +412,7 @@ Retorne APENAS um array JSON com 20 missões. Cada missão deve ter:
   "title": "Título motivador e específico",
   "description": "Descrição clara do objetivo",
   "mission_type": "ONBOARDING|TPS_IMPROVEMENT|RDR_REDUCTION|ILI_BUILDING|ADVANCED",
-  "validation_type": "SNAPSHOT|TEMPORAL|CATEGORY_REDUCTION|CATEGORY_LIMIT|GOAL_PROGRESS|SAVINGS_INCREASE|CONSISTENCY",
+  "validation_type": "INDICATOR_THRESHOLD|CATEGORY_REDUCTION|CATEGORY_LIMIT|TRANSACTION_COUNT|SAVINGS_INCREASE|CONSISTENCY",
   "priority": "LOW|MEDIUM|HIGH",
   "xp_reward": número (50-500),
   "duration_days": número (7-90),
@@ -421,10 +421,7 @@ Retorne APENAS um array JSON com 20 missões. Cada missão deve ter:
   "target_category": "nome da categoria" ou null,
   "category_limit_amount": número ou null,
   "category_reduction_percent": número ou null,
-  "target_goal_id": null,
-  "target_goal_progress_percent": número ou null,
-  "target_savings_amount": número ou null,
-  "consistency_required_days": número ou null
+  "target_savings_amount": número ou null
 }}
 
 **IMPORTANTE:** 
@@ -750,10 +747,11 @@ Gere {total_achievements} conquistas (achievements) para um aplicativo de gestã
 
 
 def generate_general_missions(quantidade=10):
+    """Gera missões gerais para o sistema usando IA."""
     from .models import Mission, Category
     
-    base = quantidade // 6
-    resto = quantidade % 6
+    base = quantidade // 5
+    resto = quantidade % 5
     
     distribuicao = {
         'ONBOARDING': base + (1 if resto > 0 else 0),
@@ -761,7 +759,6 @@ def generate_general_missions(quantidade=10):
         'RDR_REDUCTION': base + (1 if resto > 2 else 0),
         'ILI_BUILDING': base + (1 if resto > 3 else 0),
         'CATEGORY_REDUCTION': base + (1 if resto > 4 else 0),
-        'GOAL_ACHIEVEMENT': base,
     }
     
     categorias_sistema = list(
@@ -798,15 +795,6 @@ Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pe
    → Campo opcional: target_category_name (string) - nome da categoria sugerida
    → Categorias disponíveis: {categorias_sugestao}
    → Objetivo: Reduzir X% em uma categoria específica
-   → NOTA: target_category_name é apenas uma SUGESTÃO. O sistema vinculará 
-           automaticamente à categoria com maior gasto se não especificada.
-   
-6. GOAL_ACHIEVEMENT ({distribuicao['GOAL_ACHIEVEMENT']} missões) - Progredir em Meta
-   → Campo obrigatório: goal_progress_target (float, 25-100)
-   → Objetivo: Atingir X% de progresso em uma meta financeira
-   → NOTA: Metas são vinculadas AUTOMATICAMENTE às metas ativas do usuário.
-           NÃO inclua target_goal_id ou nomes de metas específicas.
-   → Valores sugeridos: 25%, 50%, 75%, 100%
 
 **REGRAS IMPORTANTES:**
 - Títulos curtos e motivadores (máx 100 caracteres)
@@ -831,9 +819,62 @@ Gere {quantidade} missões VARIADAS e ÚNICAS para um aplicativo de finanças pe
     "target_rdr": null,
     "min_ili": null,
     "target_reduction_percent": null,
-    "target_category_name": null,
-    "goal_progress_target": null
+    "target_category_name": null
   }}
 ]
 
 IMPORTANTE: Preencha APENAS o campo específico do tipo de missão. Os demais devem ser null.
+"""
+    
+    if not model:
+        logger.warning("Gemini API não disponível para geração de missões")
+        return {'created': [], 'failed': [], 'summary': {'error': 'API não disponível'}}
+    
+    try:
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        if response_text.startswith('```'):
+            response_text = response_text.split('```')[1]
+            if response_text.startswith('json'):
+                response_text = response_text[4:]
+        
+        missions_data = json.loads(response_text)
+        
+        for mission_data in missions_data:
+            try:
+                mission = Mission.objects.create(
+                    title=mission_data.get('title', 'Missão'),
+                    description=mission_data.get('description', ''),
+                    mission_type=mission_data.get('mission_type', 'ONBOARDING'),
+                    difficulty=mission_data.get('difficulty', 'MEDIUM'),
+                    duration_days=mission_data.get('duration_days', 14),
+                    reward_points=mission_data.get('reward_points', 100),
+                    min_transactions=mission_data.get('min_transactions'),
+                    target_tps=mission_data.get('target_tps'),
+                    target_rdr=mission_data.get('target_rdr'),
+                    min_ili=mission_data.get('min_ili'),
+                    target_reduction_percent=mission_data.get('target_reduction_percent'),
+                    is_active=True,
+                    is_system_generated=True,
+                    priority=50
+                )
+                created.append({'id': mission.id, 'title': mission.title})
+            except Exception as e:
+                failed.append({'title': mission_data.get('title'), 'error': str(e)})
+        
+        return {
+            'created': created,
+            'failed': failed,
+            'summary': {
+                'total_created': len(created),
+                'total_failed': len(failed)
+            }
+        }
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"Erro ao parsear JSON: {e}")
+        return {'created': [], 'failed': [], 'summary': {'error': f'JSON inválido: {e}'}}
+    except Exception as e:
+        logger.error(f"Erro ao gerar missões: {e}")
+        return {'created': [], 'failed': [], 'summary': {'error': str(e)}}

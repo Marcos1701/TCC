@@ -122,91 +122,15 @@ class ILIBuildingMissionValidator(BaseMissionValidator):
         
         return False, f"Continue construindo sua reserva (atual: {current_ili:.1f}, meta: {target_ili:.1f})"
 
+# IndicatorMaintenanceValidator foi DEPRECADO
+# Lógica de dias consecutivos removida - todas as missões agora usam apenas prazo (duration_days)
+# A classe foi mantida apenas para referência histórica
 
-class IndicatorMaintenanceValidator(BaseMissionValidator):
-    
-    def calculate_progress(self) -> Dict[str, Any]:
-        from ..services import calculate_summary
-        
-        if not self.mission_progress.started_at:
-            return {
-                'progress_percentage': 0,
-                'is_completed': False,
-                'metrics': {},
-                'message': 'Missão ainda não foi iniciada'
-            }
-        
-        metrics = calculate_summary(self.user)
-        indicators_status = []
-        all_met = True
-        
-        if self.mission.target_tps is not None:
-            current_tps = float(metrics.get('tps', 0))
-            met = current_tps >= self.mission.target_tps
-            indicators_status.append({
-                'name': 'TPS',
-                'current': current_tps,
-                'target': self.mission.target_tps,
-                'met': met
-            })
-            all_met = all_met and met
-        
-        if self.mission.target_rdr is not None:
-            current_rdr = float(metrics.get('rdr', 100))
-            met = current_rdr <= self.mission.target_rdr
-            indicators_status.append({
-                'name': 'RDR',
-                'current': current_rdr,
-                'target': self.mission.target_rdr,
-                'met': met
-            })
-            all_met = all_met and met
-        
-        if self.mission.min_ili is not None or self.mission.max_ili is not None:
-            current_ili = float(metrics.get('ili', 0))
-            met_min = current_ili >= float(self.mission.min_ili) if self.mission.min_ili else True
-            met_max = current_ili <= float(self.mission.max_ili) if self.mission.max_ili else True
-            met = met_min and met_max
-            indicators_status.append({
-                'name': 'ILI',
-                'current': current_ili,
-                'target_min': float(self.mission.min_ili) if self.mission.min_ili else None,
-                'target_max': float(self.mission.max_ili) if self.mission.max_ili else None,
-                'met': met
-            })
-            all_met = all_met and met
-        
-        min_days = self.mission.min_consecutive_days or self.mission.duration_days
-        
-        current_streak = self.mission_progress.current_streak or 0
-        days_met = self.mission_progress.days_met_criteria or 0
-        
-        if all_met:
-            days_maintained = current_streak
-        else:
-            days_maintained = 0
-        
-        progress = min(100, (days_maintained / min_days) * 100)
-        
-        return {
-            'progress_percentage': float(progress),
-            'is_completed': days_maintained >= min_days,
-            'metrics': {
-                'indicators': indicators_status,
-                'days_maintained': days_maintained,
-                'current_streak': current_streak,
-                'days_met_total': days_met,
-                'target_days': min_days,
-                'all_met': all_met
-            },
-            'message': f"Indicadores mantidos por {days_maintained}/{min_days} dias"
-        }
-    
-    def validate_completion(self) -> Tuple[bool, str]:
-        result = self.calculate_progress()
-        if result['is_completed']:
-            return True, "Parabéns! Você manteve seus indicadores no nível adequado!"
-        if not result['metrics']['all_met']:
-            pending = [ind['name'] for ind in result['metrics']['indicators'] if not ind['met']]
-            return False, f"Ajuste os indicadores: {', '.join(pending)}"
-        return False, "Continue mantendo seus indicadores"
+# class IndicatorMaintenanceValidator(BaseMissionValidator):
+#     """
+#     DEPRECATED: Esta classe não é mais usada.
+#     A lógica de "manter indicador por X dias consecutivos" foi simplificada.
+#     Todas as missões agora completam imediatamente ao atingir a meta.
+#     """
+#     pass
+

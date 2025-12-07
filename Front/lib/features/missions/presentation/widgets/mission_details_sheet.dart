@@ -640,18 +640,14 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
           displayLabel = 'Aumento na Poupança';
           break;
-        case 'goal_progress_target':
-          icon = Icons.track_changes;
-          color = const Color(0xFF2196F3);
-          displayValue = '$value%';
-          displayLabel = 'Progresso em Meta';
-          break;
-        case 'min_consecutive_days':
-          icon = Icons.calendar_today;
-          color = const Color(0xFFFF5722);
-          displayValue = '$value dias';
-          displayLabel = 'Dias Consecutivos';
-          break;
+        // goal_progress_target removido - sistema de goals desativado
+        // case 'goal_progress_target':
+        //   icon = Icons.track_changes;
+        //   color = const Color(0xFF2196F3);
+        //   displayValue = '$value%';
+        //   displayLabel = 'Progresso em Meta';
+        //   break;
+        // min_consecutive_days removido - lógica de dias consecutivos simplificada
         case 'min_daily_actions':
           icon = Icons.check_circle_outline;
           color = const Color(0xFF4CAF50);

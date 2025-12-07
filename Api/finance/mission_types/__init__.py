@@ -6,7 +6,6 @@ from .indicators import (
     TPSImprovementMissionValidator,
     RDRReductionMissionValidator,
     ILIBuildingMissionValidator,
-    IndicatorMaintenanceValidator,
 )
 from .categories import (
     CategoryReductionValidator,
@@ -29,7 +28,6 @@ __all__ = [
     'TPSImprovementMissionValidator',
     'RDRReductionMissionValidator',
     'ILIBuildingMissionValidator',
-    'IndicatorMaintenanceValidator',
     'CategoryReductionValidator',
     'CategoryLimitValidator',
     'TransactionConsistencyValidator',

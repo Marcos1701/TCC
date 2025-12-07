@@ -10,7 +10,6 @@ class FieldType:
     BOOLEAN = "boolean"
     SELECT = "select"
     CATEGORY_SELECT = "category_select"
-    GOAL_SELECT = "goal_select"
     MULTI_SELECT = "multi_select"
 
 
@@ -20,7 +19,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Primeiros Passos",
         "description": "Missões para familiarizar o usuário com o registro de transações e funcionalidades básicas do sistema.",
         "icon": "📝",
-        "color": "
+        "color": "#4CAF50",
         "validation_types": ["TRANSACTION_COUNT"],
         "default_validation_type": "TRANSACTION_COUNT",
         "required_fields": [
@@ -36,26 +35,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "icon": "📊",
             },
         ],
-        "optional_fields": [
-            {
-                "key": "requires_consecutive_days",
-                "label": "Requer dias consecutivos",
-                "type": FieldType.BOOLEAN,
-                "description": "Se o usuário precisa registrar em dias seguidos",
-                "default": False,
-            },
-            {
-                "key": "min_consecutive_days",
-                "label": "Dias Consecutivos",
-                "type": FieldType.INTEGER,
-                "description": "Número de dias seguidos necessários",
-                "min": 1,
-                "max": 30,
-                "default": 7,
-                "depends_on": "requires_consecutive_days",
-                "hint": "Só aplica se 'Requer dias consecutivos' estiver ativo",
-            },
-        ],
+        "optional_fields": [],
         "recommended_difficulty": "EASY",
         "recommended_duration": 7,
         "recommended_reward": {"EASY": 50, "MEDIUM": 75, "HARD": 100},
@@ -70,7 +50,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Aumentar Poupança (TPS)",
         "description": "Missões para incentivar o aumento da Taxa de Poupança Pessoal do usuário.",
         "icon": "💰",
-        "color": "
+        "color": "#2196F3",
         "validation_types": ["INDICATOR_THRESHOLD", "INDICATOR_IMPROVEMENT"],
         "default_validation_type": "INDICATOR_THRESHOLD",
         "required_fields": [
@@ -88,23 +68,6 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
             },
         ],
         "optional_fields": [
-            {
-                "key": "requires_consecutive_days",
-                "label": "Manter por período",
-                "type": FieldType.BOOLEAN,
-                "description": "Se o TPS deve ser mantido por dias consecutivos",
-                "default": False,
-            },
-            {
-                "key": "min_consecutive_days",
-                "label": "Dias de Manutenção",
-                "type": FieldType.INTEGER,
-                "description": "Quantos dias deve manter o TPS acima da meta",
-                "min": 1,
-                "max": 30,
-                "default": 7,
-                "depends_on": "requires_consecutive_days",
-            },
             {
                 "key": "savings_increase_amount",
                 "label": "Aumento em R$",
@@ -131,7 +94,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Reduzir Gastos Recorrentes (RDR)",
         "description": "Missões para diminuir a Razão Dívida/Renda do usuário, focando em despesas fixas.",
         "icon": "📉",
-        "color": "
+        "color": "#FF5722",
         "validation_types": ["INDICATOR_THRESHOLD", "INDICATOR_IMPROVEMENT"],
         "default_validation_type": "INDICATOR_THRESHOLD",
         "required_fields": [
@@ -148,25 +111,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "unit": "%",
             },
         ],
-        "optional_fields": [
-            {
-                "key": "requires_consecutive_days",
-                "label": "Manter por período",
-                "type": FieldType.BOOLEAN,
-                "description": "Se o RDR deve ser mantido por dias consecutivos",
-                "default": False,
-            },
-            {
-                "key": "min_consecutive_days",
-                "label": "Dias de Manutenção",
-                "type": FieldType.INTEGER,
-                "description": "Quantos dias deve manter o RDR abaixo da meta",
-                "min": 1,
-                "max": 30,
-                "default": 14,
-                "depends_on": "requires_consecutive_days",
-            },
-        ],
+        "optional_fields": [],
         "recommended_difficulty": "MEDIUM",
         "recommended_duration": 30,
         "recommended_reward": {"EASY": 100, "MEDIUM": 200, "HARD": 300},
@@ -181,7 +126,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Construir Reserva (ILI)",
         "description": "Missões para aumentar o Índice de Liquidez Imediata, construindo reserva de emergência.",
         "icon": "🛡️",
-        "color": "
+        "color": "#9C27B0",
         "validation_types": ["INDICATOR_THRESHOLD"],
         "default_validation_type": "INDICATOR_THRESHOLD",
         "required_fields": [
@@ -210,23 +155,6 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "hint": "Opcional: para criar missões de faixa (ex: 3-6 meses)",
                 "unit": "meses",
             },
-            {
-                "key": "requires_consecutive_days",
-                "label": "Manter por período",
-                "type": FieldType.BOOLEAN,
-                "description": "Se o ILI deve ser mantido por dias consecutivos",
-                "default": False,
-            },
-            {
-                "key": "min_consecutive_days",
-                "label": "Dias de Manutenção",
-                "type": FieldType.INTEGER,
-                "description": "Quantos dias deve manter o ILI acima da meta",
-                "min": 1,
-                "max": 30,
-                "default": 14,
-                "depends_on": "requires_consecutive_days",
-            },
         ],
         "recommended_difficulty": "HARD",
         "recommended_duration": 30,
@@ -242,7 +170,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "name": "Reduzir Gastos em Categoria",
         "description": "Missões para controlar gastos em categorias específicas problemáticas.",
         "icon": "📁",
-        "color": "
+        "color": "#795548",
         "validation_types": ["CATEGORY_REDUCTION", "CATEGORY_LIMIT"],
         "default_validation_type": "CATEGORY_REDUCTION",
         "required_fields": [
@@ -297,72 +225,6 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "Combine com dicas específicas da categoria",
         ],
     },
-    
-    "GOAL_ACHIEVEMENT": {
-        "name": "Progredir em Meta",
-        "description": "Missões para incentivar o progresso em metas financeiras definidas pelo usuário.",
-        "icon": "🎯",
-        "color": "
-        "validation_types": ["GOAL_PROGRESS", "GOAL_CONTRIBUTION"],
-        "default_validation_type": "GOAL_PROGRESS",
-        "required_fields": [
-            {
-                "key": "goal_progress_target",
-                "label": "Progresso Alvo (%)",
-                "type": FieldType.PERCENTAGE,
-                "description": "Percentual de progresso a ser atingido na meta",
-                "min": 5,
-                "max": 100,
-                "default": 50,
-                "hint": "Defina marcos alcançáveis (25%, 50%, 75%, 100%)",
-                "icon": "🏆",
-                "unit": "%",
-            },
-        ],
-        "optional_fields": [
-            {
-                "key": "target_goal",
-                "label": "Meta Específica",
-                "type": FieldType.GOAL_SELECT,
-                "description": "Meta específica do usuário (deixe vazio para qualquer meta)",
-                "default": None,
-                "hint": "Se não selecionada, aplica-se a qualquer meta ativa",
-            },
-            {
-                "key": "target_goals",
-                "label": "Múltiplas Metas",
-                "type": FieldType.MULTI_SELECT,
-                "entity": "goal",
-                "description": "Várias metas para monitorar juntas",
-                "default": [],
-            },
-            {
-                "key": "requires_consecutive_days",
-                "label": "Progresso Contínuo",
-                "type": FieldType.BOOLEAN,
-                "description": "Se requer contribuições em dias consecutivos",
-                "default": False,
-            },
-            {
-                "key": "min_consecutive_days",
-                "label": "Dias de Contribuição",
-                "type": FieldType.INTEGER,
-                "description": "Número de dias consecutivos com contribuição",
-                "min": 1,
-                "max": 30,
-                "default": 7,
-                "depends_on": "requires_consecutive_days",
-            },
-        ],
-        "recommended_difficulty": "MEDIUM",
-        "recommended_duration": 30,
-        "recommended_reward": {"EASY": 100, "MEDIUM": 200, "HARD": 350},
-        "tips": [
-            "Vincule a metas existentes do usuário quando possível",
-            "Marcos de 25% aumentam a motivação",
-            "Combine com notificações de progresso",
-        ],
-    },
 }
 
 
@@ -393,9 +255,9 @@ COMMON_FIELDS: List[Dict[str, Any]] = [
         "description": "Nível de dificuldade da missão",
         "required": True,
         "options": [
-            {"value": "EASY", "label": "Fácil", "color": "
-            {"value": "MEDIUM", "label": "Média", "color": "
-            {"value": "HARD", "label": "Difícil", "color": "
+            {"value": "EASY", "label": "Fácil", "color": "#4CAF50"},
+            {"value": "MEDIUM", "label": "Média", "color": "#FF9800"},
+            {"value": "HARD", "label": "Difícil", "color": "#F44336"},
         ],
         "default": "MEDIUM",
     },
@@ -474,24 +336,6 @@ VALIDATION_TYPES: Dict[str, Dict[str, Any]] = {
         "description": "Valida pelo limite de gastos em categoria",
         "icon": "🚫",
         "applicable_to": ["CATEGORY_REDUCTION"],
-    },
-    "GOAL_PROGRESS": {
-        "name": "Progresso em Meta",
-        "description": "Valida pelo percentual de progresso na meta",
-        "icon": "🎯",
-        "applicable_to": ["GOAL_ACHIEVEMENT"],
-    },
-    "GOAL_CONTRIBUTION": {
-        "name": "Contribuição em Meta",
-        "description": "Valida por contribuições regulares na meta",
-        "icon": "💵",
-        "applicable_to": ["GOAL_ACHIEVEMENT"],
-    },
-    "TEMPORAL": {
-        "name": "Período de Tempo",
-        "description": "Valida por manter critério por período específico",
-        "icon": "⏰",
-        "applicable_to": ["TPS_IMPROVEMENT", "RDR_REDUCTION", "ILI_BUILDING"],
     },
 }
 

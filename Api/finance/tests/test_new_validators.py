@@ -9,20 +9,17 @@ from finance.models import (
     Mission,
     MissionProgress,
     Category,
-    Goal,
     Transaction,
 )
 from finance.mission_types import (
     CategoryReductionValidator,
     CategoryLimitValidator,
-    GoalProgressValidator,
-    GoalContributionValidator,
     TransactionConsistencyValidator,
     PaymentDisciplineValidator,
-    IndicatorMaintenanceValidator,
     MultiCriteriaValidator,
     MissionValidatorFactory,
 )
+
 
 User = get_user_model()
 
@@ -209,68 +206,7 @@ class CategoryLimitValidatorTest(TestCase):
         self.assertFalse(result['is_completed'])
 
 
-class GoalProgressValidatorTest(TestCase):
-    
-    def setUp(self):
-        self.user = User.objects.create_user(
-            username='testuser3',
-            email='test3@example.com',
-            password='testpass123'
-        )
-        
-        self.goal = Goal.objects.create(
-            user=self.user,
-            title='Casa Própria',
-            target_amount=Decimal('100000.00'),
-            current_amount=Decimal('50000.00')
-        )
-        
-        self.mission = Mission.objects.create(
-            title='Atingir 75% da Meta',
-            description='Alcance 75% de progresso',
-            mission_type='GOAL_ACHIEVEMENT',
-            validation_type='GOAL_PROGRESS',
-            target_goal=self.goal,
-            goal_progress_target=Decimal('75.00'),
-            duration_days=60,
-            reward_points=500
-        )
-        
-        self.mission_progress = MissionProgress.objects.create(
-            user=self.user,
-            mission=self.mission,
-            status=MissionProgress.Status.ACTIVE,
-            started_at=timezone.now()
-        )
-    
-    def test_goal_progress_achieved(self):
-        self.goal.current_amount = Decimal('80000.00')
-        self.goal.save()
-        
-        validator = GoalProgressValidator(
-            self.mission,
-            self.user,
-            self.mission_progress
-        )
-        
-        result = validator.calculate_progress()
-        
-        self.assertTrue(result['is_completed'])
-        self.assertGreaterEqual(result['metrics']['goal_progress'], 75)
-        self.assertEqual(result['metrics']['goal_name'], 'Casa Própria')
-    
-    def test_goal_progress_not_achieved(self):
-        validator = GoalProgressValidator(
-            self.mission,
-            self.user,
-            self.mission_progress
-        )
-        
-        result = validator.calculate_progress()
-        
-        self.assertFalse(result['is_completed'])
-        self.assertLess(result['metrics']['goal_progress'], 75)
-
+# GoalProgressValidatorTest removido - Goal system desativado
 
 class TransactionConsistencyValidatorTest(TestCase):
     

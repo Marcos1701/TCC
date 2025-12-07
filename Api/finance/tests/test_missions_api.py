@@ -9,7 +9,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from finance.models import Category, Goal, Mission
+from finance.models import Category, Mission
 
 User = get_user_model()
 
@@ -52,14 +52,8 @@ class MissionApiTestCase(TestCase):
             user=None,
         )
 
-        self.goal = Goal.objects.create(
-            user=self.regular_user,
-            title="Reserva de emergência",
-            description="Economizar para emergências",
-            target_amount=Decimal("1000.00"),
-            current_amount=Decimal("100.00"),
-            initial_amount=Decimal("100.00"),
-        )
+        # Goal system desativado - não criar Goal
+        # self.goal = Goal.objects.create(...)
 
         self.active_mission = self._create_mission(
             title="Missão Ativa Base",
@@ -75,10 +69,17 @@ class MissionApiTestCase(TestCase):
             validation_type=Mission.ValidationType.CATEGORY_LIMIT,
             target_category=self.category_food,
         )
-        self.goal_mission = self._create_mission(
-            title="Missão Meta",
-            validation_type=Mission.ValidationType.GOAL_PROGRESS,
-            target_goal=self.goal,
+        # Missão com goal removida - sistema de goals desativado
+        # self.goal_mission = self._create_mission(
+        #     title="Missão Meta",
+        #     validation_type=Mission.ValidationType.GOAL_PROGRESS,
+        #     target_goal=self.goal,
+        #     min_transactions=8,
+        # )
+        self.indicator_mission = self._create_mission(
+            title="Missão Indicador",
+            validation_type=Mission.ValidationType.INDICATOR_THRESHOLD,
+            target_tps=15,
             min_transactions=8,
         )
         self.advanced_mission = self._create_mission(
@@ -188,15 +189,15 @@ class MissionApiTestCase(TestCase):
         for mission in response.data["results"]:
             self.assertIsNotNone(mission["target_category"])
 
-    def test_has_goal_filter_returns_only_missions_with_goal(self) -> None:
-        """Filtro `has_goal=true` retorna apenas missões que miram alguma meta."""
-        self.client.force_authenticate(user=self.regular_user)
-        response = self.client.get(f"{self.missions_url}?has_goal=true")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertGreater(len(response.data["results"]), 0)
-        for mission in response.data["results"]:
-            self.assertIsNotNone(mission["target_goal"])
+    # Goal system desativado - teste removido
+    # def test_has_goal_filter_returns_only_missions_with_goal(self) -> None:
+    #     """Filtro `has_goal=true` retorna apenas missões que miram alguma meta."""
+    #     self.client.force_authenticate(user=self.regular_user)
+    #     response = self.client.get(f"{self.missions_url}?has_goal=true")
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertGreater(len(response.data["results"]), 0)
+    #     for mission in response.data["results"]:
+    #         self.assertIsNotNone(mission["target_goal"])
 
     def test_by_validation_type_action_groups_missions(self) -> None:
         """A ação `by_validation_type` agrupa missões corretamente."""
@@ -227,4 +228,5 @@ class MissionApiTestCase(TestCase):
             response.data["inactive"], Mission.objects.filter(is_active=False).count()
         )
         self.assertEqual(response.data["with_category"], 1)
-        self.assertEqual(response.data["with_goal"], 1)
+        # Goal system desativado
+        # self.assertEqual(response.data["with_goal"], 1)

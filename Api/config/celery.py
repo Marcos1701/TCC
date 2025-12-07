@@ -9,28 +9,15 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 
 app.conf.beat_schedule = {
-    'create-daily-user-snapshots': {
-        'task': 'finance.create_daily_user_snapshots',
-        'schedule': crontab(hour=23, minute=59),
-        'options': {
-            'expires': 3600,
-        }
-    },
-    'create-daily-mission-snapshots': {
-        'task': 'finance.create_daily_mission_snapshots',
-        'schedule': crontab(hour=23, minute=59),
-        'options': {
-            'expires': 3600,
-        }
-    },
-    'create-monthly-snapshots': {
-        'task': 'finance.create_monthly_snapshots',
-        'schedule': crontab(day_of_month='28-31', hour=23, minute=50),
+    'check-expired-missions': {
+        'task': 'finance.check_expired_missions',
+        'schedule': crontab(hour=6, minute=0),
         'options': {
             'expires': 3600,
         }
     },
 }
+
 
 app.conf.update(
     timezone='America/Sao_Paulo',

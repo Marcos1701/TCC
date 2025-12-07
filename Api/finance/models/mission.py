@@ -30,7 +30,8 @@ class Mission(models.Model):
         TRANSACTION_COUNT = "TRANSACTION_COUNT", "Registrar X Transações"
         INDICATOR_THRESHOLD = "INDICATOR_THRESHOLD", "Atingir Valor de Indicador"
         CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir % em Categoria"
-        TEMPORAL = "TEMPORAL", "Manter Critério por Período"
+        # TEMPORAL removido - lógica de dias consecutivos foi simplificada
+        # Todas as missões agora usam apenas deadline (duration_days)
 
     title = models.CharField(max_length=MAX_TITLE_LENGTH)
     description = models.TextField()
@@ -289,26 +290,24 @@ class Mission(models.Model):
     def _validate_temporal_fields(self):
         from django.core.exceptions import ValidationError
         
-        if self.requires_consecutive_days:
-            if not self.min_consecutive_days or self.min_consecutive_days < 1:
-                raise ValidationError({
-                    'min_consecutive_days': 'Número mínimo de dias consecutivos é obrigatório.'
-                })
-            if self.min_consecutive_days > self.duration_days:
-                raise ValidationError({
-                    'min_consecutive_days': 'Dias consecutivos não pode exceder duração da missão.'
-                })
+        # Validação de dias consecutivos desativada - lógica simplificada
+        # if self.requires_consecutive_days:
+        #     if not self.min_consecutive_days or self.min_consecutive_days < 1:
+        #         raise ValidationError({
+        #             'min_consecutive_days': 'Número mínimo de dias consecutivos é obrigatório.'
+        #         })
+        #     if self.min_consecutive_days > self.duration_days:
+        #         raise ValidationError({
+        #             'min_consecutive_days': 'Dias consecutivos não pode exceder duração da missão.'
+        #         })
         
         if self.savings_increase_amount is not None and self.savings_increase_amount <= 0:
             raise ValidationError({
                 'savings_increase_amount': 'Aumento de poupança deve ser positivo.'
             })
         
-        if self.validation_type == self.ValidationType.TEMPORAL:
-            if self.duration_days < 7:
-                raise ValidationError({
-                    'duration_days': 'Missões temporais devem ter pelo menos 7 dias de duração.'
-                })
+        # TEMPORAL validation removida - lógica de dias consecutivos simplificada
+        # Missões agora usam apenas deadline (duration_days)
 
     def _validate_consistency_fields(self):
         from django.core.exceptions import ValidationError
