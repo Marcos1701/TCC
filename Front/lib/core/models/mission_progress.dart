@@ -112,6 +112,8 @@ class MissionProgressModel {
   bool get isCompleted => status == 'COMPLETED';
 
   bool get isFailed => status == 'FAILED';
+  
+  bool get isSkipped => status == 'SKIPPED';
 
   int get statusColor {
     switch (status) {
@@ -119,6 +121,8 @@ class MissionProgressModel {
         return 0xFF007932;
       case 'FAILED':
         return 0xFFEF4123;
+      case 'SKIPPED':
+        return 0xFF808080;
       case 'ACTIVE':
         return 0xFF034EA2;
       default:
@@ -136,6 +140,8 @@ class MissionProgressModel {
         return 'Concluída';
       case 'FAILED':
         return 'Expirada';
+      case 'SKIPPED':
+        return 'Pulada';
       default:
         return status;
     }

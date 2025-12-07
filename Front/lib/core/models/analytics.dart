@@ -29,33 +29,33 @@ class TierInfo {
 
   factory TierInfo.fromJson(Map<String, dynamic> json) {
     return TierInfo(
-      tier: json['tier'] as String,
-      level: json['level'] as int,
-      xp: json['xp'] as int,
-      nextLevelXp: json['next_level_xp'] as int,
-      xpNeeded: json['xp_needed'] as int,
-      xpProgressInLevel: (json['xp_progress_in_level'] as num).toDouble(),
-      tierRange: TierRange.fromJson(json['tier_range'] as Map<String, dynamic>),
-      tierProgress: (json['tier_progress'] as num).toDouble(),
+      tier: json['tier'] as String? ?? 'BEGINNER',
+      level: json['level'] as int? ?? 1,
+      xp: json['xp'] as int? ?? 0,
+      nextLevelXp: json['next_level_xp'] as int? ?? 150,
+      xpNeeded: json['xp_needed'] as int? ?? 150,
+      xpProgressInLevel: (json['xp_progress_in_level'] as num?)?.toDouble() ?? 0.0,
+      tierRange: TierRange.fromJson(json['tier_range'] as Map<String, dynamic>? ?? {}),
+      tierProgress: (json['tier_progress'] as num?)?.toDouble() ?? 0.0,
       nextTier: json['next_tier'] as String?,
-      recommendedMissionTypes: (json['recommended_mission_types'] as List)
-          .map((e) => RecommendedMissionType.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      tierDescription: json['tier_description'] as String,
+      recommendedMissionTypes: (json['recommended_mission_types'] as List?)
+          ?.map((e) => RecommendedMissionType.fromJson(e as Map<String, dynamic>))
+          .toList() ?? [],
+      tierDescription: json['tier_description'] as String? ?? '',
     );
   }
 }
 
 class TierRange {
   final int min;
-  final int max;
+  final int? max;
 
-  TierRange({required this.min, required this.max});
+  TierRange({required this.min, this.max});
 
   factory TierRange.fromJson(Map<String, dynamic> json) {
     return TierRange(
-      min: json['min'] as int,
-      max: json['max'] as int,
+      min: json['min'] as int? ?? 1,
+      max: json['max'] as int?,
     );
   }
 }

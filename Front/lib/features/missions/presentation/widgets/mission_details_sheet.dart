@@ -13,12 +13,18 @@ class MissionDetailsSheet extends StatefulWidget {
     super.key,
     required this.missionProgress,
     required this.repository,
-    required this.onUpdate,
-  });
-
-  final MissionProgressModel missionProgress;
-  final FinanceRepository repository;
   final VoidCallback onUpdate;
+  final Function(int) onStart;
+  final Function(int) onSkip;
+
+  const MissionDetailsSheet({
+    super.key,
+    required this.missionProgress,
+    required this.repository,
+    required this.onUpdate,
+    required this.onStart,
+    required this.onSkip,
+  });
 
   @override
   State<MissionDetailsSheet> createState() => _MissionDetailsSheetState();
@@ -169,6 +175,11 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                               _buildDescriptionSection(theme, tokens),
                               const SizedBox(height: 24),
                               _buildInfoSection(theme, tokens),
+                              
+                              if (widget.missionProgress.status == 'PENDING') ...[
+                                const SizedBox(height: 32),
+                                _buildActionButtons(theme),
+                              ],
                             ],
                           ),
                         ),
@@ -726,5 +737,52 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     if (days < 0) return AppColors.alert;
     if (days <= 3) return const Color(0xFFFF9800);
     return Colors.grey[400]!;
+  }
+
+  Widget _buildActionButtons(ThemeData theme) {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              widget.onStart(widget.missionProgress.mission.id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'ACEITAR DESAFIO',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: () {
+            Navigator.pop(context);
+            widget.onSkip(widget.missionProgress.mission.id);
+          },
+          icon: Icon(Icons.close, size: 18, color: Colors.grey[400]),
+          label: Text(
+            'Pular este desafio',
+            style: TextStyle(
+              color: Colors.grey[400],
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

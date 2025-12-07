@@ -403,6 +403,40 @@ class MissionsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> startMission(int missionId) async {
+    try {
+      final updated = await _repository.startMissionAction(missionId);
+      
+      final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
+      if (index != -1) {
+        _activeMissions[index] = updated;
+        notifyListeners();
+      } else {
+        // Fallback reload if finding index fails (shouldn't happen)
+        await loadMissions();
+      }
+    } catch (e) {
+      _errorMessage = 'Erro ao iniciar missão. Tente novamente.';
+      notifyListeners();
+    }
+  }
+
+  Future<void> skipMission(int missionId) async {
+    try {
+      await _repository.skipMissionAction(missionId);
+      
+      // Remove from list immediately
+      _activeMissions.removeWhere((m) => m.mission.id == missionId);
+      notifyListeners();
+      
+      // Reload to get new recommendation if available
+      await loadMissions();
+    } catch (e) {
+       _errorMessage = 'Erro ao pular missão. Tente novamente.';
+       notifyListeners();
+    }
+  }
+
   String _mapDioError(
     DioException exception, {
     required String fallback,

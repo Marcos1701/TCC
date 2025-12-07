@@ -5,6 +5,8 @@ import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/utils/currency_input_formatter.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_theme_extension.dart';
 
 class SimplifiedOnboardingPage extends StatefulWidget {
   const SimplifiedOnboardingPage({super.key});
@@ -75,29 +77,36 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final decorations = theme.extension<AppDecorations>() ?? AppDecorations.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: SafeArea(
-        child: Column(
-          children: [
-            LinearProgressIndicator(
-              value: (_currentPage + 1) / 3,
-              backgroundColor: Colors.grey[800],
-              valueColor: const AlwaysStoppedAnimation(Colors.purple),
-            ),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (page) => setState(() => _currentPage = page),
-                children: [
-                  _buildWelcomeStep(),
-                  _buildBasicInfoStep(),
-                  _buildCompletionStep(),
-                ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: decorations.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              LinearProgressIndicator(
+                value: (_currentPage + 1) / 3,
+                backgroundColor: Colors.white10,
+                valueColor: const AlwaysStoppedAnimation(AppColors.primary),
               ),
-            ),
-          ],
+              Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (page) => setState(() => _currentPage = page),
+                  children: [
+                    _buildWelcomeStep(),
+                    _buildBasicInfoStep(),
+                    _buildCompletionStep(),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -109,27 +118,37 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.account_balance_wallet,
-            size: 100,
-            color: Colors.purple,
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+            ),
+            child: const Icon(
+              Icons.rocket_launch_rounded,
+              size: 80,
+              color: AppColors.highlight,
+            ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           const Text(
-            'Bem-vindo ao GenApp',
+            'Sua Jornada Financeira',
             style: TextStyle(
               fontSize: 32,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
               color: Colors.white,
+              letterSpacing: -0.5,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
-            'Para personalizar sua experiência financeira, precisamos de algumas informações básicas.',
+            'Comece missões personalizadas, ganhe XP e evolua seu nível financeiro.',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.grey[400],
+              color: Colors.grey[300],
+              height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
@@ -142,19 +161,25 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 curve: Curves.easeInOut,
               ),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.purple,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
-                'Iniciar Configuração',
-                style: TextStyle(fontSize: 16),
+                'Iniciar Calibragem',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
           const SizedBox(height: 16),
           TextButton(
             onPressed: _skipOnboarding,
-            child: const Text('Continuar sem configurar'),
+            child: Text(
+               'Pular calibração (Modo Default)',
+               style: TextStyle(color: Colors.grey[400]),
+            ),
           ),
         ],
       ),
@@ -170,7 +195,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Dados de Configuração Inicial',
+              'Calibragem de Perfil',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -179,10 +204,11 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Informe valores mensais aproximados para configuração inicial do sistema.',
+              'Estes dados calibrarão a dificuldade das suas missões iniciais e metas de economia.',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 color: Colors.grey[400],
+                height: 1.4,
               ),
             ),
             const SizedBox(height: 32),
@@ -195,43 +221,15 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Salário líquido e outras fontes de renda recorrentes',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             TextField(
               controller: _incomeController,
               keyboardType: TextInputType.number,
               inputFormatters: [CurrencyInputFormatter()],
               style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Ex: 3.500,00',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                prefixText: 'R\$ ',
-                prefixStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.grey[900],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: _incomeError != null
-                      ? const BorderSide(color: Colors.red, width: 1.5)
-                      : BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: _incomeError != null ? Colors.red : Colors.purple,
-                    width: 2,
-                  ),
-                ),
+              decoration: _buildInputDecoration(
+                hint: 'Ex: 3.500,00',
                 errorText: _incomeError,
-                errorStyle: const TextStyle(color: Colors.redAccent),
               ),
               onChanged: (value) {
                 setState(() {
@@ -251,59 +249,22 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
             const SizedBox(height: 24),
 
             const Text(
-              '🏠 Despesas Essenciais Mensais',
+              '🏠 Gastos Essenciais (Fixo)',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Soma de: Habitação + Alimentação + Transporte + Contas básicas',
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Ex: Aluguel (R\$ 800) + Supermercado (R\$ 600) + Transporte (R\$ 300) + Contas (R\$ 300) = R\$ 2.000',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             TextField(
               controller: _expenseController,
               keyboardType: TextInputType.number,
               inputFormatters: [CurrencyInputFormatter()],
               style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'Ex: 2.000,00',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                prefixText: 'R\$ ',
-                prefixStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.grey[900],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: _expenseError != null
-                      ? const BorderSide(color: Colors.red, width: 1.5)
-                      : BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: _expenseError != null ? Colors.red : Colors.purple,
-                    width: 2,
-                  ),
-                ),
+              decoration: _buildInputDecoration(
+                hint: 'Ex: 2.000,00',
                 errorText: _expenseError,
-                errorStyle: const TextStyle(color: Colors.redAccent),
               ),
               onChanged: (value) {
                 setState(() {
@@ -318,49 +279,57 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 });
               },
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Inclui: Moradia + Alimentação + Transporte + Contas básicas',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
 
             if (_monthlyIncome > 0) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[850],
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _canSubmit
-                        ? Colors.green.withOpacity(0.3)
-                        : Colors.orange.withOpacity(0.3),
+                        ? AppColors.support.withOpacity(0.3)
+                        : AppColors.highlight.withOpacity(0.3),
                   ),
                 ),
                 child: Column(
                   children: [
                     _buildSummaryRow(
-                      'Renda mensal',
+                      'Renda',
                       _currency.format(_monthlyIncome),
-                      Colors.green,
+                      AppColors.success,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     _buildSummaryRow(
-                      'Despesas essenciais',
+                      'Essenciais',
                       '- ${_currency.format(_essentialExpenses)}',
-                      Colors.red,
+                      AppColors.alert,
                     ),
-                    const Divider(color: Colors.grey, height: 24),
+                    Divider(color: Colors.grey[800], height: 32),
                     _buildSummaryRow(
-                      'Saldo disponível',
+                      'Margem Livre Estimada',
                       _currency.format(_monthlyIncome - _essentialExpenses),
                       (_monthlyIncome - _essentialExpenses) >= 0
-                          ? Colors.blue
-                          : Colors.red,
+                          ? AppColors.highlight
+                          : AppColors.alert,
+                      isTotal: true,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
             ],
-
-            const SizedBox(height: 24),
 
             SizedBox(
               width: double.infinity,
@@ -368,22 +337,25 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 onPressed:
                     _canSubmit ? _submitOnboarding : _showValidationErrors,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                   backgroundColor:
-                      _canSubmit ? Colors.purple : Colors.grey[700],
+                      _canSubmit ? AppColors.primary : Colors.grey[800],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: _isSubmitting
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                        height: 24,
+                        width: 24,
                         child: CircularProgressIndicator(
                           color: Colors.white,
                           strokeWidth: 2,
                         ),
                       )
                     : const Text(
-                        'Continuar',
-                        style: TextStyle(fontSize: 16),
+                        'Calibrar Perfil',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ),
@@ -394,7 +366,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                 ),
-                child: const Text('Voltar'),
+                child: const Text('Voltar', style: TextStyle(color: Colors.grey)),
               ),
             ),
           ],
@@ -405,7 +377,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
 
   Widget _buildCompletionStep() {
     if (_insights == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: AppColors.highlight));
     }
 
     final insights = _insights!['insights'] as Map<String, dynamic>;
@@ -418,43 +390,53 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.check_circle,
-            size: 100,
-            color: Colors.green,
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.support.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.support.withOpacity(0.5)),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 80,
+              color: AppColors.support,
+            ),
           ),
           const SizedBox(height: 32),
           const Text(
-            'Configuração Concluída!',
+            'Perfil Criado!',
             style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
           Text(
-            'Com base nos dados informados, calculamos seus indicadores financeiros iniciais:',
+            'Seu diagnóstico inicial foi concluído. Veja seus primeiros indicadores:',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[400],
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
           _buildInsightCard(
             icon: Icons.trending_up,
-            title: 'Capacidade de Poupança Mensal',
+            title: 'Potencial de Poupança',
             value: _currency.format(balance),
-            subtitle: '${savingsRate.toStringAsFixed(1)}% da renda mensal',
-            color: Colors.green,
+            subtitle: '${savingsRate.toStringAsFixed(1)}% da renda identificados como livres',
+            color: AppColors.support,
           ),
           const SizedBox(height: 16),
           _buildInsightCard(
-            icon: Icons.lightbulb_outline,
-            title: 'Recomendação',
+            icon: Icons.auto_awesome,
+            title: 'Estratégia Recomendada',
             value: recommendation,
             subtitle: '',
-            color: Colors.amber,
+            color: AppColors.highlight,
           ),
           const Spacer(),
           SizedBox(
@@ -462,17 +444,51 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
             child: ElevatedButton(
               onPressed: _completeOnboarding,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.purple,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
               child: const Text(
-                'Começar a usar',
-                style: TextStyle(fontSize: 16),
+                'Acessar Gamificação',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({required String hint, String? errorText}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[600]),
+      prefixText: 'R\$ ',
+      prefixStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      filled: true,
+      fillColor: Colors.black26,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: errorText != null
+            ? const BorderSide(color: AppColors.alert, width: 1.5)
+            : BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: errorText != null ? AppColors.alert : AppColors.primary,
+          width: 2,
+        ),
+      ),
+      errorText: errorText,
+      errorStyle: const TextStyle(color: AppColors.alert),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     );
   }
 
@@ -486,13 +502,20 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 40),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+               color: color.withOpacity(0.1),
+               borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -501,8 +524,9 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Colors.grey[400],
+                    letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -511,16 +535,16 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: color,
+                    color: Colors.white,
                   ),
                 ),
                 if (subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[500],
+                      color: color.withOpacity(0.8),
                     ),
                   ),
                 ],
@@ -555,8 +579,8 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
         });
 
         _pageController.nextPage(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutCubic,
         );
       }
     } catch (e) {
@@ -580,7 +604,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(errorMessage),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.alert,
             ),
           );
         }
@@ -592,21 +616,22 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
     _validateFields();
   }
 
-  Widget _buildSummaryRow(String label, String value, Color valueColor) {
+  Widget _buildSummaryRow(String label, String value, Color valueColor, {bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: isTotal ? 16 : 14,
+            fontWeight: isTotal ? FontWeight.w600 : FontWeight.normal,
             color: Colors.grey[400],
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: isTotal ? 18 : 16,
             fontWeight: FontWeight.bold,
             color: valueColor,
           ),

@@ -19,6 +19,9 @@ def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
         status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
     )
     
+    # Exclude missions skipped or completed recently
+    excluded_ids = set(existing_progress.values_list('mission_id', flat=True))
+    
     active_count = active_missions.count()
     
     if active_count >= max_active:
@@ -28,7 +31,7 @@ def assign_missions_smartly(user, max_active: int = 3) -> List[MissionProgress]:
     context = analyze_user_context(user)
     mission_priorities = calculate_mission_priorities(user, context)
     
-    already_assigned_ids = set(existing_progress.values_list('mission_id', flat=True))
+    already_assigned_ids = excluded_ids
     available_with_priority = [
         (mission, score) for mission, score in mission_priorities 
         if mission.id not in already_assigned_ids and score > 0
@@ -435,4 +438,40 @@ def validate_mission_progress_manual(progress):
         logger.error(f"Erro ao validar progresso manual da missão {progress.mission.title}: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
     
+    return progress
+
+
+def skip_mission(user, mission_id: int) -> MissionProgress:
+    """
+    Marks a mission as SKIPPED by the user.
+    """
+    progress = MissionProgress.objects.get(user=user, mission_id=mission_id)
+    
+    if progress.status in [MissionProgress.Status.COMPLETED, MissionProgress.Status.FAILED]:
+        raise ValueError("Cannot skip a completed or failed mission")
+        
+    progress.status = MissionProgress.Status.SKIPPED
+    progress.save()
+    
+    logger.info(f"Mission {progress.mission.title} skipped by user {user.username}")
+    return progress
+
+
+def start_mission(user, mission_id: int) -> MissionProgress:
+    """
+    Manually starts a mission (moves from PENDING to ACTIVE).
+    """
+    progress = MissionProgress.objects.get(user=user, mission_id=mission_id)
+    
+    if progress.status != MissionProgress.Status.PENDING:
+        # Idempotent success if already active
+        if progress.status == MissionProgress.Status.ACTIVE:
+            return progress
+        raise ValueError(f"Cannot start mission in status {progress.status}")
+        
+    progress.status = MissionProgress.Status.ACTIVE
+    progress.started_at = timezone.now()
+    progress.save()
+    
+    logger.info(f"Mission {progress.mission.title} started by user {user.username}")
     return progress

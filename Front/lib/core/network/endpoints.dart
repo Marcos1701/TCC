@@ -5,6 +5,7 @@ class ApiEndpoints {
   static const String token = '/api/token/';
   static const String tokenRefresh = '/api/token/refresh/';
   static const String dashboard = '/api/dashboard/';
+  static const String dashboardAnalytics = '/api/dashboard/analytics/';
   static const String categories = '/api/categories/';
   static const String transactions = '/api/transactions/';
   static const String transactionLinks = '/api/transaction-links/';

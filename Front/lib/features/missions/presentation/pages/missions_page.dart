@@ -175,6 +175,38 @@ class _MissionsPageState extends State<MissionsPage> {
                     CategoryMissionBadgeList(viewModel: _viewModel),
                     const SizedBox(height: 24),
                   ],
+                  // SECTION: PENDING MISSIONS (Suggestions)
+                  if (_viewModel.activeMissions.any((m) => m.status == 'PENDING')) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.lightbulb_outline, color: Colors.amber, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sugestões para você',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Deslize para a esquerda para pular',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ..._viewModel.activeMissions
+                        .where((m) => m.status == 'PENDING')
+                        .map((mission) => _buildSuggestionCard(context, mission)),
+                    const SizedBox(height: 24),
+                  ],
+
+                  // SECTION: ACTIVE MISSIONS (Started/Completed)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -196,7 +228,7 @@ class _MissionsPageState extends State<MissionsPage> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${_viewModel.activeMissions.length} ${_viewModel.activeMissions.length == 1 ? 'ativo' : 'ativos'}',
+                          '${_viewModel.activeMissions.where((m) => m.status != 'PENDING').length} ativos',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -206,38 +238,104 @@ class _MissionsPageState extends State<MissionsPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  if (_viewModel.activeMissions.isEmpty)
-                    const _EmptyState(
-                      message:
-                          'Nenhum desafio ativo no momento.\nRegistre transações para receber novos desafios personalizados!',
-                    )
+                  
+                  if (_viewModel.activeMissions.where((m) => m.status != 'PENDING').isEmpty)
+                    if (_viewModel.activeMissions.any((m) => m.status == 'PENDING'))
+                      const _EmptyState(
+                        message: 'Aceite as sugestões acima para começar!',
+                      )
+                    else
+                      const _EmptyState(
+                        message:
+                            'Nenhum desafio ativo no momento.\nRegistre transações para receber novos desafios personalizados!',
+                      )
                   else
-                    ..._viewModel.activeMissions.map(
-                      (mission) => GestureDetector(
-                        onTap: () async {
-                          final updated = await showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            isScrollControlled: true,
-                            builder: (context) => MissionDetailsSheet(
-                              missionProgress: mission,
-                              repository: _repository,
-                              onUpdate: () => _viewModel.refreshSilently(),
-                            ),
-                          );
-                          if (updated == true) {
-                            _viewModel.refreshSilently();
-                          }
-                        },
-                        child: _ActiveMissionCard(mission: mission),
-                      ),
-                    ),
+                    ..._viewModel.activeMissions
+                        .where((m) => m.status != 'PENDING')
+                        .map((mission) => _buildMissionCard(context, mission)),
                 ],
               );
             },
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSuggestionCard(BuildContext context, MissionProgressModel mission) {
+    return Dismissible(
+      key: Key('suggestion_${mission.mission.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text('Pular', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            SizedBox(width: 8),
+            Icon(Icons.close, color: Colors.red),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) async {
+        await _viewModel.skipMission(mission.mission.id);
+        if (mounted) {
+          FeedbackService.showSuccess(context, 'Desafio pulado. Buscando novas sugestões...');
+        }
+        return true;
+      },
+      child: _SuggestionMissionCard(
+        mission: mission,
+        onAccept: () async {
+          await _viewModel.startMission(mission.mission.id);
+          if (mounted) {
+            FeedbackService.showSuccess(context, 'Desafio aceito! Boa sorte! 🎯');
+          }
+        },
+        onTap: () async {
+          await showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            isScrollControlled: true,
+            builder: (ctx) => MissionDetailsSheet(
+              missionProgress: mission,
+              repository: _repository,
+              onUpdate: () => _viewModel.refreshSilently(),
+              onStart: _viewModel.startMission,
+              onSkip: _viewModel.skipMission,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMissionCard(BuildContext context, MissionProgressModel mission) {
+    return GestureDetector(
+      onTap: () async {
+        final updated = await showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => MissionDetailsSheet(
+            missionProgress: mission,
+            repository: _repository,
+            onUpdate: () => _viewModel.refreshSilently(),
+            onStart: _viewModel.startMission,
+            onSkip: _viewModel.skipMission,
+          ),
+        );
+        if (updated == true) {
+          _viewModel.refreshSilently();
+        }
+      },
+      child: _ActiveMissionCard(mission: mission),
     );
   }
 }
@@ -453,6 +551,119 @@ class _ActiveMissionCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _SuggestionMissionCard extends StatelessWidget {
+  const _SuggestionMissionCard({
+    required this.mission,
+    required this.onAccept,
+    required this.onTap,
+  });
+
+  final MissionProgressModel mission;
+  final VoidCallback onAccept;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = theme.extension<AppDecorations>()!;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: tokens.cardRadius,
+          border: Border.all(color: Colors.amber.withOpacity(0.3), width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: MissionTypeColors.get(mission.mission.missionType),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    MissionTypeLabels.getShort(mission.mission.missionType),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.star_rounded, color: AppColors.primary, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        '+${mission.mission.rewardPoints}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              mission.mission.title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              mission.mission.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[400],
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onAccept,
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: const Text('Aceitar Desafio'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

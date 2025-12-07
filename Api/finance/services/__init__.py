@@ -22,7 +22,10 @@ from .missions import (
     update_mission_progress,
     initialize_mission_progress,
     validate_mission_progress_manual,
+    validate_mission_progress_manual,
     apply_mission_reward,
+    start_mission,
+    skip_mission,
 )
 
 from .analytics import (
@@ -58,6 +61,8 @@ __all__ = [
     'initialize_mission_progress',
     'validate_mission_progress_manual',
     'apply_mission_reward',
+    'start_mission',
+    'skip_mission',
     
 
     

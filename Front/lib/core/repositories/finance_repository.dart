@@ -7,6 +7,7 @@ import '../models/mission_progress.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../models/transaction_link.dart';
+import '../models/analytics.dart';
 import '../network/api_client.dart';
 import '../network/endpoints.dart';
 import '../services/cache_service.dart';
@@ -108,6 +109,19 @@ class FinanceRepository {
       
       await CacheService.cacheDashboard(data);
       return DashboardData.fromMap(data);
+    } catch (e) {
+      if (e is Failure) rethrow;
+      throw _handleError(e);
+    }
+  }
+
+  Future<AnalyticsData> fetchAnalytics() async {
+    try {
+      final response = await _client.client.get<Map<String, dynamic>>(
+        ApiEndpoints.dashboardAnalytics,
+      );
+      final data = response.data ?? <String, dynamic>{};
+      return AnalyticsData.fromJson(data);
     } catch (e) {
       if (e is Failure) rethrow;
       throw _handleError(e);
@@ -321,6 +335,20 @@ class FinanceRepository {
     final response = await _client.client.post<Map<String, dynamic>>(
       ApiEndpoints.missionProgress,
       data: {'mission_id': missionId},
+    );
+    return MissionProgressModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  Future<MissionProgressModel> startMissionAction(int missionId) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.missions}$missionId/start/',
+    );
+    return MissionProgressModel.fromMap(response.data ?? <String, dynamic>{});
+  }
+
+  Future<MissionProgressModel> skipMissionAction(int missionId) async {
+    final response = await _client.client.post<Map<String, dynamic>>(
+      '${ApiEndpoints.missions}$missionId/skip/',
     );
     return MissionProgressModel.fromMap(response.data ?? <String, dynamic>{});
   }

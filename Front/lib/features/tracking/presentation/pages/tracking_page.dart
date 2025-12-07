@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/user_friendly_strings.dart';
+import '../../../../core/models/analytics.dart';
 import '../../../../core/models/dashboard.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
@@ -17,12 +18,12 @@ class TrackingPage extends StatefulWidget {
 class _TrackingPageState extends State<TrackingPage> {
   final _repository = FinanceRepository();
   final _cacheManager = CacheManager();
-  late Future<DashboardData> _dashboardFuture;
+  late Future<_TrackingData> _dataFuture;
 
   @override
   void initState() {
     super.initState();
-    _dashboardFuture = _repository.fetchDashboard();
+    _dataFuture = _loadData();
     _cacheManager.addListener(_onCacheInvalidated);
   }
 
@@ -30,6 +31,22 @@ class _TrackingPageState extends State<TrackingPage> {
   void dispose() {
     _cacheManager.removeListener(_onCacheInvalidated);
     super.dispose();
+  }
+
+  Future<_TrackingData> _loadData() async {
+    final dashboard = await _repository.fetchDashboard();
+    
+    AnalyticsData? analytics;
+    try {
+      analytics = await _repository.fetchAnalytics();
+    } catch (_) {
+      // Analytics is optional, continue without it
+    }
+    
+    return _TrackingData(
+      dashboard: dashboard,
+      analytics: analytics,
+    );
   }
 
   void _onCacheInvalidated() {
@@ -43,7 +60,7 @@ class _TrackingPageState extends State<TrackingPage> {
 
   Future<void> _refresh() async {
     setState(() {
-      _dashboardFuture = _repository.fetchDashboard();
+      _dataFuture = _loadData();
     });
   }
 
@@ -69,8 +86,8 @@ class _TrackingPageState extends State<TrackingPage> {
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _refresh,
-        child: FutureBuilder<DashboardData>(
-          future: _dashboardFuture,
+        child: FutureBuilder<_TrackingData>(
+          future: _dataFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -96,25 +113,60 @@ class _TrackingPageState extends State<TrackingPage> {
   }
 }
 
+class _TrackingData {
+  final DashboardData dashboard;
+  final AnalyticsData? analytics;
+
+  const _TrackingData({required this.dashboard, this.analytics});
+}
+
 class _TrackingContent extends StatelessWidget {
   const _TrackingContent({required this.data});
 
-  final DashboardData data;
+  final _TrackingData data;
 
   @override
   Widget build(BuildContext context) {
+    final analytics = data.analytics;
+    final dashboard = data.dashboard;
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
       children: [
-        SummaryCard(summary: data.summary),
+        // Profile Scorecard (Gamification)
+        if (analytics != null) ...[
+          ProfileScorecard(tier: analytics.comprehensiveContext.tier),
+          const SizedBox(height: 24),
+        ],
+
+        // Financial Health Indicators (TPS, RDR, ILI)
+        if (analytics != null) ...[
+          FinancialHealthIndicators(
+            tps: analytics.comprehensiveContext.currentIndicators['tps'] ?? 0.0,
+            rdr: analytics.comprehensiveContext.currentIndicators['rdr'] ?? 0.0,
+            ili: analytics.comprehensiveContext.currentIndicators['ili'] ?? 0.0,
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // Summary Card (fallback if no analytics)
+        if (analytics == null) ...[
+          SummaryCard(summary: dashboard.summary),
+          const SizedBox(height: 24),
+        ],
+
+        // Cashflow Chart
+        CashflowChart(cashflow: dashboard.cashflow),
         const SizedBox(height: 24),
-        CashflowChart(cashflow: data.cashflow),
+
+        // Balance Chart
+        BalanceChart(cashflow: dashboard.cashflow),
         const SizedBox(height: 24),
-        BalanceChart(cashflow: data.cashflow),
-        const SizedBox(height: 24),
-        if (data.categories.isNotEmpty)
-          _CategoryDistribution(categories: data.categories),
+
+        // Category Distribution
+        if (dashboard.categories.isNotEmpty)
+          _CategoryDistribution(categories: dashboard.categories),
       ],
     );
   }

@@ -20,6 +20,10 @@ from .base import (
     apply_mission_reward,
     assign_missions_automatically,
 )
+from ..services import (
+    start_mission,
+    skip_mission,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +105,43 @@ class MissionViewSet(viewsets.ModelViewSet):
         instance.save()
         logger.info(f"Missão '{instance.title}' desativada por admin {self.request.user.username}")
     
+    @action(detail=True, methods=['post'])
+    def start(self, request, pk=None):
+        try:
+            # pk aqui é o ID da Missão, mas precisamos do progresso
+            # As actions detail=True operam na URL /missions/{id}/start/
+            # O ID é da missão.
+            mission = self.get_object()
+            progress = start_mission(request.user, mission.id)
+            return Response(MissionProgressSerializer(progress).data)
+        except MissionProgress.DoesNotExist:
+            return Response(
+                {'error': 'Missão não atribuída ao usuário'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=True, methods=['post'])
+    def skip(self, request, pk=None):
+        try:
+            mission = self.get_object()
+            progress = skip_mission(request.user, mission.id)
+            return Response(MissionProgressSerializer(progress).data)
+        except MissionProgress.DoesNotExist:
+            return Response(
+                {'error': 'Missão não atribuída ao usuário'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def duplicate(self, request, pk=None):
         original_mission = self.get_object()

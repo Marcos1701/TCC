@@ -331,6 +331,7 @@ class MissionProgress(models.Model):
         ACTIVE = "ACTIVE", "Em Andamento"
         COMPLETED = "COMPLETED", "Concluída"
         FAILED = "FAILED", "Não Concluída"
+        SKIPPED = "SKIPPED", "Pulada"
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
