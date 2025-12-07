@@ -43,11 +43,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
   late String? _recurrenceUnit;
   DateTime? _recurrenceEndDate;
   
-  // Original values for change tracking
-  late String _originalDescription;
-  late double _originalAmount;
-  late DateTime _originalDate;
-  late String _originalType;
+  // Original values for change tracking (category and recurrence only)
   late int? _originalCategoryId;
   late bool _originalIsRecurring;
 
@@ -79,10 +75,6 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
     );
     
     // Store original values for change detection
-    _originalDescription = widget.transaction.description;
-    _originalAmount = widget.transaction.amount;
-    _originalDate = widget.transaction.date;
-    _originalType = widget.transaction.type;
     _originalCategoryId = widget.transaction.category?.id;
     _originalIsRecurring = widget.transaction.isRecurring;
     
@@ -98,11 +90,7 @@ class _EditTransactionSheetState extends State<EditTransactionSheet> {
     super.dispose();
   }
 
-  // Change detection helpers
-  bool get _isDescriptionChanged => _descriptionController.text.trim() != _originalDescription;
-  bool get _isAmountChanged => CurrencyInputFormatter.parse(_amountController.text) != _originalAmount;
-  bool get _isDateChanged => _selectedDate != _originalDate;
-  bool get _isTypeChanged => _type != _originalType;
+  // Change detection helpers (used for visual feedback in UI)
   bool get _isCategoryChanged => _categoryId != _originalCategoryId;
   bool get _isRecurrenceChanged => _isRecurring != _originalIsRecurring;
 

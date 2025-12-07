@@ -428,7 +428,6 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
   }
 
   void _showMissionDetails(Map<String, dynamic> mission) {
-    final parentContext = context;
     showDialog(
       context: context,
       builder: (dialogContext) => _MissionDetailsDialog(

@@ -181,6 +181,8 @@ class _HomePageState extends State<HomePage> {
         missionProgress: mission,
         repository: _repository,
         onUpdate: _refresh,
+        onStart: (_) async => _refresh(),
+        onSkip: (_) async => _refresh(),
       ),
     );
   }

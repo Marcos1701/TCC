@@ -532,7 +532,7 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
