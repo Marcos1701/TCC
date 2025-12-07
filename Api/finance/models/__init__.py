@@ -1,5 +1,6 @@
 
 from .base import (
+
     MAX_AMOUNT,
     MAX_LEVEL,
     MIN_LEVEL,

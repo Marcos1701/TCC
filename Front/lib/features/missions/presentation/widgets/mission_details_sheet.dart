@@ -9,10 +9,8 @@ import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
 
 class MissionDetailsSheet extends StatefulWidget {
-  const MissionDetailsSheet({
-    super.key,
-    required this.missionProgress,
-    required this.repository,
+  final MissionProgressModel missionProgress;
+  final FinanceRepository repository;
   final VoidCallback onUpdate;
   final Function(int) onStart;
   final Function(int) onSkip;
