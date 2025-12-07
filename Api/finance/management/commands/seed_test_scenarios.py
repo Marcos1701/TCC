@@ -64,7 +64,7 @@ class Command(BaseCommand):
 
     def _create_user(self, username, email):
         user, created = User.objects.get_or_create(username=username, email=email)
-        user.set_password('teste')
+        user.set_password('teste1234')
         user.save()
         if created:
             self.stdout.write(f'- Usuário {username} criado.')
