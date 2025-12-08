@@ -199,7 +199,11 @@ class _TransactionWizardState extends State<TransactionWizard> {
 
   @override
   Widget build(BuildContext context) {
+    // Constrain the modal to a maximum of 85% of the screen height
+    final maxHeight = MediaQuery.of(context).size.height * 0.85;
+    
     return Container(
+      constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: const BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -293,10 +297,13 @@ class _TransactionWizardState extends State<TransactionWizard> {
               ),
             ),
 
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: _buildStepContent(),
+            Expanded(
+              child: Container(
+                color: Colors.black,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: _buildStepContent(),
+                ),
               ),
             ),
 
