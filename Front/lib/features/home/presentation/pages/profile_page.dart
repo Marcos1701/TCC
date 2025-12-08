@@ -352,10 +352,10 @@ class _ProfilePageState extends State<ProfilePage> {
               '💰 Complete desafios para ganhar pontos',
             ),
             _buildInfoItem(
-              '📈 Quanto maior o nível, mais recompensas',
+              '📈 Quanto maior o nível, mais pontos você pode ganhar',
             ),
             _buildInfoItem(
-              '🏆 Compare seu progresso com amigos',
+              '🏆 Avance de nível para desbloquear desafios mais difíceis',
             ),
           ],
         ),
