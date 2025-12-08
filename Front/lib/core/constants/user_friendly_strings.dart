@@ -134,5 +134,5 @@ class UxStrings {
 
   static const iliTitle = 'Índice de Liquidez Imediata (ILI)';
   static const iliCalculation = 'Cálculo: Saldo de Reservas / Despesas Essenciais';
-  static const iliDescription = 'Indica a capacidade da reserva de liquidez atual em cobrir as despesas classificadas como essenciais em um cenário de interrupção total das receitas. O valor expressa o número de meses de cobertura garantida.';
+  static const iliDescription = 'Indica a capacidade da reserva de liquidez atual em cobrir as despesas classificadas como essenciais em um cenário de interrupção total das receitas. O valor expressa o número de meses de cobertura garantida. Para este cálculo, são considerados exclusivamente os montantes alocados em categorias do grupo "Poupança / Reserva".';
 }
