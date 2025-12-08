@@ -55,7 +55,8 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     debt_payments = _decimal(
         TransactionLink.objects.filter(
             user=user,
-            source_transaction_uuid__in=source_transaction_ids
+            source_transaction_uuid__in=source_transaction_ids,
+            link_type=TransactionLink.LinkType.EXPENSE_PAYMENT  # FIXED: Only count actual debt payments, exclude savings/transfers
         ).aggregate(total=Coalesce(Sum('linked_amount'), Decimal("0")))['total']
     )
     

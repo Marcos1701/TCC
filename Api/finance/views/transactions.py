@@ -33,6 +33,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
     
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = [
+        'type',
+        'is_recurring',
+        'is_paid',
+        'category',
+        'payment_method',
+    ]
+    search_fields = ['description', 'category__name']
+    ordering_fields = ['date', 'amount', 'created_at']
+
+    
     def get_throttles(self):
         if self.action in ['create', 'update', 'partial_update']:
             return [TransactionCreateThrottle(), BurstRateThrottle()]

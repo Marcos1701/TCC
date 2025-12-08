@@ -239,7 +239,15 @@ class MissionAdmin(admin.ModelAdmin):
     )
     list_filter = ("difficulty", "is_active", "mission_type", "validation_type", "is_system_generated")
     search_fields = ("title", "description")
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = (
+        "created_at", 
+        "updated_at",
+        # Deprecated fields (Locking to prevent usage)
+        "requires_consecutive_days", 
+        "min_consecutive_days", 
+        "requires_daily_action", 
+        "min_daily_actions"
+    )
     autocomplete_fields = ("target_category",)
 
     fieldsets = (

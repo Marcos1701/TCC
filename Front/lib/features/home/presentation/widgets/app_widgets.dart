@@ -24,9 +24,10 @@ class MonthSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final income = summary.totalIncome;
-    final expense = summary.totalExpense;
-    final balance = income - expense;
+    // Cores baseadas nos ranges saudáveis
+    final tpsColor = summary.tps >= 20 ? Colors.green : (summary.tps >= 10 ? Colors.amber : Colors.red);
+    final rdrColor = summary.rdr <= 30 ? Colors.green : (summary.rdr <= 50 ? Colors.amber : Colors.red);
+    final iliColor = summary.ili >= 6 ? Colors.green : (summary.ili >= 3 ? Colors.blue : Colors.amber);
 
     return Card(
       color: Colors.grey[900],
@@ -37,59 +38,147 @@ class MonthSummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Este mês',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Indicadores Financeiros',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Mês Atual',
+                    style: TextStyle(color: Colors.purpleAccent, fontSize: 12),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: SummaryMetric(
-                    label: '💰 ${UxStrings.income}',
-                    value: income,
-                    color: Colors.green,
-                    currency: currency,
+                  child: _IndicatorItem(
+                    label: 'TPS (Poupança)',
+                    value: '${summary.tps.toStringAsFixed(1)}%',
+                    color: tpsColor,
+                    icon: Icons.savings,
                   ),
                 ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: SummaryMetric(
-                    label: '💸 ${UxStrings.expense}',
-                    value: expense,
-                    color: Colors.red,
-                    currency: currency,
+                  child: _IndicatorItem(
+                    label: 'RDR (Dívidas)',
+                    value: '${summary.rdr.toStringAsFixed(1)}%',
+                    color: rdrColor,
+                    icon: Icons.money_off,
+                  ),
+                ),
+                Expanded(
+                  child: _IndicatorItem(
+                    label: 'ILI (Reserva)',
+                    value: '${summary.ili.toStringAsFixed(1)}x',
+                    color: iliColor,
+                    icon: Icons.account_balance,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             const Divider(color: Colors.grey),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  UxStrings.balance,
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Receitas',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currency.format(summary.totalIncome),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  currency.format(balance),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: balance >= 0 ? Colors.green : Colors.red,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Despesas',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currency.format(summary.totalExpense),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _IndicatorItem extends StatelessWidget {
+  const _IndicatorItem({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[400],
+          ),
+        ),
+      ],
     );
   }
 }

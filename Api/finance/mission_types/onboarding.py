@@ -23,6 +23,7 @@ class OnboardingMissionValidator(BaseMissionValidator):
         
         transactions_count = Transaction.objects.filter(
             user=self.user,
+            type__in=['INCOME', 'EXPENSE'],  # FIXED: Only count real transactions
             created_at__gte=self.mission_progress.started_at
         ).count()
         
@@ -48,6 +49,7 @@ class OnboardingMissionValidator(BaseMissionValidator):
         
         transactions_count = Transaction.objects.filter(
             user=self.user,
+            type__in=['INCOME', 'EXPENSE'],
             created_at__gte=self.mission_progress.started_at
         ).count()
         

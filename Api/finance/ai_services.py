@@ -878,3 +878,95 @@ IMPORTANTE: Preencha APENAS o campo específico do tipo de missão. Os demais de
     except Exception as e:
         logger.error(f"Erro ao gerar missões: {e}")
         return {'created': [], 'failed': [], 'summary': {'error': str(e)}}
+
+
+def generate_hybrid_missions(
+    tier: str,
+    scenario_key: str = None,
+    count: int = 10,
+    use_templates_first: bool = True
+) -> Dict[str, Any]:
+    """
+    Gera missões usando estratégia híbrida: Templates (rápido/seguro) + IA (criativo/personalizado).
+    
+    Args:
+        tier: 'BEGINNER', 'INTERMEDIATE', 'ADVANCED'
+        scenario_key: Chave do cenário (ex: 'RDR_HIGH') - usado para ajustar distribuição
+        count: Total de missões desejadas
+        use_templates_first: Se True, tenta preencher quota com templates antes de chamar IA
+        
+    Returns:
+        Dict com 'created', 'failed' e 'summary'
+    """
+    from .mission_templates import generate_mission_batch_from_templates
+    from .models import Mission
+    
+    created = []
+    failed = []
+    
+    # Simula métricas padrão se não tiver contexto real (para robustez)
+    # Em produção real, deveríamos receber user_context aqui, mas para MVP/Validação
+    # usamos valores seguros baseados no Tier.
+    current_metrics = {
+        'tps': 10 if tier == 'BEGINNER' else 20,
+        'rdr': 40 if tier == 'BEGINNER' else 30,
+        'ili': 1 if tier == 'BEGINNER' else 6,
+    }
+    
+    # 1. Tentar Templates primeiro (se solicitado)
+    if use_templates_first:
+        try:
+            template_missions = generate_mission_batch_from_templates(
+                tier=tier,
+                current_metrics=current_metrics,
+                count=count
+            )
+            
+            for m_data in template_missions:
+                try:
+                    mission = Mission.objects.create(
+                        title=m_data.get('title', 'Missão Template'),
+                        description=m_data.get('description', ''),
+                        mission_type=m_data.get('mission_type', 'ONBOARDING'),
+                        difficulty=m_data.get('difficulty', 'MEDIUM'),
+                        duration_days=m_data.get('duration_days', 14),
+                        reward_points=m_data.get('reward_points', 100),
+                        min_transactions=m_data.get('min_transactions'),
+                        target_tps=m_data.get('target_tps'),
+                        target_rdr=m_data.get('target_rdr'),
+                        min_ili=m_data.get('min_ili'),
+                        target_reduction_percent=m_data.get('target_reduction_percent'),
+                        is_active=True,
+                        is_system_generated=True,
+                        priority=60 # Prioridade maior que IA pura
+                    )
+                    created.append({'id': mission.id, 'title': mission.title, 'source': 'template'})
+                except Exception as e:
+                    failed.append({'title': m_data.get('title'), 'error': str(e)})
+                    
+        except Exception as e:
+             logger.error(f"Erro ao gerar templates na estratégia híbrida: {e}")
+    
+    # 2. Completar com IA se necessário
+    remaining = count - len(created)
+    if remaining > 0:
+        logger.info(f"Completando {remaining} missões via IA (Gemini)...")
+        ai_result = generate_general_missions(quantidade=remaining)
+        
+        for m in ai_result.get('created', []):
+            m['source'] = 'ai'
+            created.append(m)
+            
+        failed.extend(ai_result.get('failed', []))
+        
+    return {
+        'created': created,
+        'failed': failed,
+        'summary': {
+            'total_created': len(created),
+            'total_failed': len(failed),
+            'tier': tier,
+            'strategy': 'hybrid'
+        }
+    }
+
