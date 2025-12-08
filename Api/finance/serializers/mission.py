@@ -27,6 +27,8 @@ class MissionSerializer(serializers.ModelSerializer):
         required=False,
     )
     
+    target_info = serializers.SerializerMethodField()
+
     class Meta:
         model = Mission
         fields = [
@@ -68,6 +70,7 @@ class MissionSerializer(serializers.ModelSerializer):
             "is_system_generated",
             "generation_context",
             "source",
+            "target_info",
             "created_at",
             "updated_at",
         ]
@@ -284,6 +287,7 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "progress_status",
             "baseline_category_spending",
             "baseline_period_days",
+            "initial_savings_amount",
             "current_streak",
             "max_streak",
             "days_met_criteria",
@@ -303,6 +307,7 @@ class MissionProgressSerializer(serializers.ModelSerializer):
             "progress_status",
             "baseline_category_spending",
             "baseline_period_days",
+            "initial_savings_amount",
             "current_streak",
             "max_streak",
             "days_met_criteria",

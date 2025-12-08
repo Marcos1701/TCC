@@ -301,7 +301,6 @@ class TransactionLinkSerializer(serializers.ModelSerializer):
             return {
                 'id': expense_cat.id,
                 'name': expense_cat.name,
-                'icon': expense_cat.icon,
                 'color': expense_cat.color,
             }
         return None
