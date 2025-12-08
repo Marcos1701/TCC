@@ -402,37 +402,75 @@ class MissionsViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> startMission(int missionId) async {
+  /// Starts a mission with optimistic update.
+  /// Updates UI immediately, reverts on API failure.
+  Future<bool> startMission(int missionId) async {
+    final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
+    if (index == -1) return false;
+
+    // Store original state for rollback
+    final originalMission = _activeMissions[index];
+
+    // Optimistically update to ACTIVE
+    _activeMissions[index] = MissionProgressModel(
+      id: originalMission.id,
+      status: 'ACTIVE',
+      progress: originalMission.progress,
+      initialTps: originalMission.initialTps,
+      initialRdr: originalMission.initialRdr,
+      initialIli: originalMission.initialIli,
+      initialTransactionCount: originalMission.initialTransactionCount,
+      startedAt: DateTime.now(),
+      completedAt: originalMission.completedAt,
+      updatedAt: DateTime.now(),
+      mission: originalMission.mission,
+    );
+    notifyListeners();
+
     try {
       final updated = await _repository.startMissionAction(missionId);
-      
-      final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
-      if (index != -1) {
-        _activeMissions[index] = updated;
-        notifyListeners();
-      } else {
-        // Fallback reload if finding index fails (shouldn't happen)
-        await loadMissions();
-      }
-    } catch (e) {
-      _errorMessage = 'Erro ao iniciar missão. Tente novamente.';
+      _activeMissions[index] = updated;
       notifyListeners();
+      return true;
+    } catch (e) {
+      // Rollback to original state on failure
+      _activeMissions[index] = originalMission;
+      _errorMessage = 'Erro ao iniciar desafio. Tente novamente.';
+      notifyListeners();
+      return false;
     }
   }
 
-  Future<void> skipMission(int missionId) async {
+  /// Skips/abandons a mission with optimistic update.
+  /// Removes from UI immediately, re-adds on API failure.
+  Future<bool> skipMission(int missionId) async {
+    final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
+    if (index == -1) return false;
+
+    // Store original state for rollback
+    final originalMission = _activeMissions[index];
+    final originalIndex = index;
+
+    // Optimistically remove from list
+    _activeMissions.removeAt(index);
+    notifyListeners();
+
     try {
       await _repository.skipMissionAction(missionId);
       
-      // Remove from list immediately
-      _activeMissions.removeWhere((m) => m.mission.id == missionId);
-      notifyListeners();
-      
-      // Reload to get new recommendation if available
+      // Reload to get new recommendations
       await loadMissions();
+      return true;
     } catch (e) {
-       _errorMessage = 'Erro ao pular missão. Tente novamente.';
-       notifyListeners();
+      // Rollback: re-insert at original position
+      if (originalIndex <= _activeMissions.length) {
+        _activeMissions.insert(originalIndex, originalMission);
+      } else {
+        _activeMissions.add(originalMission);
+      }
+      _errorMessage = 'Erro ao pular desafio. Tente novamente.';
+      notifyListeners();
+      return false;
     }
   }
 

@@ -181,8 +181,14 @@ class _HomePageState extends State<HomePage> {
         missionProgress: mission,
         repository: _repository,
         onUpdate: _refresh,
-        onStart: (_) async => _refresh(),
-        onSkip: (_) async => _refresh(),
+        onStart: (_) async {
+          await _refresh();
+          return true;
+        },
+        onSkip: (_) async {
+          await _refresh();
+          return true;
+        },
       ),
     );
   }

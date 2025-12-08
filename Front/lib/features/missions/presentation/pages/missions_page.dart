@@ -282,18 +282,26 @@ class _MissionsPageState extends State<MissionsPage> {
         ),
       ),
       confirmDismiss: (direction) async {
-        await _viewModel.skipMission(mission.mission.id);
+        final success = await _viewModel.skipMission(mission.mission.id);
         if (mounted) {
-          FeedbackService.showSuccess(context, 'Desafio pulado. Buscando novas sugestões...');
+          if (success) {
+            FeedbackService.showSuccess(context, 'Desafio pulado. Buscando novas sugestões...');
+          } else {
+            FeedbackService.showError(context, 'Erro ao pular desafio. Tente novamente.');
+          }
         }
-        return true;
+        return success;
       },
       child: _SuggestionMissionCard(
         mission: mission,
         onAccept: () async {
-          await _viewModel.startMission(mission.mission.id);
+          final success = await _viewModel.startMission(mission.mission.id);
           if (mounted) {
-            FeedbackService.showSuccess(context, 'Desafio aceito! Boa sorte! 🎯');
+            if (success) {
+              FeedbackService.showSuccess(context, 'Desafio aceito! Boa sorte! 🎯');
+            } else {
+              FeedbackService.showError(context, 'Erro ao aceitar desafio. Tente novamente.');
+            }
           }
         },
         onTap: () async {

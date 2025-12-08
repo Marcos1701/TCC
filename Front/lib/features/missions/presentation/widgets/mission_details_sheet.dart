@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constants/mission_constants.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 import '../../../../core/constants/user_friendly_strings.dart';
@@ -12,8 +13,8 @@ class MissionDetailsSheet extends StatefulWidget {
   final MissionProgressModel missionProgress;
   final FinanceRepository repository;
   final VoidCallback onUpdate;
-  final Function(int) onStart;
-  final Function(int) onSkip;
+  final Future<bool> Function(int) onStart;
+  final Future<bool> Function(int) onSkip;
 
   const MissionDetailsSheet({
     super.key,
@@ -772,9 +773,16 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              widget.onStart(widget.missionProgress.mission.id);
+              final success = await widget.onStart(widget.missionProgress.mission.id);
+              if (context.mounted) {
+                if (success) {
+                  FeedbackService.showSuccess(context, 'Desafio aceito! Boa sorte! 🎯');
+                } else {
+                  FeedbackService.showError(context, 'Erro ao aceitar desafio. Tente novamente.');
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -796,9 +804,16 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         ),
         const SizedBox(height: 12),
         TextButton.icon(
-          onPressed: () {
+          onPressed: () async {
             Navigator.pop(context);
-            widget.onSkip(widget.missionProgress.mission.id);
+            final success = await widget.onSkip(widget.missionProgress.mission.id);
+            if (context.mounted) {
+              if (success) {
+                FeedbackService.showSuccess(context, 'Desafio pulado. Buscando novas sugestões...');
+              } else {
+                FeedbackService.showError(context, 'Erro ao pular desafio. Tente novamente.');
+              }
+            }
           },
           icon: Icon(Icons.close, size: 18, color: Colors.grey[400]),
           label: Text(
@@ -843,9 +858,16 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              widget.onSkip(widget.missionProgress.mission.id);
+              final success = await widget.onSkip(widget.missionProgress.mission.id);
+              if (context.mounted) {
+                if (success) {
+                  FeedbackService.showSuccess(context, 'Desafio abandonado.');
+                } else {
+                  FeedbackService.showError(context, 'Erro ao abandonar desafio. Tente novamente.');
+                }
+              }
             },
             icon: const Icon(Icons.close, size: 18),
             label: const Text('Abandonar Desafio'),
