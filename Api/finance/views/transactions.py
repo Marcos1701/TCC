@@ -98,11 +98,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
         # Invalidar cache após criar transação
         invalidate_user_dashboard_cache(request.user)
         
-        XP_PER_TRANSACTION = 50
-        
         headers = self.get_success_headers(serializer.data)
         response_data = serializer.data
-        response_data['xp_earned'] = XP_PER_TRANSACTION
         
         return Response(response_data, status=status.HTTP_201_CREATED, headers=headers)
     

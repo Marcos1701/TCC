@@ -593,13 +593,18 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     targetInfo.forEach((key, value) {
       if (value == null) return;
       
+      // Skip empty lists and maps
+      if (value is List && value.isEmpty) return;
+      if (value is Map && value.isEmpty) return;
+      
       // Filter out internal/system keys that shouldn't be shown to the user
+      // Use lowercase comparison to handle case variations from the API
       const internalKeys = {
-        'TYPE', 
-        'VALIDATION_TYPE', 
-        'TARGETS', 
-        'COMPLETION_CRITERIA', 
-        'REWARD_CALCULATION', 
+        'type', 
+        'validation_type', 
+        'targets', 
+        'completion_criteria', 
+        'reward_calculation', 
         'recurrence_days',
         'start_date',
         'end_date',
@@ -607,10 +612,11 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         'difficulty',
         'mission_type',
         'requires_consecutive_days',
-        'min_consecutive_days'
+        'min_consecutive_days',
+        'user_id',
       };
 
-      if (internalKeys.contains(key)) return;
+      if (internalKeys.contains(key.toLowerCase())) return;
       
       IconData icon;
       Color color;
