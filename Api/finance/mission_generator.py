@@ -487,6 +487,131 @@ class UnifiedMissionGenerator:
     def _calculate_xp(self, difficulty: str) -> int:
         min_xp, max_xp = self.config.XP_RANGES[difficulty]
         return random.randint(min_xp, max_xp)
+    
+    def generate_batch(self, count: int, use_ai: bool = True) -> Dict[str, Any]:
+        """Gera um lote de missões usando IA (quando disponível) ou templates.
+        
+        Args:
+            count: Número de missões a gerar
+            use_ai: Se deve tentar usar IA (Gemini) para geração
+            
+        Returns:
+            Dict com 'created' (lista de missões), 'failed' (lista de erros), e 'source'
+        """
+        result = {
+            'created': [],
+            'failed': [],
+            'source': 'template',
+        }
+        
+        # Tenta geração via IA se solicitado
+        if use_ai:
+            try:
+                from .ai_services import generate_general_missions
+                
+                logger.info(f"Tentando geração via IA para {count} missões...")
+                ai_result = generate_general_missions(quantidade=count)
+                
+                if ai_result.get('created'):
+                    # IA gerou missões com sucesso
+                    for m in ai_result['created']:
+                        # Extrai apenas os dados da missão (não o objeto salvo)
+                        if isinstance(m, dict):
+                            result['created'].append(m)
+                    
+                    result['failed'].extend(ai_result.get('failed', []))
+                    result['source'] = 'gemini_ai'
+                    
+                    logger.info(f"IA gerou {len(result['created'])} missões com sucesso")
+                    
+                    # Se IA gerou tudo que precisamos, retorna
+                    if len(result['created']) >= count:
+                        return result
+                    
+            except Exception as e:
+                logger.warning(f"Falha na geração via IA, usando templates: {e}")
+        
+        # Fallback para templates ou complemento
+        remaining = count - len(result['created'])
+        if remaining > 0:
+            logger.info(f"Gerando {remaining} missões via templates...")
+            
+            distribution = self._get_smart_distribution(remaining)
+            
+            for mission_type, type_count in distribution.items():
+                for _ in range(type_count):
+                    try:
+                        mission_data = self._generate_single_mission(mission_type)
+                        if mission_data:
+                            result['created'].append(mission_data)
+                    except Exception as e:
+                        logger.error(f"Erro ao gerar missão {mission_type}: {e}")
+                        result['failed'].append({
+                            'mission_type': mission_type,
+                            'error': str(e)
+                        })
+            
+            # Atualiza source baseado na proporção
+            if result['source'] == 'gemini_ai':
+                result['source'] = 'hybrid'
+        
+        return result
+    
+    def _generate_single_mission(self, mission_type: str) -> Optional[Dict[str, Any]]:
+        """Gera uma única missão baseada no tipo."""
+        templates = MISSION_TEMPLATES.get(mission_type, [])
+        if not templates:
+            logger.warning(f"Nenhum template para tipo: {mission_type}")
+            return None
+        
+        template = random.choice(templates)
+        allowed_difficulties = template.get('difficulty_range', ['EASY', 'MEDIUM', 'HARD'])
+        difficulty = self._select_difficulty(allowed_difficulties)
+        
+        target_value = self._calculate_target_value(mission_type, difficulty)
+        duration = self._calculate_duration(difficulty)
+        xp = self._calculate_xp(difficulty)
+        
+        # Gera título e descrição
+        format_vars = {
+            'count': int(target_value) if target_value else 10,
+            'target': target_value,
+        }
+        
+        title = template['title_template'].format(**format_vars)
+        description = template['description_template'].format(**format_vars)
+        
+        # Monta os dados da missão
+        mission_data = {
+            'title': title,
+            'description': description,
+            'mission_type': mission_type,
+            'difficulty': difficulty,
+            'duration_days': duration,
+            'reward_points': xp,
+            'is_active': False,  # Pende aprovação do admin
+            'is_system_generated': True,
+            'priority': 50,
+        }
+        
+        # Adiciona campo específico do tipo
+        field_config = REQUIRED_FIELDS_BY_TYPE.get(mission_type, {})
+        field_name = field_config.get('field')
+        if field_name and target_value is not None:
+            mission_data[field_name] = target_value
+        
+        # Define validation_type
+        mission_data['validation_type'] = MISSION_TYPE_TO_VALIDATION.get(
+            mission_type, 'TRANSACTION_COUNT'
+        )
+        
+        # Valida viabilidade
+        is_viable, issue = _validate_mission_viability(mission_data, self.context)
+        if not is_viable:
+            logger.debug(f"Missão não viável: {issue}")
+            # Tenta ajustar ou ignora
+        
+        return mission_data
 
 
 

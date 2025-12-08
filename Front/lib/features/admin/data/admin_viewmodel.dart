@@ -368,6 +368,34 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>> deleteAllPendingMissions() async {
+    try {
+      final response = await _api.client.post(
+        '${ApiEndpoints.adminMissions}excluir-pendentes/',
+      );
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['sucesso'] == true) {
+        // Remove todas as missões pendentes da lista local
+        _missions.removeWhere((m) => m['is_active'] == false);
+        notifyListeners();
+      }
+
+      return data;
+    } on DioException catch (e) {
+      return {
+        'sucesso': false,
+        'erro': _extractErrorMessage(e),
+      };
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'erro': 'Erro ao excluir missões pendentes: $e',
+      };
+    }
+  }
+
   String _extractErrorMessage(DioException e) {
     if (e.response?.statusCode == 403) {
       return 'Acesso negado. Você precisa ser administrador.';

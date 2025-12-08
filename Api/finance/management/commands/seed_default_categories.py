@@ -84,7 +84,7 @@ class Command(BaseCommand):
             {
                 'name': 'Resgate de Investimento',
                 'type': 'INCOME',
-                'group': 'SAVINGS',
+                'group': 'INVESTMENT',
                 'color': '#6366F1',  # Índigo
             },
             
@@ -242,10 +242,16 @@ class Command(BaseCommand):
             
             # ===== POUPANÇA / INVESTIMENTOS (Saída) =====
             {
-                'name': 'Aplicação em Investimentos',
+                'name': 'Poupança',
                 'type': 'EXPENSE',
                 'group': 'SAVINGS',
                 'color': '#10B981',  # Verde
+            },
+            {
+                'name': 'Investimentos',
+                'type': 'EXPENSE',
+                'group': 'INVESTMENT',
+                'color': '#059669',  # Verde escuro
             },
 
             # ===== DÍVIDAS E OUTROS =====

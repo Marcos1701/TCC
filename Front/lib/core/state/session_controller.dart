@@ -4,6 +4,7 @@ import '../models/profile.dart';
 import '../models/session_data.dart';
 import '../network/api_client.dart';
 import '../repositories/auth_repository.dart';
+import '../services/cache_service.dart';
 
 class SessionController extends ChangeNotifier {
   SessionController({AuthRepository? authRepository})
@@ -60,6 +61,9 @@ class SessionController extends ChangeNotifier {
     _sessionExpired = false;
     notifyListeners();
     try {
+      // Limpar cache antigo antes de logar
+      await CacheService.clearAll();
+      
       final tokens =
           await _authRepository.login(email: email, password: password);
       await ApiClient()
@@ -139,6 +143,7 @@ class SessionController extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authRepository.logout();
+    await CacheService.clearAll();
     _session = null;
     _isNewRegistration = false;
     _sessionExpired = false;

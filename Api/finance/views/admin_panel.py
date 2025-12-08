@@ -238,22 +238,50 @@ class AdminMissionDetailView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
     
     def delete(self, request, pk):
-        """Desativa uma missão (soft delete)."""
+        """Exclui uma missão permanentemente."""
         try:
             mission = Mission.objects.get(pk=pk)
-            mission.is_active = False
-            mission.save()
+            titulo = mission.title
+            mission.delete()
             
-            logger.info(f"Missão '{mission.title}' desativada por {request.user.username}")
+            logger.info(f"Missão '{titulo}' excluída por {request.user.username}")
             
             return Response({
                 'sucesso': True,
-                'mensagem': 'Missão desativada com sucesso',
+                'mensagem': 'Missão excluída com sucesso',
             })
         except Mission.DoesNotExist:
             return Response({
                 'erro': 'Missão não encontrada',
             }, status=status.HTTP_404_NOT_FOUND)
+
+
+class AdminDeletePendingMissionsView(APIView):
+    """Exclui todas as missões pendentes (is_active=False)."""
+    
+    permission_classes = [permissions.IsAdminUser]
+    
+    def post(self, request):
+        """Exclui todas as missões pendentes."""
+        pending_missions = Mission.objects.filter(is_active=False)
+        count = pending_missions.count()
+        
+        if count == 0:
+            return Response({
+                'sucesso': True,
+                'mensagem': 'Nenhuma missão pendente para excluir',
+                'excluidas': 0,
+            })
+        
+        pending_missions.delete()
+        
+        logger.info(f"{count} missões pendentes excluídas por {request.user.username}")
+        
+        return Response({
+            'sucesso': True,
+            'mensagem': f'{count} missão(ões) pendente(s) excluída(s)',
+            'excluidas': count,
+        })
 
 
 class AdminMissionToggleView(APIView):

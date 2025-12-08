@@ -253,9 +253,11 @@ def analyze_tier_progression(user):
             next_tier = None
         
         next_level_xp = profile.next_level_threshold
-        current_level_xp = 150 + (level - 2) * 50 if level > 1 else 0
-        xp_in_level = xp - current_level_xp
         xp_needed_for_next = next_level_xp - xp
+        
+        # experience_points já representa o XP dentro do nível atual
+        # O progresso é simplesmente (xp / threshold) * 100
+        xp_progress = (xp / next_level_xp * 100) if next_level_xp > 0 else 0
         
         if tier_max_level:
             levels_in_tier = tier_max_level - tier_min_level + 1
@@ -288,7 +290,7 @@ def analyze_tier_progression(user):
             'xp': xp,
             'next_level_xp': next_level_xp,
             'xp_needed': xp_needed_for_next,
-            'xp_progress_in_level': (xp_in_level / (next_level_xp - current_level_xp) * 100) if next_level_xp > current_level_xp else 100,
+            'xp_progress_in_level': xp_progress,
             'tier_range': {
                 'min': tier_min_level,
                 'max': tier_max_level,

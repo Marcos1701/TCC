@@ -104,6 +104,8 @@ class Category(models.Model):
             self.CategoryType.INCOME: [
                 self.CategoryGroup.REGULAR_INCOME,
                 self.CategoryGroup.EXTRA_INCOME,
+                self.CategoryGroup.SAVINGS,
+                self.CategoryGroup.INVESTMENT,
                 self.CategoryGroup.OTHER,
             ],
             self.CategoryType.EXPENSE: [

@@ -201,39 +201,38 @@ class Command(BaseCommand):
         self.stdout.write('   🧹 Dados anteriores limpos')
 
     def _ensure_categories(self):
-        """Garante que as categorias padrão existam"""
-        categories = [
-            ('Salário', 'INCOME', 'REGULAR_INCOME'),
-            ('Freelance', 'INCOME', 'EXTRA_INCOME'),
-            ('Rendimentos', 'INCOME', 'EXTRA_INCOME'),
-            ('Investimentos', 'INCOME', 'SAVINGS'),
-            ('Aluguel', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Condomínio', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Mercado', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Energia', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Internet', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Farmácia', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Transporte', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Educação', 'EXPENSE', 'ESSENTIAL_EXPENSE'),
-            ('Restaurantes', 'EXPENSE', 'LIFESTYLE_EXPENSE'),
-            ('Lazer', 'EXPENSE', 'LIFESTYLE_EXPENSE'),
-            ('Viagem', 'EXPENSE', 'LIFESTYLE_EXPENSE'),
-            ('Assinaturas', 'EXPENSE', 'LIFESTYLE_EXPENSE'),
-            ('Compras', 'EXPENSE', 'LIFESTYLE_EXPENSE'),
-            ('Pagamento Empréstimo', 'EXPENSE', 'OTHER'),
-            ('Pagamento Cartão', 'EXPENSE', 'OTHER'),
+        """Verifica se as categorias padrão existem. Não cria novas para evitar duplicatas.
+        
+        As categorias devem ser criadas via seed_default_categories.py
+        """
+        # Lista das categorias usadas por este script (nomes devem corresponder a seed_default_categories)
+        required_categories = [
+            ('Salário', 'INCOME'),
+            ('Freelance', 'INCOME'),
+            ('Rendimentos', 'INCOME'),
+            ('Resgate de Investimento', 'INCOME'),
+            ('Aluguel', 'EXPENSE'),
+            ('Condomínio', 'EXPENSE'),
+            ('Supermercado', 'EXPENSE'),
+            ('Energia Elétrica', 'EXPENSE'),
+            ('Transporte', 'EXPENSE'),
+            ('Educação', 'EXPENSE'),
+            ('Restaurantes', 'EXPENSE'),
+            ('Lazer e Entretenimento', 'EXPENSE'),
+            ('Vestuário', 'EXPENSE'),
+            ('Pagamento de Empréstimo', 'EXPENSE'),
+            ('Pagamento de Cartão', 'EXPENSE'),
         ]
         
-        for name, type_, group in categories:
-            model_group = 'OTHER'
-            if group == 'REGULAR_INCOME': model_group = Category.CategoryGroup.REGULAR_INCOME
-            elif group == 'EXTRA_INCOME': model_group = Category.CategoryGroup.EXTRA_INCOME
-            elif group == 'SAVINGS': model_group = Category.CategoryGroup.SAVINGS
-            elif group == 'ESSENTIAL_EXPENSE': model_group = Category.CategoryGroup.ESSENTIAL_EXPENSE
-            elif group == 'LIFESTYLE_EXPENSE': model_group = Category.CategoryGroup.LIFESTYLE_EXPENSE
-            
+        missing = []
+        for name, type_ in required_categories:
             if not Category.objects.filter(name=name, type=type_, user__isnull=True).exists():
-                Category.objects.create(name=name, type=type_, group=model_group, user=None)
+                missing.append(name)
+        
+        if missing:
+            self.stdout.write(self.style.WARNING(
+                f'⚠️  Categorias faltando: {missing}. Execute seed_default_categories primeiro.'
+            ))
 
     def _generate_financial_history(self, user, profile_data):
         """Gera histórico financeiro para o usuário"""
@@ -251,7 +250,7 @@ class Command(BaseCommand):
                 amount=reserve_amount,
                 date=today - timedelta(days=120),
                 type='INCOME',
-                category_name='Investimentos',
+                category_name='Resgate de Investimento',
                 category_group='SAVINGS'
             )
             self.stdout.write(f'   💰 Reserva inicial: R$ {reserve_amount:,.2f}')
@@ -286,11 +285,11 @@ class Command(BaseCommand):
             
             debt_tx = self._create_transaction(
                 user=user,
-                description='Pagamento Empréstimo',
+                description='Pagamento de Empréstimo',
                 amount=debt_amount,
                 date=date_ref + timedelta(days=1),
                 type='EXPENSE',
-                category_name='Pagamento Empréstimo',
+                category_name='Pagamento de Empréstimo',
                 category_group='OTHER'
             )
             
@@ -310,13 +309,13 @@ class Command(BaseCommand):
         # 3. Despesas Essenciais
         essential_total = (income * Decimal(str(profile_data['expense_profile']['essential']))).quantize(Decimal("0.01"))
         self._create_transaction(user, 'Aluguel', (essential_total * Decimal('0.5')).quantize(Decimal("0.01")), date_ref + timedelta(days=5), 'EXPENSE', 'Aluguel', 'ESSENTIAL_EXPENSE')
-        self._create_transaction(user, 'Mercado', (essential_total * Decimal('0.3')).quantize(Decimal("0.01")), date_ref + timedelta(days=10), 'EXPENSE', 'Mercado', 'ESSENTIAL_EXPENSE')
-        self._create_transaction(user, 'Contas', (essential_total * Decimal('0.2')).quantize(Decimal("0.01")), date_ref + timedelta(days=15), 'EXPENSE', 'Energia', 'ESSENTIAL_EXPENSE')
+        self._create_transaction(user, 'Supermercado', (essential_total * Decimal('0.3')).quantize(Decimal("0.01")), date_ref + timedelta(days=10), 'EXPENSE', 'Supermercado', 'ESSENTIAL_EXPENSE')
+        self._create_transaction(user, 'Energia Elétrica', (essential_total * Decimal('0.2')).quantize(Decimal("0.01")), date_ref + timedelta(days=15), 'EXPENSE', 'Energia Elétrica', 'ESSENTIAL_EXPENSE')
 
         # 4. Despesas Estilo de Vida
         lifestyle_total = (income * Decimal(str(profile_data['expense_profile']['lifestyle']))).quantize(Decimal("0.01"))
         self._create_transaction(user, 'Jantar Fora', (lifestyle_total * Decimal('0.4')).quantize(Decimal("0.01")), date_ref + timedelta(days=12), 'EXPENSE', 'Restaurantes', 'LIFESTYLE_EXPENSE')
-        self._create_transaction(user, 'Compras', (lifestyle_total * Decimal('0.6')).quantize(Decimal("0.01")), date_ref + timedelta(days=20), 'EXPENSE', 'Compras', 'LIFESTYLE_EXPENSE')
+        self._create_transaction(user, 'Vestuário', (lifestyle_total * Decimal('0.6')).quantize(Decimal("0.01")), date_ref + timedelta(days=20), 'EXPENSE', 'Vestuário', 'LIFESTYLE_EXPENSE')
 
     def _create_transaction(self, user, description, amount, date, type, category_name, category_group):
         """Cria uma transação"""

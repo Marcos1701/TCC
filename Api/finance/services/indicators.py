@@ -43,6 +43,11 @@ def calculate_summary(user) -> Dict[str, Decimal]:
             type=Transaction.TransactionType.EXPENSE,
             date__gte=start_date,
             date__lte=today
+        ).exclude(
+            category__group__in=[
+                Category.CategoryGroup.SAVINGS,
+                Category.CategoryGroup.INVESTMENT
+            ]
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
 
@@ -261,7 +266,7 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
     data = (
         Transaction.objects.filter(user=user, date__gte=first_day)
         .annotate(month=TruncMonth("date"))
-        .values("month", "type")
+        .values("month", "type", "category__group")
         .annotate(total=Sum("amount"))
     )
 
@@ -272,6 +277,11 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             month = month_value.date()
         else:
             month = month_value
+        
+        # Skip adding to expense if it is savings/investment
+        if item["type"] == Transaction.TransactionType.EXPENSE and item.get("category__group") in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
+            continue
+            
         buckets[month][item["type"]] += _decimal(item["total"])
 
     recurrence_projections: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
@@ -290,6 +300,10 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             projection_month = projection_month + timedelta(days=32)
             projection_month = projection_month.replace(day=1)
             
+            # Skip savings/investment recurrences in expense projection
+            if transaction.type == Transaction.TransactionType.EXPENSE and transaction.category and transaction.category.group in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
+                continue
+
             if transaction.recurrence_unit == Transaction.RecurrenceUnit.MONTHS:
                 recurrence_projections[projection_month][transaction.type] += transaction.amount
             elif transaction.recurrence_unit == Transaction.RecurrenceUnit.WEEKS:

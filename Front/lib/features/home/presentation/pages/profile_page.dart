@@ -143,10 +143,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLevelCard() {
-    final snapshot = _profile!['snapshot'] as Map<String, dynamic>? ?? {};
-    final level = (snapshot['level'] as int?) ?? 1;
-    final xp = (snapshot['experience_points'] as int?) ?? 0;
-    final xpForNext = (snapshot['next_level_threshold'] as int?) ?? 150;
+    // Lê os dados diretamente do nível raiz (endpoint /user/me/ não usa 'snapshot')
+    final level = (_profile!['level'] as int?) ?? 1;
+    final xp = (_profile!['experience_points'] as int?) ?? 0;
+    final xpForNext = (_profile!['next_level_threshold'] as int?) ?? 150;
     final progress = xpForNext > 0 ? xp / xpForNext : 0.0;
 
     return Card(
@@ -226,9 +226,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildQuickStats() {
-    final snapshot = _profile!['snapshot'] as Map<String, dynamic>? ?? {};
-    final level = (snapshot['level'] as int?) ?? 1;
-    final xp = (snapshot['experience_points'] as int?) ?? 0;
+    // Lê os dados diretamente do nível raiz (endpoint /user/me/ não usa 'snapshot')
+    final level = (_profile!['level'] as int?) ?? 1;
+    final xp = (_profile!['experience_points'] as int?) ?? 0;
     
     return Row(
       children: [

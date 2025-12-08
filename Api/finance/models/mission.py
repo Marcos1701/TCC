@@ -30,6 +30,7 @@ class Mission(models.Model):
         TRANSACTION_COUNT = "TRANSACTION_COUNT", "Registrar X Transações"
         INDICATOR_THRESHOLD = "INDICATOR_THRESHOLD", "Atingir Valor de Indicador"
         CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir % em Categoria"
+        SAVINGS_INCREASE = "SAVINGS_INCREASE", "Aumentar Poupança"
         # TEMPORAL removido - lógica de dias consecutivos foi simplificada
         # Todas as missões agora usam apenas deadline (duration_days)
 

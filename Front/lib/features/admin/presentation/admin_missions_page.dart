@@ -136,14 +136,16 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 children: [
-                  Text(
-                    'Missões',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'Missões',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (_isGenerating) ...[
-                    const SizedBox(width: 12),
                     SizedBox(
                       width: 16,
                       height: 16,
@@ -152,8 +154,8 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
                         color: colorScheme.primary,
                       ),
                     ),
+                    const SizedBox(width: 8),
                   ],
-                  const Spacer(),
                   IconButton.filled(
                     onPressed: () => _showCreateMissionDialog(),
                     icon: const Icon(Icons.add, size: 20),
@@ -164,7 +166,7 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton.icon(
+                  IconButton.filled(
                     onPressed: _isGenerating ? null : () => _showGenerateDialog(),
                     icon: _isGenerating
                         ? const SizedBox(
@@ -172,9 +174,9 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.auto_awesome, size: 18),
-                    label: const Text('Gerar com IA'),
-                    style: ElevatedButton.styleFrom(
+                        : const Icon(Icons.auto_awesome, size: 20),
+                    tooltip: 'Gerar com IA',
+                    style: IconButton.styleFrom(
                       backgroundColor: colorScheme.secondary,
                       foregroundColor: colorScheme.onSecondary,
                     ),
@@ -183,47 +185,73 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
               ),
             ),
 
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                labelColor: colorScheme.onPrimary,
-                unselectedLabelColor: colorScheme.onSurfaceVariant,
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle_outline, size: 18),
-                        const SizedBox(width: 8),
-                        const Text('Ativas'),
-                        _buildBadgeCount(true),
-                      ],
-                    ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 350;
+                
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.pending_outlined, size: 18),
-                        const SizedBox(width: 8),
-                        const Text('Pendentes'),
-                        _buildBadgeCount(false),
-                      ],
+                  child: TabBar(
+                    controller: _tabController,
+                    indicator: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: colorScheme.onPrimary,
+                    unselectedLabelColor: colorScheme.onSurfaceVariant,
+                    tabs: [
+                      Tab(
+                        child: isNarrow
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle_outline, size: 18),
+                                  _buildBadgeCount(true),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle_outline, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text('Ativas'),
+                                  _buildBadgeCount(true),
+                                ],
+                              ),
+                      ),
+                      Tab(
+                        child: isNarrow
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.pending_outlined, size: 18),
+                                  _buildBadgeCount(false),
+                                ],
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.pending_outlined, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text('Pendentes'),
+                                  _buildBadgeCount(false),
+                                ],
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             const SizedBox(height: 12),
@@ -388,21 +416,104 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: viewModel.missions.length,
-      itemBuilder: (context, index) {
-        final mission = viewModel.missions[index];
-        return _MissionCard(
-          mission: mission,
-          isPending: !isActiveTab,
-          onToggle: () => _toggleMission(mission),
-          onTap: () => _showMissionDetails(mission),
-          onEdit: () => _showEditMissionDialog(mission),
-          onDelete: () => _confirmDeleteMission(mission),
-          onApprove: !isActiveTab ? () => _approveMission(mission) : null,
-        );
-      },
+    final pendingCount = viewModel.missions
+        .where((m) => (m['is_active'] as bool? ?? false) == false)
+        .length;
+
+    return Column(
+      children: [
+        // Botão "Excluir Todas Pendentes" apenas na aba de pendentes
+        if (!isActiveTab && pendingCount > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _confirmDeleteAllPending(),
+                  icon: const Icon(Icons.delete_sweep, size: 18),
+                  label: Text('Excluir Todas ($pendingCount)'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: viewModel.missions.length,
+            itemBuilder: (context, index) {
+              final mission = viewModel.missions[index];
+              return _MissionCard(
+                mission: mission,
+                isPending: !isActiveTab,
+                onToggle: () => _toggleMission(mission),
+                onTap: () => _showMissionDetails(mission),
+                onEdit: () => _showEditMissionDialog(mission),
+                onDelete: () => _confirmDeleteMission(mission),
+                onApprove: !isActiveTab ? () => _approveMission(mission) : null,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _confirmDeleteAllPending() {
+    final pendingCount = widget.viewModel.missions
+        .where((m) => (m['is_active'] as bool? ?? false) == false)
+        .length;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Excluir Todas Pendentes'),
+        content: Text(
+          'Tem certeza que deseja excluir $pendingCount missão(ões) pendente(s)?\n\n'
+          'Esta ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              
+              final resultado = await widget.viewModel.deleteAllPendingMissions();
+
+              if (mounted) {
+                final sucesso = resultado['sucesso'] == true;
+                final excluidas = resultado['excluidas'] ?? 0;
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      sucesso
+                          ? '$excluidas missão(ões) excluída(s)!'
+                          : resultado['erro'] ?? 'Erro ao excluir missões',
+                    ),
+                    backgroundColor: sucesso ? Colors.green : Colors.red,
+                  ),
+                );
+                
+                if (sucesso) {
+                  _aplicarFiltros();
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir Todas'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -657,6 +768,7 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
               
               DropdownButtonFormField<String>(
                 value: selectedTier,
+                isExpanded: true,
                 decoration: const InputDecoration(
                   labelText: 'Nível dos Usuários',
                   helperText: 'Define o público-alvo das missões',
@@ -664,10 +776,10 @@ class _AdminMissionsPageState extends State<AdminMissionsPage>
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 items: const [
-                  DropdownMenuItem(value: null, child: Text('Todos os níveis (distribuição equilibrada)')),
-                  DropdownMenuItem(value: 'BEGINNER', child: Text('Iniciante (níveis 1-5)')),
-                  DropdownMenuItem(value: 'INTERMEDIATE', child: Text('Intermediário (níveis 6-15)')),
-                  DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado (níveis 16+)')),
+                  DropdownMenuItem(value: null, child: Text('Todos os níveis')),
+                  DropdownMenuItem(value: 'BEGINNER', child: Text('Iniciante (1-5)')),
+                  DropdownMenuItem(value: 'INTERMEDIATE', child: Text('Intermediário (6-15)')),
+                  DropdownMenuItem(value: 'ADVANCED', child: Text('Avançado (16+)')),
                 ],
                 onChanged: (value) => setDialogState(() => selectedTier = value),
               ),
@@ -721,14 +833,17 @@ class _GenerationFeature extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 14, color: Colors.green),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+          Flexible(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
           ),
         ],
       ),
@@ -939,10 +1054,13 @@ class _MissionCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Text(
-                        MissionTypeLabels.getShort(missionType),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colorScheme.primary,
+                      Flexible(
+                        child: Text(
+                          MissionTypeLabels.getShort(missionType),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.primary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (isSystemGenerated) ...[
@@ -965,28 +1083,39 @@ class _MissionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
                     children: [
-                      const Icon(
-                        Icons.stars,
-                        size: 16,
-                        color: Colors.amber,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.stars,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${mission['reward_points'] ?? 0} XP',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${mission['reward_points'] ?? 0} XP',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.schedule,
-                        size: 16,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${mission['duration_days'] ?? 0} dias',
-                        style: theme.textTheme.bodySmall,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            size: 16,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${mission['duration_days'] ?? 0} dias',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1301,11 +1430,14 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: valueColor,
+          Expanded(
+            child: Text(
+              value,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: valueColor,
+              ),
             ),
           ),
         ],
@@ -1336,28 +1468,260 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _rewardController;
   late final TextEditingController _durationController;
+  late final TextEditingController _targetValueController;
+  late final TextEditingController _priorityController;
   late String _difficulty;
   late String _missionType;
-  final bool _isLoading = false;
+  bool _isLoading = false;
+  String? _formError;
+  
+  // Para CATEGORY_REDUCTION
+  List<Map<String, dynamic>> _categories = [];
+  int? _selectedCategoryId;
+  bool _loadingCategories = false;
+
+  // Mapeamento de tipos de missão para seus campos e validation_type
+  static const Map<String, Map<String, dynamic>> _missionTypeConfig = {
+    'ONBOARDING': {
+      'field': 'min_transactions',
+      'label': 'Transações Mínimas',
+      'hint': 'Ex: 10',
+      'validation_type': 'TRANSACTION_COUNT',
+      'defaultValue': 10,
+      'description': 'Número de transações que o usuário deve registrar',
+    },
+    'TPS_IMPROVEMENT': {
+      'field': 'target_tps',
+      'label': 'Meta TPS (%)',
+      'hint': 'Ex: 15 para 15%',
+      'validation_type': 'INDICATOR_THRESHOLD',
+      'defaultValue': 15,
+      'description': 'Taxa de Poupança Pessoal mínima a atingir',
+    },
+    'RDR_REDUCTION': {
+      'field': 'target_rdr',
+      'label': 'Meta RDR Máximo (%)',
+      'hint': 'Ex: 40 para máximo 40%',
+      'validation_type': 'INDICATOR_THRESHOLD',
+      'defaultValue': 40,
+      'description': 'Razão Despesas/Renda máxima permitida',
+    },
+    'ILI_BUILDING': {
+      'field': 'min_ili',
+      'label': 'ILI Mínimo (meses)',
+      'hint': 'Ex: 3 para 3 meses',
+      'validation_type': 'INDICATOR_THRESHOLD',
+      'defaultValue': 3,
+      'description': 'Meses de despesas em reserva de emergência',
+    },
+    'CATEGORY_REDUCTION': {
+      'field': 'target_reduction_percent',
+      'label': 'Redução Alvo (%)',
+      'hint': 'Ex: 15 para reduzir 15%',
+      'validation_type': 'CATEGORY_REDUCTION',
+      'defaultValue': 15,
+      'description': 'Percentual de redução na categoria escolhida',
+    },
+  };
+
+  Map<String, dynamic> get _currentConfig => 
+      _missionTypeConfig[_missionType] ?? _missionTypeConfig['TPS_IMPROVEMENT']!;
 
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController();
     _descriptionController = TextEditingController();
-    _rewardController = TextEditingController();
-    _durationController = TextEditingController();
+    _rewardController = TextEditingController(text: '100');
+    _durationController = TextEditingController(text: '30');
+    _targetValueController = TextEditingController();
+    _priorityController = TextEditingController(text: '50');
     _difficulty = 'MEDIUM';
     _missionType = 'TPS_IMPROVEMENT';
     
     if (widget.mission != null) {
       _titleController.text = widget.mission!['title'] ?? '';
       _descriptionController.text = widget.mission!['description'] ?? '';
-      _rewardController.text = widget.mission!['xp_reward']?.toString() ?? '';
-      _durationController.text = widget.mission!['duration_days']?.toString() ?? '';
+      _rewardController.text = (widget.mission!['reward_points'] ?? 100).toString();
+      _durationController.text = (widget.mission!['duration_days'] ?? 30).toString();
+      _priorityController.text = (widget.mission!['priority'] ?? 50).toString();
       _difficulty = widget.mission!['difficulty'] ?? 'MEDIUM';
-      _missionType = widget.mission!['type'] ?? 'TPS_IMPROVEMENT';
+      _missionType = widget.mission!['mission_type'] ?? 'TPS_IMPROVEMENT';
+      
+      // Carrega categoria existente se for CATEGORY_REDUCTION
+      if (_missionType == 'CATEGORY_REDUCTION') {
+        final targetCategory = widget.mission!['target_category'];
+        if (targetCategory != null && targetCategory is Map) {
+          _selectedCategoryId = targetCategory['id'] as int?;
+        } else if (widget.mission!['target_category_id'] != null) {
+          _selectedCategoryId = widget.mission!['target_category_id'] as int;
+        }
+      }
+      
+      // Carrega o valor do campo específico do tipo
+      _loadTargetValue();
+    } else {
+      // Para nova missão, usar valor padrão do tipo
+      _targetValueController.text = _currentConfig['defaultValue'].toString();
     }
+    
+    // Carrega categorias se necessário
+    if (_missionType == 'CATEGORY_REDUCTION') {
+      _loadCategories();
+    }
+  }
+
+  void _loadTargetValue() {
+    final config = _missionTypeConfig[_missionType];
+    if (config != null && widget.mission != null) {
+      final fieldName = config['field'] as String;
+      final value = widget.mission![fieldName];
+      _targetValueController.text = value?.toString() ?? config['defaultValue'].toString();
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    if (_categories.isNotEmpty) return; // Já carregou
+    
+    setState(() => _loadingCategories = true);
+    
+    try {
+      await widget.viewModel.loadCategories();
+      if (mounted) {
+        // O endpoint já retorna apenas categorias do sistema (is_system_default=True)
+        final allCategories = widget.viewModel.categories;
+        setState(() {
+          _categories = List<Map<String, dynamic>>.from(allCategories);
+          _loadingCategories = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar categorias: $e');
+      if (mounted) {
+        setState(() => _loadingCategories = false);
+      }
+    }
+  }
+
+  void _onMissionTypeChanged(String? newType) {
+    if (newType != null && newType != _missionType) {
+      setState(() {
+        _missionType = newType;
+        // Atualiza o valor padrão para o novo tipo
+        final config = _missionTypeConfig[newType];
+        if (config != null) {
+          _targetValueController.text = config['defaultValue'].toString();
+        }
+        _formError = null;
+        _selectedCategoryId = null;
+      });
+      
+      // Carrega categorias se mudou para CATEGORY_REDUCTION
+      if (newType == 'CATEGORY_REDUCTION') {
+        _loadCategories();
+      }
+    }
+  }
+
+  String? _validateForm() {
+    if (_titleController.text.trim().isEmpty) {
+      return 'O título é obrigatório';
+    }
+    if (_titleController.text.trim().length > 150) {
+      return 'O título não pode ter mais de 150 caracteres';
+    }
+    if (_descriptionController.text.trim().isEmpty) {
+      return 'A descrição é obrigatória';
+    }
+    
+    final reward = int.tryParse(_rewardController.text);
+    if (reward == null || reward < 10 || reward > 1000) {
+      return 'A recompensa deve ser entre 10 e 1000 XP';
+    }
+    
+    final duration = int.tryParse(_durationController.text);
+    if (duration == null || duration < 1 || duration > 365) {
+      return 'A duração deve ser entre 1 e 365 dias';
+    }
+    
+    final targetValue = num.tryParse(_targetValueController.text);
+    if (targetValue == null || targetValue <= 0) {
+      return 'O valor da meta é obrigatório e deve ser maior que zero';
+    }
+    
+    // Validação específica por tipo
+    if (_missionType == 'TPS_IMPROVEMENT' && (targetValue < 1 || targetValue > 80)) {
+      return 'A meta TPS deve ser entre 1% e 80%';
+    }
+    if (_missionType == 'RDR_REDUCTION' && (targetValue < 5 || targetValue > 95)) {
+      return 'A meta RDR deve ser entre 5% e 95%';
+    }
+    if (_missionType == 'ILI_BUILDING' && (targetValue < 0.5 || targetValue > 24)) {
+      return 'O ILI mínimo deve ser entre 0.5 e 24 meses';
+    }
+    if (_missionType == 'ONBOARDING' && (targetValue < 1 || targetValue > 100)) {
+      return 'O número de transações deve ser entre 1 e 100';
+    }
+    if (_missionType == 'CATEGORY_REDUCTION' && (targetValue < 5 || targetValue > 80)) {
+      return 'A redução alvo deve ser entre 5% e 80%';
+    }
+    
+    // Validação de categoria obrigatória para CATEGORY_REDUCTION
+    if (_missionType == 'CATEGORY_REDUCTION' && _selectedCategoryId == null) {
+      return 'A categoria é obrigatória para missões de redução de gastos';
+    }
+    
+    return null;
+  }
+
+  void _saveMission() {
+    final error = _validateForm();
+    if (error != null) {
+      setState(() => _formError = error);
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _formError = null;
+    });
+
+    final config = _currentConfig;
+    final fieldName = config['field'] as String;
+    final validationType = config['validation_type'] as String;
+    
+    // Determina o valor numérico correto
+    num targetValue = num.tryParse(_targetValueController.text) ?? config['defaultValue'];
+    // Para ILI, aceita decimal; para outros, usa int
+    final dynamic fieldValue = (_missionType == 'ILI_BUILDING') 
+        ? targetValue.toDouble() 
+        : targetValue.toInt();
+
+    final missionData = <String, dynamic>{
+      'title': _titleController.text.trim(),
+      'description': _descriptionController.text.trim(),
+      'reward_points': int.tryParse(_rewardController.text) ?? 100,
+      'duration_days': int.tryParse(_durationController.text) ?? 30,
+      'difficulty': _difficulty,
+      'mission_type': _missionType,
+      'validation_type': validationType,
+      'priority': int.tryParse(_priorityController.text) ?? 50,
+      'is_active': true,
+      fieldName: fieldValue,
+    };
+    
+    // Adiciona categoria se for CATEGORY_REDUCTION
+    if (_missionType == 'CATEGORY_REDUCTION' && _selectedCategoryId != null) {
+      missionData['target_category_id'] = _selectedCategoryId;
+    }
+
+    // Se for edição, mantém o ID
+    if (widget.mission != null && widget.mission!['id'] != null) {
+      missionData['id'] = widget.mission!['id'];
+    }
+
+    widget.onSave(missionData);
+    Navigator.pop(context);
   }
 
   @override
@@ -1366,46 +1730,234 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
     _descriptionController.dispose();
     _rewardController.dispose();
     _durationController.dispose();
+    _targetValueController.dispose();
+    _priorityController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final config = _currentConfig;
+
     return Dialog(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.isCreating ? 'Nova Missão' : 'Editar Missão',
-              style: Theme.of(context).textTheme.headlineSmall,
+            Row(
+              children: [
+                Icon(
+                  widget.isCreating ? Icons.add_task : Icons.edit_note,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  widget.isCreating ? 'Nova Missão' : 'Editar Missão',
+                  style: theme.textTheme.headlineSmall,
+                ),
+              ],
             ),
             const SizedBox(height: 24),
+            
+            if (_formError != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: colorScheme.error, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _formError!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Tipo de Missão - primeiro para orientar os outros campos
+                    DropdownButtonFormField<String>(
+                      value: _missionType,
+                      decoration: InputDecoration(
+                        labelText: 'Tipo de Missão *',
+                        border: const OutlineInputBorder(),
+                        helperText: MissionTypeLabels.getDescriptive(_missionType),
+                        helperMaxLines: 2,
+                      ),
+                      isExpanded: true,
+                      items: MissionTypes.all.map((type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(MissionTypeLabels.getShort(type)),
+                      )).toList(),
+                      onChanged: _onMissionTypeChanged,
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Título
                     TextField(
                       controller: _titleController,
                       decoration: const InputDecoration(
                         labelText: 'Título *',
                         border: OutlineInputBorder(),
+                        hintText: 'Ex: Alcance 15% de economia',
                       ),
+                      maxLength: 150,
                     ),
                     const SizedBox(height: 16),
+                    
+                    // Descrição
                     TextField(
                       controller: _descriptionController,
                       decoration: const InputDecoration(
-                        labelText: 'Descrição',
+                        labelText: 'Descrição *',
                         border: OutlineInputBorder(),
+                        hintText: 'Descreva o objetivo da missão',
                       ),
                       maxLines: 3,
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
+                    
+                    // Campo específico do tipo de missão
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.track_changes, size: 18, color: colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Meta da Missão',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            config['description'] as String,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _targetValueController,
+                            decoration: InputDecoration(
+                              labelText: '${config['label']} *',
+                              border: const OutlineInputBorder(),
+                              hintText: config['hint'] as String,
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                          // Seletor de categoria para CATEGORY_REDUCTION
+                          if (_missionType == 'CATEGORY_REDUCTION') ...[
+                            const SizedBox(height: 16),
+                            if (_loadingCategories)
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            else if (_categories.isEmpty)
+                              Text(
+                                'Nenhuma categoria global encontrada',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.error,
+                                ),
+                              )
+                            else
+                              DropdownButtonFormField<int>(
+                                value: _selectedCategoryId,
+                                decoration: InputDecoration(
+                                  labelText: 'Categoria Alvo *',
+                                  border: const OutlineInputBorder(),
+                                  filled: true,
+                                  fillColor: colorScheme.surface,
+                                  prefixIcon: const Icon(Icons.folder_outlined),
+                                ),
+                                isExpanded: true,
+                                hint: const Text('Selecione a categoria'),
+                                items: _categories.map<DropdownMenuItem<int>>((cat) {
+                                  final catId = cat['id'];
+                                  final catName = cat['name']?.toString() ?? 'Sem nome';
+                                  final catColor = cat['color']?.toString();
+                                  
+                                  Color? displayColor;
+                                  if (catColor != null && catColor.isNotEmpty) {
+                                    try {
+                                      final colorHex = catColor.replaceAll('#', '');
+                                      displayColor = Color(int.parse('0xFF$colorHex'));
+                                    } catch (_) {
+                                      displayColor = null;
+                                    }
+                                  }
+                                  
+                                  return DropdownMenuItem<int>(
+                                    value: catId is int ? catId : int.tryParse(catId.toString()),
+                                    child: Row(
+                                      children: [
+                                        if (displayColor != null)
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            margin: const EdgeInsets.only(right: 8),
+                                            decoration: BoxDecoration(
+                                              color: displayColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        Flexible(
+                                          child: Text(
+                                            catName,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() => _selectedCategoryId = value);
+                                },
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Dificuldade e Duração
                     Row(
                       children: [
                         Expanded(
@@ -1417,7 +1969,7 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
                             ),
                             items: const [
                               DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                              DropdownMenuItem(value: 'MEDIUM', child: Text('Médio')),
+                              DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
                               DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
                             ],
                             onChanged: (value) {
@@ -1427,20 +1979,45 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _missionType,
+                          child: TextField(
+                            controller: _durationController,
                             decoration: const InputDecoration(
-                              labelText: 'Tipo',
+                              labelText: 'Duração (dias)',
                               border: OutlineInputBorder(),
+                              hintText: 'Ex: 30',
                             ),
-                            items: const [
-                              DropdownMenuItem(value: 'TPS_IMPROVEMENT', child: Text('TPS')),
-                              DropdownMenuItem(value: 'RDR_REDUCTION', child: Text('RDR')),
-                              DropdownMenuItem(value: 'ILI_BUILDING', child: Text('ILI')),
-                            ],
-                            onChanged: (value) {
-                              setState(() => _missionType = value ?? 'TPS_IMPROVEMENT');
-                            },
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Recompensa e Prioridade
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _rewardController,
+                            decoration: const InputDecoration(
+                              labelText: 'Recompensa (XP)',
+                              border: OutlineInputBorder(),
+                              hintText: 'Ex: 100',
+                              prefixIcon: Icon(Icons.stars, color: Colors.amber),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _priorityController,
+                            decoration: const InputDecoration(
+                              labelText: 'Prioridade',
+                              border: OutlineInputBorder(),
+                              hintText: '1-100 (menor = mais prioritário)',
+                            ),
+                            keyboardType: TextInputType.number,
                           ),
                         ),
                       ],
@@ -1450,36 +2027,25 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
               ),
             ),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _isLoading ? null : () => Navigator.pop(context),
                   child: const Text('Cancelar'),
                 ),
-                const SizedBox(width: 12),
-                FilledButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          final missionData = {
-                            'title': _titleController.text,
-                            'description': _descriptionController.text,
-                            'xp_reward': int.tryParse(_rewardController.text) ?? 100,
-                            'duration_days': int.tryParse(_durationController.text) ?? 7,
-                            'difficulty': _difficulty,
-                            'type': _missionType,
-                          };
-                          widget.onSave(missionData);
-                          Navigator.pop(context);
-                        },
-                  child: _isLoading
+                FilledButton.icon(
+                  onPressed: _isLoading ? null : _saveMission,
+                  icon: _isLoading
                       ? const SizedBox(
-                          height: 20,
-                          width: 20,
+                          height: 18,
+                          width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Salvar'),
+                      : const Icon(Icons.save),
+                  label: Text(widget.isCreating ? 'Criar' : 'Salvar'),
                 ),
               ],
             ),

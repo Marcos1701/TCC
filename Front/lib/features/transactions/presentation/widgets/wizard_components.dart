@@ -116,7 +116,7 @@ class TransactionCategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = category.color != null
+    final color = category.color != null && category.color!.length > 1
         ? Color(
             int.parse(category.color!.substring(1), radix: 16) + 0xFF000000,
           )

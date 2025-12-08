@@ -67,9 +67,10 @@ class _MissionRecommendationsSectionState
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 Text(
                   'Missões Recomendadas',
                   style: theme.textTheme.titleLarge?.copyWith(
@@ -86,6 +87,7 @@ class _MissionRecommendationsSectionState
                 ),
               ],
             ),
+          ),
             ListenableBuilder(
               listenable: widget.viewModel,
               builder: (context, _) {

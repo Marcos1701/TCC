@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/models/category.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/cache_manager.dart';
+import '../../../../core/services/cache_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../categories/presentation/pages/category_form_page.dart';
@@ -80,6 +81,9 @@ class _TransactionWizardState extends State<TransactionWizard> {
 
   Future<void> _loadCategories() async {
     try {
+      // Invalidar cache para garantir dados atualizados
+      await CacheService.invalidateCategories();
+      
       final categories = await _repository.fetchCategories();
       if (mounted) {
         setState(() {

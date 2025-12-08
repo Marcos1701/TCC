@@ -623,6 +623,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
       Color color;
       String displayValue;
       String displayLabel;
+      String? tip;
       
       switch (key) {
         case 'target_tps':
@@ -630,18 +631,21 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           color = const Color(0xFF4CAF50);
           displayValue = '$value%';
           displayLabel = 'Meta de Poupança (TPS)';
+          tip = 'Aumente receitas ou faça aportes em categorias de Poupança/Investimento.';
           break;
         case 'target_rdr':
           icon = Icons.trending_down;
           color = const Color(0xFFF44336);
           displayValue = '$value%';
           displayLabel = 'Teto de Dívidas (RDR)';
+          tip = 'Pague dívidas vinculando despesas a receitas.';
           break;
         case 'min_ili':
           icon = Icons.account_balance_wallet;
           color = const Color(0xFF2196F3);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
           displayLabel = 'Reserva Mínima (ILI)';
+          tip = 'Aumente sua reserva de emergência ou reduza despesas essenciais.';
           break;
         case 'max_ili':
           icon = Icons.account_balance_wallet;
@@ -672,12 +676,14 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           color = const Color(0xFFF44336);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
           displayLabel = 'Teto de Gastos';
+          tip = 'Evite ultrapassar este valor na categoria.';
           break;
         case 'savings_increase_amount':
           icon = Icons.arrow_upward;
           color = const Color(0xFF4CAF50);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
           displayLabel = 'Aportes na Poupança';
+          tip = 'Registre transações em categorias do grupo Poupança.';
           break;
         // goal_progress_target removido - sistema de goals desativado
         // case 'goal_progress_target':
@@ -710,6 +716,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         displayValue,
         icon,
         color,
+        tip: tip,
       ));
     });
     
@@ -717,7 +724,8 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
   }
 
   Widget _buildInfoRow(
-      ThemeData theme, String label, String value, IconData icon, Color color) {
+      ThemeData theme, String label, String value, IconData icon, Color color,
+      {String? tip}) {
     return Row(
       children: [
         Icon(icon, color: color, size: 20),

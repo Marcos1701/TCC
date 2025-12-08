@@ -14,6 +14,7 @@ from .indicators import (
 from .categories import CategoryReductionValidator, CategoryLimitValidator
 from .transactions import TransactionConsistencyValidator, PaymentDisciplineValidator
 from .advanced import AdvancedMissionValidator, MultiCriteriaValidator
+from .savings import SavingsIncreaseValidator
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,7 @@ VALIDATION_TYPE_MAP = {
     'CATEGORY_LIMIT': CategoryLimitValidator,
     'TRANSACTION_CONSISTENCY': TransactionConsistencyValidator,
     'PAYMENT_COUNT': PaymentDisciplineValidator,
+    'SAVINGS_INCREASE': SavingsIncreaseValidator,
 }
 
 

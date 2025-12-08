@@ -64,27 +64,27 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _buscaController,
-                          decoration: InputDecoration(
-                            hintText: 'Buscar por nome ou e-mail...',
-                            prefixIcon: const Icon(Icons.search),
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _buscaController.clear();
-                                _buscar();
-                              },
-                            ),
-                          ),
-                          onSubmitted: (_) => _buscar(),
-                        ),
+                  TextField(
+                    controller: _buscaController,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por nome ou e-mail...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _buscaController.clear();
+                          _buscar();
+                        },
                       ),
-                      const SizedBox(width: 16),
+                    ),
+                    onSubmitted: (_) => _buscar(),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
                       FilterChip(
                         label: const Text('Apenas ativos'),
                         selected: _apenasAtivos,
@@ -93,7 +93,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                           _buscar();
                         },
                       ),
-                      const SizedBox(width: 8),
                       ElevatedButton.icon(
                         onPressed: _buscar,
                         icon: const Icon(Icons.search),
@@ -303,42 +302,57 @@ class _UserCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Icon(
-                        Icons.military_tech,
-                        size: 16,
-                        color: colorScheme.primary,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.military_tech,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Nível $nivel',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Nível $nivel',
-                        style: theme.textTheme.bodySmall,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.stars,
+                            size: 16,
+                            color: Colors.amber,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$xp XP',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      const Icon(
-                        Icons.stars,
-                        size: 16,
-                        color: Colors.amber,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$xp XP',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      if (ultimoAcesso != null) ...[
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.schedule,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant,
+                      if (ultimoAcesso != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.schedule,
+                              size: 16,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _formatDate(ultimoAcesso),
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDate(ultimoAcesso),
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
                     ],
                   ),
                 ],

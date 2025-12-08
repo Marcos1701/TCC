@@ -182,7 +182,15 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if transaction.type == Transaction.TransactionType.INCOME:
             tps_impact = (amount / (total_income + amount)) * 100
         elif transaction.type == Transaction.TransactionType.EXPENSE:
-            tps_impact = -(amount / total_income) * 100
+            # Savings/Investment expenses do not reduce TPS (they are savings)
+            is_savings = False
+            if transaction.category and transaction.category.group in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
+                is_savings = True
+            
+            if is_savings:
+                tps_impact = 0
+            else:
+                tps_impact = -(amount / total_income) * 100
         
         rdr_impact = 0
         if transaction.type == Transaction.TransactionType.EXPENSE and transaction.is_recurring:
@@ -316,7 +324,19 @@ class TransactionViewSet(viewsets.ModelViewSet):
             if tx_type == 'INCOME':
                 tps_impact = (amount / (total_income + amount)) * 100
             elif tx_type == 'EXPENSE':
-                tps_impact = -(amount / total_income) * 100
+                is_savings = False
+                if category_id:
+                    try:
+                        cat = Category.objects.get(id=category_id)
+                        if cat.group in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
+                            is_savings = True
+                    except Category.DoesNotExist:
+                        pass
+
+                if is_savings:
+                    tps_impact = 0
+                else:
+                    tps_impact = -(amount / total_income) * 100
             
             if tx_type == 'EXPENSE' and is_recurring:
                 rdr_impact = (amount / total_income) * 100
