@@ -17,7 +17,7 @@ import '../../../transactions/presentation/pages/transactions_page.dart';
 import '../../../transactions/presentation/widgets/payment_wizard.dart';
 import '../../../transactions/presentation/widgets/transaction_action_selector.dart';
 import '../../../transactions/presentation/widgets/transaction_wizard.dart';
-import '../widgets/day4_5_widgets.dart';
+import '../widgets/app_widgets.dart';
 import 'finances_page.dart';
 
 class HomePage extends StatefulWidget {

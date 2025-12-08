@@ -7,7 +7,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/feedback_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../missions/presentation/pages/missions_page.dart';
-import '../widgets/day4_5_widgets.dart';
+import '../widgets/app_widgets.dart';
 
 class UnifiedHomePage extends StatefulWidget {
   const UnifiedHomePage({super.key});
