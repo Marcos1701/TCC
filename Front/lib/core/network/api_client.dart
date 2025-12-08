@@ -144,6 +144,7 @@ class ApiClient {
     try {
       _refreshing = true;
       debugPrint('🔄 Trying to refresh access token...');
+      debugPrint('🔄 Using refresh token: ${_refreshToken?.substring(0, 20)}...');
       
       final response = await _dio.post<Map<String, dynamic>>(
         '/api/token/refresh/',
@@ -153,11 +154,16 @@ class ApiClient {
       
       final data = response.data ?? {};
       final newAccess = data['access'] as String?;
-      final refreshValue = (data['refresh'] as String?) ?? _refreshToken;
+      // Always use the new refresh token if provided (rotation), otherwise keep current
+      final newRefresh = data['refresh'] as String?;
       
-      if (newAccess != null && refreshValue != null) {
+      if (newAccess != null) {
+        final refreshToSave = newRefresh ?? _refreshToken!;
         debugPrint('✅ Token refreshed successfully');
-        await setTokens(access: newAccess, refresh: refreshValue);
+        if (newRefresh != null) {
+          debugPrint('🔄 New refresh token received (rotation)');
+        }
+        await setTokens(access: newAccess, refresh: refreshToSave);
         
         final opts = Options(
           method: original.method,
@@ -171,12 +177,14 @@ class ApiClient {
           options: opts,
         );
       } else {
-        debugPrint('🚨 Invalid refresh response, notifying expiration');
+        debugPrint('🚨 Invalid refresh response (no access token), notifying expiration');
         await clearTokens();
         _notifySessionExpired();
       }
     } on DioException catch (e) {
-      debugPrint('🚨 Error refreshing token (${e.response?.statusCode}), notifying expiration');
+      debugPrint('🚨 Error refreshing token: ${e.message}');
+      debugPrint('🚨 Status code: ${e.response?.statusCode}');
+      debugPrint('🚨 Response data: ${e.response?.data}');
       await clearTokens();
       _notifySessionExpired();
     } finally {
@@ -184,6 +192,7 @@ class ApiClient {
     }
     return null;
   }
+
 
   void _notifySessionExpired() {
     debugPrint('📢 Notifying session expiration');

@@ -189,10 +189,15 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env_int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 15)),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=env_int("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7)),
+    # Access token: 1 hour (was 15 min) - more practical for user sessions
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env_int("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 60)),
+    # Refresh token: 30 days (was 7) - user stays logged in for a month
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env_int("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 30)),
+    # Rotate refresh tokens on each refresh (security best practice)
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
+    # Don't blacklist immediately - prevents race conditions where old token
+    # is invalidated before client saves the new one
+    "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "UPDATE_LAST_LOGIN": True,
     "TOKEN_OBTAIN_SERIALIZER": "finance.authentication.EmailTokenObtainPairSerializer",
