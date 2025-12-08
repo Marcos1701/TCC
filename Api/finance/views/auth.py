@@ -549,13 +549,13 @@ class UserProfileViewSet(
         
         active_missions = MissionProgress.objects.filter(
             user=user,
-            status__in=['NOT_STARTED', 'IN_PROGRESS']
+            status__in=['PENDING', 'ACTIVE']
         )
         
         count = 0
         for mp in active_missions:
             mp.status = 'COMPLETED'
-            mp.progress_percentage = 100.0
+            mp.progress = 100.0
             mp.completed_at = timezone.now()
             mp.save()
             count += 1

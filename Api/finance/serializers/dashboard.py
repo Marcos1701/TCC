@@ -51,7 +51,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
     cached_ili = serializers.DecimalField(
         max_digits=12, decimal_places=2, read_only=True, required=False
     )
-    cache_timestamp = serializers.DateTimeField(read_only=True, required=False)
+    cache_timestamp = serializers.DateTimeField(
+        source='indicators_updated_at', read_only=True, required=False
+    )
 
     class Meta:
         model = UserProfile
