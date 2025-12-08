@@ -71,6 +71,9 @@ class MonthSummaryCard extends StatelessWidget {
                     value: '${summary.tps.toStringAsFixed(1)}%',
                     color: tpsColor,
                     icon: Icons.savings,
+                    dialogTitle: UxStrings.tpsTitle,
+                    dialogCalculation: UxStrings.tpsCalculation,
+                    dialogDescription: UxStrings.tpsDescription,
                   ),
                 ),
                 Expanded(
@@ -79,6 +82,9 @@ class MonthSummaryCard extends StatelessWidget {
                     value: '${summary.rdr.toStringAsFixed(1)}%',
                     color: rdrColor,
                     icon: Icons.money_off,
+                    dialogTitle: UxStrings.rdrTitle,
+                    dialogCalculation: UxStrings.rdrCalculation,
+                    dialogDescription: UxStrings.rdrDescription,
                   ),
                 ),
                 Expanded(
@@ -87,6 +93,9 @@ class MonthSummaryCard extends StatelessWidget {
                     value: '${summary.ili.toStringAsFixed(1)}x',
                     color: iliColor,
                     icon: Icons.account_balance,
+                    dialogTitle: UxStrings.iliTitle,
+                    dialogCalculation: UxStrings.iliCalculation,
+                    dialogDescription: UxStrings.iliDescription,
                   ),
                 ),
               ],
@@ -148,37 +157,145 @@ class _IndicatorItem extends StatelessWidget {
     required this.value,
     required this.color,
     required this.icon,
+    required this.dialogTitle,
+    required this.dialogCalculation,
+    required this.dialogDescription,
   });
 
   final String label;
   final String value;
   final Color color;
   final IconData icon;
+  final String dialogTitle;
+  final String dialogCalculation;
+  final String dialogDescription;
+
+  void _showExplanation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                dialogTitle,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black26,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'FÓRMULA',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    dialogCalculation,
+                    style: const TextStyle(
+                      color: Colors.amber,
+                      fontFamily: 'Courier',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              dialogDescription,
+              style: const TextStyle(
+                color: Colors.white70,
+                height: 1.5,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.justify,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showExplanation(context),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.grey[600],
+                    size: 12,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[400],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
