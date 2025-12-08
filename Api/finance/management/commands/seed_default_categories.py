@@ -1,6 +1,6 @@
 """
 Comando Django para criar categorias padrão do sistema.
-Cria 28 categorias (8 INCOME + 20 EXPENSE) com cores e grupos definidos.
+Cria lista abrangente de categorias (INCOME + EXPENSE) com cores e grupos definidos, sem emojis.
 """
 from decimal import Decimal
 from django.core.management.base import BaseCommand
@@ -9,7 +9,7 @@ from finance.models import Category
 
 
 class Command(BaseCommand):
-    help = 'Cria categorias padrão do sistema (8 INCOME + 20 EXPENSE)'
+    help = 'Cria categorias padrão do sistema (ampliadas e organizadas)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -37,193 +37,238 @@ class Command(BaseCommand):
         )
 
     def _create_income_categories(self):
-        """Cria 8 categorias de RECEITA."""
+        """Cria categorias de RECEITA."""
         self.stdout.write('📊 Criando categorias de RECEITA...')
         
         categories = [
-            # ===== RENDA PRINCIPAL (3 categorias) =====
+            # ===== RENDA PRINCIPAL =====
             {
-                'name': '💼 Salário',
+                'name': 'Salário',
                 'type': 'INCOME',
                 'group': 'REGULAR_INCOME',
                 'color': '#10B981',  # Verde
             },
             {
-                'name': '💰 13º Salário',
+                'name': '13º Salário',
                 'type': 'INCOME',
                 'group': 'REGULAR_INCOME',
                 'color': '#059669',  # Verde escuro
             },
             {
-                'name': '🎁 Bonificação',
+                'name': 'Bonificação',
                 'type': 'INCOME',
                 'group': 'REGULAR_INCOME',
                 'color': '#34D399',  # Verde claro
             },
             
-            # ===== RENDA EXTRA (3 categorias) =====
+            # ===== RENDA EXTRA =====
             {
-                'name': '💻 Freelance',
+                'name': 'Freelance',
                 'type': 'INCOME',
                 'group': 'EXTRA_INCOME',
                 'color': '#8B5CF6',  # Roxo
             },
             {
-                'name': '🛍️ Vendas',
+                'name': 'Vendas',
                 'type': 'INCOME',
                 'group': 'EXTRA_INCOME',
                 'color': '#A78BFA',  # Roxo claro
             },
             {
-                'name': '📈 Investimentos',
+                'name': 'Rendimentos',
                 'type': 'INCOME',
                 'group': 'EXTRA_INCOME',
                 'color': '#6366F1',  # Índigo
             },
-            
-            # ===== OUTRAS RECEITAS (2 categorias) =====
+             # ===== INVESTIMENTOS (Resgastes) =====
             {
-                'name': '🎉 Presente',
+                'name': 'Resgate de Investimento',
+                'type': 'INCOME',
+                'group': 'SAVINGS',
+                'color': '#6366F1',  # Índigo
+            },
+            
+            # ===== OUTRAS RECEITAS =====
+            {
+                'name': 'Presente',
                 'type': 'INCOME',
                 'group': 'OTHER',
                 'color': '#EC4899',  # Rosa
             },
             {
-                'name': '🔄 Reembolso',
+                'name': 'Reembolso',
                 'type': 'INCOME',
                 'group': 'OTHER',
                 'color': '#F472B6',  # Rosa claro
+            },
+            {
+                'name': 'Outras Receitas',
+                'type': 'INCOME',
+                'group': 'OTHER',
+                'color': '#9CA3AF',  # Cinza claro
             },
         ]
 
         return self._batch_create_categories(categories)
 
     def _create_expense_categories(self):
-        """Cria 20 categorias de DESPESA."""
+        """Cria categorias de DESPESA."""
         self.stdout.write('\n📊 Criando categorias de DESPESA...')
         
         categories = [
-            # ===== DESPESAS ESSENCIAIS (8 categorias) =====
+            # ===== DESPESAS ESSENCIAIS =====
             {
-                'name': '🏠 Moradia',
+                'name': 'Aluguel',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#EF4444',  # Vermelho
             },
             {
-                'name': '⚡ Energia Elétrica',
+                'name': 'Condomínio',
+                'type': 'EXPENSE',
+                'group': 'ESSENTIAL_EXPENSE',
+                'color': '#F87171',  # Vermelho claro
+            },
+            {
+                'name': 'Energia Elétrica',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#F59E0B',  # Âmbar
             },
             {
-                'name': '💧 Água',
+                'name': 'Água',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#3B82F6',  # Azul
             },
             {
-                'name': '📱 Telefone/Internet',
+                'name': 'Gás',
+                'type': 'EXPENSE',
+                'group': 'ESSENTIAL_EXPENSE',
+                'color': '#F97316',  # Laranja
+            },
+            {
+                'name': 'Telefone & Internet',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#8B5CF6',  # Roxo
             },
             {
-                'name': '🍎 Alimentação',
+                'name': 'Supermercado',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#10B981',  # Verde
             },
             {
-                'name': '🚗 Transporte',
+                'name': 'Transporte',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#6366F1',  # Índigo
             },
             {
-                'name': '💊 Saúde',
+                'name': 'Combustível',
+                'type': 'EXPENSE',
+                'group': 'ESSENTIAL_EXPENSE',
+                'color': '#7C3AED',  # Roxo escuro
+            },
+            {
+                'name': 'Saúde & Farmácia',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#EF4444',  # Vermelho
             },
             {
-                'name': '📚 Educação',
+                'name': 'Educação',
                 'type': 'EXPENSE',
                 'group': 'ESSENTIAL_EXPENSE',
                 'color': '#3B82F6',  # Azul
             },
             
-            # ===== ESTILO DE VIDA (9 categorias) =====
+            # ===== ESTILO DE VIDA =====
             {
-                'name': '🍔 Restaurantes',
+                'name': 'Restaurantes',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#F59E0B',  # Âmbar
             },
             {
-                'name': '🎮 Lazer',
+                'name': 'Lazer e Entretenimento',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#EC4899',  # Rosa
             },
             {
-                'name': '👕 Vestuário',
+                'name': 'Vestuário',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#8B5CF6',  # Roxo
             },
             {
-                'name': '✂️ Beleza',
+                'name': 'Cuidados Pessoais',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#EC4899',  # Rosa
             },
             {
-                'name': '🏋️ Academia',
+                'name': 'Academia / Esportes',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#10B981',  # Verde
             },
             {
-                'name': '🐾 Pet',
+                'name': 'Pet',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#F59E0B',  # Âmbar
             },
             {
-                'name': '🎬 Streaming',
+                'name': 'Serviços de Streaming',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#EF4444',  # Vermelho
             },
             {
-                'name': '🎁 Presentes',
+                'name': 'Presentes',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#EC4899',  # Rosa
             },
             {
-                'name': '✈️ Viagens',
+                'name': 'Viagens',
                 'type': 'EXPENSE',
                 'group': 'LIFESTYLE_EXPENSE',
                 'color': '#3B82F6',  # Azul
             },
             
-            # ===== OUTRAS DESPESAS (3 categorias) =====
+            # ===== POUPANÇA / INVESTIMENTOS (Saída) =====
             {
-                'name': '🏦 Taxas Bancárias',
+                'name': 'Aplicação em Investimentos',
                 'type': 'EXPENSE',
-                'group': 'OTHER',
+                'group': 'SAVINGS',
+                'color': '#10B981',  # Verde
+            },
+
+            # ===== DÍVIDAS E OUTROS =====
+            {
+                'name': 'Pagamento de Empréstimo',
+                'type': 'EXPENSE',
+                'group': 'OTHER', 
                 'color': '#6B7280',  # Cinza
             },
             {
-                'name': '💳 Cartão de Crédito',
+                'name': 'Pagamento de Cartão',
                 'type': 'EXPENSE',
                 'group': 'OTHER',
                 'color': '#DC2626',  # Vermelho escuro
             },
             {
-                'name': '🔧 Outros',
+                'name': 'Taxas Bancárias',
+                'type': 'EXPENSE',
+                'group': 'OTHER',
+                'color': '#9CA3AF',  # Cinza claro
+            },
+            {
+                'name': 'Outros',
                 'type': 'EXPENSE',
                 'group': 'OTHER',
                 'color': '#9CA3AF',  # Cinza claro
