@@ -276,6 +276,7 @@ class SimplifiedOnboardingView(APIView):
         
         from ..services import calculate_summary, invalidate_indicators_cache
         invalidate_indicators_cache(user)
+        invalidate_user_dashboard_cache(user)
         summary = calculate_summary(user)
         
         logger.info(f"Onboarding concluído para {user.username}. Summary: {summary}")

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'cache_service.dart';
 
 class CacheManager extends ChangeNotifier {
   static final CacheManager _instance = CacheManager._internal();
@@ -14,6 +15,11 @@ class CacheManager extends ChangeNotifier {
     _lastInvalidation = DateTime.now();
     _invalidatedCaches.clear();
     _invalidatedCaches.addAll(CacheType.values);
+    
+    // Explicitly wipe data from Hive to prevent any timestamp race conditions
+    CacheService.invalidateDashboard();
+    CacheService.invalidateMissions();
+    CacheService.invalidateCategories();
     
     if (kDebugMode) {
       debugPrint('🔄 Cache invalidated: ${reason ?? "manual"}');
