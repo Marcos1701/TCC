@@ -8,6 +8,8 @@ import uuid
 from .models import Category, Transaction, TransactionLink, UserProfile
 
 
+from django.db.models import Q
+
 def _ensure_default_categories(user):
     default_categories = [
         {'name': 'Salário', 'type': 'INCOME', 'group': 'REGULAR_INCOME', 'color': '#4CAF50'},
@@ -34,8 +36,9 @@ def _ensure_default_categories(user):
     
     created_count = 0
     for cat_data in default_categories:
+        # Check if category already exists for user OR as a global system default
         exists = Category.objects.filter(
-            user=user,
+            Q(user=user) | Q(user__isnull=True),
             name=cat_data['name'],
             type=cat_data['type']
         ).exists()
@@ -43,7 +46,7 @@ def _ensure_default_categories(user):
         if not exists:
             Category.objects.create(
                 user=user,
-                is_system_default=True,
+                is_system_default=False, # Personal default, not system global
                 **cat_data
             )
             created_count += 1

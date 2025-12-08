@@ -13,6 +13,7 @@ import '../network/endpoints.dart';
 import '../services/cache_service.dart';
 import '../errors/failures.dart';
 import '../utils/date_formatter.dart';
+import '../services/cache_manager.dart';
 
 class FinanceRepository {
   FinanceRepository({ApiClient? client}) : _client = client ?? ApiClient();
@@ -98,7 +99,9 @@ class FinanceRepository {
 
   Future<DashboardData> fetchDashboard() async {
     try {
-      final cached = CacheService.getCachedDashboard();
+      final cached = CacheService.getCachedDashboard(
+        invalidatedAfter: CacheManager().lastInvalidation,
+      );
       if (cached != null) {
         return DashboardData.fromMap(cached);
       }
@@ -131,7 +134,9 @@ class FinanceRepository {
   Future<List<CategoryModel>> fetchCategories({String? type}) async {
     try {
       if (type == null) {
-        final cached = CacheService.getCachedCategories();
+        final cached = CacheService.getCachedCategories(
+          invalidatedAfter: CacheManager().lastInvalidation,
+        );
         if (cached != null) {
           return cached.map((e) => CategoryModel.fromMap(e)).toList();
         }
@@ -369,7 +374,9 @@ class FinanceRepository {
   }
 
   Future<List<MissionModel>> fetchMissions() async {
-    final cached = CacheService.getCachedMissions();
+    final cached = CacheService.getCachedMissions(
+      invalidatedAfter: CacheManager().lastInvalidation,
+    );
     if (cached != null) {
       return cached.map((e) => MissionModel.fromMap(e)).toList();
     }

@@ -21,9 +21,16 @@ class CacheService {
     await _categories.put('timestamp', DateTime.now().millisecondsSinceEpoch);
   }
 
-  static List<Map<String, dynamic>>? getCachedCategories({int maxAgeMinutes = 30}) {
+  static List<Map<String, dynamic>>? getCachedCategories({
+    int maxAgeMinutes = 30,
+    DateTime? invalidatedAfter,
+  }) {
     final timestamp = _categories.get('timestamp') as int?;
     if (timestamp == null) return null;
+    
+    if (invalidatedAfter != null && timestamp < invalidatedAfter.millisecondsSinceEpoch) {
+      return null;
+    }
     
     final age = DateTime.now().millisecondsSinceEpoch - timestamp;
     if (age > maxAgeMinutes * 60 * 1000) return null;
@@ -40,9 +47,16 @@ class CacheService {
     await _missions.put('timestamp', DateTime.now().millisecondsSinceEpoch);
   }
 
-  static List<Map<String, dynamic>>? getCachedMissions({int maxAgeMinutes = 10}) {
+  static List<Map<String, dynamic>>? getCachedMissions({
+    int maxAgeMinutes = 10,
+    DateTime? invalidatedAfter,
+  }) {
     final timestamp = _missions.get('timestamp') as int?;
     if (timestamp == null) return null;
+    
+    if (invalidatedAfter != null && timestamp < invalidatedAfter.millisecondsSinceEpoch) {
+      return null;
+    }
     
     final age = DateTime.now().millisecondsSinceEpoch - timestamp;
     if (age > maxAgeMinutes * 60 * 1000) return null;
@@ -59,9 +73,16 @@ class CacheService {
     await _dashboard.put('timestamp', DateTime.now().millisecondsSinceEpoch);
   }
 
-  static Map<String, dynamic>? getCachedDashboard({int maxAgeMinutes = 5}) {
+  static Map<String, dynamic>? getCachedDashboard({
+    int maxAgeMinutes = 5,
+    DateTime? invalidatedAfter,
+  }) {
     final timestamp = _dashboard.get('timestamp') as int?;
     if (timestamp == null) return null;
+    
+    if (invalidatedAfter != null && timestamp < invalidatedAfter.millisecondsSinceEpoch) {
+      return null;
+    }
     
     final age = DateTime.now().millisecondsSinceEpoch - timestamp;
     if (age > maxAgeMinutes * 60 * 1000) return null;
