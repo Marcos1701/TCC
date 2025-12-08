@@ -42,9 +42,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     filterset_fields = [
         'type',
         'is_recurring',
-        'is_paid',
         'category',
-        'payment_method',
     ]
     search_fields = ['description', 'category__name']
     ordering_fields = ['date', 'amount', 'created_at']
