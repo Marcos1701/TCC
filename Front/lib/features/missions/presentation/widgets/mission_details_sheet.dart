@@ -177,6 +177,10 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
                               if (widget.missionProgress.status == 'PENDING') ...[
                                 const SizedBox(height: 32),
                                 _buildActionButtons(theme),
+                              ] else if (widget.missionProgress.status == 'IN_PROGRESS' || 
+                                         widget.missionProgress.status == 'ACTIVE') ...[
+                                const SizedBox(height: 32),
+                                _buildAbandonButton(theme),
                               ],
                             ],
                           ),
@@ -589,6 +593,25 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
     targetInfo.forEach((key, value) {
       if (value == null) return;
       
+      // Filter out internal/system keys that shouldn't be shown to the user
+      const internalKeys = {
+        'TYPE', 
+        'VALIDATION_TYPE', 
+        'TARGETS', 
+        'COMPLETION_CRITERIA', 
+        'REWARD_CALCULATION', 
+        'recurrence_days',
+        'start_date',
+        'end_date',
+        'duration_days',
+        'difficulty',
+        'mission_type',
+        'requires_consecutive_days',
+        'min_consecutive_days'
+      };
+
+      if (internalKeys.contains(key)) return;
+      
       IconData icon;
       Color color;
       String displayValue;
@@ -599,55 +622,55 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           icon = Icons.savings_outlined;
           color = const Color(0xFF4CAF50);
           displayValue = '$value%';
-          displayLabel = 'TPS Alvo';
+          displayLabel = 'Meta de Poupança (TPS)';
           break;
         case 'target_rdr':
           icon = Icons.trending_down;
           color = const Color(0xFFF44336);
           displayValue = '$value%';
-          displayLabel = 'RDR Alvo';
+          displayLabel = 'Teto de Dívidas (RDR)';
           break;
         case 'min_ili':
           icon = Icons.account_balance_wallet;
           color = const Color(0xFF2196F3);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
-          displayLabel = 'ILI Mínimo';
+          displayLabel = 'Reserva Mínima (ILI)';
           break;
         case 'max_ili':
           icon = Icons.account_balance_wallet;
           color = const Color(0xFF2196F3);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
-          displayLabel = 'ILI Máximo';
+          displayLabel = 'Reserva Máxima (ILI)';
           break;
         case 'min_transactions':
           icon = Icons.receipt_long;
           color = const Color(0xFF9C27B0);
           displayValue = '$value transações';
-          displayLabel = 'Transações Mínimas';
+          displayLabel = 'Total de Transações';
           break;
         case 'target_category':
           icon = Icons.category;
           color = const Color(0xFFFF9800);
           displayValue = 'Categoria #$value';
-          displayLabel = 'Categoria Alvo';
+          displayLabel = 'Categoria Específica';
           break;
         case 'target_reduction_percent':
           icon = Icons.arrow_downward;
           color = const Color(0xFF4CAF50);
           displayValue = '-$value%';
-          displayLabel = 'Redução Necessária';
+          displayLabel = 'Meta de Redução';
           break;
         case 'category_spending_limit':
           icon = Icons.block;
           color = const Color(0xFFF44336);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
-          displayLabel = 'Limite de Gastos';
+          displayLabel = 'Teto de Gastos';
           break;
         case 'savings_increase_amount':
           icon = Icons.arrow_upward;
           color = const Color(0xFF4CAF50);
           displayValue = 'R\$ ${NumberFormat('#,##0.00', 'pt_BR').format(value)}';
-          displayLabel = 'Aumento na Poupança';
+          displayLabel = 'Aportes na Poupança';
           break;
         // goal_progress_target removido - sistema de goals desativado
         // case 'goal_progress_target':
@@ -661,7 +684,7 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           icon = Icons.check_circle_outline;
           color = const Color(0xFF4CAF50);
           displayValue = '$value ações/dia';
-          displayLabel = 'Ações Diárias';
+          displayLabel = 'Registros Diários';
           break;
         default:
           icon = Icons.info_outline;
@@ -777,6 +800,56 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
             style: TextStyle(
               color: Colors.grey[400],
               fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAbandonButton(ThemeData theme) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Você aceitou este desafio. Se preferir, pode abandoná-lo e ele será removido da sua lista.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: Colors.grey[300],
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              widget.onSkip(widget.missionProgress.mission.id);
+            },
+            icon: const Icon(Icons.close, size: 18),
+            label: const Text('Abandonar Desafio'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red[300],
+              side: BorderSide(color: Colors.red[300]!.withOpacity(0.5)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ),

@@ -219,9 +219,8 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
       if (e.toString().contains('DioException')) {
         if (e.toString().contains('400')) {
           errorMessage = 'Dados inválidos. Verifique os valores selecionados.';
-        } else if (e.toString().contains('401')) {
-          errorMessage = 'Sessão expirada. Faça login novamente.';
         } else if (e.toString().contains('403')) {
+          // 401 é tratado automaticamente pelo ApiClient (refresh de token)
           errorMessage = 'Você não tem permissão para realizar esta operação.';
         } else if (e.toString().contains('500')) {
           errorMessage = 'Erro no servidor. Tente novamente mais tarde.';

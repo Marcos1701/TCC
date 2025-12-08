@@ -36,16 +36,18 @@ class _TrackingPageState extends State<TrackingPage> {
   Future<_TrackingData> _loadData() async {
     final dashboard = await _repository.fetchDashboard();
     
+    String? analyticsError;
     AnalyticsData? analytics;
     try {
       analytics = await _repository.fetchAnalytics();
-    } catch (_) {
-      // Analytics is optional, continue without it
+    } catch (e) {
+      analyticsError = e.toString();
     }
     
     return _TrackingData(
       dashboard: dashboard,
       analytics: analytics,
+      analyticsError: analyticsError,
     );
   }
 
@@ -116,8 +118,13 @@ class _TrackingPageState extends State<TrackingPage> {
 class _TrackingData {
   final DashboardData dashboard;
   final AnalyticsData? analytics;
+  final String? analyticsError;
 
-  const _TrackingData({required this.dashboard, this.analytics});
+  const _TrackingData({
+    required this.dashboard,
+    this.analytics,
+    this.analyticsError,
+  });
 }
 
 class _TrackingContent extends StatelessWidget {
@@ -134,25 +141,23 @@ class _TrackingContent extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
       children: [
-        // Profile Scorecard (Gamification)
+        // Summary Card (Always Visible)
+        SummaryCard(summary: dashboard.summary),
+        const SizedBox(height: 24),
+
+        // Profile Scorecard (Gamification) - If available
         if (analytics != null) ...[
           ProfileScorecard(tier: analytics.comprehensiveContext.tier),
           const SizedBox(height: 24),
         ],
 
-        // Financial Health Indicators (TPS, RDR, ILI)
+        // Financial Health Indicators (TPS, RDR, ILI) - If available
         if (analytics != null) ...[
           FinancialHealthIndicators(
             tps: analytics.comprehensiveContext.currentIndicators['tps'] ?? 0.0,
             rdr: analytics.comprehensiveContext.currentIndicators['rdr'] ?? 0.0,
             ili: analytics.comprehensiveContext.currentIndicators['ili'] ?? 0.0,
           ),
-          const SizedBox(height: 24),
-        ],
-
-        // Summary Card (fallback if no analytics)
-        if (analytics == null) ...[
-          SummaryCard(summary: dashboard.summary),
           const SizedBox(height: 24),
         ],
 

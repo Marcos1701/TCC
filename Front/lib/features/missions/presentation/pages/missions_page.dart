@@ -12,7 +12,6 @@ import '../../../../core/theme/app_theme_extension.dart';
 import '../../data/missions_viewmodel.dart';
 import '../widgets/mission_catalog_highlights.dart';
 import '../widgets/mission_details_sheet.dart';
-import '../widgets/mission_impact_visualization.dart';
 
 class MissionsPage extends StatefulWidget {
   const MissionsPage({super.key});
@@ -167,7 +166,6 @@ class _MissionsPageState extends State<MissionsPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  MissionImpactVisualization(viewModel: _viewModel),
                   const SizedBox(height: 16),
                   MissionRecommendationsSection(viewModel: _viewModel),
                   const SizedBox(height: 24),

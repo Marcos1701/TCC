@@ -372,9 +372,7 @@ class AdminViewModel extends ChangeNotifier {
     if (e.response?.statusCode == 403) {
       return 'Acesso negado. Você precisa ser administrador.';
     }
-    if (e.response?.statusCode == 401) {
-      return 'Sessão expirada. Faça login novamente.';
-    }
+    // 401 é tratado automaticamente pelo ApiClient (refresh de token)
     if (e.response?.data is Map) {
       final data = e.response!.data as Map;
       if (data.containsKey('erro')) return data['erro'].toString();

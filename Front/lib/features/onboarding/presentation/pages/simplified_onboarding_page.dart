@@ -653,7 +653,25 @@ class _SimplifiedOnboardingPageState extends State<SimplifiedOnboardingPage> {
     Navigator.of(context).pop(true);
   }
 
-  void _skipOnboarding() {
-    Navigator.of(context).pop();
+  Future<void> _skipOnboarding() async {
+    try {
+      // Mark onboarding as complete on backend (without calibration data)
+      await _repository.completeFirstAccess();
+      
+      CacheManager().invalidateAll();
+      
+      if (mounted) {
+        Navigator.of(context).pop(true); // Return true to indicate completion
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao pular calibração: $e'),
+            backgroundColor: AppColors.alert,
+          ),
+        );
+      }
+    }
   }
 }

@@ -95,9 +95,8 @@ class MissionsViewModel extends ChangeNotifier {
       } else if (e.response?.statusCode == 500) {
         _errorMessage =
             'Erro no servidor. Tente novamente em alguns instantes.';
-      } else if (e.response?.statusCode == 401) {
-        _errorMessage = 'Sessão expirada. Faça login novamente.';
       } else {
+        // 401 é tratado automaticamente pelo ApiClient (refresh de token)
         _errorMessage = UxStrings.errorLoadingChallenges;
       }
     } catch (e) {
@@ -451,9 +450,7 @@ class MissionsViewModel extends ChangeNotifier {
     if (exception.response?.statusCode == 500) {
       return 'Erro no servidor. Tente novamente em instantes.';
     }
-    if (exception.response?.statusCode == 401) {
-      return 'Sessão expirada. Faça login novamente.';
-    }
+    // 401 é tratado automaticamente pelo ApiClient (refresh de token)
     return fallback;
   }
 

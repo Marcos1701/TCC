@@ -22,9 +22,8 @@ class DashboardService {
         );
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw Exception('Sessão expirada. Faça login novamente.');
-      } else if (e.response?.statusCode == 404) {
+      // 401 é tratado automaticamente pelo ApiClient (refresh de token)
+      if (e.response?.statusCode == 404) {
         throw Exception('Endpoint do dashboard não encontrado.');
       } else if (e.type == DioExceptionType.connectionTimeout ||
                  e.type == DioExceptionType.receiveTimeout) {
@@ -53,9 +52,8 @@ class DashboardService {
         );
       }
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw Exception('Sessão expirada. Faça login novamente.');
-      } else if (e.response?.statusCode == 404) {
+      // 401 é tratado automaticamente pelo ApiClient (refresh de token)
+      if (e.response?.statusCode == 404) {
         throw Exception('Endpoint de analytics não encontrado.');
       } else if (e.response?.statusCode == 500) {
         throw Exception('Erro no servidor ao processar analytics.');

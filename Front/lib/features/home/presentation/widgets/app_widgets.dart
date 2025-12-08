@@ -236,12 +236,33 @@ class WeeklyChallengeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progress = mission.progress / 100.0;
+    final isPending = mission.status == 'PENDING';
+    final isCompleted = mission.progress >= 100;
+
+    // Define colors and labels based on status
+    final Color statusColor;
+    final String statusLabel;
+    final IconData statusIcon;
+
+    if (isCompleted) {
+      statusColor = Colors.green;
+      statusLabel = 'Concluído';
+      statusIcon = Icons.check_circle;
+    } else if (isPending) {
+      statusColor = Colors.amber;
+      statusLabel = 'Sugestão';
+      statusIcon = Icons.lightbulb_outline;
+    } else {
+      statusColor = AppColors.primary;
+      statusLabel = 'Em andamento';
+      statusIcon = Icons.play_circle_fill;
+    }
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Card(
-        color: Colors.purple[900],
+        color: isPending ? Colors.amber[900] : Colors.purple[900],
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
@@ -249,16 +270,42 @@ class WeeklyChallengeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.emoji_events, color: Colors.amber, size: 28),
-                  SizedBox(width: 8),
-                  Text(
-                    'Desafio da Semana',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Desafio da Semana',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: statusColor.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, color: statusColor, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -274,7 +321,9 @@ class WeeklyChallengeCard extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: progress.clamp(0.0, 1.0),
                   backgroundColor: Colors.grey[800],
-                  valueColor: const AlwaysStoppedAnimation(Colors.amber),
+                  valueColor: AlwaysStoppedAnimation(
+                    isCompleted ? Colors.green : Colors.amber,
+                  ),
                   minHeight: 8,
                 ),
               ),
@@ -282,10 +331,30 @@ class WeeklyChallengeCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '${mission.progress.toStringAsFixed(0)}%',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
+                  if (isPending)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.touch_app, color: Colors.white70, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            'Toque para aceitar',
+                            style: TextStyle(color: Colors.white70, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Text(
+                      '${mission.progress.toStringAsFixed(0)}%',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(

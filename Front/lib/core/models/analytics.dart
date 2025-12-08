@@ -96,12 +96,12 @@ class IndicatorEvolution {
 
   factory IndicatorEvolution.fromJson(Map<String, dynamic> json) {
     return IndicatorEvolution(
-      average: (json['average'] as num).toDouble(),
-      min: (json['min'] as num).toDouble(),
-      max: (json['max'] as num).toDouble(),
-      first: (json['first'] as num).toDouble(),
-      last: (json['last'] as num).toDouble(),
-      trend: json['trend'] as String,
+      average: (json['average'] as num?)?.toDouble() ?? 0.0,
+      min: (json['min'] as num?)?.toDouble() ?? 0.0,
+      max: (json['max'] as num?)?.toDouble() ?? 0.0,
+      first: (json['first'] as num?)?.toDouble() ?? 0.0,
+      last: (json['last'] as num?)?.toDouble() ?? 0.0,
+      trend: json['trend'] as String? ?? 'stable',
     );
   }
 }
@@ -119,9 +119,9 @@ class ConsistencyData {
 
   factory ConsistencyData.fromJson(Map<String, dynamic> json) {
     return ConsistencyData(
-      rate: (json['rate'] as num).toDouble(),
-      daysRegistered: json['days_registered'] as int,
-      totalDays: json['total_days'] as int,
+      rate: (json['rate'] as num?)?.toDouble() ?? 0.0,
+      daysRegistered: json['days_registered'] as int? ?? 0,
+      totalDays: json['total_days'] as int? ?? 1,
     );
   }
 }
@@ -190,12 +190,12 @@ class CategoryPattern {
 
   factory CategoryPattern.fromJson(Map<String, dynamic> json) {
     return CategoryPattern(
-      total: (json['total'] as num).toDouble(),
-      count: json['count'] as int,
-      daysWithSpending: json['days_with_spending'] as int,
-      averageDaily: (json['average_daily'] as num).toDouble(),
-      maxDaily: (json['max_daily'] as num).toDouble(),
-      frequency: (json['frequency'] as num).toDouble(),
+      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      count: json['count'] as int? ?? 0,
+      daysWithSpending: json['days_with_spending'] as int? ?? 0,
+      averageDaily: (json['average_daily'] as num?)?.toDouble() ?? 0.0,
+      maxDaily: (json['max_daily'] as num?)?.toDouble() ?? 0.0,
+      frequency: (json['frequency'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -217,13 +217,13 @@ class CategoryRecommendation {
 
   factory CategoryRecommendation.fromJson(Map<String, dynamic> json) {
     return CategoryRecommendation(
-      category: json['category'] as String,
-      type: json['type'] as String,
-      reason: json['reason'] as String,
+      category: json['category'] as String? ?? '',
+      type: json['type'] as String? ?? '',
+      reason: json['reason'] as String? ?? '',
       suggestedLimit: json['suggested_limit'] != null
           ? (json['suggested_limit'] as num).toDouble()
           : null,
-      priority: json['priority'] as String,
+      priority: json['priority'] as String? ?? 'MEDIUM',
     );
   }
 }
@@ -247,8 +247,8 @@ class CategoryPatternsAnalysis {
     final categoriesMap = json['categories'] as Map<String, dynamic>? ?? {};
     
     return CategoryPatternsAnalysis(
-      hasData: json['has_data'] as bool,
-      periodDays: json['period_days'] as int,
+      hasData: json['has_data'] as bool? ?? false,
+      periodDays: json['period_days'] as int? ?? 0,
       categories: categoriesMap.map(
         (k, v) => MapEntry(
           k,
@@ -258,7 +258,7 @@ class CategoryPatternsAnalysis {
       recommendations: (json['recommendations'] as List? ?? [])
           .map((e) => CategoryRecommendation.fromJson(e as Map<String, dynamic>))
           .toList(),
-      totalCategories: json['total_categories'] as int,
+      totalCategories: json['total_categories'] as int? ?? 0,
     );
   }
 }
@@ -282,12 +282,12 @@ class TierProgressionAnalysis {
 
   factory TierProgressionAnalysis.fromJson(Map<String, dynamic> json) {
     return TierProgressionAnalysis(
-      tier: json['tier'] as String,
-      level: json['level'] as int,
-      xp: json['xp'] as int,
-      nextLevelXp: json['next_level_xp'] as int,
+      tier: json['tier'] as String? ?? 'BEGINNER',
+      level: json['level'] as int? ?? 1,
+      xp: json['xp'] as int? ?? 0,
+      nextLevelXp: json['next_level_xp'] as int? ?? 150,
       nextTier: json['next_tier'] as String?,
-      tierProgress: (json['tier_progress'] as num).toDouble(),
+      tierProgress: (json['tier_progress'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }
@@ -313,15 +313,15 @@ class MissionDistributionAnalysis {
     final successRatesMap = json['success_rates'] as Map<String, dynamic>? ?? {};
     
     return MissionDistributionAnalysis(
-      totalMissions: json['total_missions'] as int,
-      activeMissions: json['active_missions'] as int,
-      completedMissions: json['completed_missions'] as int,
+      totalMissions: json['total_missions'] as int? ?? 0,
+      activeMissions: json['active_missions'] as int? ?? 0,
+      completedMissions: json['completed_missions'] as int? ?? 0,
       underutilizedMissionTypes:
           List<String>.from(json['underutilized_mission_types'] as List? ?? []),
       underutilizedValidationTypes:
           List<String>.from(json['underutilized_validation_types'] as List? ?? []),
       successRates: successRatesMap.map(
-        (k, v) => MapEntry(k, (v as num).toDouble()),
+        (k, v) => MapEntry(k, (v as num?)?.toDouble() ?? 0.0),
       ),
     );
   }

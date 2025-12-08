@@ -21,9 +21,44 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
   final AppDatabase _db;
   
   static bool get _dbAvailable => !kIsWeb;
+  
+  // Request deduplication - STATIC to work across all repository instances
+  static Future<List<TransactionModel>>? _transactionsFetchInFlight;
+  static Future<List<TransactionLinkModel>>? _linksFetchInFlight;
+  static String? _lastTransactionsFetchKey;
 
   @override
   Future<List<TransactionModel>> fetchTransactions({
+    String? type,
+    int? limit,
+    int? offset,
+  }) async {
+    // Create a key for this request to detect duplicates
+    final requestKey = 'fetch_${type}_${limit}_$offset';
+    
+    // If an identical request is already in-flight, return the same future
+    if (_transactionsFetchInFlight != null && _lastTransactionsFetchKey == requestKey) {
+      if (kDebugMode) {
+        debugPrint('📡 TransactionRepository: Request already in-flight, reusing...');
+      }
+      return _transactionsFetchInFlight!;
+    }
+    
+    // Store the request key and execute
+    _lastTransactionsFetchKey = requestKey;
+    _transactionsFetchInFlight = _doFetchTransactions(type: type, limit: limit, offset: offset);
+    
+    try {
+      final result = await _transactionsFetchInFlight!;
+      return result;
+    } finally {
+      // Clear when done
+      _transactionsFetchInFlight = null;
+      _lastTransactionsFetchKey = null;
+    }
+  }
+
+  Future<List<TransactionModel>> _doFetchTransactions({
     String? type,
     int? limit,
     int? offset,
@@ -440,6 +475,33 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
 
   @override
   Future<List<TransactionLinkModel>> fetchTransactionLinks({
+    String? linkType,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    // If an identical request is already in-flight, return the same future
+    if (_linksFetchInFlight != null) {
+      if (kDebugMode) {
+        debugPrint('📡 TransactionRepository: Links request already in-flight, reusing...');
+      }
+      return _linksFetchInFlight!;
+    }
+    
+    _linksFetchInFlight = _doFetchTransactionLinks(
+      linkType: linkType,
+      dateFrom: dateFrom,
+      dateTo: dateTo,
+    );
+    
+    try {
+      final result = await _linksFetchInFlight!;
+      return result;
+    } finally {
+      _linksFetchInFlight = null;
+    }
+  }
+
+  Future<List<TransactionLinkModel>> _doFetchTransactionLinks({
     String? linkType,
     String? dateFrom,
     String? dateTo,
