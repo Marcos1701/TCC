@@ -182,7 +182,6 @@ class _TransactionWizardState extends State<TransactionWizard> {
         context,
         amount: amount,
         type: _selectedType,
-        xpEarned: transaction['xp_earned'] as int?,
       );
 
       Navigator.of(context).pop(transaction);

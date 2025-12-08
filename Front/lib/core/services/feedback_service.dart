@@ -354,15 +354,10 @@ class FeedbackService {
     BuildContext context, {
     required double amount,
     required String type,
-    int? xpEarned,
     String? missionProgress,
   }) {
     final emoji = type == 'INCOME' ? '💰' : type == 'EXPENSE' ? '💸' : '💳';
     String message = '$emoji Transação registrada!';
-    
-    if (xpEarned != null && xpEarned > 0) {
-      message += ' +$xpEarned XP 🎉';
-    }
     
     if (missionProgress != null) {
       message += '\n$missionProgress';

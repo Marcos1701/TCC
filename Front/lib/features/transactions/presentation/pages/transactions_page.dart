@@ -75,7 +75,6 @@ class _TransactionsPageState extends State<TransactionsPage>
       context,
       amount: created['amount'] ?? 0.0,
       type: created['type'] ?? 'EXPENSE',
-      xpEarned: created['xp_earned'] as int?,
     );
   }
 
