@@ -187,7 +187,7 @@ class _HomePageState extends State<HomePage> {
             debugPrint('🎯 Starting mission ID: $missionId');
             await _repository.startMissionAction(missionId);
             debugPrint('✅ Mission started successfully');
-            _cacheManager.invalidateAfterMissionComplete();
+            await _cacheManager.invalidateAfterMissionComplete();
             await _refresh();
             return true;
           } catch (e, stack) {
@@ -201,7 +201,7 @@ class _HomePageState extends State<HomePage> {
             debugPrint('⏭️ Skipping mission ID: $missionId');
             await _repository.skipMissionAction(missionId);
             debugPrint('✅ Mission skipped successfully');
-            _cacheManager.invalidateAfterMissionComplete();
+            await _cacheManager.invalidateAfterMissionComplete();
             await _refresh();
             return true;
           } catch (e, stack) {

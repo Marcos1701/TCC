@@ -72,10 +72,11 @@ class CacheManager extends ChangeNotifier {
     );
   }
 
-  void invalidateAfterMissionComplete() {
+  Future<void> invalidateAfterMissionComplete() async {
     // Explicitly wipe data from Hive to prevent stale data
-    CacheService.invalidateDashboard();
-    CacheService.invalidateMissions();
+    // MUST await to ensure cache is cleared before refresh
+    await CacheService.invalidateDashboard();
+    await CacheService.invalidateMissions();
     
     invalidate(
       [

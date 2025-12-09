@@ -5,6 +5,7 @@ import '../../../core/models/mission.dart';
 import '../../../core/models/mission_progress.dart';
 import '../../../core/repositories/finance_repository.dart';
 import '../../../core/constants/user_friendly_strings.dart';
+import '../../../core/services/cache_manager.dart';
 
 enum MissionsViewState {
   initial,
@@ -438,6 +439,10 @@ class MissionsViewModel extends ChangeNotifier {
     try {
       final updated = await _repository.startMissionAction(missionId);
       _activeMissions[index] = updated;
+      
+      // Invalidate cache to ensure fresh data on next load
+      await CacheManager().invalidateAfterMissionComplete();
+      
       _safeNotifyListeners();
       return true;
     } catch (e) {
@@ -465,6 +470,9 @@ class MissionsViewModel extends ChangeNotifier {
 
     try {
       await _repository.skipMissionAction(missionId);
+      
+      // Invalidate cache before reload to ensure fresh data
+      await CacheManager().invalidateAfterMissionComplete();
       
       // Reload to get new recommendations
       await loadMissions();
