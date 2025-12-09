@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -183,21 +184,29 @@ class _HomePageState extends State<HomePage> {
         onUpdate: _refresh,
         onStart: (missionId) async {
           try {
+            debugPrint('🎯 Starting mission ID: $missionId');
             await _repository.startMissionAction(missionId);
+            debugPrint('✅ Mission started successfully');
             _cacheManager.invalidateAfterMissionComplete();
             await _refresh();
             return true;
-          } catch (e) {
+          } catch (e, stack) {
+            debugPrint('❌ Error starting mission $missionId: $e');
+            debugPrint('Stack: $stack');
             return false;
           }
         },
         onSkip: (missionId) async {
           try {
+            debugPrint('⏭️ Skipping mission ID: $missionId');
             await _repository.skipMissionAction(missionId);
+            debugPrint('✅ Mission skipped successfully');
             _cacheManager.invalidateAfterMissionComplete();
             await _refresh();
             return true;
-          } catch (e) {
+          } catch (e, stack) {
+            debugPrint('❌ Error skipping mission $missionId: $e');
+            debugPrint('Stack: $stack');
             return false;
           }
         },

@@ -29,6 +29,7 @@ class MissionsViewModel extends ChangeNotifier {
   String? _catalogError;
   bool _contextLoading = false;
   String? _contextError;
+  bool _isDisposed = false;
 
   final Set<int> _newlyCompleted = {};
 
@@ -54,6 +55,13 @@ class MissionsViewModel extends ChangeNotifier {
   List<CategoryMissionSummary> get categorySummaries =>
       _buildCategorySummaries();
   
+  /// Notifica listeners apenas se o ViewModel não foi disposed.
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+  
   Map<String, dynamic> get missionQualityStats {
     final allMissions = [
       ..._activeMissions.map((m) => m.mission),
@@ -77,7 +85,7 @@ class MissionsViewModel extends ChangeNotifier {
   Future<void> loadMissions() async {
     _state = MissionsViewState.loading;
     _errorMessage = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final dashboard = await _repository.fetchDashboard();
@@ -104,7 +112,7 @@ class MissionsViewModel extends ChangeNotifier {
       _errorMessage =
           'Erro inesperado ao carregar ${UxStrings.challenges.toLowerCase()}.';
     } finally {
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -115,7 +123,7 @@ class MissionsViewModel extends ChangeNotifier {
   }) async {
     _catalogLoading = true;
     _catalogError = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final missions = await _repository.fetchRecommendedMissions(
@@ -136,7 +144,7 @@ class MissionsViewModel extends ChangeNotifier {
           'Erro inesperado ao carregar missões recomendadas: ${e.toString()}';
     } finally {
       _catalogLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -152,7 +160,7 @@ class MissionsViewModel extends ChangeNotifier {
 
     _catalogLoading = true;
     _catalogError = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final missions = await _repository.fetchMissionsByCategory(
@@ -177,7 +185,7 @@ class MissionsViewModel extends ChangeNotifier {
       rethrow;
     } finally {
       _catalogLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -254,7 +262,7 @@ class MissionsViewModel extends ChangeNotifier {
 
     _contextLoading = true;
     _contextError = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       _contextAnalysis = await _repository.fetchMissionContextAnalysis(
@@ -290,7 +298,7 @@ class MissionsViewModel extends ChangeNotifier {
       return null;
     } finally {
       _contextLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -344,7 +352,7 @@ class MissionsViewModel extends ChangeNotifier {
     try {
       final dashboard = await _repository.fetchDashboard();
       _updateMissions(dashboard.activeMissions);
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       debugPrint('Erro ao atualizar missões silenciosamente: $e');
     }
@@ -352,12 +360,12 @@ class MissionsViewModel extends ChangeNotifier {
 
   void markMissionAsViewed(int missionId) {
     _newlyCompleted.remove(missionId);
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void clearCelebrations() {
     _newlyCompleted.clear();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void updateMissionProgressOptimistic(int missionId, double newProgress) {
@@ -386,7 +394,7 @@ class MissionsViewModel extends ChangeNotifier {
       _newlyCompleted.add(missionId);
     }
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void clearError() {
@@ -394,12 +402,12 @@ class MissionsViewModel extends ChangeNotifier {
     if (_state == MissionsViewState.error) {
       _state = MissionsViewState.initial;
     }
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void clearCatalogError() {
     _catalogError = null;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   /// Starts a mission with optimistic update.
@@ -425,18 +433,18 @@ class MissionsViewModel extends ChangeNotifier {
       updatedAt: DateTime.now(),
       mission: originalMission.mission,
     );
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final updated = await _repository.startMissionAction(missionId);
       _activeMissions[index] = updated;
-      notifyListeners();
+      _safeNotifyListeners();
       return true;
     } catch (e) {
       // Rollback to original state on failure
       _activeMissions[index] = originalMission;
       _errorMessage = 'Erro ao iniciar desafio. Tente novamente.';
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     }
   }
@@ -453,7 +461,7 @@ class MissionsViewModel extends ChangeNotifier {
 
     // Optimistically remove from list
     _activeMissions.removeAt(index);
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await _repository.skipMissionAction(missionId);
@@ -469,7 +477,7 @@ class MissionsViewModel extends ChangeNotifier {
         _activeMissions.add(originalMission);
       }
       _errorMessage = 'Erro ao pular desafio. Tente novamente.';
-      notifyListeners();
+      _safeNotifyListeners();
       return false;
     }
   }
@@ -494,6 +502,7 @@ class MissionsViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _newlyCompleted.clear();
     super.dispose();
   }

@@ -782,14 +782,23 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              // Captura o ScaffoldMessenger ANTES de fechar o modal
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+              
+              // Executa a ação primeiro
               final success = await widget.onStart(widget.missionProgress.mission.id);
-              if (context.mounted) {
-                if (success) {
-                  FeedbackService.showSuccess(context, 'Desafio aceito! Boa sorte! 🎯');
-                } else {
-                  FeedbackService.showError(context, 'Erro ao aceitar desafio. Tente novamente.');
-                }
+              
+              // Fecha o modal
+              if (mounted) {
+                navigator.pop();
+              }
+              
+              // Mostra feedback usando o messenger capturado
+              if (success) {
+                FeedbackService.showSuccessWithMessenger(messenger, 'Desafio aceito! Boa sorte! 🎯');
+              } else {
+                FeedbackService.showErrorWithMessenger(messenger, 'Erro ao aceitar desafio. Tente novamente.');
               }
             },
             style: ElevatedButton.styleFrom(
@@ -813,14 +822,23 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         const SizedBox(height: 12),
         TextButton.icon(
           onPressed: () async {
-            Navigator.pop(context);
+            // Captura o ScaffoldMessenger ANTES de fechar o modal
+            final messenger = ScaffoldMessenger.of(context);
+            final navigator = Navigator.of(context);
+            
+            // Executa a ação primeiro
             final success = await widget.onSkip(widget.missionProgress.mission.id);
-            if (context.mounted) {
-              if (success) {
-                FeedbackService.showSuccess(context, 'Desafio pulado. Buscando novas sugestões...');
-              } else {
-                FeedbackService.showError(context, 'Erro ao pular desafio. Tente novamente.');
-              }
+            
+            // Fecha o modal
+            if (mounted) {
+              navigator.pop();
+            }
+            
+            // Mostra feedback usando o messenger capturado
+            if (success) {
+              FeedbackService.showSuccessWithMessenger(messenger, 'Desafio pulado. Buscando novas sugestões...');
+            } else {
+              FeedbackService.showErrorWithMessenger(messenger, 'Erro ao pular desafio. Tente novamente.');
             }
           },
           icon: Icon(Icons.close, size: 18, color: Colors.grey[400]),
@@ -867,14 +885,23 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () async {
-              Navigator.pop(context);
+              // Captura o ScaffoldMessenger ANTES de fechar o modal
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+              
+              // Executa a ação primeiro
               final success = await widget.onSkip(widget.missionProgress.mission.id);
-              if (context.mounted) {
-                if (success) {
-                  FeedbackService.showSuccess(context, 'Desafio abandonado.');
-                } else {
-                  FeedbackService.showError(context, 'Erro ao abandonar desafio. Tente novamente.');
-                }
+              
+              // Fecha o modal
+              if (mounted) {
+                navigator.pop();
+              }
+              
+              // Mostra feedback usando o messenger capturado
+              if (success) {
+                FeedbackService.showSuccessWithMessenger(messenger, 'Desafio abandonado.');
+              } else {
+                FeedbackService.showErrorWithMessenger(messenger, 'Erro ao abandonar desafio. Tente novamente.');
               }
             },
             icon: const Icon(Icons.close, size: 18),

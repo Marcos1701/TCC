@@ -106,6 +106,61 @@ class FeedbackService {
     );
   }
 
+  /// Mostra feedback usando um ScaffoldMessengerState pré-capturado.
+  /// Útil quando o contexto original pode ter sido desmontado (ex: após Navigator.pop).
+  static void showWithMessenger(
+    ScaffoldMessengerState messenger,
+    String message, {
+    required FeedbackType type,
+    Duration? duration,
+  }) {
+    final config = _configs[type]!;
+    
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(config.icon, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: config.backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        duration: duration ?? config.duration,
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  static void showSuccessWithMessenger(
+    ScaffoldMessengerState messenger,
+    String message, {
+    Duration? duration,
+  }) {
+    showWithMessenger(messenger, message, type: FeedbackType.success, duration: duration);
+  }
+
+  static void showErrorWithMessenger(
+    ScaffoldMessengerState messenger,
+    String message, {
+    Duration? duration,
+  }) {
+    showWithMessenger(messenger, message, type: FeedbackType.error, duration: duration);
+  }
+
   static void showSuccess(
     BuildContext context,
     String message, {
