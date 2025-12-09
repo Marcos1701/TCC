@@ -62,5 +62,6 @@ def fix_transaction_category():
     except Transaction.MultipleObjectsReturned:
         print("Multiple 900.00 transactions found")
 
+
 if __name__ == '__main__':
     fix_transaction_category()
