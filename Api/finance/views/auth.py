@@ -70,6 +70,10 @@ class ProfileView(APIView):
         
         update_data = request.data.copy()
         
+        # Verificar se metas financeiras estão sendo atualizadas
+        goal_fields = {'target_tps', 'target_rdr', 'target_ili'}
+        updating_goals = bool(goal_fields & set(update_data.keys()))
+        
         if update_data.get('complete_first_access'):
             update_data['is_first_access'] = False
             update_data.pop('complete_first_access')
@@ -85,6 +89,13 @@ class ProfileView(APIView):
         serializer.save()
         
         profile.refresh_from_db()
+        
+        # Invalidar cache se metas foram atualizadas
+        if updating_goals:
+            invalidate_user_dashboard_cache(request.user)
+            logger.info(
+                f"User {request.user.id} updated financial goals - cache invalidated"
+            )
         
         response_serializer = UserProfileSerializer(profile)
         

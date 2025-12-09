@@ -99,10 +99,14 @@ class CacheManager extends ChangeNotifier {
   }
 
   void invalidateAfterGoalUpdate() {
+    // Invalidar cache de missões no Hive para garantir dados frescos
+    CacheService.invalidateMissions();
+    
     invalidate(
       [
         CacheType.progress,
         CacheType.dashboard,
+        CacheType.missions,
       ],
       reason: 'goal updated',
     );

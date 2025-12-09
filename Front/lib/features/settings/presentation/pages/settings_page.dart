@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/user_friendly_strings.dart';
 import '../../../../core/repositories/finance_repository.dart';
+import '../../../../core/services/cache_manager.dart';
 import '../../../../core/state/session_controller.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
@@ -140,6 +141,10 @@ class _SettingsPageState extends State<SettingsPage> {
               targetIli: ili,
             );
             if (!context.mounted) return;
+            
+            // Invalidar cache de missões para refletir novas metas
+            CacheManager().invalidateAfterGoalUpdate();
+            
             final session = SessionScope.of(context);
             await session.refreshSession();
             if (!context.mounted) return;
