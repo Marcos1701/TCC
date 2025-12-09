@@ -292,6 +292,9 @@ class TransactionsViewModel extends ChangeNotifier {
       
       CacheManager().invalidateAfterTransaction(action: 'transaction deleted');
       
+      // Refresh silenciosamente para garantir sincronização com o servidor
+      await refreshSilently();
+      
       return true;
     } catch (e) {
       _transactions.insert(index, removed);

@@ -7,9 +7,11 @@ part 'transactions_dao.g.dart';
 class TransactionsDao extends DatabaseAccessor<AppDatabase> with _$TransactionsDaoMixin {
   TransactionsDao(super.db);
 
-  Future<List<Transaction>> getAllTransactions() => select(transactions).get();
+  Future<List<Transaction>> getAllTransactions() => 
+      (select(transactions)..where((t) => t.isDeleted.equals(false))).get();
   
-  Stream<List<Transaction>> watchAllTransactions() => select(transactions).watch();
+  Stream<List<Transaction>> watchAllTransactions() => 
+      (select(transactions)..where((t) => t.isDeleted.equals(false))).watch();
 
   Future<Transaction?> getTransactionById(String id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
