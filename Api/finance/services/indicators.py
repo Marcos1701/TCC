@@ -76,9 +76,9 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     for item in reserve_transactions:
         tx_type = item["type"]
         total = _decimal(item["total"])
-        if tx_type == Transaction.TransactionType.INCOME:
+        if tx_type == Transaction.TransactionType.EXPENSE:
             reserve_deposits += total
-        elif tx_type == Transaction.TransactionType.EXPENSE:
+        elif tx_type == Transaction.TransactionType.INCOME:
             reserve_withdrawals += total
 
     reserve_balance = reserve_deposits - reserve_withdrawals
