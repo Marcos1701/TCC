@@ -11,6 +11,27 @@ from .models import Category, Transaction, TransactionLink, UserProfile
 from django.db.models import Q
 
 def _ensure_default_categories(user):
+    """
+    Garante que o usuário tenha acesso a categorias padrão.
+    
+    Estratégia:
+    1. Se existem categorias globais (user=None), não cria nada (usuário usará as globais)
+    2. Só cria categorias individuais se NÃO existirem categorias globais
+    
+    Isso evita duplicação entre categorias globais e individuais.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Verificar se existem categorias globais no sistema
+    global_categories_count = Category.objects.filter(user__isnull=True).count()
+    
+    if global_categories_count >= 10:
+        # Existem categorias globais suficientes, não criar individuais
+        logger.debug(f"User {user.id}: {global_categories_count} global categories exist, skipping individual creation")
+        return
+    
+    # Fallback: criar categorias individuais se não existem globais
     default_categories = [
         {'name': 'Salário', 'type': 'INCOME', 'group': 'REGULAR_INCOME', 'color': '#4CAF50'},
         {'name': 'Freelance', 'type': 'INCOME', 'group': 'EXTRA_INCOME', 'color': '#8BC34A'},
@@ -36,9 +57,9 @@ def _ensure_default_categories(user):
     
     created_count = 0
     for cat_data in default_categories:
-        # Check if category already exists for user OR as a global system default
+        # Verificar se categoria já existe para este usuário
         exists = Category.objects.filter(
-            Q(user=user) | Q(user__isnull=True),
+            user=user,
             name=cat_data['name'],
             type=cat_data['type']
         ).exists()
@@ -46,15 +67,13 @@ def _ensure_default_categories(user):
         if not exists:
             Category.objects.create(
                 user=user,
-                is_system_default=False, # Personal default, not system global
+                is_system_default=False,
                 **cat_data
             )
             created_count += 1
     
     if created_count > 0:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info(f"Created {created_count} default categories for user {user.id}")
+        logger.info(f"Created {created_count} default categories for user {user.id} (no global categories found)")
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
