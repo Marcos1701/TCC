@@ -287,12 +287,14 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
     recurrence_projections: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     
     from django.db.models import Q
+    from django.db.models.functions import ExtractYear, ExtractMonth
+    
     active_recurrences = Transaction.objects.filter(
         user=user,
         is_recurring=True,
     ).filter(
         Q(recurrence_end_date__isnull=True) | Q(recurrence_end_date__gte=now)
-    )
+    ).select_related('category')
     
     for transaction in active_recurrences:
         projection_month = current_month
@@ -314,6 +316,25 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
                     recurrence_projections[projection_month][transaction.type] += transaction.amount * occurrences_per_month
                 else:
                     recurrence_projections[projection_month][transaction.type] += transaction.amount * 30
+
+    # OPTIMIZATION: Pre-fetch all transaction links for the period in ONE query
+    # instead of querying per month inside the loop (N+1 problem fix)
+    links_by_month = {}
+    all_links = (
+        TransactionLink.objects.filter(
+            user=user,
+            source_transaction__date__gte=first_day,
+            source_transaction__date__lte=now
+        )
+        .annotate(
+            tx_year=ExtractYear('source_transaction__date'),
+            tx_month=ExtractMonth('source_transaction__date')
+        )
+        .values('tx_year', 'tx_month')
+        .annotate(total=Coalesce(Sum('linked_amount'), Decimal("0")))
+    )
+    for link in all_links:
+        links_by_month[(link['tx_year'], link['tx_month'])] = _decimal(link['total'])
 
     series: List[Dict[str, str]] = []
     current = first_day
@@ -339,16 +360,8 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             if is_future:
                 recurring_debt = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
             else:
-                month_transaction_ids = Transaction.objects.filter(
-                    user=user,
-                    date__year=current.year,
-                    date__month=current.month
-                ).values_list('id', flat=True)
-                
-                recurring_debt = TransactionLink.objects.filter(
-                    user=user,
-                    source_transaction_uuid__in=month_transaction_ids
-                ).aggregate(total=Coalesce(Sum('linked_amount'), Decimal("0")))['total'] or Decimal("0")
+                # Use pre-fetched data instead of querying per month
+                recurring_debt = links_by_month.get((current.year, current.month), Decimal("0"))
             
             rdr = (recurring_debt / income) * Decimal("100")
         

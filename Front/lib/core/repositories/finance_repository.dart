@@ -19,6 +19,9 @@ class FinanceRepository {
   FinanceRepository({ApiClient? client}) : _client = client ?? ApiClient();
 
   final ApiClient _client;
+  
+  // Request deduplication - prevents duplicate concurrent requests
+  final Map<String, Future<dynamic>> _pendingRequests = {};
 
   Failure _handleError(dynamic error) {
     if (error is DioException) {
@@ -97,7 +100,27 @@ class FinanceRepository {
     return [];
   }
 
+  /// Fetches dashboard data with request deduplication.
+  /// If a dashboard request is already in-flight, returns the pending future.
   Future<DashboardData> fetchDashboard() async {
+    const cacheKey = 'fetchDashboard';
+    
+    // Return existing request if already in-flight (deduplication)
+    if (_pendingRequests.containsKey(cacheKey)) {
+      return await _pendingRequests[cacheKey] as DashboardData;
+    }
+    
+    final future = _doFetchDashboard();
+    _pendingRequests[cacheKey] = future;
+    
+    try {
+      return await future;
+    } finally {
+      _pendingRequests.remove(cacheKey);
+    }
+  }
+  
+  Future<DashboardData> _doFetchDashboard() async {
     try {
       final cached = CacheService.getCachedDashboard(
         invalidatedAfter: CacheManager().lastInvalidation,

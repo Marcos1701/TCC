@@ -11,6 +11,7 @@ from .base import (
     Transaction,
     BurstRateThrottle,
     CategoryCreateThrottle,
+    invalidate_user_dashboard_cache,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
             })
         
         serializer.save(user=None, is_system_default=True)
+        # Global categories need broader cache invalidation (done at admin level)
     
     def _create_user_category(self, serializer, user, data):
         custom_categories = Category.objects.filter(
@@ -103,6 +105,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
             })
         
         serializer.save(user=user, is_system_default=False)
+        # Invalidate category cache for user
+        invalidate_user_dashboard_cache(user)
     
     def perform_update(self, serializer):
         instance = self.get_object()
@@ -113,6 +117,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
         self._validate_system_default_unchanged(instance, serializer.validated_data)
         
         serializer.save()
+        # Invalidate cache after category update
+        invalidate_user_dashboard_cache(user)
     
     def _validate_update_permission(self, instance, user):
         if instance.user is None and not user.is_staff:
@@ -174,6 +180,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
         logger.info(f"Deletando categoria {instance.name}")
         instance.delete()
         logger.info(f"Categoria {instance.name} deletada com sucesso")
+        # Invalidate cache after category deletion
+        invalidate_user_dashboard_cache(user)
     
     def _validate_delete_permission(self, instance, user):
         if instance.user is None and not user.is_staff:

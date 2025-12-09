@@ -32,13 +32,24 @@ class DashboardViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
         cache_key = f'dashboard_main_{user.id}'
         
+        # Trigger async mission refresh in background (non-blocking)
+        from ..tasks import refresh_user_missions_async
+        
         if not force_refresh:
             cached_data = cache.get(cache_key)
             if cached_data:
                 cached_data['from_cache'] = True
-                cached_data['cache_ttl_seconds'] = cache.ttl(cache_key) if hasattr(cache, 'ttl') else 300
+                cache_ttl = cache.ttl(cache_key) if hasattr(cache, 'ttl') else 300
+                cached_data['cache_ttl_seconds'] = cache_ttl
+                
+                # If cache is getting stale (< 2 min remaining), trigger background refresh
+                if cache_ttl < 120:
+                    refresh_user_missions_async.delay(user.id)
+                
                 return Response(cached_data)
         
+        # For fresh requests, still process missions synchronously for first load
+        # but schedule async refresh for next cycle
         update_mission_progress(user)
         assign_missions_automatically(user)
         

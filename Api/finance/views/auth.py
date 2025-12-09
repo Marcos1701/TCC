@@ -58,6 +58,8 @@ class ProfileView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # Invalidate cache after profile update
+        invalidate_user_dashboard_cache(request.user)
         data = {
             "profile": serializer.data,
             "snapshot": profile_snapshot(request.user),
@@ -545,6 +547,8 @@ class UserProfileViewSet(
             profile.level += 1
         
         profile.save()
+        # Invalidate cache after XP change
+        invalidate_user_dashboard_cache(user)
         
         return Response({
             'success': True,

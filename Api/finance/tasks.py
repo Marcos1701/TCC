@@ -178,3 +178,43 @@ def cleanup_old_missions(days: int = 90):
         'cutoff_date': cutoff_date.isoformat(),
         'days': days
     }
+
+
+@shared_task(name='finance.refresh_user_missions')
+def refresh_user_missions_async(user_id: int):
+    """
+    Atualiza progresso e atribui missões em background.
+    Libera a resposta do dashboard imediatamente.
+    """
+    from .services import update_mission_progress, assign_missions_automatically
+    from .views.base import invalidate_user_dashboard_cache
+    
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Atualiza progresso das missões ativas
+        updated = update_mission_progress(user)
+        if updated:
+            logger.info(f"[Async] Atualizadas {len(updated)} missões para usuário {user_id}")
+        
+        # Atribui novas missões se necessário
+        assigned = assign_missions_automatically(user)
+        if assigned:
+            logger.info(f"[Async] Atribuídas {len(assigned)} novas missões para usuário {user_id}")
+        
+        # Invalida cache do dashboard para próxima requisição
+        if updated or assigned:
+            invalidate_user_dashboard_cache(user)
+        
+        return {
+            'user_id': user_id,
+            'missions_updated': len(updated),
+            'missions_assigned': len(assigned),
+        }
+        
+    except User.DoesNotExist:
+        logger.warning(f"[Async] Usuário {user_id} não encontrado")
+        return {'error': f'User {user_id} not found'}
+    except Exception as e:
+        logger.error(f"[Async] Erro ao atualizar missões para usuário {user_id}: {e}")
+        raise
