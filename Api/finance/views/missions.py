@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from .base import (
     Category,
     CategorySerializer,
+    invalidate_user_dashboard_cache,
     Mission,
     MissionProgress,
     MissionProgressSerializer,
@@ -113,6 +114,7 @@ class MissionViewSet(viewsets.ModelViewSet):
             # O ID é da missão.
             mission = self.get_object()
             progress = start_mission(request.user, mission.id)
+            invalidate_user_dashboard_cache(request.user)
             return Response(MissionProgressSerializer(progress).data)
         except MissionProgress.DoesNotExist:
             return Response(
@@ -130,6 +132,7 @@ class MissionViewSet(viewsets.ModelViewSet):
         try:
             mission = self.get_object()
             progress = skip_mission(request.user, mission.id)
+            invalidate_user_dashboard_cache(request.user)
             return Response(MissionProgressSerializer(progress).data)
         except MissionProgress.DoesNotExist:
             return Response(
