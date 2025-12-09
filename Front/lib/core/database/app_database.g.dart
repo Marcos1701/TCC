@@ -7,40 +7,37 @@ class $TransactionsTable extends Transactions
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $TransactionsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  static const VerificationMeta _idMeta = VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _descriptionMeta =
-      const VerificationMeta('description');
+  static const VerificationMeta _descriptionMeta = VerificationMeta('description');
   @override
   late final GeneratedColumn<String> description = GeneratedColumn<String>(
       'description', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  static const VerificationMeta _amountMeta = VerificationMeta('amount');
   @override
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
       'amount', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  static const VerificationMeta _dateMeta = VerificationMeta('date');
   @override
   late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
       'date', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  static const VerificationMeta _typeMeta = VerificationMeta('type');
   @override
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
       'type', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _categoryIdMeta =
-      const VerificationMeta('categoryId');
+  static const VerificationMeta _categoryIdMeta = VerificationMeta('categoryId');
   @override
   late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
       'category_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _isRecurringMeta =
-      const VerificationMeta('isRecurring');
+  static const VerificationMeta _isRecurringMeta = VerificationMeta('isRecurring');
   @override
   late final GeneratedColumn<bool> isRecurring = GeneratedColumn<bool>(
       'is_recurring', aliasedName, false,
@@ -49,26 +46,22 @@ class $TransactionsTable extends Transactions
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_recurring" IN (0, 1))'),
       defaultValue: const Constant(false));
-  static const VerificationMeta _recurrenceValueMeta =
-      const VerificationMeta('recurrenceValue');
+  static const VerificationMeta _recurrenceValueMeta = VerificationMeta('recurrenceValue');
   @override
   late final GeneratedColumn<int> recurrenceValue = GeneratedColumn<int>(
       'recurrence_value', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _recurrenceUnitMeta =
-      const VerificationMeta('recurrenceUnit');
+  static const VerificationMeta _recurrenceUnitMeta = VerificationMeta('recurrenceUnit');
   @override
   late final GeneratedColumn<String> recurrenceUnit = GeneratedColumn<String>(
       'recurrence_unit', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _recurrenceEndDateMeta =
-      const VerificationMeta('recurrenceEndDate');
+  static const VerificationMeta _recurrenceEndDateMeta = VerificationMeta('recurrenceEndDate');
   @override
   late final GeneratedColumn<DateTime> recurrenceEndDate =
       GeneratedColumn<DateTime>('recurrence_end_date', aliasedName, true,
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _isSyncedMeta =
-      const VerificationMeta('isSynced');
+  static const VerificationMeta _isSyncedMeta = VerificationMeta('isSynced');
   @override
   late final GeneratedColumn<bool> isSynced = GeneratedColumn<bool>(
       'is_synced', aliasedName, false,
@@ -77,14 +70,12 @@ class $TransactionsTable extends Transactions
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("is_synced" IN (0, 1))'),
       defaultValue: const Constant(true));
-  static const VerificationMeta _lastUpdatedMeta =
-      const VerificationMeta('lastUpdated');
+  static const VerificationMeta _lastUpdatedMeta = VerificationMeta('lastUpdated');
   @override
   late final GeneratedColumn<DateTime> lastUpdated = GeneratedColumn<DateTime>(
       'last_updated', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _isDeletedMeta =
-      const VerificationMeta('isDeleted');
+  static const VerificationMeta _isDeletedMeta = VerificationMeta('isDeleted');
   @override
   late final GeneratedColumn<bool> isDeleted = GeneratedColumn<bool>(
       'is_deleted', aliasedName, false,
