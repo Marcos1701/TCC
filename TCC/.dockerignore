@@ -1,0 +1,58 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Django
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+*.log
+local_settings.py
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+DOC_LATEX/
+*.md
+*.txt
+!requirements.txt
+
+# Misc
+*.bak
+*.tmp
+celerybeat-schedule
+celerybeat.pid

@@ -1,0 +1,65 @@
+import logging
+from rest_framework import permissions
+
+logger = logging.getLogger(__name__)
+
+
+class IsOwnerPermission(permissions.BasePermission):
+    
+    def has_object_permission(self, request, view, obj):
+        if not hasattr(obj, 'user'):
+            return True
+        
+        is_owner = obj.user == request.user
+        
+        if not is_owner:
+            logger.warning(
+                f"Unauthorized access attempt detected: "
+                f"User {request.user.id} ({request.user.username}) "
+                f"tried to access {obj.__class__.__name__} (ID: {obj.id}) "
+                f"owned by user {getattr(obj, 'user', None)}"
+            )
+        
+        return is_owner
+
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        if not hasattr(obj, 'user'):
+            return True
+        
+        is_owner = obj.user == request.user
+        
+        if not is_owner and request.method not in permissions.SAFE_METHODS:
+            logger.warning(
+                f"Unauthorized write attempt: "
+                f"User {request.user.id} tried to {request.method} "
+                f"{obj.__class__.__name__} {obj.id} owned by {obj.user}"
+            )
+        
+        return is_owner
+
+
+class IsFriendOrOwner(permissions.BasePermission):
+    
+    def has_object_permission(self, request, view, obj):
+        if not hasattr(obj, 'user'):
+            return True
+        
+        if obj.user == request.user:
+            return True
+        
+        from .models import Friendship
+        are_friends = Friendship.are_friends(request.user, obj.user)
+        
+        if not are_friends:
+            logger.info(
+                f"Access denied: User {request.user.id} is not friends with "
+                f"user {obj.user.id} (object: {obj.__class__.__name__} {obj.id})"
+            )
+        
+        return are_friends

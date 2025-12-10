@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FLUTTER_VERSION: 3.24.3
+        API_BASE_URL: ${API_BASE_URL:-https://tcc-production-d286.up.railway.app}
+    image: tcc-frontend:latest
+    container_name: tcc-frontend
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    networks:
+      - tcc-network
+
+networks:
+  tcc-network:
+    driver: bridge
