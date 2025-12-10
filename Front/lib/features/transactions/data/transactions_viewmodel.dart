@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/models/transaction.dart';
@@ -5,6 +6,7 @@ import '../../../core/models/transaction_link.dart';
 import '../../../core/repositories/transaction_repository.dart';
 import '../../../core/repositories/interfaces/i_transaction_repository.dart';
 import '../../../core/services/cache_manager.dart';
+import '../../../core/utils/date_formatter.dart';
 
 enum TransactionsViewState {
   initial,
@@ -27,7 +29,11 @@ class TransactionsViewModel extends ChangeNotifier {
   List<TransactionModel> _transactions = [];
   List<TransactionLinkModel> _links = [];
   String? _filter;
-  String? _scheduleFilter; 
+  String? _scheduleFilter = 'effective'; 
+  DateTimeRange? _dateRange = DateTimeRange(
+    start: DateTime(DateTime.now().year, DateTime.now().month, 1),
+    end: DateTime(DateTime.now().year, DateTime.now().month + 1, 0, 23, 59, 59),
+  );
   String _searchQuery = '';
   String? _errorMessage;
   
@@ -63,6 +69,7 @@ class TransactionsViewModel extends ChangeNotifier {
   List<TransactionLinkModel> get links => _links;
   String? get filter => _filter;
   String? get scheduleFilter => _scheduleFilter;
+  DateTimeRange? get dateRange => _dateRange;
   String get searchQuery => _searchQuery;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _state == TransactionsViewState.loading;
@@ -95,6 +102,8 @@ class TransactionsViewModel extends ChangeNotifier {
         type: type,
         limit: _pageSize,
         offset: 0,
+        startDate: _dateRange?.start,
+        endDate: _dateRange?.end,
       );
       
       if (kDebugMode) {
@@ -102,7 +111,10 @@ class TransactionsViewModel extends ChangeNotifier {
       }
       
       try {
-        _links = await _repository.fetchTransactionLinks();
+        _links = await _repository.fetchTransactionLinks(
+          dateFrom: _dateRange != null ? DateFormatter.toApiFormat(_dateRange!.start) : null,
+          dateTo: _dateRange != null ? DateFormatter.toApiFormat(_dateRange!.end) : null,
+        );
         
         if (kDebugMode) {
           debugPrint('✅ TransactionsViewModel: ${_links.length} links carregados');
@@ -141,6 +153,8 @@ class TransactionsViewModel extends ChangeNotifier {
         type: _filter,
         limit: _pageSize,
         offset: currentOffset,
+        startDate: _dateRange?.start,
+        endDate: _dateRange?.end,
       );
       
       if (moreTransactions.isEmpty || moreTransactions.length < _pageSize) {
@@ -306,31 +320,7 @@ class TransactionsViewModel extends ChangeNotifier {
   Future<void> updateFilter(String? newFilter) async {
     if (_filter == newFilter) return;
     _filter = newFilter;
-    _state = TransactionsViewState.loading;
-    _safeNotifyListeners();
-    
-    try {
-      _transactions = await _repository.fetchTransactions(type: newFilter);
-      
-      try {
-        _links = await _repository.fetchTransactionLinks();
-      } catch (linkError) {
-        if (kDebugMode) {
-          debugPrint('⚠️ Erro ao carregar links no filtro (ignorado): $linkError');
-        }
-        _links = [];
-      }
-      
-      _state = TransactionsViewState.success;
-    } catch (e) {
-      _state = TransactionsViewState.error;
-      _errorMessage = 'Erro ao aplicar filtro: ${e.toString()}';
-      if (kDebugMode) {
-        debugPrint('Erro ao aplicar filtro: $e');
-      }
-    } finally {
-      _safeNotifyListeners();
-    }
+    await loadTransactions(type: _filter);
   }
 
   /// Update schedule filter (null = all, 'scheduled' = future, 'effective' = past/present)
@@ -338,6 +328,12 @@ class TransactionsViewModel extends ChangeNotifier {
     if (_scheduleFilter == newScheduleFilter) return;
     _scheduleFilter = newScheduleFilter;
     _safeNotifyListeners();
+  }
+
+  Future<void> setDateRange(DateTimeRange? range) async {
+    if (_dateRange == range) return;
+    _dateRange = range;
+    await loadTransactions(type: _filter);
   }
 
   /// Update search query for filtering by description

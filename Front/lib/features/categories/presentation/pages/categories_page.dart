@@ -262,20 +262,6 @@ class _CategoriesPageState extends State<CategoriesPage> {
                     child: ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
-                        if (globalCategories.isNotEmpty) ...[
-                          const Text(
-                            'Categorias do Sistema',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          ...globalCategories.map((category) =>
-                              _buildCategoryCard(category, isGlobal: true)),
-                          const SizedBox(height: 24),
-                        ],
-
                         if (userCategories.isNotEmpty) ...[
                           const Text(
                             'Minhas Categorias',
@@ -289,15 +275,36 @@ class _CategoriesPageState extends State<CategoriesPage> {
                               _buildCategoryCard(category, isGlobal: false)),
                         ],
 
-                        if (_filteredCategories.isEmpty)
-                          const Center(
+                        if (userCategories.isEmpty)
+                          Center(
                             child: Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text(
-                                'Nenhuma categoria encontrada',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                ),
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.category_outlined,
+                                    size: 64,
+                                    color: Colors.grey[600],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Nenhuma categoria personalizada',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Toque no botão + para criar sua primeira categoria',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[500],
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
                             ),
                           ),

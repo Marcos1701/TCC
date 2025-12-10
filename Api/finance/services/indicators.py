@@ -16,17 +16,46 @@ from .base import _decimal, logger
 
 def calculate_summary(user) -> Dict[str, Decimal]:
     profile, _ = UserProfile.objects.get_or_create(user=user)
+    
+    today = timezone.now().date()
+    start_date = today.replace(day=1)  # Calendar Month (1st of current month)
+    
+    # total_aportes is always calculated (not cached)
+    total_aportes = _decimal(
+        Transaction.objects.filter(
+            user=user,
+            type=Transaction.TransactionType.EXPENSE,
+            date__gte=start_date,
+            date__lte=today,
+            category__group__in=[
+                Category.CategoryGroup.SAVINGS,
+                Category.CategoryGroup.INVESTMENT
+            ]
+        ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
+    )
+    
     if not profile.should_recalculate_indicators():
+        # Check if there are essential expenses for the cached period
+        has_essential = Transaction.objects.filter(
+            user=user,
+            category__group=Category.CategoryGroup.ESSENTIAL_EXPENSE,
+            type=Transaction.TransactionType.EXPENSE,
+            date__gte=start_date,
+            date__lte=today,
+        ).exists()
+        
         return {
             "tps": profile.cached_tps or Decimal("0.00"),
             "rdr": profile.cached_rdr or Decimal("0.00"),
             "ili": profile.cached_ili or Decimal("0.00"),
             "total_income": profile.cached_total_income or Decimal("0.00"),
             "total_expense": profile.cached_total_expense or Decimal("0.00"),
+            "total_aportes": total_aportes.quantize(Decimal("0.01")),
+            "has_essential_expenses": has_essential,
         }
     
     today = timezone.now().date()
-    start_date = today - timedelta(days=30)
+    start_date = today.replace(day=1)  # Calendar Month (1st of current month)
     
     total_income = _decimal(
         Transaction.objects.filter(
@@ -51,6 +80,19 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
     )
 
+    total_aportes = _decimal(
+        Transaction.objects.filter(
+            user=user,
+            type=Transaction.TransactionType.EXPENSE,
+            date__gte=start_date,
+            date__lte=today,
+            category__group__in=[
+                Category.CategoryGroup.SAVINGS,
+                Category.CategoryGroup.INVESTMENT
+            ]
+        ).aggregate(total=Coalesce(Sum('amount'), Decimal("0")))['total']
+    )
+
     source_transaction_ids = Transaction.objects.filter(
         user=user,
         date__gte=start_date,
@@ -67,7 +109,10 @@ def calculate_summary(user) -> Dict[str, Decimal]:
     
     reserve_transactions = Transaction.objects.filter(
         user=user, 
-        category__group=Category.CategoryGroup.SAVINGS
+        category__group__in=[
+            Category.CategoryGroup.SAVINGS,
+            Category.CategoryGroup.INVESTMENT
+        ]
     ).values("type").annotate(total=Sum("amount"))
     
     reserve_deposits = Decimal("0")
@@ -126,6 +171,8 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         "ili": profile.cached_ili,
         "total_income": profile.cached_total_income,
         "total_expense": profile.cached_total_expense,
+        "total_aportes": total_aportes.quantize(Decimal("0.01")),
+        "has_essential_expenses": essential_expense > 0,
     }
 
 
@@ -189,9 +236,18 @@ def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dic
             "message": "Busca renegociar e cortar gastos urgentes pra escapar de inadimplência.",
         }
 
-    def _ili_status(value: Decimal) -> Dict[str, str]:
+    def _ili_status(value: Decimal, has_essential: bool) -> Dict[str, str]:
         numero = float(value)
         alvo = float(profile.target_ili)
+        
+        # Informative message when no essential expenses are registered
+        if not has_essential:
+            return {
+                "severity": "info",
+                "title": "Sem despesas essenciais",
+                "message": "Registre despesas em categorias essenciais (Alimentação, Moradia, Transporte, Saúde) para calcular sua reserva de emergência.",
+            }
+        
         if numero >= alvo:
             return {
                 "severity": "good",
@@ -213,10 +269,11 @@ def indicator_insights(summary: Dict[str, Decimal], profile: UserProfile) -> Dic
     tps_value = summary.get("tps", Decimal("0"))
     rdr_value = summary.get("rdr", Decimal("0"))
     ili_value = summary.get("ili", Decimal("0"))
+    has_essential_expenses = summary.get("has_essential_expenses", True)
 
     tps_info = _tps_status(tps_value)
     rdr_info = _rdr_status(rdr_value)
-    ili_info = _ili_status(ili_value)
+    ili_info = _ili_status(ili_value, has_essential_expenses)
 
     return {
         "tps": {
@@ -248,10 +305,22 @@ def category_breakdown(user) -> Dict[str, List[Dict[str, str]]]:
 
     for item in queryset:
         total_value = _decimal(item["total"])
-        buckets[item["category__type"]].append(
+        group = item.get("category__group")
+        cat_type = item["category__type"]
+        
+        # Separate APORTES (SAVINGS/INVESTMENT expenses) from regular expenses
+        if cat_type == Transaction.TransactionType.EXPENSE and group in [
+            Category.CategoryGroup.SAVINGS,
+            Category.CategoryGroup.INVESTMENT
+        ]:
+            bucket_key = "APORTES"
+        else:
+            bucket_key = cat_type
+            
+        buckets[bucket_key].append(
             {
                 "name": item["category__name"],
-                "group": item.get("category__group") or Category.CategoryGroup.OTHER,
+                "group": group or Category.CategoryGroup.OTHER,
                 "total": total_value.quantize(Decimal("0.01")),
             }
         )
@@ -278,10 +347,11 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         else:
             month = month_value
         
+        # Track aportes separately from regular expenses
         if item["type"] == Transaction.TransactionType.EXPENSE and item.get("category__group") in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
-            continue
-            
-        buckets[month][item["type"]] += _decimal(item["total"])
+            buckets[month]["APORTES"] += _decimal(item["total"])
+        else:
+            buckets[month][item["type"]] += _decimal(item["total"])
 
     recurrence_projections: Dict[date, Dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     
@@ -301,7 +371,9 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             projection_month = projection_month + timedelta(days=32)
             projection_month = projection_month.replace(day=1)
             
+            # Track aportes separately in projections
             if transaction.type == Transaction.TransactionType.EXPENSE and transaction.category and transaction.category.group in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
+                recurrence_projections[projection_month]["APORTES"] += transaction.amount
                 continue
 
             if transaction.recurrence_unit == Transaction.RecurrenceUnit.MONTHS:
@@ -315,22 +387,35 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
                 else:
                     recurrence_projections[projection_month][transaction.type] += transaction.amount * 30
 
+    # Get IDs of potential source transactions in the date range
+    source_tx_qs = Transaction.objects.filter(
+        user=user,
+        date__gte=first_day,
+        date__lte=now
+    ).values('id', 'date')
+    
+    # Create a map of transaction ID to date for easy lookup
+    tx_date_map = {tx['id']: tx['date'] for tx in source_tx_qs}
+    
+    # Query links that match these source transactions
     links_by_month = {}
-    all_links = (
-        TransactionLink.objects.filter(
-            user=user,
-            source_transaction__date__gte=first_day,
-            source_transaction__date__lte=now
+    if tx_date_map:
+        all_links = (
+            TransactionLink.objects.filter(
+                user=user,
+                source_transaction_uuid__in=tx_date_map.keys()
+            )
+            .values('source_transaction_uuid', 'linked_amount')
         )
-        .annotate(
-            tx_year=ExtractYear('source_transaction__date'),
-            tx_month=ExtractMonth('source_transaction__date')
-        )
-        .values('tx_year', 'tx_month')
-        .annotate(total=Coalesce(Sum('linked_amount'), Decimal("0")))
-    )
-    for link in all_links:
-        links_by_month[(link['tx_year'], link['tx_month'])] = _decimal(link['total'])
+        
+        for link in all_links:
+            tx_id = link['source_transaction_uuid']
+            amount = link['linked_amount']
+            # We already know the date from our map
+            if tx_id in tx_date_map:
+                tx_date = tx_date_map[tx_id]
+                key = (tx_date.year, tx_date.month)
+                links_by_month[key] = links_by_month.get(key, Decimal("0")) + _decimal(amount)
 
     series: List[Dict[str, str]] = []
     current = first_day
@@ -342,9 +427,11 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         if is_future:
             income = recurrence_projections[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
             expense = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+            aportes = recurrence_projections[current].get("APORTES", Decimal("0"))
         else:
             income = buckets[current].get(Transaction.TransactionType.INCOME, Decimal("0"))
             expense = buckets[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
+            aportes = buckets[current].get("APORTES", Decimal("0"))
         
         tps = Decimal("0")
         if income > 0:
@@ -360,12 +447,13 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             
             rdr = (recurring_debt / income) * Decimal("100")
         
-        if income > 0 or expense > 0:
+        if income > 0 or expense > 0 or aportes > 0:
             series.append(
                 {
                     "month": current.strftime("%Y-%m"),
                     "income": income.quantize(Decimal("0.01")),
                     "expense": expense.quantize(Decimal("0.01")),
+                    "aportes": aportes.quantize(Decimal("0.01")),
                     "tps": tps.quantize(Decimal("0.01")),
                     "rdr": rdr.quantize(Decimal("0.01")),
                     "is_projection": is_future,

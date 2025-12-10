@@ -10,6 +10,7 @@ class DashboardSummarySerializer(serializers.Serializer):
     ili = serializers.DecimalField(max_digits=6, decimal_places=2)
     total_income = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_expense = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_aportes = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
 
 
 class CategoryBreakdownSerializer(serializers.Serializer):
@@ -26,6 +27,7 @@ class CashflowPointSerializer(serializers.Serializer):
     expense = serializers.DecimalField(max_digits=12, decimal_places=2)
     tps = serializers.DecimalField(max_digits=6, decimal_places=2)
     rdr = serializers.DecimalField(max_digits=6, decimal_places=2)
+    aportes = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     is_projection = serializers.BooleanField(default=False)
 
 

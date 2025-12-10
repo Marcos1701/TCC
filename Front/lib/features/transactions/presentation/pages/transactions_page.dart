@@ -145,15 +145,25 @@ class _TransactionsPageState extends State<TransactionsPage>
     });
   }
 
+
+
   Map<String, double> _buildTotals(List<TransactionModel> transactions) {
     final totals = <String, double>{
       'INCOME': 0,
       'EXPENSE': 0,
+      'APORTES': 0, // SAVINGS + INVESTMENT (separate tracking)
     };
     
     for (final tx in transactions) {
-      totals.update(tx.type, (value) => value + tx.amount,
-          ifAbsent: () => tx.amount);
+      final group = tx.category?.group;
+      final isSavingsOrInvestment = group == 'SAVINGS' || group == 'INVESTMENT';
+      
+      if (tx.type == 'EXPENSE' && isSavingsOrInvestment) {
+        totals['APORTES'] = (totals['APORTES'] ?? 0) + tx.amount;
+      } else {
+        totals.update(tx.type, (value) => value + tx.amount,
+            ifAbsent: () => tx.amount);
+      }
     }
     
     return totals;
@@ -366,7 +376,6 @@ class _TransactionsPageState extends State<TransactionsPage>
                 ],
               ),
             ),
-            // Search field
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: TextField(

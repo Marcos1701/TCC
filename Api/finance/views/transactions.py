@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.db import transaction as db_transaction
 from django.db.models import Count, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
+import django_filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -30,6 +31,16 @@ from .base import (
 logger = logging.getLogger(__name__)
 
 
+
+
+class TransactionFilter(django_filters.FilterSet):
+    start_date = django_filters.DateFilter(field_name='date', lookup_expr='gte')
+    end_date = django_filters.DateFilter(field_name='date', lookup_expr='lte')
+
+    class Meta:
+        model = Transaction
+        fields = ['type', 'is_recurring', 'category']
+
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerPermission]
@@ -39,11 +50,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    filterset_fields = [
-        'type',
-        'is_recurring',
-        'category',
-    ]
+    filterset_class = TransactionFilter
     search_fields = ['description', 'category__name']
     ordering_fields = ['date', 'amount', 'created_at']
 

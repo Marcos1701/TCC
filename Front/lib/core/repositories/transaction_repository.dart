@@ -32,9 +32,11 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
     String? type,
     int? limit,
     int? offset,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     // Create a key for this request to detect duplicates
-    final requestKey = 'fetch_${type}_${limit}_$offset';
+    final requestKey = 'fetch_${type}_${limit}_${offset}_${startDate}_${endDate}';
     
     // If an identical request is already in-flight, return the same future
     if (_transactionsFetchInFlight != null && _lastTransactionsFetchKey == requestKey) {
@@ -46,7 +48,13 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
     
     // Store the request key and execute
     _lastTransactionsFetchKey = requestKey;
-    _transactionsFetchInFlight = _doFetchTransactions(type: type, limit: limit, offset: offset);
+    _transactionsFetchInFlight = _doFetchTransactions(
+      type: type, 
+      limit: limit, 
+      offset: offset,
+      startDate: startDate,
+      endDate: endDate,
+    );
     
     try {
       final result = await _transactionsFetchInFlight!;
@@ -62,12 +70,16 @@ class TransactionRepository extends BaseRepository implements ITransactionReposi
     String? type,
     int? limit,
     int? offset,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
       final queryParams = <String, dynamic>{};
       if (type != null) queryParams['type'] = type;
       if (limit != null) queryParams['limit'] = limit;
       if (offset != null) queryParams['offset'] = offset;
+      if (startDate != null) queryParams['start_date'] = DateFormatter.toApiFormat(startDate);
+      if (endDate != null) queryParams['end_date'] = DateFormatter.toApiFormat(endDate);
       
       if (kDebugMode) {
         debugPrint('📡 TransactionRepository: Fetching transactions from API...');

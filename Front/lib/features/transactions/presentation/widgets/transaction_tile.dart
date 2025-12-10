@@ -6,7 +6,15 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme_extension.dart';
 
 abstract final class TransactionTileHelper {
-  static Color colorFor(String type) {
+  /// Checks if the transaction is an "aporte" (savings/investment contribution)
+  static bool isAporte(TransactionModel transaction) {
+    final group = transaction.category?.group;
+    return transaction.type == 'EXPENSE' &&
+        (group == 'SAVINGS' || group == 'INVESTMENT');
+  }
+
+  static Color colorFor(String type, {bool isAporte = false}) {
+    if (isAporte) return AppColors.primary; // Blue for aportes
     switch (type) {
       case 'INCOME':
         return AppColors.support;
@@ -19,7 +27,8 @@ abstract final class TransactionTileHelper {
     }
   }
 
-  static IconData iconFor(String type) {
+  static IconData iconFor(String type, {bool isAporte = false}) {
+    if (isAporte) return Icons.savings_rounded; // Savings icon for aportes
     switch (type) {
       case 'INCOME':
         return Icons.arrow_upward_rounded;
@@ -61,8 +70,9 @@ class TransactionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final accent = TransactionTileHelper.colorFor(transaction.type);
-    final icon = TransactionTileHelper.iconFor(transaction.type);
+    final isAporte = TransactionTileHelper.isAporte(transaction);
+    final accent = TransactionTileHelper.colorFor(transaction.type, isAporte: isAporte);
+    final icon = TransactionTileHelper.iconFor(transaction.type, isAporte: isAporte);
     final recurrenceLabel = transaction.recurrenceLabel;
     final categoryColor =
         TransactionTileHelper.parseCategoryColor(transaction.category?.color);

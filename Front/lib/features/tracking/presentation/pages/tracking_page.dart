@@ -177,35 +177,146 @@ class _TrackingContent extends StatelessWidget {
   }
 }
 
-class _CategoryDistribution extends StatelessWidget {
+class _CategoryDistribution extends StatefulWidget {
   const _CategoryDistribution({required this.categories});
 
   final Map<String, List<CategorySlice>> categories;
 
   @override
+  State<_CategoryDistribution> createState() => _CategoryDistributionState();
+}
+
+class _CategoryDistributionState extends State<_CategoryDistribution> {
+  String _selectedType = 'EXPENSE';
+
+  @override
   Widget build(BuildContext context) {
-    final expenses = categories['EXPENSE'] ?? [];
-    final income = categories['INCOME'] ?? [];
+    final theme = Theme.of(context);
+    final expenses = widget.categories['EXPENSE'] ?? [];
+    final income = widget.categories['INCOME'] ?? [];
+    final aportes = widget.categories['APORTES'] ?? [];
+
+    // Determine available tabs based on data
+    final availableTabs = <String, String>{};
+    if (expenses.isNotEmpty) availableTabs['EXPENSE'] = 'Despesas';
+    if (aportes.isNotEmpty) availableTabs['APORTES'] = 'Aportes';
+    if (income.isNotEmpty) availableTabs['INCOME'] = 'Receitas';
+
+    // Default to first available if current selection has no data
+    if (!availableTabs.containsKey(_selectedType) && availableTabs.isNotEmpty) {
+      _selectedType = availableTabs.keys.first;
+    }
+
+    if (availableTabs.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (expenses.isNotEmpty) ...[
-          CategoryPieChart(
-            title: '${UxStrings.expense} por Categoria',
-            slices: expenses,
-            baseColor: AppColors.alert,
+        // Tab Selector
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white12),
           ),
-          const SizedBox(height: 24),
-        ],
-        if (income.isNotEmpty) ...[
-          CategoryPieChart(
-            title: '${UxStrings.income} por Categoria',
-            slices: income,
-            baseColor: AppColors.success,
+          child: Row(
+            children: availableTabs.entries.map((entry) {
+              final isSelected = _selectedType == entry.key;
+              final color = _getColorForType(entry.key);
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedType = entry.key),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? color.withOpacity(0.2) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: isSelected 
+                          ? Border.all(color: color.withOpacity(0.5)) 
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _getIconForType(entry.key),
+                          size: 16,
+                          color: isSelected ? color : Colors.grey[500],
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          entry.value,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: isSelected ? color : Colors.grey[500],
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
-        ],
+        ),
+        const SizedBox(height: 16),
+        // Selected Chart
+        _buildSelectedChart(),
       ],
+    );
+  }
+
+  Color _getColorForType(String type) {
+    switch (type) {
+      case 'EXPENSE':
+        return AppColors.alert;
+      case 'APORTES':
+        return AppColors.primary;
+      case 'INCOME':
+        return AppColors.success;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getIconForType(String type) {
+    switch (type) {
+      case 'EXPENSE':
+        return Icons.payments_rounded;
+      case 'APORTES':
+        return Icons.savings_rounded;
+      case 'INCOME':
+        return Icons.account_balance_wallet_rounded;
+      default:
+        return Icons.pie_chart;
+    }
+  }
+
+  String _getTitleForType(String type) {
+    switch (type) {
+      case 'EXPENSE':
+        return '${UxStrings.expense} por Categoria';
+      case 'APORTES':
+        return 'Aportes por Categoria';
+      case 'INCOME':
+        return '${UxStrings.income} por Categoria';
+      default:
+        return 'Distribuição por Categoria';
+    }
+  }
+
+  Widget _buildSelectedChart() {
+    final slices = widget.categories[_selectedType] ?? [];
+    if (slices.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return CategoryPieChart(
+      title: _getTitleForType(_selectedType),
+      slices: slices,
+      baseColor: _getColorForType(_selectedType),
     );
   }
 }

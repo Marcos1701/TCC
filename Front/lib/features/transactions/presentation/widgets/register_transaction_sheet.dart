@@ -29,6 +29,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
 
   DateTime _selectedDate = DateTime.now();
   String _type = 'INCOME';
+  String _uiType = 'INCOME'; // UI type: INCOME, EXPENSE, or APORTES
   int? _categoryId;
   List<CategoryModel> _categories = [];
   bool _loadingCategories = true;
@@ -66,7 +67,11 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     super.dispose();
   }
 
+  // Returns the backend transaction type
   String get _categoryType => _type;
+  
+  // Check if current mode is Aportes
+  bool get _isAportesMode => _uiType == 'APORTES';
 
   void _syncDateLabel() {
     _dateController.text =
@@ -124,14 +129,27 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
     final result =
         await widget.repository.fetchCategories(type: _categoryType);
     if (!mounted) return;
+    
+    // Filter categories based on UI type
+    List<CategoryModel> filteredCategories;
+    if (_isAportesMode) {
+      // Aportes: only SAVINGS/INVESTMENT categories
+      filteredCategories = result.where((c) => c.group == 'SAVINGS' || c.group == 'INVESTMENT').toList();
+    } else if (_type == 'EXPENSE') {
+      // Regular Expense: exclude SAVINGS/INVESTMENT (those go in Aportes)
+      filteredCategories = result.where((c) => c.group != 'SAVINGS' && c.group != 'INVESTMENT').toList();
+    } else {
+      filteredCategories = result;
+    }
+    
     setState(() {
-      _categories = result;
-      if (focusId != null && result.any((e) => e.id == focusId)) {
+      _categories = filteredCategories;
+      if (focusId != null && filteredCategories.any((e) => e.id == focusId)) {
         _categoryId = focusId;
       } else if (_categoryId != null &&
-          result.any((e) => e.id == _categoryId)) {
+          filteredCategories.any((e) => e.id == _categoryId)) {
       } else {
-        _categoryId = result.isNotEmpty ? result.first.id : null;
+        _categoryId = filteredCategories.isNotEmpty ? filteredCategories.first.id : null;
       }
       _loadingCategories = false;
     });
@@ -503,7 +521,7 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
           const SizedBox(height: 8),
         ],
         DropdownButtonFormField<String>(
-          value: _type,
+          value: _uiType,
           dropdownColor: _fieldColor,
           style: inputTextStyle,
           iconEnabledColor: Colors.white70,
@@ -511,11 +529,14 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
           items: const [
             DropdownMenuItem(value: 'INCOME', child: Text('Receita')),
             DropdownMenuItem(value: 'EXPENSE', child: Text('Despesa')),
+            DropdownMenuItem(value: 'APORTES', child: Text('Aportes (Poupança/Invest.)')),
           ],
           onChanged: (value) {
             if (value == null) return;
             setState(() {
-              _type = value;
+              _uiType = value;
+              // Aportes uses EXPENSE backend type
+              _type = value == 'APORTES' ? 'EXPENSE' : value;
               _categoryId = null;
             });
             _loadCategories();
@@ -523,8 +544,9 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Dica: crie categorias com finalidades como Poupança, '
-          'Investimentos ou Renda extra para diferenciar os lançamentos.',
+          _isAportesMode
+              ? 'Aportes são registrados como despesas em categorias de Poupança ou Investimentos.'
+              : 'Dica: use "Aportes" para registrar contribuições à poupança ou investimentos.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.white54,
               ),

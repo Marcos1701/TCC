@@ -153,6 +153,10 @@ class SessionController extends ChangeNotifier {
   void clearNewRegistrationFlag() {
     _isNewRegistration = false;
   }
+
+  void clearSessionExpiredFlag() {
+    _sessionExpired = false;
+  }
 }
 
 class SessionScope extends InheritedNotifier<SessionController> {

@@ -248,8 +248,8 @@ class SimplifiedOnboardingView(APIView):
                 
                 Category.objects.get_or_create(
                     user=user,
-                    name="Reserva de Emergência",
-                    type=Category.CategoryType.INCOME,
+                    name="Poupança",
+                    type=Category.CategoryType.EXPENSE,
                     defaults={
                         'group': Category.CategoryGroup.SAVINGS,
                         'color': '#00BCD4'

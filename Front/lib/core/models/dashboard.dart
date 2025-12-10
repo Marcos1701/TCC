@@ -9,6 +9,7 @@ class SummaryMetrics {
     required this.ili,
     required this.totalIncome,
     required this.totalExpense,
+    this.totalAportes = 0.0,
   });
 
   final double tps;
@@ -16,6 +17,7 @@ class SummaryMetrics {
   final double ili;
   final double totalIncome;
   final double totalExpense;
+  final double totalAportes;
 
   factory SummaryMetrics.fromMap(Map<String, dynamic> map) {
     if (map.isEmpty) {
@@ -25,6 +27,7 @@ class SummaryMetrics {
         ili: 0.0,
         totalIncome: 0.0,
         totalExpense: 0.0,
+        totalAportes: 0.0,
       );
     }
     
@@ -34,6 +37,7 @@ class SummaryMetrics {
       ili: double.parse(map['ili']?.toString() ?? '0'),
       totalIncome: double.parse(map['total_income']?.toString() ?? '0'),
       totalExpense: double.parse(map['total_expense']?.toString() ?? '0'),
+      totalAportes: double.parse(map['total_aportes']?.toString() ?? '0'),
     );
   }
 }
@@ -65,6 +69,7 @@ class CashflowPoint {
     required this.expense,
     required this.tps,
     required this.rdr,
+    this.aportes = 0.0,
     this.isProjection = false,
   });
 
@@ -73,6 +78,7 @@ class CashflowPoint {
   final double expense;
   final double tps;
   final double rdr;
+  final double aportes;
   final bool isProjection;
 
   factory CashflowPoint.fromMap(Map<String, dynamic> map) {
@@ -82,6 +88,7 @@ class CashflowPoint {
       expense: double.parse(map['expense']?.toString() ?? '0'),
       tps: double.parse(map['tps']?.toString() ?? '0'),
       rdr: double.parse(map['rdr']?.toString() ?? '0'),
+      aportes: double.parse(map['aportes']?.toString() ?? '0'),
       isProjection: map['is_projection'] == true || map['isProjection'] == true,
     );
   }

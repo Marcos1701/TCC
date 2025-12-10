@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/category_groups.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/category_form_model.dart';
@@ -92,6 +93,30 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
     }
   }
 
+  List<String> _getGroupOptions() {
+    return CategoryGroupMetadata.groupsForType(_formData.type);
+  }
+
+  String? _getValidGroup() {
+    final options = _getGroupOptions();
+    if (_formData.group != null && options.contains(_formData.group)) {
+      return _formData.group;
+    }
+    // Return first option as default if current group is invalid for type
+    return options.isNotEmpty ? options.first : null;
+  }
+
+  String _getGroupHelperText() {
+    switch (_formData.type) {
+      case 'EXPENSE':
+        return 'Escolha Poupança ou Investimentos para categorias de aportes';
+      case 'INCOME':
+        return 'Classifique sua fonte de renda';
+      default:
+        return 'Selecione a classificação da categoria';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSystemCategory = widget.category != null && 
@@ -162,7 +187,36 @@ class _CategoryFormPageState extends State<CategoryFormPage> {
               onChanged: isSystemCategory ? null : (value) {
                 if (value != null) {
                   setState(() {
-                    _formData = _formData.copyWith(type: value);
+                    // Reset group to first valid option for new type
+                    final newGroups = CategoryGroupMetadata.groupsForType(value);
+                    final newGroup = newGroups.isNotEmpty ? newGroups.first : null;
+                    _formData = _formData.copyWith(type: value, group: newGroup);
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            
+            // Group Selector 
+            DropdownButtonFormField<String>(
+              value: _getValidGroup(),
+              decoration: InputDecoration(
+                labelText: 'Classificação',
+                border: const OutlineInputBorder(),
+                filled: isSystemCategory,
+                fillColor: isSystemCategory ? Colors.grey.withOpacity(0.1) : null,
+                helperText: _getGroupHelperText(),
+              ),
+              items: _getGroupOptions().map((group) {
+                return DropdownMenuItem(
+                  value: group,
+                  child: Text(CategoryGroupMetadata.labels[group] ?? group),
+                );
+              }).toList(),
+              onChanged: isSystemCategory ? null : (value) {
+                if (value != null) {
+                  setState(() {
+                    _formData = _formData.copyWith(group: value);
                   });
                 }
               },

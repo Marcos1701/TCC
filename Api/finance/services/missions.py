@@ -387,9 +387,10 @@ def initialize_mission_progress(progress):
     # GOAL_PROGRESS removido - sistema de goals desativado
     
     if mission.validation_type == 'SAVINGS_INCREASE':
+        # Aportes are EXPENSE type with SAVINGS/INVESTMENT category groups
+        # Also include any INCOME with these groups for completeness
         savings = Transaction.objects.filter(
             user=user,
-            type='INCOME',
             category__group__in=['SAVINGS', 'INVESTMENT']
         ).aggregate(total=Sum('amount'))
         

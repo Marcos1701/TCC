@@ -26,7 +26,7 @@ class CashflowChart extends StatelessWidget {
     final tokens = theme.extension<AppDecorations>()!;
 
     final maxValue = cashflow
-        .expand((e) => [e.income, e.expense])
+        .expand((e) => [e.income, e.expense, e.aportes])
         .reduce((a, b) => a > b ? a : b);
     final interval = ChartHelpers.calculateInterval(maxValue);
     final hasProjections = cashflow.any((p) => p.isProjection);
@@ -149,6 +149,10 @@ class CashflowChart extends StatelessWidget {
           label: '💸 ${UxStrings.expense}',
           color: AppColors.alert,
         ),
+        const DashedLegendItem(
+          label: '🏦 Aportes',
+          color: AppColors.primary,
+        ),
         if (hasProjections)
           DashedLegendItem(
             label: '🔮 Projeção',
@@ -170,6 +174,8 @@ class CashflowChart extends StatelessWidget {
           if (hasProjections) ..._buildProjectionLines(true),
           _buildExpenseLine(),
           if (hasProjections) ..._buildProjectionLines(false),
+          _buildAportesLine(),
+          if (hasProjections) ..._buildAportesProjectionLines(),
         ],
         lineTouchData: _buildTouchData(theme),
       ),
@@ -414,6 +420,99 @@ class CashflowChart extends StatelessWidget {
     return projectionLines;
   }
 
+  LineChartBarData _buildAportesLine() {
+    return LineChartBarData(
+      spots: cashflow
+          .asMap()
+          .entries
+          .map((e) => FlSpot(e.key.toDouble(), e.value.aportes))
+          .toList(),
+      isCurved: true,
+      curveSmoothness: 0.35,
+      color: AppColors.primary,
+      barWidth: 3.5,
+      isStrokeCapRound: true,
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, barData, index) {
+          final isProjection =
+              index < cashflow.length && cashflow[index].isProjection;
+          return FlDotCirclePainter(
+            radius: isProjection ? 3 : 4,
+            color: isProjection
+                ? AppColors.primary.withOpacity(0.6)
+                : AppColors.primary,
+            strokeWidth: 2,
+            strokeColor: const Color(0xFF1E1E1E),
+          );
+        },
+      ),
+      belowBarData: BarAreaData(
+        show: true,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primary.withOpacity(0.3),
+            AppColors.primary.withOpacity(0.05),
+          ],
+        ),
+      ),
+      shadow: Shadow(
+        color: AppColors.primary.withOpacity(0.3),
+        blurRadius: 8,
+      ),
+    );
+  }
+
+  List<LineChartBarData> _buildAportesProjectionLines() {
+    final projectionLines = <LineChartBarData>[];
+
+    int? firstProjectionIndex;
+    for (var i = 0; i < cashflow.length; i++) {
+      if (cashflow[i].isProjection) {
+        firstProjectionIndex = i;
+        break;
+      }
+    }
+
+    if (firstProjectionIndex == null || firstProjectionIndex == 0) {
+      return projectionLines;
+    }
+
+    final projectionSpots = <FlSpot>[];
+
+    projectionSpots.add(FlSpot(
+      (firstProjectionIndex - 1).toDouble(),
+      cashflow[firstProjectionIndex - 1].aportes,
+    ));
+
+    for (var i = firstProjectionIndex; i < cashflow.length; i++) {
+      if (cashflow[i].isProjection) {
+        projectionSpots.add(FlSpot(
+          i.toDouble(),
+          cashflow[i].aportes,
+        ));
+      }
+    }
+
+    projectionLines.add(
+      LineChartBarData(
+        spots: projectionSpots,
+        isCurved: true,
+        curveSmoothness: 0.35,
+        color: AppColors.primary.withOpacity(0.5),
+        barWidth: 2.5,
+        isStrokeCapRound: true,
+        dashArray: [8, 4],
+        dotData: const FlDotData(show: false),
+        belowBarData: BarAreaData(show: false),
+      ),
+    );
+
+    return projectionLines;
+  }
+
   LineTouchData _buildTouchData(ThemeData theme) {
     return LineTouchData(
       enabled: true,
@@ -463,7 +562,8 @@ class CashflowChart extends StatelessWidget {
     final monthName = ChartHelpers.formatMonthName(point.month);
     final income = point.income;
     final expense = point.expense;
-    final balance = income - expense;
+    final aportes = point.aportes;
+    final balance = income - expense - aportes;
     final isProjection = point.isProjection;
 
     return touchedSpots.asMap().entries.map((entry) {
@@ -506,6 +606,23 @@ class CashflowChart extends StatelessWidget {
             TextSpan(
               text:
                   '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(expense)}\n',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.normal,
+                fontSize: 11,
+              ),
+            ),
+            const TextSpan(
+              text: '🏦 Aportes: ',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 11,
+              ),
+            ),
+            TextSpan(
+              text:
+                  '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(aportes)}\n',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.normal,

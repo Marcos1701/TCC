@@ -53,7 +53,8 @@ class _TransactionWizardState extends State<TransactionWizard> {
   final _currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
   
   int _currentStep = 0;
-  String _selectedType = 'EXPENSE'; // INCOME ou EXPENSE
+  String _selectedType = 'EXPENSE'; // Backend type: INCOME or EXPENSE
+  String _uiType = 'EXPENSE'; // UI type: INCOME, EXPENSE, or APORTES
   int? _selectedCategoryId;
   List<CategoryModel> _categories = [];
   bool _loadingCategories = true;
@@ -63,6 +64,8 @@ class _TransactionWizardState extends State<TransactionWizard> {
   _RecurrenceUnit _recurrenceUnit = _RecurrenceUnit.months;
   DateTime? _recurrenceEndDate;
   bool _submitting = false;
+  
+  bool get _isAportesMode => _uiType == 'APORTES';
 
   @override
   void initState() {
@@ -121,7 +124,16 @@ class _TransactionWizardState extends State<TransactionWizard> {
   }
 
   List<CategoryModel> get _filteredCategories {
-    return _categories.where((cat) => cat.type == _selectedType).toList();
+    final typeFiltered = _categories.where((cat) => cat.type == _selectedType).toList();
+    // For Aportes mode, show only SAVINGS/INVESTMENT categories
+    if (_isAportesMode) {
+      return typeFiltered.where((c) => c.group == 'SAVINGS' || c.group == 'INVESTMENT').toList();
+    }
+    // For regular Expense mode, exclude SAVINGS/INVESTMENT (those go in Aportes)
+    if (_selectedType == 'EXPENSE') {
+      return typeFiltered.where((c) => c.group != 'SAVINGS' && c.group != 'INVESTMENT').toList();
+    }
+    return typeFiltered;
   }
 
   bool _canGoNext() {
@@ -407,7 +419,7 @@ class _TransactionWizardState extends State<TransactionWizard> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Escolha se é uma receita (dinheiro que entra) ou despesa (dinheiro que sai)',
+          'Escolha o tipo de transação',
           style: TextStyle(
             color: Colors.grey,
             fontSize: 14,
@@ -420,8 +432,12 @@ class _TransactionWizardState extends State<TransactionWizard> {
           title: 'Receita',
           subtitle: 'Dinheiro que entra',
           examples: 'Ex: Salário, Freelance, Vendas',
-          isSelected: _selectedType == 'INCOME',
-          onTap: () => setState(() => _selectedType = 'INCOME'),
+          isSelected: _uiType == 'INCOME',
+          onTap: () => setState(() {
+            _uiType = 'INCOME';
+            _selectedType = 'INCOME';
+            _selectedCategoryId = null;
+          }),
         ),
         const SizedBox(height: 16),
         TransactionTypeCard(
@@ -430,8 +446,26 @@ class _TransactionWizardState extends State<TransactionWizard> {
           title: 'Despesa',
           subtitle: 'Dinheiro que sai',
           examples: 'Ex: Aluguel, Mercado, Transporte',
-          isSelected: _selectedType == 'EXPENSE',
-          onTap: () => setState(() => _selectedType = 'EXPENSE'),
+          isSelected: _uiType == 'EXPENSE',
+          onTap: () => setState(() {
+            _uiType = 'EXPENSE';
+            _selectedType = 'EXPENSE';
+            _selectedCategoryId = null;
+          }),
+        ),
+        const SizedBox(height: 16),
+        TransactionTypeCard(
+          icon: Icons.savings_rounded,
+          iconColor: AppColors.primary,
+          title: 'Aportes',
+          subtitle: 'Poupança/Investimentos',
+          examples: 'Ex: Poupança, Renda Fixa, Ações',
+          isSelected: _uiType == 'APORTES',
+          onTap: () => setState(() {
+            _uiType = 'APORTES';
+            _selectedType = 'EXPENSE'; // Backend type is EXPENSE
+            _selectedCategoryId = null;
+          }),
         ),
       ],
     );

@@ -7,6 +7,8 @@ abstract class ITransactionRepository {
     String? type,
     int? limit,
     int? offset,
+    DateTime? startDate,
+    DateTime? endDate,
   });
 
   Future<Map<String, dynamic>> createTransaction({

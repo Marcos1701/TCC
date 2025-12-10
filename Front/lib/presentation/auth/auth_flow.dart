@@ -120,6 +120,7 @@ class _AuthFlowState extends State<AuthFlow> {
                 ),
               );
               resetOnboardingFlags();
+              session.clearSessionExpiredFlag();
             }
           });
         }

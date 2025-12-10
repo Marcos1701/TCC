@@ -24,6 +24,8 @@ class CategoryGroupMetadata {
     'EXPENSE': [
       'ESSENTIAL_EXPENSE',
       'LIFESTYLE_EXPENSE',
+      'SAVINGS',
+      'INVESTMENT',
       'GOAL',
       'OTHER',
     ],

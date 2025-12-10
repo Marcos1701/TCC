@@ -39,7 +39,8 @@ class TransactionsSummaryStrip extends StatelessWidget {
     
     final income = totals['INCOME'] ?? 0;
     final expense = totals['EXPENSE'] ?? 0;
-    final balance = income - expense;
+    final aportes = totals['APORTES'] ?? 0;
+    final balance = income - expense - aportes;
     
     final metrics = [
       SummaryMetric(
@@ -55,13 +56,6 @@ class TransactionsSummaryStrip extends StatelessWidget {
         value: expense,
         icon: Icons.arrow_downward_rounded,
         color: AppColors.alert,
-      ),
-      SummaryMetric(
-        key: 'BALANCE',
-        title: 'Saldo',
-        value: balance,
-        icon: Icons.account_balance_wallet_rounded,
-        color: balance >= 0 ? AppColors.support : AppColors.alert,
       ),
     ];
 
@@ -103,6 +97,15 @@ class TransactionsSummaryStrip extends StatelessWidget {
               ),
             ],
           ),
+          // Aportes row (only if > 0)
+          if (aportes > 0) ...[
+            const SizedBox(height: 10),
+            AportesCard(
+              aportes: aportes,
+              currency: currency,
+              dimmed: activeFilter != null,
+            ),
+          ],
           const SizedBox(height: 10),
           // Bottom row: Balance (full width)
           BalanceCard(
@@ -287,6 +290,92 @@ class BalanceCard extends StatelessWidget {
                   fontSize: 18,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Card for displaying savings/investment contributions
+class AportesCard extends StatelessWidget {
+  const AportesCard({
+    super.key,
+    required this.aportes,
+    required this.currency,
+    required this.dimmed,
+  });
+
+  final double aportes;
+  final NumberFormat currency;
+  final bool dimmed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const color = AppColors.primary;
+
+    return AnimatedOpacity(
+      opacity: dimmed ? 0.4 : 1,
+      duration: const Duration(milliseconds: 200),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              color.withOpacity(0.2),
+              color.withOpacity(0.08),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.savings_rounded, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'APORTES (POUPANÇA/INVEST.)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: color.withOpacity(0.8),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    currency.format(aportes),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.trending_flat_rounded, color: color, size: 16),
             ),
           ],
         ),

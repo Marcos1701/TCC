@@ -46,7 +46,7 @@ def _ensure_default_categories(user):
         {'name': 'Educação', 'type': 'EXPENSE', 'group': 'LIFESTYLE_EXPENSE', 'color': '#3F51B5'},
         {'name': 'Vestuário', 'type': 'EXPENSE', 'group': 'LIFESTYLE_EXPENSE', 'color': '#E91E63'},
         
-        {'name': 'Reserva de Emergência', 'type': 'EXPENSE', 'group': 'SAVINGS', 'color': '#00BCD4'},
+        {'name': 'Poupança', 'type': 'EXPENSE', 'group': 'SAVINGS', 'color': '#00BCD4'},
         {'name': 'Investimentos', 'type': 'EXPENSE', 'group': 'INVESTMENT', 'color': '#009688'},
         
         {'name': 'Cartão de Crédito', 'type': 'EXPENSE', 'group': 'OTHER', 'color': '#F44336'},

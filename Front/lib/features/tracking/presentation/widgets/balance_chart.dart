@@ -25,7 +25,7 @@ class BalanceChart extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
 
-    final balances = cashflow.map((e) => e.income - e.expense).toList();
+    final balances = cashflow.map((e) => e.income - e.expense - e.aportes).toList();
     final maxBalance =
         balances.reduce((a, b) => a.abs() > b.abs() ? a : b).abs();
     final maxY = maxBalance < 100 ? 100.0 : maxBalance;
@@ -222,6 +222,23 @@ class BalanceChart extends StatelessWidget {
         TextSpan(
           text:
               '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(expense)}\n',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.normal,
+            fontSize: 11,
+          ),
+        ),
+        const TextSpan(
+          text: '🏦 Aportes: ',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+          ),
+        ),
+        TextSpan(
+          text:
+              '${NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(cashflow[index].aportes)}\n',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.normal,

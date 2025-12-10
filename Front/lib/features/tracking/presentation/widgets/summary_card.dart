@@ -18,7 +18,7 @@ class SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final balance = summary.totalIncome - summary.totalExpense;
+    final balance = summary.totalIncome - summary.totalExpense - summary.totalAportes;
     final isPositive = balance >= 0;
 
     return Container(
@@ -44,6 +44,10 @@ class SummaryCard extends StatelessWidget {
           _buildHeader(theme),
           const SizedBox(height: 24),
           _buildMetricsRow(),
+          if (summary.totalAportes > 0) ...[
+            const SizedBox(height: 16),
+            _buildAportesRow(theme),
+          ],
           const SizedBox(height: 20),
           const Divider(color: Colors.white24),
           const SizedBox(height: 20),
@@ -127,6 +131,44 @@ class SummaryCard extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildAportesRow(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.savings_rounded, color: AppColors.primary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Aportes (Poupança/Invest.)',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')
+                .format(summary.totalAportes),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
