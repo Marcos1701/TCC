@@ -191,7 +191,7 @@ class AnalyticsService {
 
   static void trackLogin({required String method}) {
     _instance._logEvent('user_login', {
-      'method': method, // 'email', 'google', etc
+      'method': method,
       'timestamp': DateTime.now().toIso8601String(),
     });
   }

@@ -95,7 +95,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         
-        # Invalidar cache após criar transação
         invalidate_user_dashboard_cache(request.user)
         
         headers = self.get_success_headers(serializer.data)
@@ -182,7 +181,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if transaction.type == Transaction.TransactionType.INCOME:
             tps_impact = (amount / (total_income + amount)) * 100
         elif transaction.type == Transaction.TransactionType.EXPENSE:
-            # Savings/Investment expenses do not reduce TPS (they are savings)
             is_savings = False
             if transaction.category and transaction.category.group in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
                 is_savings = True
@@ -313,7 +311,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Calculate indicator impact
         summary = calculate_summary(request.user)
         total_income = float(summary.get('total_income', 0))
         
@@ -341,7 +338,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
             if tx_type == 'EXPENSE' and is_recurring:
                 rdr_impact = (amount / total_income) * 100
         
-        # Calculate mission impact
         mission_impacts = []
         
         active_missions = MissionProgress.objects.filter(
@@ -359,7 +355,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 'message': '',
             }
             
-            # Check if this transaction affects category-based missions
             if mission.target_category_id and category_id:
                 if mission.target_category_id == int(category_id):
                     if mission.mission_type in ['CATEGORY_REDUCTION', 'CATEGORY_LIMIT']:
@@ -373,7 +368,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                         impact_info['impact'] = 'positive'
                         impact_info['message'] = f'Contribuirá para a meta de aumento de receita'
             
-            # Check transaction consistency missions
             if mission.mission_type == 'TRANSACTION_CONSISTENCY':
                 impact_info['impact'] = 'positive'
                 impact_info['message'] = 'Contribuirá para a consistência de registros'
@@ -585,7 +579,6 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
         if end_date:
             links = links.filter(created_at__lte=end_date)
         
-        # Obter a lista de links e fazer prefetch manual das transações
         links_list = list(links)
         source_uuids = {link.source_transaction_uuid for link in links_list}
         target_uuids = {link.target_transaction_uuid for link in links_list}
@@ -598,7 +591,6 @@ class TransactionLinkViewSet(viewsets.ModelViewSet):
             ).select_related('category')
         }
         
-        # Filtrar por categoria usando o map
         category_id = request.query_params.get('category')
         if category_id:
             filtered_links = []

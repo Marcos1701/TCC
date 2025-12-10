@@ -18,7 +18,6 @@ from .category import Category
 class ActiveTransactionManager(models.Manager):
     """
     Manager que filtra apenas transações ativas (não deletadas).
-    Usado como manager padrão para excluir soft-deleted automaticamente.
     """
     def get_queryset(self):
         return super().get_queryset().filter(deleted_at__isnull=True)
@@ -27,7 +26,6 @@ class ActiveTransactionManager(models.Manager):
 class AllTransactionManager(models.Manager):
     """
     Manager que retorna todas as transações, incluindo soft-deleted.
-    Útil para operações administrativas ou auditorias.
     """
     pass
 
@@ -83,9 +81,8 @@ class Transaction(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
-    # Managers
-    objects = ActiveTransactionManager()  # Default: apenas transações ativas
-    all_objects = AllTransactionManager()  # Todas, incluindo deletadas
+    objects = ActiveTransactionManager()
+    all_objects = AllTransactionManager()
 
     class Meta:
         ordering = ("-date", "-created_at")

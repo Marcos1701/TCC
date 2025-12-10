@@ -105,7 +105,6 @@ class MissionsViewModel extends ChangeNotifier {
         _errorMessage =
             'Erro no servidor. Tente novamente em alguns instantes.';
       } else {
-        // 401 é tratado automaticamente pelo ApiClient (refresh de token)
         _errorMessage = UxStrings.errorLoadingChallenges;
       }
     } catch (e) {
@@ -417,10 +416,8 @@ class MissionsViewModel extends ChangeNotifier {
     final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
     if (index == -1) return false;
 
-    // Store original state for rollback
     final originalMission = _activeMissions[index];
 
-    // Optimistically update to ACTIVE
     _activeMissions[index] = MissionProgressModel(
       id: originalMission.id,
       status: 'ACTIVE',
@@ -440,13 +437,11 @@ class MissionsViewModel extends ChangeNotifier {
       final updated = await _repository.startMissionAction(missionId);
       _activeMissions[index] = updated;
       
-      // Invalidate cache to ensure fresh data on next load
       await CacheManager().invalidateAfterMissionComplete();
       
       _safeNotifyListeners();
       return true;
     } catch (e) {
-      // Rollback to original state on failure
       _activeMissions[index] = originalMission;
       _errorMessage = 'Erro ao iniciar desafio. Tente novamente.';
       _safeNotifyListeners();
@@ -460,25 +455,20 @@ class MissionsViewModel extends ChangeNotifier {
     final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
     if (index == -1) return false;
 
-    // Store original state for rollback
     final originalMission = _activeMissions[index];
     final originalIndex = index;
 
-    // Optimistically remove from list
     _activeMissions.removeAt(index);
     _safeNotifyListeners();
 
     try {
       await _repository.skipMissionAction(missionId);
       
-      // Invalidate cache before reload to ensure fresh data
       await CacheManager().invalidateAfterMissionComplete();
       
-      // Reload to get new recommendations
       await loadMissions();
       return true;
     } catch (e) {
-      // Rollback: re-insert at original position
       if (originalIndex <= _activeMissions.length) {
         _activeMissions.insert(originalIndex, originalMission);
       } else {
@@ -504,7 +494,6 @@ class MissionsViewModel extends ChangeNotifier {
     if (exception.response?.statusCode == 500) {
       return 'Erro no servidor. Tente novamente em instantes.';
     }
-    // 401 é tratado automaticamente pelo ApiClient (refresh de token)
     return fallback;
   }
 

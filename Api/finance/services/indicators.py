@@ -61,7 +61,7 @@ def calculate_summary(user) -> Dict[str, Decimal]:
         TransactionLink.objects.filter(
             user=user,
             source_transaction_uuid__in=source_transaction_ids,
-            link_type=TransactionLink.LinkType.EXPENSE_PAYMENT  # FIXED: Only count actual debt payments, exclude savings/transfers
+            link_type=TransactionLink.LinkType.EXPENSE_PAYMENT
         ).aggregate(total=Coalesce(Sum('linked_amount'), Decimal("0")))['total']
     )
     
@@ -278,7 +278,6 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
         else:
             month = month_value
         
-        # Skip adding to expense if it is savings/investment
         if item["type"] == Transaction.TransactionType.EXPENSE and item.get("category__group") in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
             continue
             
@@ -302,7 +301,6 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             projection_month = projection_month + timedelta(days=32)
             projection_month = projection_month.replace(day=1)
             
-            # Skip savings/investment recurrences in expense projection
             if transaction.type == Transaction.TransactionType.EXPENSE and transaction.category and transaction.category.group in [Category.CategoryGroup.SAVINGS, Category.CategoryGroup.INVESTMENT]:
                 continue
 
@@ -317,8 +315,6 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
                 else:
                     recurrence_projections[projection_month][transaction.type] += transaction.amount * 30
 
-    # OPTIMIZATION: Pre-fetch all transaction links for the period in ONE query
-    # instead of querying per month inside the loop (N+1 problem fix)
     links_by_month = {}
     all_links = (
         TransactionLink.objects.filter(
@@ -360,7 +356,6 @@ def cashflow_series(user, months: int = 6) -> List[Dict[str, str]]:
             if is_future:
                 recurring_debt = recurrence_projections[current].get(Transaction.TransactionType.EXPENSE, Decimal("0"))
             else:
-                # Use pre-fetched data instead of querying per month
                 recurring_debt = links_by_month.get((current.year, current.month), Decimal("0"))
             
             rdr = (recurring_debt / income) * Decimal("100")

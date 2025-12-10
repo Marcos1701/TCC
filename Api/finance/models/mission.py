@@ -31,8 +31,6 @@ class Mission(models.Model):
         INDICATOR_THRESHOLD = "INDICATOR_THRESHOLD", "Atingir Valor de Indicador"
         CATEGORY_REDUCTION = "CATEGORY_REDUCTION", "Reduzir % em Categoria"
         SAVINGS_INCREASE = "SAVINGS_INCREASE", "Aumentar Poupança"
-        # TEMPORAL removido - lógica de dias consecutivos foi simplificada
-        # Todas as missões agora usam apenas deadline (duration_days)
 
     title = models.CharField(max_length=MAX_TITLE_LENGTH)
     description = models.TextField()
@@ -120,8 +118,6 @@ class Mission(models.Model):
         help_text="Limite de gasto em reais para a categoria",
     )
     
-
-    
     savings_increase_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -176,8 +172,6 @@ class Mission(models.Model):
         related_name='target_missions',
         help_text="Categorias alvo para missões que envolvem múltiplas categorias",
     )
-    
-
     
     requires_payment_tracking = models.BooleanField(
         default=False,
@@ -291,24 +285,10 @@ class Mission(models.Model):
     def _validate_temporal_fields(self):
         from django.core.exceptions import ValidationError
         
-        # Validação de dias consecutivos desativada - lógica simplificada
-        # if self.requires_consecutive_days:
-        #     if not self.min_consecutive_days or self.min_consecutive_days < 1:
-        #         raise ValidationError({
-        #             'min_consecutive_days': 'Número mínimo de dias consecutivos é obrigatório.'
-        #         })
-        #     if self.min_consecutive_days > self.duration_days:
-        #         raise ValidationError({
-        #             'min_consecutive_days': 'Dias consecutivos não pode exceder duração da missão.'
-        #         })
-        
         if self.savings_increase_amount is not None and self.savings_increase_amount <= 0:
             raise ValidationError({
                 'savings_increase_amount': 'Aumento de poupança deve ser positivo.'
             })
-        
-        # TEMPORAL validation removida - lógica de dias consecutivos simplificada
-        # Missões agora usam apenas deadline (duration_days)
 
     def _validate_consistency_fields(self):
         from django.core.exceptions import ValidationError
@@ -382,8 +362,6 @@ class MissionProgress(models.Model):
         default=30,
         help_text="Número de dias usados para calcular baseline",
     )
-    
-
     
     initial_savings_amount = models.DecimalField(
         max_digits=12,

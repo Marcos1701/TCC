@@ -27,7 +27,7 @@ class TransactionsViewModel extends ChangeNotifier {
   List<TransactionModel> _transactions = [];
   List<TransactionLinkModel> _links = [];
   String? _filter;
-  String? _scheduleFilter; // null = all, 'scheduled' = future only, 'effective' = past/present only
+  String? _scheduleFilter; 
   String _searchQuery = '';
   String? _errorMessage;
   
@@ -44,14 +44,12 @@ class TransactionsViewModel extends ChangeNotifier {
     final pending = _pendingTransactions.values.toList();
     var result = [...pending, ..._transactions];
     
-    // Apply schedule filter
     if (_scheduleFilter == 'scheduled') {
       result = result.where((t) => t.isScheduled).toList();
     } else if (_scheduleFilter == 'effective') {
       result = result.where((t) => !t.isScheduled).toList();
     }
     
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       result = result.where((t) => 
@@ -292,7 +290,6 @@ class TransactionsViewModel extends ChangeNotifier {
       
       CacheManager().invalidateAfterTransaction(action: 'transaction deleted');
       
-      // Refresh silenciosamente para garantir sincronização com o servidor
       await refreshSilently();
       
       return true;

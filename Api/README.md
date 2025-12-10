@@ -1,38 +1,95 @@
-# GenApp API
+# GenApp API - Backend
 
-Backend Django alinhado com a proposta do GenApp.
+Este repositório contém o código-fonte do *backend* do projeto **GenApp**, parte integrante do Trabalho de Conclusão de Curso (TCC) do curso de Tecnologia em Análise e Desenvolvimento de Sistemas do Instituto Federal do Piauí (IFPI).
 
-## Primeiros passos
+O sistema fornece a API RESTful que alimenta o aplicativo móvel, gerenciando a lógica de negócios, autenticação, transações financeiras e o motor de gamificação.
 
-1. Garanta o Python 3.9+ com `pip` atualizado (recomendado `python -m pip install --upgrade pip`).
-2. Crie e ative um ambiente virtual.
-3. Instale dependências: `pip install -r requirements.txt`.
-   - O driver padrão é `psycopg 3.1.20` com o extra `binary`, que já traz `libpq` embutido.
-   - Se desejar as otimizações em C (`psycopg[c]`), substitua o extra no `requirements.txt` após confirmar a presença das dependências nativas.
-4. Configure variáveis (`DJANGO_SECRET_KEY`, `DB_*`, `CORS_ALLOWED_ORIGINS`).
-   - Utilize o arquivo `.env` (ex.: copie `.env.example`) com as chaves `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
-   - Ambientes remotos como Supabase exigem SSL. Defina `DB_REQUIRE_SSL=true` ou ajuste `DB_SSLMODE` conforme necessidade.
-   
-5. Gere e aplique migrações:
+## Tecnologias Utilizadas
 
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
+- **Linguagem:** Python 3.9+
+- **Framework:** Django 4.2+ & Django REST Framework
+- **Banco de Dados:** PostgreSQL
+- **Autenticação:** JWT (JSON Web Tokens)
+- **Assincronismo:** Celery & Redis (para geração de missões e tarefas em background)
 
-6. Crie um superusuário e rode o servidor:
+## Configuração do Ambiente
 
-   ```bash
-   python manage.py createsuperuser
-   python manage.py runserver
-   ```
+Siga os passos abaixo para executar o projeto localmente.
 
-## Apps inclusos
+### 1. Pré-requisitos
+Certifique-se de ter instalado:
+- Python 3.9 ou superior
+- PostgreSQL (ou acesso a um banco de dados compatível)
+- Redis (opcional, necessário apenas se for testar as filas do Celery)
 
-- `finance`: modelos de transações, metas, missões e perfis com endpoints REST.
+### 2. Instalação das Dependências
 
-## Autenticação
+Crie um ambiente virtual para isolar as dependências do projeto:
 
-A API usa JWT via `djangorestframework-simplejwt`. Gere tokens com o endpoint `/api/token/` informando email e senha, e envie como `Authorization: Bearer <token>`.
-Existe também `/api/auth/register/` para cadastro inicial e `/api/profile/` (GET/PUT) para ajustar metas de TPS/RDR. Tanto login quanto cadastro retornam os tokens já com o payload do usuário autenticado.
+```bash
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
 
+# Linux/Mac
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Instale os pacotes necessários:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configuração de Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto (baseado no `.env.example`) e configure as credenciais do banco de dados e chave secreta:
+
+```ini
+# Exemplo básico
+DEBUG=True
+SECRET_KEY=sua-chave-secreta-aqui
+DB_NAME=genapp_db
+DB_USER=postgres
+DB_PASSWORD=sua_senha
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+### 4. Banco de Dados
+
+Aplique as migrações para criar a estrutura do banco de dados:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### 5. Execução
+
+Para iniciar o servidor de desenvolvimento:
+
+```bash
+python manage.py runserver
+```
+
+A API estará disponível em `http://127.0.0.1:8000/`.
+
+## Criação de Usuário Administrador
+
+Para acessar o painel administrativo do Django (`/admin`), crie um superusuário:
+
+```bash
+python manage.py createsuperuser
+```
+Ou utilize o script facilitador (caso configurado):
+```bash
+python create_admin.py
+```
+
+## Estrutura do Projeto
+
+- `finance/`: Aplicação principal contendo Models (Transação, Missão, Meta), Views e Serializers.
+- `config/`: Configurações globais do projeto Django.
+- `seed_*.py`: Scripts para popular o banco de dados com dados de teste.

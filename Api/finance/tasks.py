@@ -20,7 +20,6 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-
 @shared_task(bind=True, name='finance.generate_missions_async')
 def generate_missions_async(
     self,
@@ -135,7 +134,6 @@ def check_expired_missions():
     now = timezone.now()
     expired_count = 0
     
-    # Busca missões ativas/pendentes que passaram do prazo
     active_missions = MissionProgress.objects.filter(
         status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE],
         started_at__isnull=False
@@ -192,17 +190,14 @@ def refresh_user_missions_async(user_id: int):
     try:
         user = User.objects.get(id=user_id)
         
-        # Atualiza progresso das missões ativas
         updated = update_mission_progress(user)
         if updated:
             logger.info(f"[Async] Atualizadas {len(updated)} missões para usuário {user_id}")
         
-        # Atribui novas missões se necessário
         assigned = assign_missions_automatically(user)
         if assigned:
             logger.info(f"[Async] Atribuídas {len(assigned)} novas missões para usuário {user_id}")
         
-        # Invalida cache do dashboard para próxima requisição
         if updated or assigned:
             invalidate_user_dashboard_cache(user)
         

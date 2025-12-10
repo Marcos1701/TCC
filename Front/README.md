@@ -1,55 +1,61 @@
-# Front - GenApp
+# GenApp Mobile - Frontend
 
-App Flutter com as telas estilizadas do GenApp.
+Este repositório contém o código-fonte do aplicativo móvel **GenApp**, desenvolvido em **Flutter**. O projeto compõe a parte da interface do usuário do Trabalho de Conclusão de Curso (TCC) para o curso de Tecnologia em Análise e Desenvolvimento de Sistemas do IFPI.
 
-## Requisitos
+O aplicativo oferece uma interface gamificada para gerenciamento financeiro pessoal, integrando controle de transações, gráficos de análise e um sistema de missões.
 
-- Flutter 3.24+
-- Dart 3.5+
+## Tecnologias Utilizadas
 
-## Rodando
+- **Framework:** Flutter 3.24+
+- **Linguagem:** Dart 3.5+
+- **Gerenciamento de Estado:** Nativo (ChangeNotifier/InheritedWidget) e Provider pattern
+- **Comunicação HTTP:** Dio
+- **Armazenamento Seguro:** Flutter Secure Storage
+
+## Configuração do Ambiente
+
+### 1. Pré-requisitos
+- Flutter SDK instalado e configurado no PATH.
+- Android Studio ou VS Code configurados com plugins do Flutter/Dart.
+- Dispositivo físico ou emulador (Android/iOS).
+
+### 2. Instalação das Dependências
+
+Na raiz do projeto `Front`, execute:
 
 ```bash
-cp .env.local.example .env.local   # ajuste a URL da API, se necessário
 flutter pub get
+```
+
+### 3. Configuração da API
+
+Crie um arquivo `.env.local` na raiz (se necessário) para definir o endereço da API. Por padrão, o app pode apontar para `localhost` ou para um servidor de desenvolvimento.
+
+```ini
+API_BASE_URL=http://10.0.2.2:8000  # Para emulador Android acessando localhost do PC
+# ou
+API_BASE_URL=http://localhost:8000 # Para web/desktop
+```
+
+### 4. Execução
+
+Para rodar o aplicativo em modo de depuração:
+
+```bash
 flutter run --dart-define-from-file=.env.local
 ```
 
-Para execução web ou builds de produção, atualize `API_BASE_URL` dentro do arquivo `.env.local` (ou gere outro arquivo `.env` específico) apontando para o host público da API.
+## Estrutura Visual
 
-## Paleta e fragmentação visual
+O projeto segue um guia de estilos definido para garantir consistência e usabilidade:
 
-| Camada / Papel | Cor | Uso principal |
-| -------------- | --- | ------------- |
-| Azul institucional | `#034EA2` | navegação, botões primários, links ativos |
-| Amarelo vibrante | `#FDB913` | botões secundários, badges, hovers |
-| Verde institucional | `#007932` | confirmações, indicadores positivos |
-| Vermelho energético | `#EF4123` | alertas, mensagens de erro |
-| Fundo base | `#F5F5F5` | planos de fundo neutros |
-| Superfícies | `#FFFFFF` / `#E8EFF8` | cartões, formulários, destaques |
-| Texto principal | `#231F20` | títulos e conteúdos |
-| Texto secundário | `#666666` | descrições, legendas |
-| Bordas | `#CCCCCC` | divisórias discretas |
+- **Cores**: Azul Institucional (Navegação), Amarelo (Destaques), Verde (Sucesso), Vermelho (Erros).
+- **Tipografia**: Família Montserrat (Google Fonts).
 
-- Tipografia Montserrat (Google Fonts) nas variações 300–800.
-- Grid baseado em múltiplos de 8/16 px, com cartões usando padding interno de 16/32 px.
-- Botões têm raio de 14 px e variação de cor (~20%) para estados hover/active.
+## Funcionalidades Principais
 
-## Fluxo de telas
-
-1. **Login / Cadastro** – gradiente azul institucional, validação com vermelho energético.
-2. **Home** – cards com saldo, categorias, série temporal e missões em destaque.
-3. **Transações** – lista filtrável, criação via bottom sheet e exclusão rápida.
-4. **Missões** – progresso em tempo real e recomendações alinhadas ao TPS/RDR.
-5. **Progresso** – metas financeiras, barra de XP e objetivos com valores/prazos.
-6. **Perfil** – ajuste de metas TPS/RDR, dados pessoais e logout seguro.
-
-Bottom navigation com ícones arredondados mantém a navegação consistente com o guia visual.
-
-## Principais pacotes
-
-- `dio`: cliente HTTP com interceptors para renovação dos JWTs.
-- `flutter_secure_storage`: armazena tokens no cofre nativo (Keychain/Keystore).
-- `fl_chart`: gráficos do dashboard financeiro.
-- `intl`: formatação de valores e datas PT-BR.
-- `google_fonts`: aplica Montserrat ao tema claro/escuro.
+- **Login e Cadastro:** Autenticação segura via JWT.
+- **Home:** Visão geral de saldo e missão ativa.
+- **Transações:** Registro e listagem de receitas e despesas.
+- **Análises:** Gráficos e indicadores financeiros (TPS, RDR, ILI).
+- **Missões:** Interface gamificada para acompanhamento de desafios.

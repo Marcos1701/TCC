@@ -214,8 +214,6 @@ class MissionSerializer(serializers.ModelSerializer):
     def validate(self, data):
         validation_type = data.get('validation_type')
         
-        # TEMPORAL validation removida - lógica de dias consecutivos simplificada
-        
         if validation_type == Mission.ValidationType.CATEGORY_REDUCTION:
             if not data.get('target_category'):
                 raise serializers.ValidationError({

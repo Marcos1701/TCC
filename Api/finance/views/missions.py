@@ -94,20 +94,17 @@ class MissionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         mission = serializer.save()
         logger.info(f"Missão '{mission.title}' criada por admin {self.request.user.username}")
-        # Invalida o cache
         invalidate_user_dashboard_cache(self.request.user)
         return mission
     
     def perform_update(self, serializer):
         mission = serializer.save()
         logger.info(f"Missão '{mission.title}' atualizada por admin {self.request.user.username}")
-        # Invalida o cache
         for progress in MissionProgress.objects.filter(mission=mission).select_related('user'):
             invalidate_user_dashboard_cache(progress.user)
         return mission
     
     def perform_destroy(self, instance):
-        # Invalida o cache
         for progress in MissionProgress.objects.filter(mission=instance).select_related('user'):
             invalidate_user_dashboard_cache(progress.user)
         instance.is_active = False
@@ -117,9 +114,6 @@ class MissionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):
         try:
-            # pk aqui é o ID da Missão, mas precisamos do progresso
-            # As actions detail=True operam na URL /missions/{id}/start/
-            # O ID é da missão.
             mission = self.get_object()
             progress = start_mission(request.user, mission.id)
             invalidate_user_dashboard_cache(request.user)
@@ -921,7 +915,6 @@ class MissionProgressViewSet(viewsets.ModelViewSet):
             apply_mission_reward(progress)
             
             assign_missions_automatically(self.request.user)
-            # Invalidate cache after mission completion to reflect XP/level changes
             invalidate_user_dashboard_cache(self.request.user)
 
     
