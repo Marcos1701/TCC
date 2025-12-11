@@ -120,15 +120,24 @@ class _PaymentWizardState extends State<PaymentWizard> {
   }
 
   bool _canProceedFromStep(int step) {
+    final totalIncome = _selectedIncomes.values.fold<double>(0, (sum, v) => sum + v);
+    final totalExpense = _selectedExpenses.values.fold<double>(0, (sum, v) => sum + v);
+    
     switch (step) {
       case 0:
         return _selectedIncomes.isNotEmpty &&
             _selectedIncomes.values.every((v) => v > 0);
       case 1:
+        // Must have expenses selected and total must not exceed income
         return _selectedExpenses.isNotEmpty &&
-            _selectedExpenses.values.every((v) => v > 0);
+            _selectedExpenses.values.every((v) => v > 0) &&
+            totalExpense <= totalIncome;
       case 2:
-        return true;
+        // Final check: expenses must not exceed incomes
+        return _selectedIncomes.isNotEmpty &&
+            _selectedExpenses.isNotEmpty &&
+            totalExpense > 0 &&
+            totalIncome >= totalExpense;
       default:
         return false;
     }
@@ -420,6 +429,11 @@ class _PaymentWizardState extends State<PaymentWizard> {
   }
 
   Widget _buildStepExpenses() {
+    final totalIncome = _selectedIncomes.values.fold<double>(0, (sum, v) => sum + v);
+    final totalExpense = _selectedExpenses.values.fold<double>(0, (sum, v) => sum + v);
+    final remainingIncome = totalIncome - totalExpense;
+    final isOverBudget = remainingIncome < 0;
+    
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -439,6 +453,62 @@ class _PaymentWizardState extends State<PaymentWizard> {
             fontSize: 14,
           ),
         ),
+        const SizedBox(height: 16),
+        
+        // Income availability indicator
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isOverBudget 
+                ? AppColors.alert.withOpacity(0.15) 
+                : AppColors.support.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isOverBudget 
+                  ? AppColors.alert.withOpacity(0.4) 
+                  : AppColors.support.withOpacity(0.4),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isOverBudget ? Icons.warning_amber_rounded : Icons.account_balance_wallet,
+                color: isOverBudget ? AppColors.alert : AppColors.support,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isOverBudget 
+                          ? 'Saldo insuficiente' 
+                          : 'Saldo disponível para despesas',
+                      style: TextStyle(
+                        color: isOverBudget ? AppColors.alert : AppColors.support,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isOverBudget 
+                          ? 'Faltam ${_currency.format(remainingIncome.abs())}' 
+                          : _currency.format(remainingIncome),
+                      style: TextStyle(
+                        color: isOverBudget ? AppColors.alert : Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
         const SizedBox(height: 20),
         if (_availableExpenses.isEmpty)
           _buildEmptyState(
@@ -450,6 +520,7 @@ class _PaymentWizardState extends State<PaymentWizard> {
           ..._availableExpenses.map((expense) {
             final isSelected = _selectedExpenses.containsKey(expense.id);
             final selectedAmount = _selectedExpenses[expense.id] ?? 0.0;
+            final expenseMaxAmount = expense.availableAmount ?? expense.amount;
 
             return _buildTransactionCard(
               transaction: expense,
@@ -460,17 +531,42 @@ class _PaymentWizardState extends State<PaymentWizard> {
                   if (isSelected) {
                     _selectedExpenses.remove(expense.id);
                   } else {
-                    _selectedExpenses[expense.id] =
-                        expense.availableAmount ?? expense.amount;
+                    // Calculate how much we can allocate
+                    final availableForThis = totalIncome - totalExpense;
+                    final maxForThis = expenseMaxAmount < availableForThis 
+                        ? expenseMaxAmount 
+                        : availableForThis;
+                    
+                    if (maxForThis > 0) {
+                      _selectedExpenses[expense.id] = maxForThis;
+                    } else {
+                      // No income available, show error
+                      FeedbackService.showError(
+                        context,
+                        'Saldo insuficiente. Selecione mais receitas ou reduza outras despesas.',
+                      );
+                    }
                   }
                 });
               },
               onAmountChanged: (value) {
                 setState(() {
-                  _selectedExpenses[expense.id] = value;
+                  // Limit value to available income plus what was already allocated to this expense
+                  final othersTotal = _selectedExpenses.entries
+                      .where((e) => e.key != expense.id)
+                      .fold<double>(0, (sum, e) => sum + e.value);
+                  final maxAllowed = totalIncome - othersTotal;
+                  final limitedValue = value > maxAllowed ? maxAllowed : value;
+                  final finalValue = limitedValue > expenseMaxAmount ? expenseMaxAmount : limitedValue;
+                  
+                  if (finalValue > 0) {
+                    _selectedExpenses[expense.id] = finalValue;
+                  } else {
+                    _selectedExpenses.remove(expense.id);
+                  }
                 });
               },
-              maxAmount: expense.availableAmount ?? expense.amount,
+              maxAmount: expenseMaxAmount,
             );
           }),
       ],

@@ -87,10 +87,30 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
         is_active=True
     ).exclude(id__in=already_assigned)
     
+    # Verifica se usuário tem histórico de transações (mês anterior)
+    has_previous_month_data = _user_has_previous_month_transactions(user)
+    has_any_transactions = context.get('transaction_count', 0) > 0
+    
     mission_scores = []
     
     for mission in available_missions:
         score = 0.0
+        
+        # Validação de pré-requisitos para missões de variação percentual
+        if mission.mission_type == 'CATEGORY_REDUCTION' or mission.validation_type in ['CATEGORY_REDUCTION', 'PERCENTAGE_CHANGE']:
+            if not has_previous_month_data:
+                # Sem histórico do mês anterior: penaliza fortemente
+                # Missões de registro de transações devem ter prioridade
+                score = -100
+                mission_scores.append((mission, score))
+                continue
+            
+            # Verifica se há transações nas categorias relevantes
+            type_filter = mission.transaction_type_filter or 'EXPENSE'
+            if not _user_has_category_transactions(user, type_filter):
+                score = -50  # Penaliza se não há transações do tipo
+                mission_scores.append((mission, score))
+                continue
         
         for indicator_data in at_risk:
             indicator = indicator_data['indicator']
@@ -112,6 +132,10 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
                 else:
                     score += 15
             # GOAL_ACHIEVEMENT removido - sistema de goals desativado
+        
+        # Bônus para missões de onboarding quando usuário não tem histórico
+        if mission.mission_type == 'ONBOARDING' and not has_previous_month_data:
+            score += 50  # Prioriza missões de registro inicial
         
         difficulty_multiplier = {
             'EASY': 1.0,
@@ -148,6 +172,46 @@ def calculate_mission_priorities(user, context: Dict[str, Any] = None) -> List[T
     mission_scores.sort(key=lambda x: x[1], reverse=True)
     
     return mission_scores
+
+
+def _user_has_previous_month_transactions(user) -> bool:
+    """Verifica se usuário tem transações do mês anterior."""
+    now = timezone.now()
+    if now.month == 1:
+        previous_month_start = now.replace(year=now.year-1, month=12, day=1).date()
+    else:
+        previous_month_start = now.replace(month=now.month-1, day=1).date()
+    
+    current_month_start = now.replace(day=1).date()
+    
+    return Transaction.objects.filter(
+        user=user,
+        date__gte=previous_month_start,
+        date__lt=current_month_start
+    ).exists()
+
+
+def _user_has_category_transactions(user, transaction_type_filter: str) -> bool:
+    """Verifica se usuário tem transações do tipo especificado no mês atual ou anterior."""
+    now = timezone.now()
+    if now.month == 1:
+        two_months_ago = now.replace(year=now.year-1, month=12, day=1).date()
+    else:
+        two_months_ago = now.replace(month=now.month-1, day=1).date()
+    
+    base_query = Transaction.objects.filter(
+        user=user,
+        date__gte=two_months_ago
+    )
+    
+    if transaction_type_filter == 'INCOME':
+        base_query = base_query.filter(type='INCOME')
+    elif transaction_type_filter == 'EXPENSE':
+        base_query = base_query.filter(type='EXPENSE')
+    elif transaction_type_filter == 'DEPOSIT':
+        base_query = base_query.filter(category__group__in=['SAVINGS', 'INVESTMENT'])
+    
+    return base_query.exists()
 
 
 def apply_mission_reward(progress: MissionProgress) -> None:
@@ -295,6 +359,22 @@ def assign_missions_automatically(user) -> List[MissionProgress]:
     return created_progress
 
 
+def _has_activity_since_start(user, started_at) -> bool:
+    """
+    Verifica se o usuário teve pelo menos 1 transação desde o início da missão.
+    Isso evita completar missões automaticamente sem que o usuário tenha "trabalhado" nelas.
+    """
+    from ..models import Transaction
+    
+    if not started_at:
+        return False
+    
+    return Transaction.objects.filter(
+        user=user,
+        created_at__gte=started_at
+    ).exists()
+
+
 def update_mission_progress(user) -> List[MissionProgress]:
     from django.db import transaction
     from ..mission_types import MissionValidatorFactory
@@ -327,7 +407,15 @@ def update_mission_progress(user) -> List[MissionProgress]:
             
             progress.progress = Decimal(str(new_progress))
             
-            if result['is_completed'] and not progress.completed_at:
+            # Correção: Só completar missões que estão ACTIVE e tiveram atividade do usuário
+            can_complete = (
+                result['is_completed'] 
+                and not progress.completed_at
+                and progress.status == MissionProgress.Status.ACTIVE
+                and _has_activity_since_start(user, progress.started_at)
+            )
+            
+            if can_complete:
                 is_valid, message = validator.validate_completion()
                 
                 if is_valid:
@@ -420,7 +508,15 @@ def validate_mission_progress_manual(progress):
         
         progress.progress = Decimal(str(result['progress_percentage']))
         
-        if result['is_completed'] and not progress.completed_at:
+        # Correção: Só completar missões que estão ACTIVE e tiveram atividade do usuário
+        can_complete = (
+            result['is_completed'] 
+            and not progress.completed_at
+            and progress.status == MissionProgress.Status.ACTIVE
+            and _has_activity_since_start(progress.user, progress.started_at)
+        )
+        
+        if can_complete:
             is_valid, message = validator.validate_completion()
             
             if is_valid:
@@ -458,21 +554,118 @@ def skip_mission(user, mission_id: int) -> MissionProgress:
     return progress
 
 
-def start_mission(user, mission_id: int) -> MissionProgress:
+def start_mission(user, mission_id: int, selected_category_ids: list = None) -> MissionProgress:
     """
     Manually starts a mission (moves from PENDING to ACTIVE).
+    
+    Args:
+        user: User starting the mission
+        mission_id: ID of the mission to start
+        selected_category_ids: Optional list of category IDs for percentage missions.
+                              None or empty = "Geral" (all categories)
     """
+    from django.db.models import Sum
+    from calendar import monthrange
+    
     progress = MissionProgress.objects.get(user=user, mission_id=mission_id)
     
     if progress.status != MissionProgress.Status.PENDING:
-        # Idempotent success if already active
         if progress.status == MissionProgress.Status.ACTIVE:
             return progress
         raise ValueError(f"Cannot start mission in status {progress.status}")
-        
+    
+    mission = progress.mission
+    now = timezone.now()
+    
+    # Para missões de variação percentual sem categoria específica
+    if mission.validation_type in ['CATEGORY_REDUCTION', 'PERCENTAGE_CHANGE'] and not mission.target_category:
+        _initialize_percentage_mission_baseline(progress, user, mission, selected_category_ids, now)
+    
     progress.status = MissionProgress.Status.ACTIVE
-    progress.started_at = timezone.now()
+    progress.started_at = now
     progress.save()
     
-    logger.info(f"Mission {progress.mission.title} started by user {user.username}")
+    logger.info(f"Mission {mission.title} started by user {user.username}")
     return progress
+
+
+def _initialize_percentage_mission_baseline(progress, user, mission, selected_category_ids, now):
+    """
+    Calcula e salva baseline mensal para missões de variação percentual.
+    
+    Lógica:
+    - Se há dados no mês anterior: baseline = mês anterior, meta = mês atual
+    - Se não há dados no mês anterior: baseline = mês atual, meta = próximo mês
+    """
+    from django.db.models import Sum
+    
+    # Calcular início do mês atual e anterior
+    current_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).date()
+    if now.month == 1:
+        previous_month_start = now.replace(year=now.year-1, month=12, day=1).date()
+    else:
+        previous_month_start = now.replace(month=now.month-1, day=1).date()
+    
+    # Filtro base por tipo de transação
+    type_filter = mission.transaction_type_filter or 'EXPENSE'
+    base_query = Transaction.objects.filter(user=user)
+    
+    if type_filter == 'INCOME':
+        base_query = base_query.filter(type='INCOME')
+    elif type_filter == 'EXPENSE':
+        base_query = base_query.filter(type='EXPENSE')
+    elif type_filter == 'DEPOSIT':
+        base_query = base_query.filter(category__group__in=['SAVINGS', 'INVESTMENT'])
+    
+    # Aplica categorias selecionadas (se especificadas)
+    if selected_category_ids and len(selected_category_ids) > 0:
+        base_query = base_query.filter(category_id__in=selected_category_ids)
+        selection_type = 'specific'
+    else:
+        selection_type = 'all'
+        selected_category_ids = []
+    
+    # Verifica se há dados no mês anterior
+    previous_month_total = base_query.filter(
+        date__gte=previous_month_start,
+        date__lt=current_month_start
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    if previous_month_total > 0:
+        # Compara mês anterior vs mês atual (incentiva melhoria imediata)
+        baseline = previous_month_total
+        comparison_mode = 'previous_vs_current'
+        baseline_month = previous_month_start.strftime('%Y-%m')
+        target_month = current_month_start.strftime('%Y-%m')
+    else:
+        # Compara mês atual vs próximo mês
+        current_month_total = base_query.filter(
+            date__gte=current_month_start,
+            date__lte=now.date()
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        baseline = current_month_total
+        comparison_mode = 'current_vs_next'
+        baseline_month = current_month_start.strftime('%Y-%m')
+        # Próximo mês
+        if now.month == 12:
+            target_month = f"{now.year+1}-01"
+        else:
+            target_month = f"{now.year}-{now.month+1:02d}"
+    
+    # Salva configuração no MissionProgress
+    progress.baseline_category_spending = baseline
+    progress.validation_details = {
+        'selected_category_ids': selected_category_ids,
+        'selection_type': selection_type,
+        'comparison_mode': comparison_mode,
+        'baseline_month': baseline_month,
+        'target_month': target_month,
+        'baseline_value': float(baseline),
+        'transaction_type_filter': type_filter,
+    }
+    
+    logger.debug(
+        f"Percentage mission baseline initialized: {comparison_mode}, "
+        f"baseline={baseline} ({baseline_month}), target={target_month}"
+    )
+

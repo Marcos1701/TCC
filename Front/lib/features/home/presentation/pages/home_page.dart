@@ -182,10 +182,10 @@ class _HomePageState extends State<HomePage> {
         missionProgress: mission,
         repository: _repository,
         onUpdate: _refresh,
-        onStart: (missionId) async {
+        onStart: (missionId, {List<int>? categoryIds}) async {
           try {
-            debugPrint('🎯 Starting mission ID: $missionId');
-            await _repository.startMissionAction(missionId);
+            debugPrint('🎯 Starting mission ID: $missionId (categories: $categoryIds)');
+            await _repository.startMissionAction(missionId, categoryIds: categoryIds);
             debugPrint('✅ Mission started successfully');
             await _cacheManager.invalidateAfterMissionComplete();
             await _refresh();

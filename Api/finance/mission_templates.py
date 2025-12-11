@@ -274,7 +274,7 @@ def generate_from_template(template: Dict, tier: str, current_metrics: Dict) -> 
         mission_data['description'] = template['description'].format(percent=percent)
         mission_data['mission_type'] = 'CATEGORY_REDUCTION'
         mission_data['validation_type'] = 'CATEGORY_REDUCTION'
-        mission_data['target_reduction_percent'] = percent
+        mission_data['target_percentage_change'] = percent
     
     # progress_percent_ranges removido - Goal system desativado
     
@@ -290,15 +290,8 @@ def generate_mission_batch_from_templates(
     if distribution is None:
         if tier == 'BEGINNER':
             distribution = {
-                'ONBOARDING': 7,
+                'ONBOARDING': 4,
                 'TPS_IMPROVEMENT': 5,
-                'RDR_REDUCTION': 4,
-                'ILI_BUILDING': 2,
-                'CATEGORY_REDUCTION': 2,
-            }
-            distribution = {
-                'ONBOARDING': 3,
-                'TPS_IMPROVEMENT': 6,
                 'RDR_REDUCTION': 4,
                 'ILI_BUILDING': 4,
                 'CATEGORY_REDUCTION': 3,

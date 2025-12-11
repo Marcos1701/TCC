@@ -156,31 +156,37 @@ class FinanceRepository {
 
   Future<List<CategoryModel>> fetchCategories({String? type}) async {
     try {
-      if (type == null) {
-        final cached = CacheService.getCachedCategories(
-          invalidatedAfter: CacheManager().lastInvalidation,
-        );
-        if (cached != null) {
-          return cached.map((e) => CategoryModel.fromMap(e)).toList();
-        }
-      }
-      
-      final response = await _client.client.get<dynamic>(
-        ApiEndpoints.categories,
-        queryParameters: type != null ? {'type': type} : null,
+      // Always try cache first (even when filtering by type)
+      final cached = CacheService.getCachedCategories(
+        invalidatedAfter: CacheManager().lastInvalidation,
       );
-      final items = _extractListFromResponse(response.data);
-      final categories = items
-          .map((e) => CategoryModel.fromMap(e as Map<String, dynamic>))
-          .toList();
       
-      if (type == null) {
+      List<CategoryModel> allCategories;
+      
+      if (cached != null) {
+        allCategories = cached.map((e) => CategoryModel.fromMap(e)).toList();
+      } else {
+        // No cache, fetch all from API (without type filter for caching)
+        final response = await _client.client.get<dynamic>(
+          ApiEndpoints.categories,
+        );
+        final items = _extractListFromResponse(response.data);
+        allCategories = items
+            .map((e) => CategoryModel.fromMap(e as Map<String, dynamic>))
+            .toList();
+        
+        // Cache all categories
         await CacheService.cacheCategories(
-          categories.map((c) => c.toMap()).toList(),
+          allCategories.map((c) => c.toMap()).toList(),
         );
       }
       
-      return categories;
+      // Filter locally by type if requested
+      if (type != null) {
+        return allCategories.where((c) => c.type == type).toList();
+      }
+      
+      return allCategories;
     } catch (e) {
       if (e is Failure) rethrow;
       throw _handleError(e);
@@ -367,9 +373,15 @@ class FinanceRepository {
     return MissionProgressModel.fromMap(response.data ?? <String, dynamic>{});
   }
 
-  Future<MissionProgressModel> startMissionAction(int missionId) async {
+  Future<MissionProgressModel> startMissionAction(
+    int missionId, {
+    List<int>? categoryIds,
+  }) async {
     final response = await _client.client.post<Map<String, dynamic>>(
       '${ApiEndpoints.missions}$missionId/start/',
+      data: categoryIds != null && categoryIds.isNotEmpty
+          ? {'category_ids': categoryIds}
+          : null,
     );
     return MissionProgressModel.fromMap(response.data ?? <String, dynamic>{});
   }

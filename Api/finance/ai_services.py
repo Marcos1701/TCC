@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_gemini_model():
-    if not settings.GEMINI_API_KEY:
-        logger.warning("GEMINI_API_KEY não configurada")
+    if not settings.GOOGLE_API_KEY:
+        logger.warning("GOOGLE_API_KEY não configurada")
         return None
     
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+    genai.configure(api_key=settings.GOOGLE_API_KEY)
     
     generation_config = {
         "temperature": 0.7,
@@ -28,7 +28,7 @@ def get_gemini_model():
     }
     
     return genai.GenerativeModel(
-        model_name="gemini-pro",
+        model_name="gemini-2.5-flash",
         generation_config=generation_config,
     )
 
@@ -93,10 +93,22 @@ def generate_general_missions(quantidade: int = 5) -> Dict[str, Any]:
         
         for mission_data in missions_data:
             try:
+                mission_type = mission_data.get('mission_type', 'ONBOARDING')
+                # Determine correct validation_type based on mission_type
+                validation_type_map = {
+                    'ONBOARDING': 'TRANSACTION_COUNT',
+                    'TPS_IMPROVEMENT': 'INDICATOR_THRESHOLD',
+                    'RDR_REDUCTION': 'INDICATOR_THRESHOLD',
+                    'ILI_BUILDING': 'INDICATOR_THRESHOLD',
+                    'CATEGORY_REDUCTION': 'CATEGORY_REDUCTION',
+                }
+                validation_type = validation_type_map.get(mission_type, 'TRANSACTION_COUNT')
+                
                 mission = Mission.objects.create(
                     title=mission_data.get('title', 'Missão'),
                     description=mission_data.get('description', ''),
-                    mission_type=mission_data.get('mission_type', 'ONBOARDING'),
+                    mission_type=mission_type,
+                    validation_type=validation_type,
                     difficulty=mission_data.get('difficulty', 'MEDIUM'),
                     duration_days=mission_data.get('duration_days', 14),
                     reward_points=mission_data.get('reward_points', 100),
@@ -104,7 +116,8 @@ def generate_general_missions(quantidade: int = 5) -> Dict[str, Any]:
                     target_tps=mission_data.get('target_tps'),
                     target_rdr=mission_data.get('target_rdr'),
                     min_ili=mission_data.get('min_ili'),
-                    target_reduction_percent=mission_data.get('target_reduction_percent'),
+                    target_percentage_change=mission_data.get('target_percentage_change') or mission_data.get('target_reduction_percent'),
+                    transaction_type_filter=mission_data.get('transaction_type_filter', 'ALL'),
                     is_active=True,
                     is_system_generated=True,
                     priority=50 

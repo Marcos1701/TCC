@@ -15,6 +15,7 @@ from .categories import CategoryReductionValidator, CategoryLimitValidator
 from .transactions import TransactionConsistencyValidator, PaymentDisciplineValidator
 from .advanced import AdvancedMissionValidator, MultiCriteriaValidator
 from .savings import SavingsIncreaseValidator
+from .percentage_change import PercentageChangeValidator
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ VALIDATION_TYPE_MAP = {
     'TRANSACTION_CONSISTENCY': TransactionConsistencyValidator,
     'PAYMENT_COUNT': PaymentDisciplineValidator,
     'SAVINGS_INCREASE': SavingsIncreaseValidator,
+    'PERCENTAGE_CHANGE': PercentageChangeValidator,
 }
 
 
@@ -52,6 +54,15 @@ class MissionValidatorFactory:
         
         # 1. Primeiro, tenta pelo mission_type (preferido)
         validator_class = VALIDATOR_MAP.get(mission.mission_type)
+        
+        # Caso especial: CATEGORY_REDUCTION sem target_category
+        # Usa PercentageChangeValidator para comparação mensal geral
+        if validator_class == CategoryReductionValidator and not mission.target_category:
+            logger.debug(
+                f"Mission {mission.title}: CATEGORY_REDUCTION sem target_category, "
+                "usando PercentageChangeValidator"
+            )
+            return PercentageChangeValidator(mission, user, mission_progress)
         
         if validator_class:
             return validator_class(mission, user, mission_progress)
@@ -72,7 +83,16 @@ class MissionValidatorFactory:
 
 def update_single_mission_progress(mission_progress) -> Dict[str, Any]:
     from decimal import Decimal
-    from ..models import MissionProgress as MissionProgressModel
+    from ..models import MissionProgress as MissionProgressModel, Transaction
+    
+    def _has_activity_since_start(user, started_at) -> bool:
+        """Verifica se o usuário teve atividade desde o início da missão."""
+        if not started_at:
+            return False
+        return Transaction.objects.filter(
+            user=user,
+            created_at__gte=started_at
+        ).exists()
     
     validator = MissionValidatorFactory.create_validator(
         mission_progress.mission,
@@ -84,7 +104,15 @@ def update_single_mission_progress(mission_progress) -> Dict[str, Any]:
     
     mission_progress.progress = Decimal(str(result['progress_percentage']))
     
-    if result['is_completed'] and not mission_progress.completed_at:
+    # Só completa se: ainda não completou, está ACTIVE, teve atividade do usuário
+    can_complete = (
+        result['is_completed'] 
+        and not mission_progress.completed_at
+        and mission_progress.status == MissionProgressModel.Status.ACTIVE
+        and _has_activity_since_start(mission_progress.user, mission_progress.started_at)
+    )
+    
+    if can_complete:
         is_valid, message = validator.validate_completion()
         if is_valid:
             mission_progress.completed_at = timezone.now()

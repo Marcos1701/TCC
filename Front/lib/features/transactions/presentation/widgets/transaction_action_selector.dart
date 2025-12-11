@@ -94,9 +94,9 @@ class TransactionActionSelector extends StatelessWidget {
                     icon: Icons.receipt_long,
                     iconColor: AppColors.primary,
                     title: 'Nova Transação',
-                    subtitle: 'Registrar receita ou despesa',
+                    subtitle: 'Registrar receita, despesa ou aporte',
                     description:
-                        'Use para registrar entradas de dinheiro (salário, freelance) ou saídas (compras, contas)',
+                        'Use para registrar entradas de dinheiro (salário, freelance), saídas (compras, contas) ou aportes (poupança, investimentos)',
                     onTap: () {
                       Navigator.of(context).pop();
                       onActionSelected(TransactionActionType.transaction);

@@ -136,18 +136,35 @@ MISSION_TEMPLATES = {
             'description_template': 'Comece sua jornada financeira registrando {count} transações. '
                 'Cada registro ajuda você a entender para onde seu dinheiro está indo.',
             'difficulty_range': ['EASY'],
+            'transaction_type_filter': 'ALL',
         },
         {
             'title_template': 'Mapeie seu fluxo financeiro: {count} registros',
             'description_template': 'Registre {count} transações para visualizar seu padrão de gastos. '
                 'Conhecer seus hábitos é o primeiro passo para melhorá-los.',
             'difficulty_range': ['EASY', 'MEDIUM'],
+            'transaction_type_filter': 'ALL',
         },
         {
-            'title_template': 'Construindo o hábito: {count} transações',
-            'description_template': 'Mantenha a consistência registrando {count} transações. '
-                'O hábito de registrar é fundamental para o controle financeiro.',
-            'difficulty_range': ['MEDIUM'],
+            'title_template': 'Registre {count} receitas',
+            'description_template': 'Mapeie suas fontes de renda registrando {count} receitas. '
+                'Conhecer suas entradas é essencial para planejar seu orçamento.',
+            'difficulty_range': ['EASY', 'MEDIUM'],
+            'transaction_type_filter': 'INCOME',
+        },
+        {
+            'title_template': 'Registre {count} despesas',
+            'description_template': 'Identifique para onde vai seu dinheiro registrando {count} despesas. '
+                'O primeiro passo para economizar é saber onde você gasta.',
+            'difficulty_range': ['EASY', 'MEDIUM'],
+            'transaction_type_filter': 'EXPENSE',
+        },
+        {
+            'title_template': 'Faça {count} aportes para poupança',
+            'description_template': 'Comece a construir seu futuro com {count} aportes para poupança. '
+                'Cada aporte é um passo em direção à segurança financeira.',
+            'difficulty_range': ['MEDIUM', 'HARD'],
+            'transaction_type_filter': 'DEPOSIT',
         },
     ],
     
@@ -235,9 +252,11 @@ GEMINI_MISSION_PROMPT = """Você é um especialista em educação financeira cri
 - Transações registradas: {transaction_count}
 - Categorias principais: {categories}
 
+## TIPOS DE MISSÃO
 
 1. **ONBOARDING** - Primeiros passos (registrar transações)
    - Campo OBRIGATÓRIO: "min_transactions" (int, 5-50)
+   - Campo IMPORTANTE: "transaction_type_filter" (ALL, INCOME, EXPENSE, DEPOSIT, PAYMENT)
    
 2. **TPS_IMPROVEMENT** - Aumentar Taxa de Poupança
    - Campo OBRIGATÓRIO: "target_tps" (float, 5-50)
@@ -249,14 +268,22 @@ GEMINI_MISSION_PROMPT = """Você é um especialista em educação financeira cri
    - Campo OBRIGATÓRIO: "min_ili" (float, 1-12)
    
 5. **CATEGORY_REDUCTION** - Reduzir gastos em categoria
-   - Campo OBRIGATÓRIO: "target_reduction_percent" (float, 5-40)
-   
-# GOAL_ACHIEVEMENT removido - sistema de goals desativado
-# 6. **GOAL_ACHIEVEMENT** - Progredir em meta financeira
-#    - Campo OBRIGATÓRIO: "goal_progress_target" (float, 10-100)
+   - Campo OBRIGATÓRIO: "target_percentage_change" (float, 5-40)
+
+## REGRAS DE COERÊNCIA (CRÍTICO)
+
+O campo "transaction_type_filter" DEVE ser coerente com o título e descrição:
+- Título sobre "receitas" ou "renda" → transaction_type_filter: "INCOME"
+- Título sobre "gastos" ou "despesas" → transaction_type_filter: "EXPENSE"
+- Título sobre "aportes" ou "poupança" → transaction_type_filter: "DEPOSIT"
+- Título sobre "pagamentos" → transaction_type_filter: "PAYMENT"
+- Título genérico sobre "transações" → transaction_type_filter: "ALL"
+
+**PROIBIDO**: Criar missão com título sobre "poupança" mas validação de "registrar transações genéricas"
 
 {distribution_text}
 
+## REGRAS TÉCNICAS
 
 1. **Missões devem ser ALCANÇÁVEIS**:
    - TPS_IMPROVEMENT: target_tps deve ser maior que TPS atual ({tps}%)
@@ -284,11 +311,12 @@ Retorne APENAS um array JSON, sem texto antes ou depois:
     "difficulty": "EASY|MEDIUM|HARD",
     "duration_days": 14,
     "xp_reward": 100,
+    "transaction_type_filter": "ALL",
     "min_transactions": null,
     "target_tps": null,
     "target_rdr": null,
     "min_ili": null,
-    "target_reduction_percent": null
+    "target_percentage_change": null
   }}
 ]
 """
@@ -599,6 +627,10 @@ class UnifiedMissionGenerator:
         field_name = field_config.get('field')
         if field_name and target_value is not None:
             mission_data[field_name] = target_value
+        
+        # Adiciona transaction_type_filter do template (garante coerência título-validação)
+        if 'transaction_type_filter' in template:
+            mission_data['transaction_type_filter'] = template['transaction_type_filter']
         
         # Define validation_type
         mission_data['validation_type'] = MISSION_TYPE_TO_VALIDATION.get(

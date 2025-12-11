@@ -72,6 +72,10 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
   
   // Check if current mode is Aportes
   bool get _isAportesMode => _uiType == 'APORTES';
+  
+  // Check if category is required for current transaction type
+  // INCOME requires category to appear in category distribution charts
+  bool get _isCategoryRequired => _uiType == 'INCOME' || _isAportesMode;
 
   void _syncDateLabel() {
     _dateController.text =
@@ -209,6 +213,18 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
 
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    
+    // Validate required category for INCOME transactions
+    if (_isCategoryRequired && _categoryId == null) {
+      FeedbackService.showError(
+        context,
+        _uiType == 'INCOME'
+            ? 'Selecione uma categoria para a receita.'
+            : 'Selecione uma categoria para o aporte.',
+      );
+      return;
+    }
+    
     if (_isRecurring && (_recurrenceValue == null || _recurrenceUnit == null)) {
       setState(() {
         _recurrenceError = 'Selecione como a transação deve se repetir.';
@@ -636,11 +652,13 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
   }
 
   Widget _buildCategoryDropdown(ThemeData theme, Color dividerColor) {
+    // Build dropdown items - only include "Sem categoria" if not required
     final items = <DropdownMenuItem<int?>>[
-      const DropdownMenuItem<int?>(
-        value: null,
-        child: Text('Sem categoria'),
-      ),
+      if (!_isCategoryRequired)
+        const DropdownMenuItem<int?>(
+          value: null,
+          child: Text('Sem categoria'),
+        ),
       ..._categories.map(
         (category) => DropdownMenuItem<int?>(
           value: category.id,
@@ -703,6 +721,9 @@ class _RegisterTransactionSheetState extends State<RegisterTransactionSheet> {
         }).toList();
       },
       onChanged: (value) => setState(() => _categoryId = value),
+      validator: _isCategoryRequired
+          ? (value) => value == null ? 'Categoria obrigatória' : null
+          : null,
     );
   }
 

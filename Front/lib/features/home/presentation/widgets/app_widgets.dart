@@ -12,6 +12,7 @@ import '../../../../core/repositories/transaction_repository.dart';
 import '../../../../core/services/cache_manager.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../transactions/presentation/widgets/transaction_details_sheet.dart';
+import '../../../transactions/presentation/widgets/transaction_tile.dart';
 
 class MonthSummaryCard extends StatelessWidget {
   const MonthSummaryCard({
@@ -146,6 +147,50 @@ class MonthSummaryCard extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Aportes',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currency.format(summary.totalAportes),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Saldo',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      currency.format(summary.totalIncome - summary.totalExpense),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: (summary.totalIncome - summary.totalExpense) >= 0
+                            ? Colors.green
+                            : Colors.red,
                       ),
                     ),
                   ],
@@ -363,6 +408,7 @@ class WeeklyChallengeCard extends StatelessWidget {
     final progress = mission.progress / 100.0;
     final isPending = mission.status == 'PENDING';
     final isCompleted = mission.progress >= 100;
+    final challengeTitle = isPending ? 'Desafio Sugerido' : 'Desafio em Andamento';
 
     // Define colors and labels based on status
     final Color statusColor;
@@ -399,10 +445,10 @@ class WeeklyChallengeCard extends StatelessWidget {
                 children: [
                   const Icon(Icons.emoji_events, color: Colors.amber, size: 28),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Desafio Sugerido',
-                      style: TextStyle(
+                      challengeTitle,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -772,9 +818,9 @@ class SimpleTransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == 'INCOME';
-    final color = isIncome ? AppColors.support : AppColors.alert;
-    final icon =
-        isIncome ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded;
+    final isAporte = TransactionTileHelper.isAporte(transaction);
+    final color = TransactionTileHelper.colorFor(transaction.type, isAporte: isAporte);
+    final icon = TransactionTileHelper.iconFor(transaction.type, isAporte: isAporte);
 
     return Material(
       color: Colors.transparent,

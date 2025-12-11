@@ -24,6 +24,7 @@ class PaymentTransactionCard extends StatelessWidget {
     required this.onAmountChanged,
     required this.onMaxPressed,
     required this.tokens,
+    this.effectiveAmount,
   });
 
   final TransactionModel transaction;
@@ -33,6 +34,9 @@ class PaymentTransactionCard extends StatelessWidget {
   final bool isSelected;
 
   final double selectedAmount;
+
+  /// Valor efetivo que será usado (apenas para receitas quando < selectedAmount)
+  final double? effectiveAmount;
 
   final VoidCallback onToggle;
 
@@ -107,6 +111,13 @@ class PaymentTransactionCard extends StatelessWidget {
   }
 
   Widget _buildHeader(ThemeData theme, double available, double paymentPercentage) {
+    // Check if we should show effective amount indicator (for income only)
+    final showEffectiveIndicator = type == PaymentCardType.income && 
+        isSelected &&
+        effectiveAmount != null && 
+        effectiveAmount! < selectedAmount &&
+        effectiveAmount! > 0;
+    
     return Row(
       children: [
         Checkbox(
@@ -142,6 +153,39 @@ class PaymentTransactionCard extends StatelessWidget {
                   ],
                 ],
               ),
+              // Show effective amount indicator for incomes
+              if (showEffectiveIndicator) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.highlight.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: AppColors.highlight.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: AppColors.highlight,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Será usado: ${_currency.format(effectiveAmount)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.highlight,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

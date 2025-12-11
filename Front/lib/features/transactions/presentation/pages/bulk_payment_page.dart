@@ -77,6 +77,26 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
   double get _totalExpensesSelected => _selectedExpenses.values.fold(0.0, (a, b) => a + b);
   double get _balance => _totalIncomeSelected - _totalExpensesSelected;
   
+  /// Calcula o valor efetivo que será usado de cada receita
+  /// baseado no total de despesas selecionadas
+  Map<String, double> get _effectiveIncomeAmounts {
+    final result = <String, double>{};
+    double remainingExpenses = _totalExpensesSelected;
+    
+    for (final entry in _selectedIncomes.entries) {
+      if (remainingExpenses <= 0) {
+        result[entry.key] = 0.0;
+      } else {
+        final effective = remainingExpenses < entry.value 
+            ? remainingExpenses 
+            : entry.value;
+        result[entry.key] = effective;
+        remainingExpenses -= effective;
+      }
+    }
+    return result;
+  }
+  
   bool get _canSubmit => 
       _selectedIncomes.isNotEmpty && 
       _selectedExpenses.isNotEmpty && 
@@ -407,12 +427,14 @@ class _BulkPaymentPageState extends State<BulkPaymentPage> {
     final isSelected = _selectedIncomes.containsKey(incomeKey);
     final available = income.availableAmount ?? income.amount;
     final selectedAmount = _selectedIncomes[incomeKey] ?? available;
+    final effectiveAmount = isSelected ? (_effectiveIncomeAmounts[incomeKey] ?? 0.0) : null;
     
     return PaymentTransactionCard(
       transaction: income,
       type: PaymentCardType.income,
       isSelected: isSelected,
       selectedAmount: selectedAmount,
+      effectiveAmount: effectiveAmount,
       tokens: tokens,
       onToggle: () {
         setState(() {

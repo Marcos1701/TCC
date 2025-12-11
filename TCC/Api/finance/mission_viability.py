@@ -1,11 +1,3 @@
-"""
-Mission Viability Checker
-=========================
-
-Validates whether a mission is achievable for a given user context.
-Prevents creation of impossible or improbable missions.
-"""
-
 from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple

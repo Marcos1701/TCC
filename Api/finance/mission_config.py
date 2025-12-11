@@ -1,16 +1,5 @@
 """
-Configuração Unificada do Sistema de Missões
-=============================================
-
-Este arquivo centraliza TODAS as definições de tipos de missão, validadores, 
-e regras de geração. É a ÚNICA fonte de verdade para o sistema de missões.
-
-Arquivos que dependem desta configuração:
-- mission_generator.py (geração automática)
-- mission_type_schemas.py (formulário admin)
-- mission_templates.py (templates de texto)
-- mission_types/factory.py (seleção de validadores)
-- ai_services.py (prompts para IA)
+Configuração do Sistema de Missões
 """
 
 from dataclasses import dataclass, field
@@ -26,11 +15,6 @@ from .mission_types.indicators import (
     ILIBuildingMissionValidator,
 )
 from .mission_types.categories import CategoryReductionValidator
-
-
-# =============================================================================
-# DEFINIÇÕES DE DIFICULDADE
-# =============================================================================
 
 @dataclass
 class DifficultyConfig:
@@ -62,11 +46,6 @@ DIFFICULTY_CONFIGS = {
     ),
 }
 
-
-# =============================================================================
-# DEFINIÇÕES DE CAMPOS
-# =============================================================================
-
 @dataclass
 class FieldConfig:
     """Configuração de um campo de missão."""
@@ -84,11 +63,6 @@ class FieldConfig:
     
     # Ranges específicos por dificuldade (sobrescrevem DIFFICULTY_CONFIGS)
     difficulty_ranges: Dict[str, Tuple[float, float]] = field(default_factory=dict)
-
-
-# =============================================================================
-# DEFINIÇÕES DE TIPOS DE MISSÃO
-# =============================================================================
 
 @dataclass
 class MissionTypeConfig:
@@ -128,10 +102,6 @@ class MissionTypeConfig:
     # Prioridade para distribuição automática por tier
     tier_weights: Dict[str, int] = field(default_factory=dict)
 
-
-# =============================================================================
-# CONFIGURAÇÕES DOS TIPOS DE MISSÃO
-# =============================================================================
 
 MISSION_TYPES: Dict[str, MissionTypeConfig] = {
     
@@ -412,10 +382,6 @@ MISSION_TYPES: Dict[str, MissionTypeConfig] = {
 }
 
 
-# =============================================================================
-# FUNÇÕES DE UTILIDADE
-# =============================================================================
-
 def get_mission_type_config(mission_type: str) -> Optional[MissionTypeConfig]:
     """Retorna a configuração completa de um tipo de missão."""
     return MISSION_TYPES.get(mission_type)
@@ -565,11 +531,6 @@ def validate_mission_data(
         pass
     
     return len(errors) == 0, errors
-
-
-# =============================================================================
-# EXPORTAÇÕES PARA COMPATIBILIDADE
-# =============================================================================
 
 # Mapeamento mission_type → validation_type para garantir validators corretos
 # Mantido para compatibilidade com código legado

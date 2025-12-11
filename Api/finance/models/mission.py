@@ -103,13 +103,22 @@ class Mission(models.Model):
         related_name='missions',
         help_text="Categoria alvo para missões de redução/limite",
     )
-    target_reduction_percent = models.DecimalField(
+    target_percentage_change = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
-        help_text="% de redução alvo (ex: 15 = reduzir 15%)",
+        help_text="% de mudança alvo (ex: 15 = aumentar/reduzir 15% dependendo do tipo de transação)",
     )
+    
+    # Alias para compatibilidade - será removido após migração completa
+    @property
+    def target_reduction_percent(self):
+        return self.target_percentage_change
+    
+    @target_reduction_percent.setter
+    def target_reduction_percent(self, value):
+        self.target_percentage_change = value
     category_spending_limit = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -160,7 +169,8 @@ class Mission(models.Model):
             ('ALL', 'Todas'),
             ('INCOME', 'Receitas'),
             ('EXPENSE', 'Despesas'),
-            ('TRANSFER', 'Transferências'),
+            ('PAYMENT', 'Pagamentos'),
+            ('DEPOSIT', 'Aportes'),
         ],
         default='ALL',
         help_text="Tipo de transação a ser considerado na validação",
