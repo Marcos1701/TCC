@@ -1480,52 +1480,34 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
   int? _selectedCategoryId;
   bool _loadingCategories = false;
 
-  // Mapeamento de tipos de missão para seus campos e validation_type
-  static const Map<String, Map<String, dynamic>> _missionTypeConfig = {
-    'ONBOARDING': {
-      'field': 'min_transactions',
-      'label': 'Transações Mínimas',
-      'hint': 'Ex: 10',
-      'validation_type': 'TRANSACTION_COUNT',
-      'defaultValue': 10,
-      'description': 'Número de transações que o usuário deve registrar',
-    },
-    'TPS_IMPROVEMENT': {
-      'field': 'target_tps',
-      'label': 'Meta TPS (%)',
-      'hint': 'Ex: 15 para 15%',
-      'validation_type': 'INDICATOR_THRESHOLD',
-      'defaultValue': 15,
-      'description': 'Taxa de Poupança Pessoal mínima a atingir',
-    },
-    'RDR_REDUCTION': {
-      'field': 'target_rdr',
-      'label': 'Meta RDR Máximo (%)',
-      'hint': 'Ex: 40 para máximo 40%',
-      'validation_type': 'INDICATOR_THRESHOLD',
-      'defaultValue': 40,
-      'description': 'Razão Despesas/Renda máxima permitida',
-    },
-    'ILI_BUILDING': {
-      'field': 'min_ili',
-      'label': 'ILI Mínimo (meses)',
-      'hint': 'Ex: 3 para 3 meses',
-      'validation_type': 'INDICATOR_THRESHOLD',
-      'defaultValue': 3,
-      'description': 'Meses de despesas em reserva de emergência',
-    },
-    'CATEGORY_REDUCTION': {
-      'field': 'target_reduction_percent',
-      'label': 'Redução Alvo (%)',
-      'hint': 'Ex: 15 para reduzir 15%',
-      'validation_type': 'CATEGORY_REDUCTION',
-      'defaultValue': 15,
-      'description': 'Percentual de redução na categoria escolhida',
-    },
-  };
+  // Usa as novas classes de configuração
+  MissionTypeFieldConfig? get _currentFieldConfig => MissionTypeFields.get(_missionType);
+  DifficultyPreset? get _currentDifficultyPreset => DifficultyPresets.get(_difficulty);
+  List<String> get _currentTips => MissionTypeTips.get(_missionType);
+  String get _currentDescription => MissionTypeDescriptions.get(_missionType);
 
-  Map<String, dynamic> get _currentConfig => 
-      _missionTypeConfig[_missionType] ?? _missionTypeConfig['TPS_IMPROVEMENT']!;
+  // Helper para obter dados legados para validação (compatibilidade)
+  Map<String, dynamic> get _currentConfig {
+    final config = _currentFieldConfig;
+    if (config == null) {
+      return {
+        'field': 'target_tps',
+        'label': 'Meta TPS (%)',
+        'hint': 'Ex: 15 para 15%',
+        'validation_type': 'INDICATOR_THRESHOLD',
+        'defaultValue': 15,
+        'description': 'Taxa de Poupança Pessoal mínima a atingir',
+      };
+    }
+    return {
+      'field': config.fieldKey,
+      'label': config.unit != null ? '${config.label} (${config.unit})' : config.label,
+      'hint': config.hint,
+      'validation_type': config.validationType,
+      'defaultValue': config.defaultValue,
+      'description': config.hint,
+    };
+  }
 
   @override
   void initState() {
@@ -1572,11 +1554,10 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
   }
 
   void _loadTargetValue() {
-    final config = _missionTypeConfig[_missionType];
+    final config = _currentFieldConfig;
     if (config != null && widget.mission != null) {
-      final fieldName = config['field'] as String;
-      final value = widget.mission![fieldName];
-      _targetValueController.text = value?.toString() ?? config['defaultValue'].toString();
+      final value = widget.mission![config.fieldKey];
+      _targetValueController.text = value?.toString() ?? config.defaultValue.toString();
     }
   }
 
@@ -1608,9 +1589,9 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
       setState(() {
         _missionType = newType;
         // Atualiza o valor padrão para o novo tipo
-        final config = _missionTypeConfig[newType];
+        final config = MissionTypeFields.get(newType);
         if (config != null) {
-          _targetValueController.text = config['defaultValue'].toString();
+          _targetValueController.text = config.defaultValue.toString();
         }
         _formError = null;
         _selectedCategoryId = null;
@@ -1620,6 +1601,64 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
       if (newType == 'CATEGORY_REDUCTION') {
         _loadCategories();
       }
+    }
+  }
+
+  /// Aplica os valores recomendados baseados na dificuldade selecionada
+  void _applyDifficultyPreset() {
+    final preset = _currentDifficultyPreset;
+    if (preset != null) {
+      setState(() {
+        _rewardController.text = preset.xpDefault.toString();
+        _durationController.text = preset.durationDefault.toString();
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Valores aplicados: ${preset.xpDefault} XP, ${preset.durationDefault} dias',
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Retorna o status de validação de um valor (para feedback visual)
+  /// Retorna: 'valid', 'warning', 'error'
+  String _getValueValidationStatus(num? value, num min, num max, num recMin, num recMax) {
+    if (value == null) return 'error';
+    if (value < min || value > max) return 'error';
+    if (value >= recMin && value <= recMax) return 'valid';
+    return 'warning';
+  }
+
+  Color _getValidationColor(String status) {
+    switch (status) {
+      case 'valid':
+        return Colors.green;
+      case 'warning':
+        return Colors.orange;
+      case 'error':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getValidationIcon(String status) {
+    switch (status) {
+      case 'valid':
+        return Icons.check_circle;
+      case 'warning':
+        return Icons.warning_amber;
+      case 'error':
+        return Icons.error;
+      default:
+        return Icons.help_outline;
     }
   }
 
@@ -1739,11 +1778,10 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final config = _currentConfig;
 
     return Dialog(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+        constraints: const BoxConstraints(maxWidth: 650, maxHeight: 850),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1794,25 +1832,127 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tipo de Missão - primeiro para orientar os outros campos
-                    DropdownButtonFormField<String>(
-                      value: _missionType,
-                      decoration: InputDecoration(
-                        labelText: 'Tipo de Missão *',
-                        border: const OutlineInputBorder(),
-                        helperText: MissionTypeLabels.getDescriptive(_missionType),
-                        helperMaxLines: 2,
+                    // SEÇÃO 1: Tipo de Missão com Cards Visuais
+                    Text(
+                      'Tipo de Missão *',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      isExpanded: true,
-                      items: MissionTypes.all.map((type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(MissionTypeLabels.getShort(type)),
-                      )).toList(),
-                      onChanged: _onMissionTypeChanged,
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: MissionTypes.all.map((type) {
+                        final isSelected = _missionType == type;
+                        final typeColor = MissionTypeColors.get(type);
+                        final typeIcon = MissionTypeIcons.get(type);
+                        
+                        return InkWell(
+                          onTap: () => _onMissionTypeChanged(type),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 105,
+                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected 
+                                  ? typeColor.withValues(alpha: 0.15)
+                                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? typeColor : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  typeIcon,
+                                  size: 28,
+                                  color: isSelected ? typeColor : colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  MissionTypeLabels.getShort(type),
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: isSelected ? typeColor : colorScheme.onSurfaceVariant,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Descrição do tipo selecionado
+                    Text(
+                      _currentDescription,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     
-                    // Título
+                    // SEÇÃO 2: Dicas Contextuais
+                    if (_currentTips.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.lightbulb_outline, size: 16, color: Colors.blue[700]),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Dicas',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ..._currentTips.map((tip) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('• ', style: TextStyle(color: Colors.blue[700])),
+                                  Expanded(
+                                    child: Text(
+                                      tip,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                          ],
+                        ),
+                      ),
+                    
+                    // SEÇÃO 3: Título e Descrição
                     TextField(
                       controller: _titleController,
                       decoration: const InputDecoration(
@@ -1824,7 +1964,6 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
                     ),
                     const SizedBox(height: 16),
                     
-                    // Descrição
                     TextField(
                       controller: _descriptionController,
                       decoration: const InputDecoration(
@@ -1836,155 +1975,287 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
                     ),
                     const SizedBox(height: 20),
                     
-                    // Campo específico do tipo de missão
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.track_changes, size: 18, color: colorScheme.primary),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Meta da Missão',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
+                    // SEÇÃO 4: Meta da Missão com Validação Visual
+                    if (_currentFieldConfig != null)
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: MissionTypeColors.get(_missionType).withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: MissionTypeColors.get(_missionType).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.track_changes,
+                                  size: 18,
+                                  color: MissionTypeColors.get(_missionType),
                                 ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Meta da Missão',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: MissionTypeColors.get(_missionType),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _currentFieldConfig!.hint,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            config['description'] as String,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _targetValueController,
-                            decoration: InputDecoration(
-                              labelText: '${config['label']} *',
-                              border: const OutlineInputBorder(),
-                              hintText: config['hint'] as String,
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          ),
-                          // Seletor de categoria para CATEGORY_REDUCTION
-                          if (_missionType == 'CATEGORY_REDUCTION') ...[
-                            const SizedBox(height: 16),
-                            if (_loadingCategories)
-                              const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              )
-                            else if (_categories.isEmpty)
-                              Text(
-                                'Nenhuma categoria global encontrada',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.error,
-                                ),
-                              )
-                            else
-                              DropdownButtonFormField<int>(
-                                value: _selectedCategoryId,
-                                decoration: InputDecoration(
-                                  labelText: 'Categoria Alvo *',
-                                  border: const OutlineInputBorder(),
-                                  filled: true,
-                                  fillColor: colorScheme.surface,
-                                  prefixIcon: const Icon(Icons.folder_outlined),
-                                ),
-                                isExpanded: true,
-                                hint: const Text('Selecione a categoria'),
-                                items: _categories.map<DropdownMenuItem<int>>((cat) {
-                                  final catId = cat['id'];
-                                  final catName = cat['name']?.toString() ?? 'Sem nome';
-                                  final catColor = cat['color']?.toString();
-                                  
-                                  Color? displayColor;
-                                  if (catColor != null && catColor.isNotEmpty) {
-                                    try {
-                                      final colorHex = catColor.replaceAll('#', '');
-                                      displayColor = Color(int.parse('0xFF$colorHex'));
-                                    } catch (_) {
-                                      displayColor = null;
-                                    }
-                                  }
-                                  
-                                  return DropdownMenuItem<int>(
-                                    value: catId is int ? catId : int.tryParse(catId.toString()),
-                                    child: Row(
+                            const SizedBox(height: 12),
+                            
+                            // Campo com validação visual
+                            StatefulBuilder(
+                              builder: (context, setFieldState) {
+                                final valueText = _targetValueController.text;
+                                final value = num.tryParse(valueText);
+                                final config = _currentFieldConfig!;
+                                final status = _getValueValidationStatus(
+                                  value,
+                                  config.min,
+                                  config.max,
+                                  config.recommendedMin,
+                                  config.recommendedMax,
+                                );
+                                
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    TextField(
+                                      controller: _targetValueController,
+                                      decoration: InputDecoration(
+                                        labelText: config.unit != null 
+                                            ? '${config.label} (${config.unit}) *' 
+                                            : '${config.label} *',
+                                        border: const OutlineInputBorder(),
+                                        filled: true,
+                                        fillColor: colorScheme.surface,
+                                        suffixIcon: value != null
+                                            ? Icon(
+                                                _getValidationIcon(status),
+                                                color: _getValidationColor(status),
+                                              )
+                                            : null,
+                                      ),
+                                      keyboardType: TextInputType.numberWithOptions(
+                                        decimal: config.isDecimal,
+                                      ),
+                                      onChanged: (_) => setFieldState(() {}),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
                                       children: [
-                                        if (displayColor != null)
-                                          Container(
-                                            width: 12,
-                                            height: 12,
-                                            margin: const EdgeInsets.only(right: 8),
-                                            decoration: BoxDecoration(
-                                              color: displayColor,
-                                              shape: BoxShape.circle,
-                                            ),
+                                        Text(
+                                          'Válido: ${config.min}-${config.max}',
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
-                                        Flexible(
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
                                           child: Text(
-                                            catName,
-                                            overflow: TextOverflow.ellipsis,
+                                            'Recomendado: ${config.recommendedMin}-${config.recommendedMax}',
+                                            style: theme.textTheme.labelSmall?.copyWith(
+                                              color: Colors.green[700],
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() => _selectedCategoryId = value);
-                                },
-                              ),
+                                  ],
+                                );
+                              },
+                            ),
+                            
+                            // Seletor de categoria para CATEGORY_REDUCTION
+                            if (_missionType == 'CATEGORY_REDUCTION') ...[
+                              const SizedBox(height: 16),
+                              if (_loadingCategories)
+                                const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(8.0),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              else if (_categories.isEmpty)
+                                Text(
+                                  'Nenhuma categoria global encontrada',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.error,
+                                  ),
+                                )
+                              else
+                                DropdownButtonFormField<int>(
+                                  value: _selectedCategoryId,
+                                  decoration: InputDecoration(
+                                    labelText: 'Categoria Alvo *',
+                                    border: const OutlineInputBorder(),
+                                    filled: true,
+                                    fillColor: colorScheme.surface,
+                                    prefixIcon: const Icon(Icons.folder_outlined),
+                                  ),
+                                  isExpanded: true,
+                                  hint: const Text('Selecione a categoria'),
+                                  items: _categories.map<DropdownMenuItem<int>>((cat) {
+                                    final catId = cat['id'];
+                                    final catName = cat['name']?.toString() ?? 'Sem nome';
+                                    final catColor = cat['color']?.toString();
+                                    
+                                    Color? displayColor;
+                                    if (catColor != null && catColor.isNotEmpty) {
+                                      try {
+                                        final colorHex = catColor.replaceAll('#', '');
+                                        displayColor = Color(int.parse('0xFF$colorHex'));
+                                      } catch (_) {
+                                        displayColor = null;
+                                      }
+                                    }
+                                    
+                                    return DropdownMenuItem<int>(
+                                      value: catId is int ? catId : int.tryParse(catId.toString()),
+                                      child: Row(
+                                        children: [
+                                          if (displayColor != null)
+                                            Container(
+                                              width: 12,
+                                              height: 12,
+                                              margin: const EdgeInsets.only(right: 8),
+                                              decoration: BoxDecoration(
+                                                color: displayColor,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          Flexible(
+                                            child: Text(
+                                              catName,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() => _selectedCategoryId = value);
+                                  },
+                                ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
                     const SizedBox(height: 20),
                     
-                    // Dificuldade e Duração
+                    // SEÇÃO 5: Dificuldade com Presets
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
+                          flex: 2,
                           child: DropdownButtonFormField<String>(
                             value: _difficulty,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Dificuldade',
-                              border: OutlineInputBorder(),
+                              border: const OutlineInputBorder(),
+                              prefixIcon: Icon(
+                                Icons.trending_up,
+                                color: DifficultyColors.get(_difficulty),
+                              ),
                             ),
-                            items: const [
-                              DropdownMenuItem(value: 'EASY', child: Text('Fácil')),
-                              DropdownMenuItem(value: 'MEDIUM', child: Text('Média')),
-                              DropdownMenuItem(value: 'HARD', child: Text('Difícil')),
-                            ],
+                            items: MissionDifficulties.all.map((d) {
+                              return DropdownMenuItem(
+                                value: d,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        color: DifficultyColors.get(d),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    Text(DifficultyLabels.get(d)),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
                             onChanged: (value) {
                               setState(() => _difficulty = value ?? 'MEDIUM');
                             },
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'Aplicar valores recomendados de XP e duração',
+                          child: IconButton.filled(
+                            onPressed: _applyDifficultyPreset,
+                            icon: const Icon(Icons.auto_fix_high, size: 20),
+                            style: IconButton.styleFrom(
+                              backgroundColor: colorScheme.secondaryContainer,
+                              foregroundColor: colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // SEÇÃO 6: Duração e Recompensa com hints
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextField(
+                                controller: _durationController,
+                                decoration: InputDecoration(
+                                  labelText: 'Duração (dias)',
+                                  border: const OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.schedule),
+                                  helperText: _currentDifficultyPreset != null
+                                      ? 'Recomendado: ${_currentDifficultyPreset!.durationMin}-${_currentDifficultyPreset!.durationMax}'
+                                      : null,
+                                  helperStyle: TextStyle(color: Colors.green[700]),
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ],
+                          ),
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
-                            controller: _durationController,
-                            decoration: const InputDecoration(
-                              labelText: 'Duração (dias)',
-                              border: OutlineInputBorder(),
-                              hintText: 'Ex: 30',
+                            controller: _rewardController,
+                            decoration: InputDecoration(
+                              labelText: 'Recompensa (XP)',
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.stars, color: Colors.amber),
+                              helperText: _currentDifficultyPreset != null
+                                  ? 'Recomendado: ${_currentDifficultyPreset!.xpMin}-${_currentDifficultyPreset!.xpMax}'
+                                  : null,
+                              helperStyle: TextStyle(color: Colors.green[700]),
                             ),
                             keyboardType: TextInputType.number,
                           ),
@@ -1993,34 +2264,17 @@ class _EditMissionDialogState extends State<_EditMissionDialog> {
                     ),
                     const SizedBox(height: 16),
                     
-                    // Recompensa e Prioridade
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _rewardController,
-                            decoration: const InputDecoration(
-                              labelText: 'Recompensa (XP)',
-                              border: OutlineInputBorder(),
-                              hintText: 'Ex: 100',
-                              prefixIcon: Icon(Icons.stars, color: Colors.amber),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _priorityController,
-                            decoration: const InputDecoration(
-                              labelText: 'Prioridade',
-                              border: OutlineInputBorder(),
-                              hintText: '1-100 (menor = mais prioritário)',
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
+                    // SEÇÃO 7: Prioridade
+                    TextField(
+                      controller: _priorityController,
+                      decoration: const InputDecoration(
+                        labelText: 'Prioridade',
+                        border: OutlineInputBorder(),
+                        hintText: '1-100 (menor = mais prioritário)',
+                        prefixIcon: Icon(Icons.low_priority),
+                        helperText: '1-10: Alta prioridade | 50: Normal | 90+: Sistema',
+                      ),
+                      keyboardType: TextInputType.number,
                     ),
                   ],
                 ),

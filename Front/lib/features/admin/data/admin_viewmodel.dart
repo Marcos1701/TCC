@@ -27,6 +27,7 @@ class AdminViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> _missions = [];
   int _missionsTotalPages = 1;
   int _missionsCurrentPage = 1;
+  int _missionsTotalCount = 0;
 
   List<Map<String, dynamic>> _categories = [];
 
@@ -47,6 +48,7 @@ class AdminViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> get missions => _missions;
   int get missionsTotalPages => _missionsTotalPages;
   int get missionsCurrentPage => _missionsCurrentPage;
+  int get missionsTotalCount => _missionsTotalCount;
   List<Map<String, dynamic>> get categories => _categories;
   List<Map<String, dynamic>> get users => _users;
   int get usersTotalPages => _usersTotalPages;
@@ -104,6 +106,7 @@ class AdminViewModel extends ChangeNotifier {
       final data = response.data as Map<String, dynamic>;
       _missions = List<Map<String, dynamic>>.from(data['missoes'] ?? []);
       _missionsTotalPages = data['total_paginas'] ?? 1;
+      _missionsTotalCount = data['total'] ?? _missions.length;
       _missionsCurrentPage = pagina;
       _state = AdminViewState.success;
     } on DioException catch (e) {
@@ -392,6 +395,38 @@ class AdminViewModel extends ChangeNotifier {
       return {
         'sucesso': false,
         'erro': 'Erro ao excluir missões pendentes: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> approveAllPendingMissions() async {
+    try {
+      final response = await _api.client.post(
+        '${ApiEndpoints.adminMissions}aprovar-pendentes/',
+      );
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['sucesso'] == true) {
+        // Atualiza todas as missões pendentes para ativas na lista local
+        for (var i = 0; i < _missions.length; i++) {
+          if (_missions[i]['is_active'] == false) {
+            _missions[i]['is_active'] = true;
+          }
+        }
+        notifyListeners();
+      }
+
+      return data;
+    } on DioException catch (e) {
+      return {
+        'sucesso': false,
+        'erro': _extractErrorMessage(e),
+      };
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'erro': 'Erro ao aprovar missões pendentes: $e',
       };
     }
   }

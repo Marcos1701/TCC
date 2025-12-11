@@ -285,6 +285,34 @@ class AdminDeletePendingMissionsView(APIView):
         })
 
 
+class AdminApprovePendingMissionsView(APIView):
+    """Aprova (ativa) todas as missões pendentes (is_active=False)."""
+    
+    permission_classes = [permissions.IsAdminUser]
+    
+    def post(self, request):
+        """Ativa todas as missões pendentes."""
+        pending_missions = Mission.objects.filter(is_active=False)
+        count = pending_missions.count()
+        
+        if count == 0:
+            return Response({
+                'sucesso': True,
+                'mensagem': 'Nenhuma missão pendente para aprovar',
+                'aprovadas': 0,
+            })
+        
+        pending_missions.update(is_active=True)
+        
+        logger.info(f"{count} missões pendentes aprovadas por {request.user.username}")
+        
+        return Response({
+            'sucesso': True,
+            'mensagem': f'{count} missão(ões) pendente(s) ativada(s)',
+            'aprovadas': count,
+        })
+
+
 class AdminMissionToggleView(APIView):
     """Ativa ou desativa uma missão."""
     
