@@ -115,7 +115,16 @@ class MissionViewSet(viewsets.ModelViewSet):
     def start(self, request, pk=None):
         try:
             mission = self.get_object()
-            progress = start_mission(request.user, mission.id)
+            
+            # Categorias selecionadas para missões de variação percentual
+            # None ou [] = "Geral" (todas as categorias)
+            selected_category_ids = request.data.get('category_ids', None)
+            
+            progress = start_mission(
+                request.user, 
+                mission.id,
+                selected_category_ids=selected_category_ids
+            )
             invalidate_user_dashboard_cache(request.user)
             return Response(MissionProgressSerializer(progress).data)
         except MissionProgress.DoesNotExist:

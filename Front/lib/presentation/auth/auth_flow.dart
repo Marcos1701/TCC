@@ -5,8 +5,9 @@ import '../../core/state/session_controller.dart';
 import '../../features/admin/presentation/admin_panel_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
-import '../../features/onboarding/presentation/pages/simplified_onboarding_page.dart';
+import '../../features/onboarding/presentation/pages/initial_setup_page.dart';
 import '../shell/root_shell.dart';
+
 
 class AuthFlow extends StatefulWidget {
   const AuthFlow({super.key});
@@ -57,7 +58,7 @@ class _AuthFlowState extends State<AuthFlow> {
 
         final completed = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
-            builder: (context) => const SimplifiedOnboardingPage(),
+            builder: (context) => const InitialSetupPage(),
             fullscreenDialog: true,
           ),
         );

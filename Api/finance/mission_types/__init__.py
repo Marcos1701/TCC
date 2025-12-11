@@ -19,6 +19,7 @@ from .advanced import (
     AdvancedMissionValidator,
     MultiCriteriaValidator,
 )
+from .percentage_change import PercentageChangeValidator
 
 __all__ = [
     'BaseMissionValidator',
@@ -34,4 +35,5 @@ __all__ = [
     'PaymentDisciplineValidator',
     'AdvancedMissionValidator',
     'MultiCriteriaValidator',
+    'PercentageChangeValidator',
 ]

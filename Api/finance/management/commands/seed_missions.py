@@ -7,10 +7,9 @@ from finance.mission_templates import (
     RDR_TEMPLATES,
     ILI_TEMPLATES,
     CATEGORY_TEMPLATES,
-    BEHAVIOR_TEMPLATES,
-    ADVANCED_TEMPLATES,
     generate_mission_batch_from_templates
 )
+from finance.mission_config import MISSION_TYPE_TO_VALIDATION
 import random
 
 
@@ -68,8 +67,6 @@ class Command(BaseCommand):
             'RDR_REDUCTION': RDR_TEMPLATES,
             'ILI_BUILDING': ILI_TEMPLATES,
             'CATEGORY_REDUCTION': CATEGORY_TEMPLATES,
-            'BEHAVIOR': BEHAVIOR_TEMPLATES,
-            'ADVANCED': ADVANCED_TEMPLATES,
         }
 
         if mission_type:
@@ -160,7 +157,7 @@ class Command(BaseCommand):
             data['title'] = title
             data['description'] = description
             data['target_tps'] = target
-            data['validation_type'] = 'INDICATOR_IMPROVEMENT'
+            data['validation_type'] = MISSION_TYPE_TO_VALIDATION.get('TPS_IMPROVEMENT', 'INDICATOR_THRESHOLD')
 
         elif 'target_rdr_ranges' in template:
             ranges = template['target_rdr_ranges']
@@ -171,7 +168,7 @@ class Command(BaseCommand):
             data['title'] = title
             data['description'] = description
             data['target_rdr'] = target
-            data['validation_type'] = 'INDICATOR_IMPROVEMENT'
+            data['validation_type'] = MISSION_TYPE_TO_VALIDATION.get('RDR_REDUCTION', 'INDICATOR_THRESHOLD')
 
         elif 'min_ili_ranges' in template:
             ranges = template['min_ili_ranges']
@@ -192,8 +189,8 @@ class Command(BaseCommand):
             description = template['description'].format(percent=percent)
             data['title'] = title
             data['description'] = description
-            data['target_reduction_percent'] = percent
-            data['validation_type'] = 'CATEGORY_REDUCTION'
+            data['target_percentage_change'] = percent
+            data['validation_type'] = MISSION_TYPE_TO_VALIDATION.get('CATEGORY_REDUCTION', 'CATEGORY_REDUCTION')
 
         elif '{days}' in title or '{days}' in template['description']:
             days = template.get('duration_days', 30)

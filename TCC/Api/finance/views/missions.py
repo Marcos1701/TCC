@@ -134,6 +134,10 @@ class MissionViewSet(viewsets.ModelViewSet):
         try:
             mission = self.get_object()
             progress = skip_mission(request.user, mission.id)
+            
+            # Atribuir uma nova missão para substituir a pulada
+            assign_missions_automatically(request.user)
+            
             invalidate_user_dashboard_cache(request.user)
             return Response(MissionProgressSerializer(progress).data)
         except MissionProgress.DoesNotExist:

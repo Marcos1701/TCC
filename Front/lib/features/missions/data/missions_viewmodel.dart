@@ -412,7 +412,8 @@ class MissionsViewModel extends ChangeNotifier {
 
   /// Starts a mission with optimistic update.
   /// Updates UI immediately, reverts on API failure.
-  Future<bool> startMission(int missionId) async {
+  /// [categoryIds] - Optional list of category IDs for percentage missions.
+  Future<bool> startMission(int missionId, {List<int>? categoryIds}) async {
     final index = _activeMissions.indexWhere((m) => m.mission.id == missionId);
     if (index == -1) return false;
 
@@ -434,7 +435,10 @@ class MissionsViewModel extends ChangeNotifier {
     _safeNotifyListeners();
 
     try {
-      final updated = await _repository.startMissionAction(missionId);
+      final updated = await _repository.startMissionAction(
+        missionId,
+        categoryIds: categoryIds,
+      );
       _activeMissions[index] = updated;
       
       await CacheManager().invalidateAfterMissionComplete();

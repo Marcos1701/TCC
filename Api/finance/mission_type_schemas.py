@@ -35,7 +35,23 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
                 "icon": "📊",
             },
         ],
-        "optional_fields": [],
+        "optional_fields": [
+            {
+                "key": "transaction_type_filter",
+                "label": "Tipo de Transação",
+                "type": FieldType.SELECT,
+                "description": "Tipo de transação a ser contabilizada",
+                "options": [
+                    {"value": "ALL", "label": "Todas"},
+                    {"value": "INCOME", "label": "Apenas Receitas"},
+                    {"value": "EXPENSE", "label": "Apenas Despesas"},
+                    {"value": "DEPOSIT", "label": "Apenas Aportes"},
+                    {"value": "PAYMENT", "label": "Apenas Pagamentos"},
+                ],
+                "default": "ALL",
+                "hint": "Deve ser coerente com o título da missão",
+            },
+        ],
         "recommended_difficulty": "EASY",
         "recommended_duration": 7,
         "recommended_reward": {"EASY": 50, "MEDIUM": 75, "HARD": 100},
@@ -43,6 +59,7 @@ MISSION_TYPE_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "Ideal para usuários que estão começando",
             "Mantenha metas alcançáveis para não desmotivar",
             "Duração curta (7 dias) funciona melhor",
+            "O tipo de transação DEVE ser coerente com o título",
         ],
     },
     

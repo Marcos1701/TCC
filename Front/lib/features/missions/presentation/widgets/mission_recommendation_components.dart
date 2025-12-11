@@ -109,38 +109,38 @@ class RecommendationSkeleton extends StatelessWidget {
   }
 }
 
-class RecommendationPlaceholder extends StatelessWidget {
-  const RecommendationPlaceholder({super.key});
+// class RecommendationPlaceholder extends StatelessWidget {
+//   const RecommendationPlaceholder({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+//   @override
+//   Widget build(BuildContext context) {
+//     final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
-        color: const Color(0xFF15151F),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lightbulb_outline, color: Colors.white),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Continue registrando suas transações para desbloquear novas missões '
-              'personalizadas de acordo com seu perfil financeiro.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white70,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+//     return Container(
+//       padding: const EdgeInsets.all(20),
+//       decoration: BoxDecoration(
+//         borderRadius: BorderRadius.circular(20),
+//         border: Border.all(color: Colors.white12),
+//         color: const Color(0xFF15151F),
+//       ),
+//       child: Row(
+//         children: [
+//           const Icon(Icons.lightbulb_outline, color: Colors.white),
+//           const SizedBox(width: 12),
+//           Expanded(
+//             child: Text(
+//               'Continue registrando suas transações para desbloquear novas missões '
+//               'personalizadas de acordo com seu perfil financeiro.',
+//               style: theme.textTheme.bodyMedium?.copyWith(
+//                 color: Colors.white70,
+//               ),
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 class RecommendationError extends StatelessWidget {
   const RecommendationError({

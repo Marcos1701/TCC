@@ -278,13 +278,40 @@ class CashflowChart extends StatelessWidget {
     );
   }
 
+  /// Build spots for a line, only including real data points (not projections)
+  /// If there are gaps in future data, don't extend the line
+  List<FlSpot> _buildRealDataSpots(double Function(CashflowPoint) getValue) {
+    final spots = <FlSpot>[];
+    
+    // Find the last real data point index
+    int lastRealIndex = -1;
+    for (var i = cashflow.length - 1; i >= 0; i--) {
+      if (!cashflow[i].isProjection && getValue(cashflow[i]) > 0) {
+        lastRealIndex = i;
+        break;
+      }
+    }
+    
+    // Only include real data points up to the last one with data
+    for (var i = 0; i < cashflow.length; i++) {
+      final point = cashflow[i];
+      if (!point.isProjection) {
+        // Check if there's any real data after this point
+        final hasDataAfter = i <= lastRealIndex || getValue(point) > 0;
+        if (hasDataAfter || i <= lastRealIndex) {
+          spots.add(FlSpot(i.toDouble(), getValue(point)));
+        }
+      }
+    }
+    
+    return spots;
+  }
+
   LineChartBarData _buildIncomeLine() {
+    final spots = _buildRealDataSpots((p) => p.income);
+    
     return LineChartBarData(
-      spots: cashflow
-          .asMap()
-          .entries
-          .map((e) => FlSpot(e.key.toDouble(), e.value.income))
-          .toList(),
+      spots: spots,
       isCurved: true,
       curveSmoothness: 0.35,
       color: AppColors.success,
@@ -293,13 +320,9 @@ class CashflowChart extends StatelessWidget {
       dotData: FlDotData(
         show: true,
         getDotPainter: (spot, percent, barData, index) {
-          final isProjection =
-              index < cashflow.length && cashflow[index].isProjection;
           return FlDotCirclePainter(
-            radius: isProjection ? 3 : 4,
-            color: isProjection
-                ? AppColors.success.withOpacity(0.6)
-                : AppColors.success,
+            radius: 4,
+            color: AppColors.success,
             strokeWidth: 2,
             strokeColor: const Color(0xFF1E1E1E),
           );
@@ -324,12 +347,10 @@ class CashflowChart extends StatelessWidget {
   }
 
   LineChartBarData _buildExpenseLine() {
+    final spots = _buildRealDataSpots((p) => p.expense);
+    
     return LineChartBarData(
-      spots: cashflow
-          .asMap()
-          .entries
-          .map((e) => FlSpot(e.key.toDouble(), e.value.expense))
-          .toList(),
+      spots: spots,
       isCurved: true,
       curveSmoothness: 0.35,
       color: AppColors.alert,
@@ -338,13 +359,9 @@ class CashflowChart extends StatelessWidget {
       dotData: FlDotData(
         show: true,
         getDotPainter: (spot, percent, barData, index) {
-          final isProjection =
-              index < cashflow.length && cashflow[index].isProjection;
           return FlDotCirclePainter(
-            radius: isProjection ? 3 : 4,
-            color: isProjection
-                ? AppColors.alert.withOpacity(0.6)
-                : AppColors.alert,
+            radius: 4,
+            color: AppColors.alert,
             strokeWidth: 2,
             strokeColor: const Color(0xFF1E1E1E),
           );
@@ -371,6 +388,7 @@ class CashflowChart extends StatelessWidget {
   List<LineChartBarData> _buildProjectionLines(bool isIncome) {
     final projectionLines = <LineChartBarData>[];
 
+    // Find the first projection index
     int? firstProjectionIndex;
     for (var i = 0; i < cashflow.length; i++) {
       if (cashflow[i].isProjection) {
@@ -383,21 +401,41 @@ class CashflowChart extends StatelessWidget {
       return projectionLines;
     }
 
-    final projectionSpots = <FlSpot>[];
+    // Get the value from the last real data point
+    final lastRealValue = isIncome
+        ? cashflow[firstProjectionIndex - 1].income
+        : cashflow[firstProjectionIndex - 1].expense;
 
-    projectionSpots.add(FlSpot(
-      (firstProjectionIndex - 1).toDouble(),
-      isIncome
-          ? cashflow[firstProjectionIndex - 1].income
-          : cashflow[firstProjectionIndex - 1].expense,
-    ));
-
+    // Check if there are any values > 0 in projections
+    bool hasFutureValues = false;
     for (var i = firstProjectionIndex; i < cashflow.length; i++) {
       if (cashflow[i].isProjection) {
-        projectionSpots.add(FlSpot(
-          i.toDouble(),
-          isIncome ? cashflow[i].income : cashflow[i].expense,
-        ));
+        final val = isIncome ? cashflow[i].income : cashflow[i].expense;
+        if (val > 0) {
+          hasFutureValues = true;
+          break;
+        }
+      }
+    }
+
+    // Don't show projection line if there's no real data AND no future data
+    if (lastRealValue <= 0 && !hasFutureValues) {
+      return projectionLines;
+    }
+
+    final projectionSpots = <FlSpot>[];
+
+    // Start from the last real data point
+    projectionSpots.add(FlSpot(
+      (firstProjectionIndex - 1).toDouble(),
+      lastRealValue,
+    ));
+
+    // Add projection points
+    for (var i = firstProjectionIndex; i < cashflow.length; i++) {
+      if (cashflow[i].isProjection) {
+        final value = isIncome ? cashflow[i].income : cashflow[i].expense;
+        projectionSpots.add(FlSpot(i.toDouble(), value));
       }
     }
 
@@ -412,7 +450,19 @@ class CashflowChart extends StatelessWidget {
         barWidth: 2.5,
         isStrokeCapRound: true,
         dashArray: [8, 4],
-        dotData: const FlDotData(show: false),
+        dotData: FlDotData(
+          show: true,
+          getDotPainter: (spot, percent, barData, index) {
+            // Don't show dot for the first point (connection point)
+            if (index == 0) return FlDotCirclePainter(radius: 0, color: Colors.transparent, strokeWidth: 0, strokeColor: Colors.transparent);
+            return FlDotCirclePainter(
+              radius: 3,
+              color: baseColor.withOpacity(0.6),
+              strokeWidth: 1.5,
+              strokeColor: const Color(0xFF1E1E1E),
+            );
+          },
+        ),
         belowBarData: BarAreaData(show: false),
       ),
     );
@@ -421,12 +471,15 @@ class CashflowChart extends StatelessWidget {
   }
 
   LineChartBarData _buildAportesLine() {
+    final spots = _buildRealDataSpots((p) => p.aportes);
+    
+    // Don't render if no real aportes data
+    if (spots.isEmpty || spots.every((s) => s.y == 0)) {
+      return LineChartBarData(spots: []);
+    }
+    
     return LineChartBarData(
-      spots: cashflow
-          .asMap()
-          .entries
-          .map((e) => FlSpot(e.key.toDouble(), e.value.aportes))
-          .toList(),
+      spots: spots,
       isCurved: true,
       curveSmoothness: 0.35,
       color: AppColors.primary,
@@ -435,13 +488,9 @@ class CashflowChart extends StatelessWidget {
       dotData: FlDotData(
         show: true,
         getDotPainter: (spot, percent, barData, index) {
-          final isProjection =
-              index < cashflow.length && cashflow[index].isProjection;
           return FlDotCirclePainter(
-            radius: isProjection ? 3 : 4,
-            color: isProjection
-                ? AppColors.primary.withOpacity(0.6)
-                : AppColors.primary,
+            radius: 4,
+            color: AppColors.primary,
             strokeWidth: 2,
             strokeColor: const Color(0xFF1E1E1E),
           );
@@ -468,6 +517,7 @@ class CashflowChart extends StatelessWidget {
   List<LineChartBarData> _buildAportesProjectionLines() {
     final projectionLines = <LineChartBarData>[];
 
+    // Find the first projection index
     int? firstProjectionIndex;
     for (var i = 0; i < cashflow.length; i++) {
       if (cashflow[i].isProjection) {
@@ -480,13 +530,32 @@ class CashflowChart extends StatelessWidget {
       return projectionLines;
     }
 
+    // Get the value from the last real data point
+    final lastRealValue = cashflow[firstProjectionIndex - 1].aportes;
+
+    // Check if there are any values > 0 in projections
+    bool hasFutureValues = false;
+    for (var i = firstProjectionIndex; i < cashflow.length; i++) {
+      if (cashflow[i].isProjection && cashflow[i].aportes > 0) {
+        hasFutureValues = true;
+        break;
+      }
+    }
+
+    // Don't show projection line if there's no real aportes data AND no future data
+    if (lastRealValue <= 0 && !hasFutureValues) {
+      return projectionLines;
+    }
+
     final projectionSpots = <FlSpot>[];
 
+    // Start from the last real data point
     projectionSpots.add(FlSpot(
       (firstProjectionIndex - 1).toDouble(),
-      cashflow[firstProjectionIndex - 1].aportes,
+      lastRealValue,
     ));
 
+    // Add projection points
     for (var i = firstProjectionIndex; i < cashflow.length; i++) {
       if (cashflow[i].isProjection) {
         projectionSpots.add(FlSpot(
@@ -505,7 +574,19 @@ class CashflowChart extends StatelessWidget {
         barWidth: 2.5,
         isStrokeCapRound: true,
         dashArray: [8, 4],
-        dotData: const FlDotData(show: false),
+        dotData: FlDotData(
+          show: true,
+          getDotPainter: (spot, percent, barData, index) {
+            // Don't show dot for the first point (connection point)
+            if (index == 0) return FlDotCirclePainter(radius: 0, color: Colors.transparent, strokeWidth: 0, strokeColor: Colors.transparent);
+            return FlDotCirclePainter(
+              radius: 3,
+              color: AppColors.primary.withOpacity(0.6),
+              strokeWidth: 1.5,
+              strokeColor: const Color(0xFF1E1E1E),
+            );
+          },
+        ),
         belowBarData: BarAreaData(show: false),
       ),
     );
@@ -563,7 +644,8 @@ class CashflowChart extends StatelessWidget {
     final income = point.income;
     final expense = point.expense;
     final aportes = point.aportes;
-    final balance = income - expense - aportes;
+    // Aportes são transferências para poupança/investimento, não reduzem o saldo
+    final balance = income - expense;
     final isProjection = point.isProjection;
 
     return touchedSpots.asMap().entries.map((entry) {

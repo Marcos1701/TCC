@@ -207,9 +207,9 @@ class _CategoryDistributionState extends State<_CategoryDistribution> {
 
     // Determine available tabs based on data
     final availableTabs = <String, String>{};
+    if (income.isNotEmpty) availableTabs['INCOME'] = 'Receitas';
     if (expenses.isNotEmpty) availableTabs['EXPENSE'] = 'Despesas';
     if (aportes.isNotEmpty) availableTabs['APORTES'] = 'Aportes';
-    if (income.isNotEmpty) availableTabs['INCOME'] = 'Receitas';
 
     // Default to first available if current selection has no data
     if (!availableTabs.containsKey(_selectedType) && availableTabs.isNotEmpty) {

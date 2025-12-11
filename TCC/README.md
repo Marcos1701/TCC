@@ -38,7 +38,7 @@ A maneira mais simples de executar todo o sistema (Backend, Frontend, Banco de D
    Copie o arquivo de exemplo e, se necessário, adicione sua chave da API do Google Gemini.
    ```bash
    cp .env.example .env
-   # Edite o arquivo .env para adicionar GEMINI_API_KEY se desejar testar a IA
+   # Edite o arquivo .env para adicionar GOOGLE_API_KEY se desejar testar a IA
    ```
 
 3. **Inicie os containers:**

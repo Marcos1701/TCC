@@ -40,7 +40,9 @@ class TransactionsSummaryStrip extends StatelessWidget {
     final income = totals['INCOME'] ?? 0;
     final expense = totals['EXPENSE'] ?? 0;
     final aportes = totals['APORTES'] ?? 0;
-    final balance = income - expense - aportes;
+    // Aportes são transferências para poupança/investimento, não despesas que consomem saldo
+    // O saldo correto é apenas income - expense (aportes já estão separados das despesas)
+    final balance = income - expense;
     
     final metrics = [
       SummaryMetric(

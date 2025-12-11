@@ -19,7 +19,7 @@ class Command(BaseCommand):
                 'difficulty': Mission.Difficulty.EASY,
                 'reward_points': 50,
                 'duration_days': 7,
-                'min_transactions': 0,
+                'min_transactions': 5,
                 'priority': 1,
             },
             {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/mission_constants.dart';
+import '../../../../core/models/category.dart';
 import '../../../../core/models/mission_progress.dart';
 import '../../../../core/repositories/finance_repository.dart';
 import '../../../../core/services/feedback_service.dart';
@@ -13,7 +14,7 @@ class MissionDetailsSheet extends StatefulWidget {
   final MissionProgressModel missionProgress;
   final FinanceRepository repository;
   final VoidCallback onUpdate;
-  final Future<bool> Function(int) onStart;
+  final Future<bool> Function(int, {List<int>? categoryIds}) onStart;
   final Future<bool> Function(int) onSkip;
 
   const MissionDetailsSheet({
@@ -61,6 +62,37 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
         _error = 'Erro ao carregar detalhes';
         _loading = false;
       });
+    }
+  }
+
+  /// Mostra diálogo para seleção de categorias a monitorar
+  /// Retorna lista de IDs selecionados, ou [] para "Geral" (todas), ou null se cancelar
+  Future<List<int>?> _showCategorySelectionDialog() async {
+    final mission = widget.missionProgress.mission;
+    final typeFilter = mission.transactionTypeFilter ?? 'EXPENSE';
+    
+    // Determina tipo de categoria a filtrar
+    final categoryType = typeFilter == 'INCOME' ? 'INCOME' : 'EXPENSE';
+    
+    try {
+      final categories = await widget.repository.fetchCategories(type: categoryType);
+      
+      if (!mounted) return null;
+      
+      return await showModalBottomSheet<List<int>>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => _CategorySelectionBottomSheet(
+          categories: categories,
+          transactionType: typeFilter,
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        FeedbackService.showError(context, 'Erro ao carregar categorias');
+      }
+      return null;
     }
   }
 
@@ -782,19 +814,38 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () async {
-              // Captura o ScaffoldMessenger ANTES de fechar o modal
               final messenger = ScaffoldMessenger.of(context);
               final navigator = Navigator.of(context);
+              final mission = widget.missionProgress.mission;
               
-              // Executa a ação primeiro
-              final success = await widget.onStart(widget.missionProgress.mission.id);
+              // Verifica se missão precisa de seleção de categorias
+              final needsCategorySelection = 
+                  mission.validationType == 'CATEGORY_REDUCTION' && 
+                  mission.targetCategory == null;
+              
+              List<int>? selectedCategoryIds;
+              
+              if (needsCategorySelection) {
+                // Mostra seletor de categorias
+                selectedCategoryIds = await _showCategorySelectionDialog();
+                if (selectedCategoryIds == null) {
+                  // Usuário cancelou
+                  return;
+                }
+              }
+              
+              // Executa a ação
+              final success = await widget.onStart(
+                mission.id,
+                categoryIds: selectedCategoryIds,
+              );
               
               // Fecha o modal
               if (mounted) {
                 navigator.pop();
               }
               
-              // Mostra feedback usando o messenger capturado
+              // Mostra feedback
               if (success) {
                 FeedbackService.showSuccessWithMessenger(messenger, 'Desafio aceito! Boa sorte! 🎯');
               } else {
@@ -917,6 +968,287 @@ class _MissionDetailsSheetState extends State<MissionDetailsSheet> {
           ),
         ),
       ],
+    );
+  }
+}
+
+
+
+/// Widget de seleção de categorias para missões de variação percentual
+class _CategorySelectionBottomSheet extends StatefulWidget {
+  final List<CategoryModel> categories;
+  final String transactionType;
+  final bool hasPreviousMonthData;
+
+  const _CategorySelectionBottomSheet({
+    required this.categories,
+    required this.transactionType,
+    this.hasPreviousMonthData = true,
+  });
+
+  @override
+  State<_CategorySelectionBottomSheet> createState() => 
+      _CategorySelectionBottomSheetState();
+}
+
+class _CategorySelectionBottomSheetState 
+    extends State<_CategorySelectionBottomSheet> {
+  final Set<int> _selectedIds = {};
+  bool _useGeneral = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final typeLabel = widget.transactionType == 'INCOME' 
+        ? 'receitas' 
+        : 'despesas';
+    
+    // Mensagem sobre funcionamento
+    final explanationMessage = widget.hasPreviousMonthData
+        ? 'O desafio irá comparar o mês atual com o mês anterior.'
+        : 'Como você não tem dados do mês anterior, o desafio irá comparar o mês atual com o próximo mês.';
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Selecione as categorias',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Escolha quais $typeLabel monitorar neste desafio',
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+          
+          // Mensagem explicativa sobre funcionamento
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[300], size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    explanationMessage,
+                    style: TextStyle(
+                      color: Colors.blue[200],
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Opção "Geral" (todas)
+          _buildOptionTile(
+            title: 'Geral (todas as categorias)',
+            subtitle: 'Monitora todas as suas $typeLabel',
+            icon: Icons.all_inclusive,
+            isSelected: _useGeneral,
+            onTap: () => setState(() {
+              _useGeneral = true;
+              _selectedIds.clear();
+            }),
+          ),
+          
+          const Divider(height: 24),
+          
+          // Opção "Categorias específicas"
+          _buildOptionTile(
+            title: 'Categorias específicas',
+            subtitle: 'Selecione uma ou mais categorias',
+            icon: Icons.category,
+            isSelected: !_useGeneral,
+            onTap: () => setState(() => _useGeneral = false),
+          ),
+          
+          // Lista de categorias quando "específicas" selecionado
+          if (!_useGeneral) ...[
+            const SizedBox(height: 12),
+            
+            // Aviso sobre categorias
+            if (widget.categories.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.orange[300], size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Você precisa ter pelo menos uma $typeLabel cadastrada para selecionar categorias específicas.',
+                        style: TextStyle(
+                          color: Colors.orange[200],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.25,
+                ),
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: widget.categories.map((cat) {
+                      final isSelected = _selectedIds.contains(cat.id);
+                      return FilterChip(
+                        label: Text(cat.name),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedIds.add(cat.id);
+                            } else {
+                              _selectedIds.remove(cat.id);
+                            }
+                          });
+                        },
+                        backgroundColor: theme.colorScheme.surface,
+                        selectedColor: AppColors.primary.withOpacity(0.2),
+                        checkmarkColor: AppColors.primary,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+          ],
+          
+          const SizedBox(height: 24),
+          
+          // Botão confirmar
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_useGeneral) {
+                  Navigator.pop(context, <int>[]);
+                } else if (_selectedIds.isNotEmpty) {
+                  Navigator.pop(context, _selectedIds.toList());
+                } else {
+                  FeedbackService.showWarning(
+                    context, 
+                    'Selecione ao menos uma categoria',
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(_useGeneral 
+                  ? 'CONFIRMAR (TODAS)' 
+                  : 'CONFIRMAR (${_selectedIds.length} selecionadas)'),
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected 
+                ? AppColors.primary 
+                : Colors.grey[700]!,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: isSelected 
+              ? AppColors.primary.withOpacity(0.1) 
+              : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon, 
+              color: isSelected ? AppColors.primary : Colors.grey[400],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? AppColors.primary : null,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12, 
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: AppColors.primary),
+          ],
+        ),
+      ),
     );
   }
 }
