@@ -81,3 +81,46 @@ class MissionUXTests(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('Cannot start', response.data['error'])
+
+    def test_skip_mission_assigns_replacement(self):
+        """Verifica se ao pular uma missão, uma nova é atribuída automaticamente."""
+        # Cria uma missão adicional disponível para atribuição
+        replacement_mission = Mission.objects.create(
+            title='Replacement Mission',
+            description='Should be assigned after skip',
+            mission_type='TPS_IMPROVEMENT',
+            reward_points=50,
+            difficulty='EASY',
+            duration_days=7,
+            is_active=True
+        )
+        
+        # Conta missões ativas antes do skip
+        active_before = MissionProgress.objects.filter(
+            user=self.user,
+            status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+        ).count()
+        
+        url = reverse('mission-skip', kwargs={'pk': self.mission.id})
+        response = self.client.post(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.progress.refresh_from_db()
+        self.assertEqual(self.progress.status, MissionProgress.Status.SKIPPED)
+        
+        # Verifica se uma nova missão foi atribuída
+        active_after = MissionProgress.objects.filter(
+            user=self.user,
+            status__in=[MissionProgress.Status.PENDING, MissionProgress.Status.ACTIVE]
+        ).count()
+        
+        # Deve ter a mesma quantidade (ou próxima) de missões ativas
+        # já que uma foi pulada e uma nova foi atribuída
+        self.assertGreaterEqual(active_after, active_before - 1)
+        
+        # Verifica se a missão de substituição foi atribuída
+        replacement_assigned = MissionProgress.objects.filter(
+            user=self.user,
+            mission=replacement_mission
+        ).exists()
+        self.assertTrue(replacement_assigned, "Nova missão deveria ter sido atribuída após pular")

@@ -25,7 +25,8 @@ class BalanceChart extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
 
-    final balances = cashflow.map((e) => e.income - e.expense - e.aportes).toList();
+    // Aportes são transferências para poupança/investimento, não consomem saldo
+    final balances = cashflow.map((e) => e.income - e.expense).toList();
     final maxBalance =
         balances.reduce((a, b) => a.abs() > b.abs() ? a : b).abs();
     final maxY = maxBalance < 100 ? 100.0 : maxBalance;

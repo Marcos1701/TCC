@@ -18,7 +18,8 @@ class SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final tokens = theme.extension<AppDecorations>()!;
-    final balance = summary.totalIncome - summary.totalExpense - summary.totalAportes;
+    // Aportes são transferências para poupança/investimento, não consomem saldo
+    final balance = summary.totalIncome - summary.totalExpense;
     final isPositive = balance >= 0;
 
     return Container(
@@ -145,19 +146,24 @@ class SummaryCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.savings_rounded, color: AppColors.primary, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Aportes (Poupança/Invest.)',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(Icons.savings_rounded, color: AppColors.primary, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Aportes (Poupança/Invest.)',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Text(
             NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$')

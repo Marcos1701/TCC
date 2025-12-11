@@ -158,17 +158,6 @@ class _MissionsPageState extends State<MissionsPage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  Text(
-                    'Seus desafios ativos e recomendações personalizadas. Complete desafios para ganhar XP.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[400],
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const SizedBox(height: 16),
-                  MissionRecommendationsSection(viewModel: _viewModel),
-                  const SizedBox(height: 24),
                   if (_viewModel.categorySummaries.isNotEmpty) ...[
                     CategoryMissionBadgeList(viewModel: _viewModel),
                     const SizedBox(height: 24),

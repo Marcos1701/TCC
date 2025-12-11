@@ -109,60 +109,7 @@ class _MissionRecommendationsSectionState
           ],
         ),
         const SizedBox(height: 12),
-        ListenableBuilder(
-          listenable: widget.viewModel,
-          builder: (context, _) {
-            if (widget.viewModel.isCatalogLoading &&
-                widget.viewModel.recommendedMissions.isEmpty) {
-              return const RecommendationSkeleton(cardHeight: 300, count: 2);
-            }
-
-            if (widget.viewModel.catalogError != null &&
-                widget.viewModel.recommendedMissions.isEmpty) {
-              return RecommendationError(
-                message: widget.viewModel.catalogError!,
-                onRetry: () =>
-                    widget.viewModel.loadRecommendedMissions(limit: 8),
-              );
-            }
-
-            if (widget.viewModel.recommendedMissions.isEmpty) {
-              return const RecommendationPlaceholder();
-            }
-
-            final missions = widget.viewModel.recommendedMissions;
-            _trackInitialLoad(missions);
-
-            return Column(
-              children: [
-                SizedBox(
-                  height: 300,
-                  child: PageView.builder(
-                    controller: _controller,
-                    onPageChanged: (index) =>
-                        _handlePageChanged(index, missions[index]),
-                    itemCount: missions.length,
-                    itemBuilder: (context, index) {
-                      final mission = missions[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: MissionRecommendationCard(
-                          mission: mission,
-                          onDetails: () => _showDetails(mission),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-                PageIndicator(
-                  length: missions.length,
-                  currentIndex: _currentPage,
-                ),
-              ],
-            );
-          },
-        ),
+        const SizedBox.shrink(),
       ],
     );
   }
